@@ -4,6 +4,9 @@ namespace LifeOS.Core.Shared.DTOs;
 
 public class RegisterRequest
 {
+    [Required, MinLength(3), MaxLength(100)]
+    public string Username { get; init; } = string.Empty;
+
     [Required, EmailAddress, MaxLength(256)]
     public string Email { get; init; } = string.Empty;
 

@@ -22,8 +22,9 @@ public class JwtTokenService(IConfiguration configuration) : IJwtTokenService
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Name, user.DisplayName),
+            new Claim("username", user.Username),
+            new Claim(ClaimTypes.Email, user.Email),
         };
 
         var signingCredentials = new SigningCredentials(

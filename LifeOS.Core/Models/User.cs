@@ -21,6 +21,8 @@ public partial class User
 
     public DateTime? DeletedAt { get; set; }
 
+    public string Username { get; set; } = null!;
+
     public virtual ICollection<EntityLink> EntityLinks { get; set; } = new List<EntityLink>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();

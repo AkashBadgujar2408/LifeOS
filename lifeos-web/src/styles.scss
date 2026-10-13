@@ -1,1 +1,49 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  --lifeos-ink: #141b2e;
+  --lifeos-teal: #159895;
+  --lifeos-green: #57c785;
+  --lifeos-canvas: #f6faf8;
+  --lifeos-surface: #ffffff;
+  --lifeos-border: #dce7e3;
+  --lifeos-text-secondary: #5b6b68;
+  --lifeos-gradient: linear-gradient(135deg, var(--lifeos-ink) 0%, var(--lifeos-teal) 55%, var(--lifeos-green) 100%);
+
+  // Re-theme CoreUI/Bootstrap's primary color to our teal so buttons, links and focus rings pick it up everywhere.
+  --cui-primary: var(--lifeos-teal);
+  --cui-primary-rgb: 21, 152, 149;
+  --cui-link-color: var(--lifeos-teal);
+  --cui-link-color-rgb: 21, 152, 149;
+  --cui-link-hover-color: var(--lifeos-ink);
+  --cui-body-bg: var(--lifeos-canvas);
+  --cui-body-color: var(--lifeos-ink);
+}
+
+body {
+  font-family: 'Manrope', sans-serif;
+  background-color: var(--lifeos-canvas);
+  color: var(--lifeos-ink);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+}
+
+.card {
+  border: 1px solid var(--lifeos-border);
+  box-shadow: none;
+}
+
+// CoreUI's .btn-primary hardcodes its own --cui-btn-* values rather than referencing --cui-primary, so it
+// needs a direct override to actually pick up the LifeOS teal instead of CoreUI's default indigo.
+.btn-primary {
+  --cui-btn-bg: var(--lifeos-teal);
+  --cui-btn-border-color: var(--lifeos-teal);
+  --cui-btn-hover-bg: #0f7a78;
+  --cui-btn-hover-border-color: #0f7a78;
+  --cui-btn-active-bg: #0c615f;
+  --cui-btn-active-border-color: #0c615f;
+  --cui-btn-disabled-bg: var(--lifeos-teal);
+  --cui-btn-disabled-border-color: var(--lifeos-teal);
+  --cui-btn-focus-shadow-rgb: 21, 152, 149;
+}

@@ -1,41 +1,93 @@
-<div class="container d-flex justify-content-center py-5">
-  <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
-    <div class="card-body p-4">
-      <h1 class="h4 mb-4 text-center">Create your LifeOS account</h1>
+<app-auth-layout>
+  <h2 class="h4 mb-4">Create your account</h2>
 
-      <form [formGroup]="form" (ngSubmit)="submit()">
-        <div class="mb-3">
-          <label class="form-label" for="displayName">Name</label>
-          <input id="displayName" type="text" class="form-control" formControlName="displayName" autocomplete="name" />
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="email">Email</label>
-          <input id="email" type="email" class="form-control" formControlName="email" autocomplete="email" />
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="password">Password</label>
-          <input id="password" type="password" class="form-control" formControlName="password" autocomplete="new-password" />
-          <div class="form-text">At least 8 characters.</div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="confirmPassword">Confirm password</label>
-          <input id="confirmPassword" type="password" class="form-control" formControlName="confirmPassword" autocomplete="new-password" />
-          @if (form.errors?.['passwordMismatch'] && form.get('confirmPassword')?.touched) {
-            <div class="text-danger small mt-1">Passwords do not match.</div>
-          }
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100" [disabled]="submitting()">
-          {{ submitting() ? 'Creating account...' : 'Register' }}
-        </button>
-      </form>
-
-      <p class="text-center mt-3 mb-0">
-        Already have an account? <a routerLink="/login">Log in</a>
-      </p>
+  <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="mb-3">
+      <label class="form-label" for="displayName">Name</label>
+      <input
+        id="displayName"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('displayName')"
+        formControlName="displayName"
+        placeholder="Your full name"
+        autocomplete="name"
+      />
+      @if (fieldError('displayName'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
     </div>
-  </div>
-</div>
+
+    <div class="mb-3">
+      <label class="form-label" for="username">Username</label>
+      <input
+        id="username"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('username')"
+        formControlName="username"
+        placeholder="Choose a username"
+        autocomplete="username"
+      />
+      @if (fieldError('username'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="email">Email</label>
+      <input
+        id="email"
+        type="email"
+        class="form-control"
+        [class.is-invalid]="fieldError('email')"
+        formControlName="email"
+        placeholder="you@example.com"
+        autocomplete="email"
+      />
+      @if (fieldError('email'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="password">Password</label>
+      <input
+        id="password"
+        type="password"
+        class="form-control"
+        [class.is-invalid]="fieldError('password')"
+        formControlName="password"
+        placeholder="At least 8 characters"
+        autocomplete="new-password"
+      />
+      @if (fieldError('password'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="confirmPassword">Confirm password</label>
+      <input
+        id="confirmPassword"
+        type="password"
+        class="form-control"
+        [class.is-invalid]="fieldError('confirmPassword')"
+        formControlName="confirmPassword"
+        placeholder="Re-enter your password"
+        autocomplete="new-password"
+      />
+      @if (fieldError('confirmPassword'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100 mt-2" [disabled]="submitting()">
+      {{ submitting() ? 'Creating account...' : 'Create account' }}
+    </button>
+  </form>
+
+  <p class="text-center mt-4 mb-0 text-secondary">
+    Already have an account? <a routerLink="/login">Log in</a>
+  </p>
+</app-auth-layout>

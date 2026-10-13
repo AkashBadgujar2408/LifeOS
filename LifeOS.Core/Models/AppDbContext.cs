@@ -84,10 +84,15 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("([IsDeleted]=(0))");
 
+            entity.HasIndex(e => e.Username, "UX_Users_Username")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Users_CreatedAt");
             entity.Property(e => e.DisplayName).HasMaxLength(200);
             entity.Property(e => e.Email).HasMaxLength(256);
             entity.Property(e => e.PasswordHash).HasMaxLength(500);
+            entity.Property(e => e.Username).HasMaxLength(100);
         });
 
         OnModelCreatingPartial(modelBuilder);

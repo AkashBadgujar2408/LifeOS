@@ -4,6 +4,7 @@ import { Observable, tap } from 'rxjs';
 
 export interface AuthUser {
   userId: number;
+  username: string;
   email: string;
   displayName: string;
 }
@@ -21,13 +22,14 @@ interface ApiResponse<T> {
 }
 
 export interface RegisterPayload {
+  username: string;
   email: string;
   password: string;
   displayName: string;
 }
 
 export interface LoginPayload {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -69,9 +71,9 @@ export class AuthService {
       return;
     }
 
-    const { token, userId, email, displayName } = response.data;
+    const { token, userId, username, email, displayName } = response.data;
     localStorage.setItem(TOKEN_KEY, token);
-    const user: AuthUser = { userId, email, displayName };
+    const user: AuthUser = { userId, username, email, displayName };
     localStorage.setItem(USER_KEY, JSON.stringify(user));
     this.currentUserSignal.set(user);
   }

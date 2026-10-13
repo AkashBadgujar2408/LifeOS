@@ -3,6 +3,7 @@ import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, Validati
 import { Router, RouterLink } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../core/services/auth.service';
+import { AuthLayout } from '../../../shared/components/auth-layout/auth-layout';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -10,10 +11,12 @@ function passwordsMatchValidator(control: AbstractControl): ValidationErrors | n
   return password === confirmPassword ? null : { passwordMismatch: true };
 }
 
+type FieldName = 'displayName' | 'username' | 'email' | 'password' | 'confirmPassword';
+
 @Component({
   selector: 'app-register',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, AuthLayout],
   templateUrl: './register.html',
 })
 export class Register {
@@ -27,6 +30,7 @@ export class Register {
   protected readonly form = this.fb.nonNullable.group(
     {
       displayName: ['', Validators.required],
+      username: ['', [Validators.required, Validators.minLength(3)]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', Validators.required],
@@ -34,16 +38,39 @@ export class Register {
     { validators: passwordsMatchValidator },
   );
 
+  protected fieldError(name: FieldName): string | null {
+    const control = this.form.get(name);
+    if (!control || !control.touched) {
+      return null;
+    }
+
+    if (control.errors?.['required']) {
+      return 'This field is required.';
+    }
+    if (control.errors?.['minlength']) {
+      const requiredLength = control.errors['minlength'].requiredLength;
+      return `Must be at least ${requiredLength} characters.`;
+    }
+    if (control.errors?.['email']) {
+      return 'Enter a valid email address.';
+    }
+    if (name === 'confirmPassword' && this.form.errors?.['passwordMismatch'] && control.value) {
+      return 'Passwords do not match.';
+    }
+
+    return null;
+  }
+
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
-    const { displayName, email, password } = this.form.getRawValue();
+    const { displayName, username, email, password } = this.form.getRawValue();
 
     this.submitting.set(true);
-    this.authService.register({ displayName, email, password }).subscribe({
+    this.authService.register({ displayName, username, email, password }).subscribe({
       next: () => {
         this.submitting.set(false);
         this.router.navigateByUrl('/');

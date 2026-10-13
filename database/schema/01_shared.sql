@@ -14,6 +14,7 @@ BEGIN
     CREATE TABLE shared.Users
     (
         Id              INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        Username        NVARCHAR(100)     NOT NULL,
         Email           NVARCHAR(256)     NOT NULL,
         PasswordHash    NVARCHAR(500)     NOT NULL,
         DisplayName     NVARCHAR(200)     NOT NULL,
@@ -25,8 +26,24 @@ BEGIN
 END
 GO
 
+-- Upgrade path for Users tables created before Username existed (login now uses Username, not Email).
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('shared.Users') AND name = 'Username')
+    ALTER TABLE shared.Users ADD Username NVARCHAR(100) NULL;
+GO
+
+UPDATE shared.Users SET Username = LEFT(Email, CHARINDEX('@', Email) - 1) WHERE Username IS NULL;
+GO
+
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('shared.Users') AND name = 'Username' AND is_nullable = 1)
+    ALTER TABLE shared.Users ALTER COLUMN Username NVARCHAR(100) NOT NULL;
+GO
+
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.Users') AND name = 'UX_Users_Email')
     CREATE UNIQUE INDEX UX_Users_Email ON shared.Users(Email) WHERE IsDeleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.Users') AND name = 'UX_Users_Username')
+    CREATE UNIQUE INDEX UX_Users_Username ON shared.Users(Username) WHERE IsDeleted = 0;
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('shared.LifeAreas'))

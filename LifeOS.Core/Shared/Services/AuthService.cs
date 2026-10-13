@@ -18,8 +18,15 @@ public class AuthService(AppDbContext db, IJwtTokenService jwtTokenService) : IA
             return OperationResult<AuthResponse>.Fail("An account with this email already exists.");
         }
 
+        var usernameExists = await db.Users.AnyAsync(u => u.Username == request.Username);
+        if (usernameExists)
+        {
+            return OperationResult<AuthResponse>.Fail("This username is already taken.");
+        }
+
         var user = new User
         {
+            Username = request.Username,
             Email = request.Email,
             DisplayName = request.DisplayName,
             PasswordHash = string.Empty,
@@ -34,16 +41,16 @@ public class AuthService(AppDbContext db, IJwtTokenService jwtTokenService) : IA
 
     public async Task<OperationResult<AuthResponse>> LoginAsync(LoginRequest request)
     {
-        var user = await db.Users.SingleOrDefaultAsync(u => u.Email == request.Email);
+        var user = await db.Users.SingleOrDefaultAsync(u => u.Username == request.Username);
         if (user is null)
         {
-            return OperationResult<AuthResponse>.Fail("Invalid email or password.");
+            return OperationResult<AuthResponse>.Fail("Invalid username or password.");
         }
 
         var verification = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
         if (verification == PasswordVerificationResult.Failed)
         {
-            return OperationResult<AuthResponse>.Fail("Invalid email or password.");
+            return OperationResult<AuthResponse>.Fail("Invalid username or password.");
         }
 
         return OperationResult<AuthResponse>.Ok(BuildAuthResponse(user));
@@ -57,6 +64,7 @@ public class AuthService(AppDbContext db, IJwtTokenService jwtTokenService) : IA
             Token = token,
             ExpiresAtUtc = expiresAtUtc,
             UserId = user.Id,
+            Username = user.Username,
             Email = user.Email,
             DisplayName = user.DisplayName,
         };

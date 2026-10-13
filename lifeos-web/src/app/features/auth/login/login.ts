@@ -3,11 +3,12 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../../../core/services/auth.service';
+import { AuthLayout } from '../../../shared/components/auth-layout/auth-layout';
 
 @Component({
   selector: 'app-login',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, AuthLayout],
   templateUrl: './login.html',
 })
 export class Login {
@@ -19,9 +20,22 @@ export class Login {
   protected readonly submitting = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    username: ['', Validators.required],
     password: ['', Validators.required],
   });
+
+  protected fieldError(name: 'username' | 'password'): string | null {
+    const control = this.form.get(name);
+    if (!control || !control.touched || !control.errors) {
+      return null;
+    }
+
+    if (control.errors['required']) {
+      return name === 'username' ? 'Username is required.' : 'Password is required.';
+    }
+
+    return null;
+  }
 
   submit(): void {
     if (this.form.invalid) {
