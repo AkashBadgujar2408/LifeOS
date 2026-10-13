@@ -10,12 +10,12 @@ public class AuthService(AppDbContext db, IJwtTokenService jwtTokenService) : IA
 {
     private readonly PasswordHasher<User> passwordHasher = new();
 
-    public async Task<AuthResult> RegisterAsync(RegisterRequest request)
+    public async Task<OperationResult<AuthResponse>> RegisterAsync(RegisterRequest request)
     {
         var emailExists = await db.Users.AnyAsync(u => u.Email == request.Email);
         if (emailExists)
         {
-            return AuthResult.Fail("An account with this email already exists.");
+            return OperationResult<AuthResponse>.Fail("An account with this email already exists.");
         }
 
         var user = new User
@@ -29,24 +29,24 @@ public class AuthService(AppDbContext db, IJwtTokenService jwtTokenService) : IA
         db.Users.Add(user);
         await db.SaveChangesAsync();
 
-        return AuthResult.Ok(BuildAuthResponse(user));
+        return OperationResult<AuthResponse>.Ok(BuildAuthResponse(user));
     }
 
-    public async Task<AuthResult> LoginAsync(LoginRequest request)
+    public async Task<OperationResult<AuthResponse>> LoginAsync(LoginRequest request)
     {
         var user = await db.Users.SingleOrDefaultAsync(u => u.Email == request.Email);
         if (user is null)
         {
-            return AuthResult.Fail("Invalid email or password.");
+            return OperationResult<AuthResponse>.Fail("Invalid email or password.");
         }
 
         var verification = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
         if (verification == PasswordVerificationResult.Failed)
         {
-            return AuthResult.Fail("Invalid email or password.");
+            return OperationResult<AuthResponse>.Fail("Invalid email or password.");
         }
 
-        return AuthResult.Ok(BuildAuthResponse(user));
+        return OperationResult<AuthResponse>.Ok(BuildAuthResponse(user));
     }
 
     private AuthResponse BuildAuthResponse(User user)

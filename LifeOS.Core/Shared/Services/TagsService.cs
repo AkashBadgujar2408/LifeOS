@@ -1,0 +1,94 @@
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using LifeOS.Core.Models;
+using LifeOS.Core.Shared.DTOs;
+using LifeOS.Core.Shared.ServiceContracts;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+
+namespace LifeOS.Core.Shared.Services;
+
+public class TagsService(AppDbContext db, IMapper mapper) : ITagsService
+{
+    private const int SqlUniqueConstraintViolation = 2627;
+    private const int SqlUniqueIndexViolation = 2601;
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex) =>
+        ex.InnerException is SqlException sqlEx &&
+        (sqlEx.Number == SqlUniqueConstraintViolation || sqlEx.Number == SqlUniqueIndexViolation);
+
+    public async Task<List<TagDto>> GetAllAsync()
+    {
+        return await db.Tags
+            .OrderBy(t => t.Name)
+            .ProjectTo<TagDto>(mapper.ConfigurationProvider)
+            .ToListAsync();
+    }
+
+    public async Task<OperationResult<TagDto>> CreateAsync(string name)
+    {
+        var nameExists = await db.Tags.AnyAsync(t => t.Name == name);
+        if (nameExists)
+        {
+            return OperationResult<TagDto>.Fail("A tag with this name already exists.");
+        }
+
+        var tag = new Tag { Name = name, UserId = db.CurrentUserId!.Value };
+        db.Tags.Add(tag);
+
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            return OperationResult<TagDto>.Fail("A tag with this name already exists.");
+        }
+
+        return OperationResult<TagDto>.Ok(mapper.Map<TagDto>(tag));
+    }
+
+    public async Task<OperationResult<TagDto>> RenameAsync(int id, string name)
+    {
+        var tag = await db.Tags.FindAsync(id);
+        if (tag is null)
+        {
+            return OperationResult<TagDto>.Fail("Tag not found.");
+        }
+
+        var nameExists = await db.Tags.AnyAsync(t => t.Name == name && t.Id != id);
+        if (nameExists)
+        {
+            return OperationResult<TagDto>.Fail("A tag with this name already exists.");
+        }
+
+        tag.Name = name;
+        tag.UpdatedAt = DateTime.UtcNow;
+
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            return OperationResult<TagDto>.Fail("A tag with this name already exists.");
+        }
+
+        return OperationResult<TagDto>.Ok(mapper.Map<TagDto>(tag));
+    }
+
+    public async Task<OperationResult<bool>> DeleteAsync(int id)
+    {
+        var tag = await db.Tags.FindAsync(id);
+        if (tag is null)
+        {
+            return OperationResult<bool>.Fail("Tag not found.");
+        }
+
+        tag.IsDeleted = true;
+        tag.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return OperationResult<bool>.Ok(true);
+    }
+}

@@ -4,8 +4,8 @@ namespace LifeOS.Core.Models;
 
 public partial class User : ISoftDeletable;
 
-public partial class Tag : ISoftDeletable;
+public partial class Tag : ISoftDeletable, IUserOwned;
 
-public partial class EntityLink : ISoftDeletable;
+public partial class EntityLink : ISoftDeletable, IUserOwned;
 
 public partial class LifeArea : ISoftDeletable;

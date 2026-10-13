@@ -20,7 +20,7 @@ public class AuthController(IAuthService authService, ICurrentUserService curren
             return BadRequest(ApiResponse<AuthResponse>.Fail(result.Error!));
         }
 
-        return Ok(ApiResponse<AuthResponse>.Ok(result.Response));
+        return Ok(ApiResponse<AuthResponse>.Ok(result.Data));
     }
 
     [HttpPost("login")]
@@ -33,7 +33,7 @@ public class AuthController(IAuthService authService, ICurrentUserService curren
             return Unauthorized(ApiResponse<AuthResponse>.Fail(result.Error!));
         }
 
-        return Ok(ApiResponse<AuthResponse>.Ok(result.Response));
+        return Ok(ApiResponse<AuthResponse>.Ok(result.Data));
     }
 
     [HttpGet("me")]

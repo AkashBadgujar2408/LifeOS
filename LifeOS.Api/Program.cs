@@ -40,6 +40,9 @@ try
     builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
     builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
     builder.Services.AddScoped<IAuthService, AuthService>();
+    builder.Services.AddScoped<ITagsService, TagsService>();
+
+    builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 
     builder.Services
         .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

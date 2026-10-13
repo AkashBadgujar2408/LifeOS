@@ -4,6 +4,6 @@ namespace LifeOS.Core.Shared.ServiceContracts;
 
 public interface IAuthService
 {
-    Task<AuthResult> RegisterAsync(RegisterRequest request);
-    Task<AuthResult> LoginAsync(LoginRequest request);
+    Task<OperationResult<AuthResponse>> RegisterAsync(RegisterRequest request);
+    Task<OperationResult<AuthResponse>> LoginAsync(LoginRequest request);
 }

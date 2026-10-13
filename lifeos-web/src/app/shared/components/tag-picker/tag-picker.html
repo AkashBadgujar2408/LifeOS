@@ -1,0 +1,41 @@
+<div>
+  <div class="d-flex flex-wrap gap-2 mb-2">
+    @for (tag of selectedTags(); track tag.id) {
+      <span class="badge text-bg-primary d-flex align-items-center gap-1">
+        {{ tag.name }}
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          style="font-size: 0.6rem;"
+          aria-label="Remove tag"
+          (click)="removeTag(tag.id)"
+        ></button>
+      </span>
+    }
+    @if (selectedTags().length === 0) {
+      <span class="text-body-secondary small">No tags selected.</span>
+    }
+  </div>
+
+  <div class="input-group input-group-sm mb-2" style="max-width: 300px;">
+    <input
+      type="text"
+      class="form-control"
+      placeholder="New or existing tag..."
+      [ngModel]="newTagName()"
+      (ngModelChange)="newTagName.set($event)"
+      (keyup.enter)="addNewTag()"
+    />
+    <button type="button" class="btn btn-outline-secondary" (click)="addNewTag()">Add</button>
+  </div>
+
+  @if (unselectedTags().length > 0) {
+    <div class="d-flex flex-wrap gap-2">
+      @for (tag of unselectedTags(); track tag.id) {
+        <button type="button" class="badge text-bg-light border" (click)="selectTag(tag)">
+          + {{ tag.name }}
+        </button>
+      }
+    </div>
+  }
+</div>

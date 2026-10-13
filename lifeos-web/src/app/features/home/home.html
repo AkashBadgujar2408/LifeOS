@@ -1,4 +1,23 @@
 <div class="container py-4">
-  <h1 class="h3 mb-3">LifeOS</h1>
-  <p class="text-body-secondary">{{ apiMessage() }}</p>
+  <h1 class="h3 mb-4">LifeOS</h1>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h2 class="h6 text-body-secondary text-uppercase mb-2">API status</h2>
+      <p class="mb-0">{{ apiMessage() }}</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h2 class="h6 text-body-secondary text-uppercase mb-2">Tag picker demo</h2>
+      <p class="text-body-secondary small">
+        Placeholder demo — tag-picker isn't wired to a real entity yet since Goals/Tasks don't exist until later sessions.
+      </p>
+      <app-tag-picker
+        [selectedTagIds]="demoSelectedTagIds()"
+        (selectedTagIdsChange)="demoSelectedTagIds.set($event)"
+      />
+    </div>
+  </div>
 </div>
