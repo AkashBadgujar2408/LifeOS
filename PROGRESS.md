@@ -73,4 +73,30 @@
   - LocalDB instance was stopped at the start of this session (`sqllocaldb start MSSQLLocalDB` was needed) — if `sqlcmd` fails with a login/connection-delay error, check `sqllocaldb info MSSQLLocalDB` for `State: Stopped` first.
   - Remember to use `SET QUOTED_IDENTIFIER ON;`/`SET ANSI_NULLS ON;` and keep filtered-index creation outside table-creation guards in every future `database/schema/*.sql` file (Goals, Tasks, Calendar, Habits, Journal all need this).
 
-- Next up: **Session 4 — Auth: registration + login** (expanded scope — registration screen in addition to login, per your instruction).
+## Last session: 2026-10-13 — Session 4 — Auth: registration + login
+- Shipped (backend, done directly — no forking this time, see note below):
+  - JWT packages: `Microsoft.AspNetCore.Authentication.JwtBearer` (Api), `Microsoft.Extensions.Identity.Core` removed in favor of a `<FrameworkReference Include="Microsoft.AspNetCore.App" />` on `LifeOS.Core` (the old standalone `Microsoft.AspNetCore.Http.Abstractions` NuGet package is obsolete on .NET 10 — ASP.NET Core types ship in the shared framework now), `System.IdentityModel.Tokens.Jwt` (Core).
+  - `LifeOS.Core/Shared/{DTOs,ServiceContracts,Services}`: `RegisterRequest`/`LoginRequest` (DataAnnotations validation) / `AuthResponse` / `AuthResult`, `IAuthService`/`AuthService` (uses `PasswordHasher<User>`, checks for duplicate email, returns a result object rather than throwing for expected business failures), `IJwtTokenService`/`JwtTokenService` (signs a JWT with NameIdentifier/Email/Name claims), `ICurrentUserService`/`CurrentUserService` (reads the JWT claims via `IHttpContextAccessor`).
+  - `Areas/Shared/Controllers/AuthController.cs`: `POST .../register`, `POST .../login` (both `[AllowAnonymous]`), `GET .../me` (`[Authorize]` — a genuinely useful "who am I" endpoint for the Angular app to restore session state, not a throwaway).
+  - JWT bearer authentication wired in `Program.cs` (`Jwt:Key`/`Issuer`/`Audience`/`ExpiryMinutes` in `appsettings.Development.json` — a dev-only secret, fine since this is local-only; a real secret-management story is a pre-hosting concern, not a Month-1 one).
+  - Dropped the Swagger "Authorize" padlock button wiring — `Swashbuckle.AspNetCore` 10.x pairs with a new major `Microsoft.OpenApi` v2 that restructured `OpenApiSecurityScheme`/`OpenApiReference` into different types; not worth fighting a breaking API change for a nice-to-have when curl/the actual Angular app already exercise the auth flow fully.
+
+- Shipped (frontend, done directly):
+  - `core/services/auth.service.ts` (Signals-based `currentUser`/`isAuthenticated`, token+user persisted to `localStorage`), `core/interceptors/auth.interceptor.ts` (attaches `Authorization: Bearer`), `core/guards/auth.guard.ts` (functional guard, redirects to `/login`).
+  - `features/auth/{login,register}` — reactive forms, Bootstrap-styled (no bespoke CSS), lazy-loaded routes, `ngx-toastr` for error feedback, password-confirmation cross-field validator on register.
+  - Shell now shows the logged-in user's display name + a logout button when authenticated.
+  - **LifeOS logo** found at repo root (`LifeOS Connected Wellness Emblem.png`) — copied into `lifeos-web/public/logo.png`, wired as both the favicon and the navbar brand image. (Note: there's also an `okay_logo.png` inside `OkayToolsEIA4` — that's unrelated branding from the reference-only project, not LifeOS's. Worth double-checking before assuming any asset found in that folder is meant for this app.)
+
+- Verified (real browser, not just curl):
+  - Backend: curl-verified register → duplicate-email rejection → wrong-password 401 → correct login → JWT returned → `/me` rejected without a token (401) → `/me` accepted with the token (200, correct `userId`).
+  - Frontend: loaded `/` unauthenticated → confirmed guard redirect to `/login` → filled and submitted the real registration form in the browser → confirmed auto-login and redirect to `/` showing "Browser Test User" + logout button → clicked logout → confirmed redirect to `/login` → logged back in with the same credentials → confirmed `/` renders authenticated again.
+  - `npm run lint` and `npm run build` both clean; `dotnet build` clean.
+
+- Open decisions / notes for future sessions:
+  - **Fork reliability, round 2**: did not delegate Session 4 at all, after Session 2's frontend fork failed twice. Built everything directly instead — slower per-step than a working fork would have been, but zero wasted retries. Worth trying forks again for a future session with a cleaner backend/frontend split (e.g., once schema work is done, a module's API + its Angular screens), but verify real tool-call counts before trusting a "done" report, every time.
+  - **Browser automation gotcha**: the `computer` tool's coordinate-based clicks did not reliably trigger Angular's `(click)`/form-submit handlers during this verification (synthetic clicks landed on the DOM but the framework's event binding didn't fire) — switched to `javascript_tool` calling `element.click()` directly, which worked immediately. If a future session needs to click a submit button via browser automation and nothing happens with no console error, try this instead of re-clicking coordinates.
+  - **Still no per-user global query filter** — `ICurrentUserService` now exists, so this is unblocked. Add a `UserId == currentUserService.UserId` global filter (alongside the existing soft-delete one) in `AppDbContext.SoftDelete.cs` (or a sibling partial) before or during Session 5, so every future user-owned table is automatically scoped without remembering to add `.Where(x => x.UserId == ...)` everywhere by hand.
+  - Minor, deferred: `logo.png` triggers an Angular dev-mode NG0913 console warning (1245×1245 source rendered at 32×32) — harmless, dev-only, worth a real resize during the Milestone 8 UX polish pass, not now.
+  - Two test accounts (`test@lifeos.local`, `browsertest@lifeos.local`) now exist in `LifeOS_UAT` from verification — left in place; this is a dev/UAT database, not worth cleaning up.
+
+- Next up: **Milestone 1 (Session 5) — Tags**: CRUD API + reusable Angular tag-picker component. Good moment to add the per-user global query filter mentioned above before or while building it.

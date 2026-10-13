@@ -1,6 +1,16 @@
 <nav class="navbar navbar-expand navbar-dark bg-dark">
   <div class="container-fluid">
-    <span class="navbar-brand mb-0 h1">LifeOS</span>
+    <span class="navbar-brand mb-0 h1 d-flex align-items-center gap-2">
+      <img src="logo.png" alt="LifeOS" height="32" width="32" />
+      LifeOS
+    </span>
+
+    @if (authService.isAuthenticated()) {
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-light small">{{ authService.currentUser()?.displayName }}</span>
+        <button type="button" class="btn btn-outline-light btn-sm" (click)="logout()">Log out</button>
+      </div>
+    }
   </div>
 </nav>
 

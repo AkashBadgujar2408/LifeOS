@@ -1,6 +1,11 @@
+using System.Text;
 using LifeOS.Api.Infrastructure;
 using LifeOS.Core.Models;
+using LifeOS.Core.Shared.ServiceContracts;
+using LifeOS.Core.Shared.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -31,6 +36,29 @@ try
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();
 
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+    builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+    builder.Services.AddScoped<IAuthService, AuthService>();
+
+    builder.Services
+        .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(1),
+            };
+        });
+    builder.Services.AddAuthorization();
+
     builder.Services.AddCors(options =>
     {
         options.AddPolicy(AngularDevCorsPolicy, policy =>
@@ -54,6 +82,7 @@ try
 
     app.UseCors(AngularDevCorsPolicy);
 
+    app.UseAuthentication();
     app.UseAuthorization();
 
     app.MapControllers();

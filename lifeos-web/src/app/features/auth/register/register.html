@@ -1,0 +1,41 @@
+<div class="container d-flex justify-content-center py-5">
+  <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
+    <div class="card-body p-4">
+      <h1 class="h4 mb-4 text-center">Create your LifeOS account</h1>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="mb-3">
+          <label class="form-label" for="displayName">Name</label>
+          <input id="displayName" type="text" class="form-control" formControlName="displayName" autocomplete="name" />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="email">Email</label>
+          <input id="email" type="email" class="form-control" formControlName="email" autocomplete="email" />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="password">Password</label>
+          <input id="password" type="password" class="form-control" formControlName="password" autocomplete="new-password" />
+          <div class="form-text">At least 8 characters.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="confirmPassword">Confirm password</label>
+          <input id="confirmPassword" type="password" class="form-control" formControlName="confirmPassword" autocomplete="new-password" />
+          @if (form.errors?.['passwordMismatch'] && form.get('confirmPassword')?.touched) {
+            <div class="text-danger small mt-1">Passwords do not match.</div>
+          }
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" [disabled]="submitting()">
+          {{ submitting() ? 'Creating account...' : 'Register' }}
+        </button>
+      </form>
+
+      <p class="text-center mt-3 mb-0">
+        Already have an account? <a routerLink="/login">Log in</a>
+      </p>
+    </div>
+  </div>
+</div>
