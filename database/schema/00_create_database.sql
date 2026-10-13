@@ -1,0 +1,5 @@
+IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = 'LifeOS_UAT')
+BEGIN
+    CREATE DATABASE LifeOS_UAT;
+END
+GO

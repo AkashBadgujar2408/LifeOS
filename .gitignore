@@ -16,6 +16,9 @@ lifeos-web/.angular/
 *.log
 logs/
 
+# DB backups (binary, local only)
+database/backups/
+
 # OS
 Thumbs.db
 .DS_Store

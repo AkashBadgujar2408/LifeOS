@@ -52,4 +52,25 @@
   - ag-Grid theming (legacy CSS vs. new Theming API) will need to be decided for real once a grid is actually built — current lean is the new Theming API (`themeQuartz` or similar) since that's v36's default path and avoids depending on a CSS file that may not exist in future versions.
   - User has asked to also support **multiple users** (not just one seeded account) and to add a **registration screen** alongside login — this changes Session 3's schema design (every user-owned table needs a `UserId` column, not just a single implicit user) and Session 4's scope (register + login, not login-only). Both get folded into Sessions 3–4, done next.
 
-- Next up: **Session 3 — Database & base entities (multi-user)**, then **Session 4 — Auth: registration + login**.
+## Last session: 2026-10-13 — Session 3 — Database & base entities (multi-user)
+- Shipped:
+  - `database/schema/00_create_database.sql` (creates `LifeOS_UAT` if missing) and `01_shared.sql` (schema `shared`: `Users`, `LifeAreas`, `Tags`, `EntityLinks`, all with the base audit columns — `CreatedAt`/`UpdatedAt`/`IsDeleted`/`DeletedAt`, UTC via `SYSUTCDATETIME()`).
+  - **Multi-user redesign** (per your instruction): `shared.Users` has no seeded single user anymore — it's a real multi-row table (`Email` unique, `PasswordHash`, `DisplayName`), populated by registration in Session 4. `Tags` and `EntityLinks` both carry a `UserId` FK — every user-owned table from here on gets a `UserId` column, not just a single implicit user. `LifeAreas` stays global/unscoped (shared taxonomy, not personal data), seeded with 6 rows (Career, Learning, Health, Finance, Relationships, Personal / Fun).
+  - `Scaffold-DbContext` run successfully → `LifeOS.Core/Models/{AppDbContext,User,Tag,EntityLink,LifeArea}.cs`. Had to add `Microsoft.EntityFrameworkCore.Design` to `LifeOS.Api` too (EF tooling needs it on the *startup* project, not just `LifeOS.Core`).
+  - Soft-delete: `LifeOS.Core/Shared/ModelExtensions/ISoftDeletable.cs` + partial-class declarations on all 4 scaffolded entities + a reflective global query filter added via the scaffolded `OnModelCreatingPartial` hook (`AppDbContext.SoftDelete.cs`) — applies to every current and future `ISoftDeletable` entity automatically, no per-entity config needed.
+  - `AppDbContext` registered in `LifeOS.Api`'s DI (`appsettings.json` → `ConnectionStrings:LifeOS`, LocalDB, Trusted Connection — no password involved, safe to commit).
+  - Fixed a real bug along the way: filtered indexes (`WHERE IsDeleted = 0`) fail under `sqlcmd`'s default `QUOTED_IDENTIFIER OFF` session setting — added `SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON;` to the top of schema scripts, and moved index-creation out of the table-creation `IF NOT EXISTS` guards so scripts stay safely re-runnable.
+  - Fixed another: the try/catch wrapping `Program.cs` was logging EF Core design-time tooling's benign `HostAbortedException` as a fatal crash every time `dotnet ef` runs — added a specific catch clause to suppress just that one, expected case.
+  - `database/Scaffold-DbContext-Command.txt` and `database/Backup-Command.txt` written (backup command actually tested — `BACKUP DATABASE LifeOS_UAT TO DISK = ...` succeeded, 450 pages). `database/backups/` gitignored (binary, local-only).
+
+- Verified:
+  - `dotnet build` clean.
+  - `dotnet ef dbcontext info` confirmed the context resolves against `LifeOS_UAT` on `(localdb)\mssqllocaldb`.
+  - Temporary debug endpoint (`GET /api/Shared/Ping/db-check`, removed afterward) queried `AppDbContext.LifeAreas` through the real running API and returned all 6 seeded rows in the correct sort order — proves EF Core, the scaffolded model, and the soft-delete filter plumbing all work together, not just that it compiles.
+
+- Open decisions / notes for future sessions:
+  - **No per-user global query filter yet** — only soft-delete is filtered globally right now. A `UserId == currentUserId` filter (so every query auto-scopes to the logged-in user) needs an `ICurrentUserService` reading the JWT claims, which doesn't exist until Session 4's auth is built. Add it then, not before — doing it now would have nothing real to filter against.
+  - LocalDB instance was stopped at the start of this session (`sqllocaldb start MSSQLLocalDB` was needed) — if `sqlcmd` fails with a login/connection-delay error, check `sqllocaldb info MSSQLLocalDB` for `State: Stopped` first.
+  - Remember to use `SET QUOTED_IDENTIFIER ON;`/`SET ANSI_NULLS ON;` and keep filtered-index creation outside table-creation guards in every future `database/schema/*.sql` file (Goals, Tasks, Calendar, Habits, Journal all need this).
+
+- Next up: **Session 4 — Auth: registration + login** (expanded scope — registration screen in addition to login, per your instruction).

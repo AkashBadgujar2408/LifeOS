@@ -1,4 +1,6 @@
 using LifeOS.Api.Infrastructure;
+using LifeOS.Core.Models;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -19,6 +21,9 @@ try
     // Add services to the container.
 
     builder.Services.AddControllers();
+
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("LifeOS")));
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
@@ -54,6 +59,10 @@ try
     app.MapControllers();
 
     app.Run();
+}
+catch (Microsoft.Extensions.Hosting.HostAbortedException)
+{
+    // Expected: EF Core design-time tooling (e.g. `dotnet ef`) builds the host then aborts it deliberately.
 }
 catch (Exception ex)
 {

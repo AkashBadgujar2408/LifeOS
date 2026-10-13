@@ -1,0 +1,11 @@
+Manual backup of the LifeOS_UAT database (run periodically — there is no automated backup job in Month 1, see LifeOS_Development_Plan.md Section 2 gaps table).
+
+From a shell with sqlcmd available:
+
+sqlcmd -S "(localdb)\mssqllocaldb" -Q "BACKUP DATABASE LifeOS_UAT TO DISK = 'D:\My Projects\LifeOS\database\backups\LifeOS_UAT.bak' WITH INIT"
+
+Restore (if ever needed):
+
+sqlcmd -S "(localdb)\mssqllocaldb" -Q "RESTORE DATABASE LifeOS_UAT FROM DISK = 'D:\My Projects\LifeOS\database\backups\LifeOS_UAT.bak' WITH REPLACE"
+
+The database/backups/ folder is gitignored — backups are binary and local, not meant to live in source control.

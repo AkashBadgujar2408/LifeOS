@@ -1,0 +1,7 @@
+Use the following command (from the Package Manager Console in Visual Studio, or `dotnet ef dbcontext scaffold` from the CLI) to scaffold AppDbContext after any schema change in database/schema/*.sql has been applied:
+
+Scaffold-DbContext "Server=(localdb)\mssqllocaldb;Database=LifeOS_UAT;Trusted_Connection=True;TrustServerCertificate=True" Microsoft.EntityFrameworkCore.SqlServer -OutputDir Models -Context AppDbContext -force -NoOnConfiguring -Project LifeOS.Core -StartupProject LifeOS.Api
+
+CLI equivalent (what this project actually uses, since it's built via `dotnet` CLI, not Visual Studio's Package Manager Console):
+
+dotnet ef dbcontext scaffold "Server=(localdb)\mssqllocaldb;Database=LifeOS_UAT;Trusted_Connection=True;TrustServerCertificate=True" Microsoft.EntityFrameworkCore.SqlServer --output-dir Models --context AppDbContext --force --no-onconfiguring --project LifeOS.Core --startup-project LifeOS.Api
