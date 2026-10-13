@@ -1,0 +1,21 @@
+# Unrelated reference project (has its own git repo) — never track here
+OkayToolsEIA4/
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Angular / Node
+lifeos-web/node_modules/
+lifeos-web/dist/
+lifeos-web/.angular/
+
+# Logs
+*.log
+logs/
+
+# OS
+Thumbs.db
+.DS_Store
