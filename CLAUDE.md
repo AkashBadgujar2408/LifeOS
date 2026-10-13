@@ -23,9 +23,12 @@ Bootstrap 5, ng-bootstrap, @coreui/angular (free tier), ag-Grid Community, Sweet
 - Standalone components only, feature-folder structure under `src/app/features/<module>`.
 - One data-access service per feature wrapping `HttpClient`; no `HttpClient` in components.
 - Signals for local state, OnPush change detection, reactive forms.
-- One shared layout/shell wraps every route; style with Bootstrap utilities + shared SCSS partials, not bespoke per-component CSS — exception only for modules that genuinely need custom visuals (Dashboard, Calendar).
-- `angular-eslint` + Prettier must pass before a session is considered done.
+- One shared layout/shell (`core/layout/shell.ts`) wraps every route; style with CoreUI/Bootstrap utilities + shared SCSS partials, not bespoke per-component CSS — exception only for modules that genuinely need custom visuals (Dashboard, Calendar).
+- `angular-eslint` + Prettier must pass before a session is considered done. `tsconfig.json` needs `"strict": true` set explicitly — Angular 22's `ng new` no longer sets the bundled flag by default.
+- **No `.spec.ts` maintenance** as routine scaffolding — only write/keep tests for components or services with real logic (progress/streak/recurrence calculations, date math), not for templates or thin wrappers.
 - `lifeos-web/` lives directly at the repo root (not nested under a `client/` folder).
+- `@coreui/coreui/dist/css/coreui.min.css` is the *one* global CSS framework (Bootstrap-compatible superset) — don't also load plain `bootstrap.css`, that duplicates/conflicts with it.
+- ag-Grid (v36+) uses the newer JS-based Theming API (e.g. `theme={themeQuartz}` set per-grid in code), not a global CSS theme file — wire it where a grid is actually built, not globally.
 
 ## Workflow
 - See `LifeOS_Development_Plan.md` for the full roadmap, deviations from the original blueprint, and the Month 2–4 timeline.

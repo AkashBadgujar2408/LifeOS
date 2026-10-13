@@ -153,7 +153,7 @@ Angular side conventions (standards you asked for explicitly):
 - Signals for local/component state; plain RxJS for HTTP streams. No NgRx for Month 1 — the app isn't big enough yet to need it; revisit if state sharing across many features gets painful.
 - **One shared app layout/shell** (`core/layout/`: header, sidebar/nav, content outlet — built in Session 8) wraps every feature route. Styling comes from Bootstrap utility classes + a small set of shared SCSS partials (variables, mixins) — **not** bespoke per-component CSS sprinkled across every module (confirmed with you). Custom CSS is only acceptable where a module genuinely needs it visually (Dashboard widgets/charts, Calendar grid) — the exception, not the default.
 - `angular-eslint` + Prettier enforced via a pre-commit check from Session 2 onward.
-- Unit tests alongside components/services (Jasmine/Karma, Angular's default) for anything with real logic (progress calculations, streak logic, date aggregation) — not for pure templates.
+- **No `.spec.ts` maintenance as routine scaffolding** (confirmed with you in Session 2) — tests only get written for components/services with real logic (progress calculations, streak logic, date aggregation), not for templates or thin wrappers.
 
 ---
 
@@ -197,7 +197,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
 | 1 | ✅ Solution & Angular scaffold | `.sln` with `LifeOS.Core` + `LifeOS.Api` (.NET 10, Areas-based controllers), Angular app (`lifeos-web`, standalone, at repo root) created, both run and talk to each other via a hello-world endpoint (`Areas/Shared/Controllers/PingController`) rendered in Angular through the dev proxy; git repo initialized | **Done** — `dotnet run` + `ng serve` both work, browser confirmed rendering live API data end to end |
-| 2 | Tooling & conventions | ESLint/Prettier/strict TS wired; Serilog wired; global exception-handling middleware; standard API response envelope; Swagger | Lint passes, a thrown exception returns a clean JSON error, Swagger UI loads |
+| 2 | ✅ Tooling & conventions | ESLint/Prettier/strict TS wired; Serilog wired; global exception-handling middleware; standard API response envelope; Swagger; fixed frontend library set installed; shared layout shell built | **Done** — lint clean, build clean, thrown exception returns a clean `ApiResponse` JSON error, Swagger UI loads, shell+Home verified rendering in browser with zero console errors |
 | 3 | Database & base entities | `database/schema/01_shared.sql` creating schema `shared` with `shared.Users`/`shared.Tags`/`shared.EntityLinks`/`shared.LifeAreas` (seeded fixed list), base audit columns (CreatedAt/UpdatedAt, **IsDeleted/DeletedAt**, **all dates UTC**) on every table; apply to `LifeOS_UAT` on LocalDB; run `Scaffold-DbContext -force` to generate `LifeOS.Core/Models`; add `ISoftDeletable` partial classes + global query filter; seed single user; document the manual DB backup command | Script runs clean on a fresh LocalDB; scaffold regenerates Models without errors; seeded user and Life Areas exist; backup command tested once |
 | 4 | Auth | JWT login endpoint, Angular login screen, auth guard + HTTP interceptor, logout | Can log in, hit a protected route, get rejected when logged out |
 

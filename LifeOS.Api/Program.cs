@@ -1,35 +1,65 @@
-var builder = WebApplication.CreateBuilder(args);
+using LifeOS.Api.Infrastructure;
+using Serilog;
 
-const string AngularDevCorsPolicy = "AngularDev";
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+    .WriteTo.Console()
+    .WriteTo.File("logs/lifeos-.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
-builder.Services.AddCors(options =>
+try
 {
-    options.AddPolicy(AngularDevCorsPolicy, policy =>
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyHeader()
-              .AllowAnyMethod());
-});
+    var builder = WebApplication.CreateBuilder(args);
 
-var app = builder.Build();
+    const string AngularDevCorsPolicy = "AngularDev";
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
+    builder.Host.UseSerilog();
+
+    // Add services to the container.
+
+    builder.Services.AddControllers();
+
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen();
+
+    builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+    builder.Services.AddProblemDetails();
+
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy(AngularDevCorsPolicy, policy =>
+            policy.WithOrigins("http://localhost:4200")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod());
+    });
+
+    var app = builder.Build();
+
+    app.UseExceptionHandler();
+
+    // Configure the HTTP request pipeline.
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseHttpsRedirection();
+
+    app.UseCors(AngularDevCorsPolicy);
+
+    app.UseAuthorization();
+
+    app.MapControllers();
+
+    app.Run();
 }
-
-app.UseHttpsRedirection();
-
-app.UseCors(AngularDevCorsPolicy);
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
+catch (Exception ex)
+{
+    Log.Fatal(ex, "LifeOS.Api terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
