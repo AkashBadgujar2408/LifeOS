@@ -96,3 +96,35 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('goals.GoalTags') AND name = 'IX_GoalTags_Tag')
     CREATE INDEX IX_GoalTags_Tag ON goals.GoalTags(TagId) WHERE IsDeleted = 0;
 GO
+
+-- Session 11: a goal's review history. Postponing, abandoning or revising a goal must not erase how it got
+-- there, so each status change and each revision (an edit with a reason) is logged here, newest read first.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('goals.GoalHistory'))
+BEGIN
+    CREATE TABLE goals.GoalHistory
+    (
+        Id                  INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_GoalHistory PRIMARY KEY,
+        UserId              INT               NOT NULL CONSTRAINT FK_GoalHistory_Users REFERENCES shared.Users(Id),
+        GoalId              INT               NOT NULL CONSTRAINT FK_GoalHistory_Goals REFERENCES goals.Goals(Id),
+        EventType           NVARCHAR(20)      NOT NULL CONSTRAINT CK_GoalHistory_EventType CHECK (EventType IN ('StatusChanged', 'Revised')),
+        -- StatusChanged: from -> to.
+        FromStatus          NVARCHAR(20)      NULL,
+        ToStatus            NVARCHAR(20)      NULL,
+        -- Revised: which fields changed (comma-separated property names), plus the target date move if any,
+        -- since "pushed the deadline from X to Y" is the revision worth seeing at a glance.
+        ChangedFields       NVARCHAR(200)     NULL,
+        PreviousTargetDate  DATE              NULL,
+        NewTargetDate       DATE              NULL,
+        Note                NVARCHAR(1000)    NULL,
+        CreatedAt           DATETIME2         NOT NULL CONSTRAINT DF_GoalHistory_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt           DATETIME2         NULL,
+        IsDeleted           BIT               NOT NULL CONSTRAINT DF_GoalHistory_IsDeleted DEFAULT (0),
+        DeletedAt           DATETIME2         NULL,
+        CONSTRAINT CK_GoalHistory_StatusChange CHECK (EventType <> 'StatusChanged' OR (FromStatus IS NOT NULL AND ToStatus IS NOT NULL))
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('goals.GoalHistory') AND name = 'IX_GoalHistory_Goal')
+    CREATE INDEX IX_GoalHistory_Goal ON goals.GoalHistory(GoalId, CreatedAt) WHERE IsDeleted = 0;
+GO

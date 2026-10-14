@@ -55,6 +55,18 @@ public class GoalsController(IGoalsService goalsService) : ControllerBase
         return Ok(ApiResponse<GoalDetailDto>.Ok(result.Data));
     }
 
+    [HttpPut("{id:int}/status")]
+    public async Task<IActionResult> SetStatus(int id, SetGoalStatusRequest request)
+    {
+        var result = await goalsService.SetStatusAsync(id, request);
+        if (!result.Success)
+        {
+            return BadRequest(ApiResponse<GoalDetailDto>.Fail(result.Error!));
+        }
+
+        return Ok(ApiResponse<GoalDetailDto>.Ok(result.Data));
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

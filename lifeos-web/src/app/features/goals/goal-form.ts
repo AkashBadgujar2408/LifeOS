@@ -61,6 +61,7 @@ export class GoalForm implements OnInit {
     goalType: this.fb.nonNullable.control<GoalType>('ShortTerm'),
     targetDate: this.fb.control<string | null>(null),
     description: this.fb.nonNullable.control('', Validators.maxLength(4000)),
+    revisionNote: this.fb.nonNullable.control('', Validators.maxLength(1000)),
   });
 
   protected get isEdit(): boolean {
@@ -90,6 +91,7 @@ export class GoalForm implements OnInit {
               goalType: goal.goalType,
               targetDate: goal.targetDate,
               description: goal.description ?? '',
+              revisionNote: '',
             });
             this.tagIds.set(goal.tags.map((t) => t.id));
             this.loading.set(false);
@@ -102,7 +104,9 @@ export class GoalForm implements OnInit {
     }
   }
 
-  protected fieldError(name: 'title' | 'lifeAreaId' | 'targetDate' | 'description'): string | null {
+  protected fieldError(
+    name: 'title' | 'lifeAreaId' | 'targetDate' | 'description' | 'revisionNote',
+  ): string | null {
     const control = this.form.controls[name];
     if (!control.touched || !control.errors) {
       return null;
@@ -119,9 +123,11 @@ export class GoalForm implements OnInit {
     }
 
     if (control.errors['maxlength']) {
-      return name === 'title'
-        ? 'Keep the title under 200 characters.'
-        : 'Keep the description under 4000 characters.';
+      return {
+        title: 'Keep the title under 200 characters.',
+        description: 'Keep the description under 4000 characters.',
+        revisionNote: 'Keep the note under 1000 characters.',
+      }[name as 'title' | 'description' | 'revisionNote'];
     }
 
     return null;
@@ -143,6 +149,7 @@ export class GoalForm implements OnInit {
       targetDate: value.targetDate || null,
       description: value.description.trim() || null,
       tagIds: this.tagIds(),
+      revisionNote: value.revisionNote.trim() || null,
     };
 
     const id = this.id();
@@ -154,7 +161,7 @@ export class GoalForm implements OnInit {
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (goal) => {
         this.toastr.success(
-          id ? 'Goal updated.' : `"${goal.title}" is set. Now add some milestones.`,
+          id ? 'Goal revised.' : `"${goal.title}" is set. Now add some milestones.`,
         );
         this.router.navigate(['/goals', goal.id]);
       },

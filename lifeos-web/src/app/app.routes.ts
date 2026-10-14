@@ -71,7 +71,7 @@ export const routes: Routes = [
       },
       {
         path: 'goals/:id/edit',
-        title: 'Edit goal | LifeOS',
+        title: 'Revise goal | LifeOS',
         loadComponent: () => import('./features/goals/goal-form').then((m) => m.GoalForm),
       },
       placeholder('tasks', 'Tasks', {

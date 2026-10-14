@@ -31,6 +31,8 @@ public partial class Goal
 
     public DateTime? DeletedAt { get; set; }
 
+    public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();
+
     public virtual ICollection<GoalMilestone> GoalMilestones { get; set; } = new List<GoalMilestone>();
 
     public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();

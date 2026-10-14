@@ -91,13 +91,32 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
             return OperationResult<GoalDetailDto>.Fail(error);
         }
 
+        var wanted = request.TagIds.Distinct().ToHashSet();
+        var current = await db.GoalTags.Where(gt => gt.GoalId == id).ToListAsync();
+        var tagsChanged = !wanted.SetEquals(current.Select(gt => gt.TagId));
+
+        // Any real change is a revision: log what changed (and the target date move) before overwriting it.
+        var changedFields = ChangedFields(goal, request, tagsChanged);
+        if (changedFields.Count > 0)
+        {
+            var targetDateMoved = goal.TargetDate != request.TargetDate;
+            db.GoalHistories.Add(new GoalHistory
+            {
+                UserId = goal.UserId,
+                GoalId = id,
+                EventType = GoalHistoryEvents.Revised,
+                ChangedFields = string.Join(',', changedFields),
+                PreviousTargetDate = targetDateMoved ? goal.TargetDate : null,
+                NewTargetDate = targetDateMoved ? request.TargetDate : null,
+                Note = NormalizeNote(request.RevisionNote),
+            });
+            goal.UpdatedAt = DateTime.UtcNow;
+        }
+
         Apply(goal, request);
-        goal.UpdatedAt = DateTime.UtcNow;
 
         // Sync tags: soft-delete the removed ones, add a fresh row for each added one (the filtered unique
         // index lets a previously removed tag come back as a new row).
-        var wanted = request.TagIds.Distinct().ToHashSet();
-        var current = await db.GoalTags.Where(gt => gt.GoalId == id).ToListAsync();
         foreach (var goalTag in current.Where(gt => !wanted.Contains(gt.TagId)))
         {
             goalTag.IsDeleted = true;
@@ -122,6 +141,38 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         return await GetAsync(id);
     }
 
+    public async Task<OperationResult<GoalDetailDto>> SetStatusAsync(int id, SetGoalStatusRequest request)
+    {
+        var goal = await db.Goals.FindAsync(id);
+        if (goal is null)
+        {
+            return OperationResult<GoalDetailDto>.Fail(NotFound);
+        }
+
+        if (goal.Status == request.Status)
+        {
+            return OperationResult<GoalDetailDto>.Fail($"This goal is already {request.Status.ToLowerInvariant()}.");
+        }
+
+        db.GoalHistories.Add(new GoalHistory
+        {
+            UserId = goal.UserId,
+            GoalId = id,
+            EventType = GoalHistoryEvents.StatusChanged,
+            FromStatus = goal.Status,
+            ToStatus = request.Status,
+            Note = NormalizeNote(request.Note),
+        });
+
+        // CK_Goals_CompletedAt: only a Completed goal may carry CompletedAt, so leaving Completed clears it.
+        goal.Status = request.Status;
+        goal.CompletedAt = request.Status == GoalStatuses.Completed ? DateTime.UtcNow : null;
+        goal.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        return await GetAsync(id);
+    }
+
     public async Task<OperationResult<bool>> DeleteAsync(int id)
     {
         var goal = await db.Goals.FindAsync(id);
@@ -139,6 +190,9 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         await db.GoalTags
             .Where(gt => gt.GoalId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(gt => gt.IsDeleted, true).SetProperty(gt => gt.DeletedAt, now));
+        await db.GoalHistories
+            .Where(h => h.GoalId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(h => h.IsDeleted, true).SetProperty(h => h.DeletedAt, now));
 
         goal.IsDeleted = true;
         goal.DeletedAt = now;
@@ -170,6 +224,45 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
 
         return null;
     }
+
+    /// <summary>Names match GoalRequest/Goal properties ("Tags" for the tag set); the UI turns them into labels.</summary>
+    private static List<string> ChangedFields(Goal goal, GoalRequest request, bool tagsChanged)
+    {
+        var changed = new List<string>();
+        if (goal.Title != request.Title.Trim())
+        {
+            changed.Add(nameof(Goal.Title));
+        }
+
+        if (goal.Description != (string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim()))
+        {
+            changed.Add(nameof(Goal.Description));
+        }
+
+        if (goal.LifeAreaId != request.LifeAreaId)
+        {
+            changed.Add(nameof(Goal.LifeArea));
+        }
+
+        if (goal.GoalType != request.GoalType)
+        {
+            changed.Add(nameof(Goal.GoalType));
+        }
+
+        if (goal.TargetDate != request.TargetDate)
+        {
+            changed.Add(nameof(Goal.TargetDate));
+        }
+
+        if (tagsChanged)
+        {
+            changed.Add("Tags");
+        }
+
+        return changed;
+    }
+
+    private static string? NormalizeNote(string? note) => string.IsNullOrWhiteSpace(note) ? null : note.Trim();
 
     private static void Apply(Goal goal, GoalRequest request)
     {

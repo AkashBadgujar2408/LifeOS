@@ -16,7 +16,7 @@
       </div>
       <div class="d-flex gap-2">
         <a [routerLink]="['/goals', goal.id, 'edit']" class="btn btn-outline-secondary btn-sm">
-          <i class="bi bi-pencil"></i> Edit
+          <i class="bi bi-pencil"></i> Revise
         </a>
         <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeGoal(goal)">
           <i class="bi bi-trash"></i> Delete
@@ -267,9 +267,85 @@
             </form>
           </div>
         </div>
+
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h6 mb-3">History</h2>
+            <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+              @for (entry of goal.history; track entry.id) {
+                <li class="d-flex gap-2">
+                  @if (entry.eventType === 'StatusChanged') {
+                    <i
+                      class="bi {{ statusMeta[entry.toStatus!].icon }} {{
+                        statusMeta[entry.toStatus!].tone
+                      }}"
+                    ></i>
+                  } @else {
+                    <i class="bi bi-pencil-square text-body-secondary"></i>
+                  }
+                  <div class="min-w-0 small">
+                    <div>
+                      <span class="fw-semibold">{{ historyTitle(entry) }}</span>
+                      <span class="text-body-secondary">
+                        · {{ entry.createdAt | date: dateTimeFormat }}</span
+                      >
+                    </div>
+                    @if (entry.eventType === 'Revised') {
+                      <div class="text-body-secondary">{{ revisionSummary(entry) }}</div>
+                    }
+                    @if (entry.note) {
+                      <div class="fst-italic text-break" style="white-space: pre-line">
+                        “{{ entry.note }}”
+                      </div>
+                    }
+                  </div>
+                </li>
+              }
+              <li class="d-flex gap-2">
+                <i class="bi bi-flag text-body-secondary"></i>
+                <div class="small">
+                  <span class="fw-semibold">Goal set</span>
+                  <span class="text-body-secondary">
+                    · {{ goal.createdAt | date: dateTimeFormat }}</span
+                  >
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       <div class="col-lg-4 d-flex flex-column gap-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <i
+                class="bi {{ statusMeta[goal.status].icon }} fs-5 {{
+                  statusMeta[goal.status].tone
+                }}"
+              ></i>
+              <div>
+                <div class="fw-semibold">{{ statusMeta[goal.status].label }}</div>
+                <div class="small text-body-secondary">since {{ statusSince(goal) | date }}</div>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              @for (action of statusActions(goal); track action.status) {
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  [class.btn-primary]="action.primary"
+                  [class.btn-outline-secondary]="!action.primary"
+                  [disabled]="changingStatus()"
+                  (click)="changeStatus(goal, action)"
+                >
+                  <i class="bi {{ statusMeta[action.status].icon }}"></i> {{ action.label }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-body">
             <dl class="mb-0 small">

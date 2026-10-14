@@ -10,6 +10,9 @@ public class GoalsProfile : Profile
     public GoalsProfile()
     {
         CreateMap<GoalMilestone, GoalMilestoneDto>();
+        CreateMap<GoalHistory, GoalHistoryDto>()
+            .ForMember(d => d.ChangedFieldsCsv, o => o.MapFrom(h => h.ChangedFields))
+            .ForMember(d => d.ChangedFields, o => o.Ignore());
 
         // Projected straight to SQL via ProjectTo; ProgressPercent is filled in afterwards by GoalProgress.
         CreateMap<Goal, GoalSummaryDto>()
@@ -28,6 +31,8 @@ public class GoalsProfile : Profile
         CreateMap<Goal, GoalDetailDto>()
             .IncludeBase<Goal, GoalSummaryDto>()
             .ForMember(d => d.Milestones, o => o.MapFrom(g => g.GoalMilestones
-                .OrderBy(m => m.SortOrder).ThenBy(m => m.Id)));
+                .OrderBy(m => m.SortOrder).ThenBy(m => m.Id)))
+            .ForMember(d => d.History, o => o.MapFrom(g => g.GoalHistories
+                .OrderByDescending(h => h.CreatedAt).ThenByDescending(h => h.Id)));
     }
 }

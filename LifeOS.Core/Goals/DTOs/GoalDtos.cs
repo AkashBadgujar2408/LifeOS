@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using LifeOS.Core.Shared.DTOs;
 
 namespace LifeOS.Core.Goals.DTOs;
@@ -41,6 +42,43 @@ public class GoalDetailDto : GoalSummaryDto
     public string? Description { get; init; }
     public DateTime CreatedAt { get; init; }
     public List<GoalMilestoneDto> Milestones { get; init; } = [];
+    public List<GoalHistoryDto> History { get; init; } = [];
+}
+
+public static class GoalHistoryEvents
+{
+    public const string StatusChanged = "StatusChanged";
+    public const string Revised = "Revised";
+}
+
+/// <summary>One entry in a goal's review log, newest first.</summary>
+public class GoalHistoryDto
+{
+    public int Id { get; init; }
+    public string EventType { get; init; } = string.Empty;
+    public string? FromStatus { get; init; }
+    public string? ToStatus { get; init; }
+    /// <summary>Revised only: property names that changed, e.g. ["TargetDate", "Tags"].</summary>
+    public List<string> ChangedFields => ChangedFieldsCsv?.Split(',').ToList() ?? [];
+
+    /// <summary>The column as stored (comma-separated); projected from SQL, split above.</summary>
+    [JsonIgnore]
+    public string? ChangedFieldsCsv { get; init; }
+    public DateOnly? PreviousTargetDate { get; init; }
+    public DateOnly? NewTargetDate { get; init; }
+    public string? Note { get; init; }
+    public DateTime CreatedAt { get; init; }
+}
+
+public class SetGoalStatusRequest
+{
+    [Required]
+    [AllowedValues(GoalStatuses.Active, GoalStatuses.Completed, GoalStatuses.Postponed, GoalStatuses.Abandoned,
+        ErrorMessage = "Status must be Active, Completed, Postponed or Abandoned.")]
+    public string Status { get; init; } = string.Empty;
+
+    [StringLength(1000)]
+    public string? Note { get; init; }
 }
 
 public class GoalMilestoneDto
@@ -53,7 +91,10 @@ public class GoalMilestoneDto
     public int SortOrder { get; init; }
 }
 
-/// <summary>Create and edit share one shape; Status changes have their own flow (Session 11), not this form.</summary>
+/// <summary>
+/// Create and edit share one shape; status changes have their own endpoint. An edit that changes anything is a
+/// revision and gets logged to the goal's history, with RevisionNote as the "why".
+/// </summary>
 public class GoalRequest
 {
     [Required]
@@ -74,6 +115,10 @@ public class GoalRequest
     public DateOnly? TargetDate { get; init; }
 
     public List<int> TagIds { get; init; } = [];
+
+    /// <summary>Edit only (ignored on create): why the goal is being revised.</summary>
+    [StringLength(1000)]
+    public string? RevisionNote { get; init; }
 }
 
 public class GoalMilestoneRequest

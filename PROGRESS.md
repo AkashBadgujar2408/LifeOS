@@ -223,4 +223,24 @@
   - Sandbox gotcha: sandboxed `curl` can't reach localhost and a sandboxed `Stop-Process` silently fails — run local API/dev-server commands unsandboxed. `TaskStop` on a background `ng serve` leaves the node child running (kill the port owner).
   - Test users `goaluser1`/`goaluser2` (password in the scratch script, not committed) + goal "Run a half marathon" exist in UAT. The Session 9 seed goals still belong to `linkuser1`.
 
-- Next up: **Session 11 — Review flow + linking**: change goal status (Active ↔ Completed/Postponed/Abandoned, with `CompletedAt`), "revise" as an edit, linking goals to tasks (Tasks don't exist until Session 13 — link to inbox items for now, the widget is already on goal detail).
+- Next up: Session 11 (done the same day, below).
+
+## Last session: 2026-10-14 — Session 11 — Goal review flow + linking
+- Shipped (database): `goals.GoalHistory` appended to `02_goals.sql` (named PK/FKs, `CK_GoalHistory_EventType` StatusChanged/Revised, `CK_GoalHistory_StatusChange` requires from+to for status rows, filtered `IX_GoalHistory_Goal`). Applied twice (idempotent); re-scaffold diff purely additive (entity + `DbSet` + two navigations). Partial `GoalHistory : ISoftDeletable, IUserOwned`.
+- Shipped (backend):
+  - `PUT api/Goals/Goals/{id}/status` (`SetGoalStatusRequest`: `[AllowedValues]` status + optional note ≤1000): same-status → clean 400, logs `StatusChanged` (from → to, trimmed note), sets `CompletedAt` only for Completed and clears it otherwise (matches `CK_Goals_CompletedAt`).
+  - Update = revision: compares title/description/life area/type/target date/tag set *before* applying; if anything changed, logs `Revised` with the changed field names, the old → new target date (when moved) and the optional `RevisionNote`. A no-op save logs nothing.
+  - Detail DTO carries `History` (newest first; 3 collections now, still `.AsSplitQuery()`). Goal delete also soft-deletes its history.
+- Shipped (frontend):
+  - Goal detail: **Status card** (current status + "since", actions by state: Active → Mark completed / Postpone / Abandon; Postponed/Abandoned → Reactivate / Mark completed; Completed → Reactivate), each a SweetAlert2 dialog with an optional note. **History card** timeline (status icons, "Reactivated" wording, revision summary like "Changed title · target date 30/Jun/2027 → 31/Dec/2027", notes in quotes, "Goal set" at the bottom). "Edit" became **Revise**; the form in edit mode asks "Why are you revising this?" (logged with the revision).
+  - Logic in `features/goals/goal-status.ts` (actions per status, history titles, revision summary) with `goal-status.spec.ts` — 12/12 tests green.
+- Linking: tasks don't exist until Session 13, so "linked tasks visible on goal detail" was verified with a Task captured via Quick Add (`q`) and linked from the goal's Linked items panel — visible from both sides. When Tasks land, `TaskLinkableProvider` makes real tasks appear in the same picker with no goal-side change.
+- Verified:
+  - curl (scratch script): invalid status 400, same status 400, other user → not found; postpone (note trimmed) → reactivate → complete (`CompletedAt` set) → reopen (cleared) all logged; no-op edit logs nothing; edit logs `["Title","TargetDate"]` with 30/Jun → 31/Dec + note; description-only edit logs `["Description"]`; `?status=Abandoned` filter; delete → all 7 history rows soft-deleted (checked in SQL).
+  - Browser: postpone with note → badge + History entry; revise target date 30/Sep/2026 → 15/Mar/2027 with reason → logged and displayed; reactivate; Quick Add task → linked to goal → visible from the Inbox side; mark completed → 100 % + Completed date, reactivate → back to 33 % and Completed date gone. No console errors.
+  - `dotnet build` 0 warnings; lint clean; `ng build` 0 warnings; tests 12/12.
+- Notes:
+  - The Session 10 test revision (type → Long-term + Fitness tag) predates the history table, so goal 7's history starts at today's postponement.
+  - Didn't redo the "fresh DB from scripts scaffolds identically" check this time — the diff was purely additive and every constraint is explicitly named, same as Session 9's verified pattern. Worth repeating before `LifeOS_Live` is created.
+
+- Next up: **Milestone 3 — Session 12 — Tasks schema + scaffold** (`database/schema/03_tasks.sql`: `tasks.Tasks` with title, due date as `DATE`, priority, status, recurrence rule, ProjectId; `tasks.Projects`; `tasks.TaskTags` per the per-module tag-join convention + add it to `TagsService.DeleteAsync`'s detach list).

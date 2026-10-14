@@ -50,6 +50,22 @@ export interface GoalDetail extends GoalSummary {
   description: string | null;
   createdAt: string;
   milestones: GoalMilestone[];
+  /** Newest first. */
+  history: GoalHistoryEntry[];
+}
+
+/** A goal's review log: status changes and revisions (edits that changed something). */
+export interface GoalHistoryEntry {
+  id: number;
+  eventType: 'StatusChanged' | 'Revised';
+  fromStatus: GoalStatus | null;
+  toStatus: GoalStatus | null;
+  /** Revised only: GoalRequest property names, plus "Tags" and "LifeArea". */
+  changedFields: string[];
+  previousTargetDate: string | null;
+  newTargetDate: string | null;
+  note: string | null;
+  createdAt: string;
 }
 
 export interface GoalPayload {
@@ -59,6 +75,8 @@ export interface GoalPayload {
   goalType: GoalType;
   targetDate: string | null;
   tagIds: number[];
+  /** Edit only: why the goal is being revised (logged to its history). */
+  revisionNote?: string | null;
 }
 
 export interface MilestonePayload {
@@ -93,6 +111,12 @@ export class GoalsService {
   update(id: number, payload: GoalPayload): Observable<GoalDetail> {
     return this.http
       .put<ApiResponse<GoalDetail>>(`${this.baseUrl}/${id}`, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  setStatus(id: number, status: GoalStatus, note: string | null): Observable<GoalDetail> {
+    return this.http
+      .put<ApiResponse<GoalDetail>>(`${this.baseUrl}/${id}/status`, { status, note })
       .pipe(map((response) => response.data!));
   }
 

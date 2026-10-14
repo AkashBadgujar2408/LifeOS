@@ -5,12 +5,13 @@ import {
   Injector,
   OnInit,
   afterNextRender,
+  LOCALE_ID,
   inject,
   input,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe } from '@angular/common';
+import { DatePipe, formatDate } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
@@ -20,11 +21,23 @@ import {
   GOAL_ENTITY_TYPE,
   GOAL_TYPE_LABELS,
   GoalDetail as GoalDetailModel,
+  GoalHistoryEntry,
   GoalMilestone,
   GoalsService,
 } from '../../core/services/goals.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
-import { dateFieldError } from '../../core/dates/date-format';
+import {
+  APP_DATE_FORMAT,
+  APP_DATE_TIME_FORMAT,
+  dateFieldError,
+} from '../../core/dates/date-format';
+import {
+  GOAL_STATUS_META,
+  GoalStatusAction,
+  goalStatusActions,
+  historyTitle,
+  revisionSummary,
+} from './goal-status';
 import { isOverdue } from './goal-dates';
 
 const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(200)];
@@ -42,18 +55,24 @@ export class GoalDetail implements OnInit {
   private readonly toastr = inject(ToastrService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
+  private readonly locale = inject(LOCALE_ID);
 
   readonly id = input.required<string>();
 
   protected readonly typeLabels = GOAL_TYPE_LABELS;
   protected readonly goalEntityType = GOAL_ENTITY_TYPE;
   protected readonly isOverdue = isOverdue;
+  protected readonly statusMeta = GOAL_STATUS_META;
+  protected readonly statusActions = (goal: GoalDetailModel) => goalStatusActions(goal.status);
+  protected readonly historyTitle = historyTitle;
+  protected readonly dateTimeFormat = APP_DATE_TIME_FORMAT;
 
   protected readonly goal = signal<GoalDetailModel | null>(null);
   protected readonly editingMilestoneId = signal<number | null>(null);
   /** Milestone currently being saved; its controls are disabled so a double click can't fire twice. */
   protected readonly busyMilestoneId = signal<number | null>(null);
   protected readonly adding = signal(false);
+  protected readonly changingStatus = signal(false);
   /** The add form stays open after each save, so only nag about an empty title after a submit attempt. */
   protected readonly addAttempted = signal(false);
 
@@ -222,6 +241,49 @@ export class GoalDetail implements OnInit {
       .subscribe({
         next: () => this.reload(),
         error: (err) => this.toastr.error(err.error?.message ?? 'Could not delete the milestone.'),
+      });
+  }
+
+  /** When the goal entered its current status: the latest status change, else when it was created. */
+  protected statusSince(goal: GoalDetailModel): string {
+    return goal.history.find((h) => h.eventType === 'StatusChanged')?.createdAt ?? goal.createdAt;
+  }
+
+  protected revisionSummary(entry: GoalHistoryEntry): string {
+    return revisionSummary(entry, (isoDate) => formatDate(isoDate, APP_DATE_FORMAT, this.locale));
+  }
+
+  protected async changeStatus(goal: GoalDetailModel, action: GoalStatusAction): Promise<void> {
+    const result = await Swal.fire({
+      title: action.dialogTitle,
+      text: `"${goal.title}" keeps its milestones and history either way.`,
+      input: 'textarea',
+      inputLabel: 'Note',
+      inputPlaceholder: action.notePlaceholder,
+      inputAttributes: { maxlength: '1000' },
+      showCancelButton: true,
+      confirmButtonText: action.label,
+      confirmButtonColor: 'var(--lifeos-teal)',
+    });
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    const note = (result.value as string).trim() || null;
+    this.changingStatus.set(true);
+    this.goalsService
+      .setStatus(goal.id, action.status, note)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.goal.set(updated);
+          this.changingStatus.set(false);
+          this.toastr.success(`${historyTitle(updated.history[0])}.`);
+        },
+        error: (err) => {
+          this.changingStatus.set(false);
+          this.toastr.error(err.error?.message ?? 'Could not change the status.');
+        },
       });
   }
 

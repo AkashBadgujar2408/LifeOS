@@ -15,6 +15,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Goal> Goals { get; set; }
 
+    public virtual DbSet<GoalHistory> GoalHistories { get; set; }
+
     public virtual DbSet<GoalMilestone> GoalMilestones { get; set; }
 
     public virtual DbSet<GoalTag> GoalTags { get; set; }
@@ -75,6 +77,30 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Goals_Users");
+        });
+
+        modelBuilder.Entity<GoalHistory>(entity =>
+        {
+            entity.ToTable("GoalHistory", "goals");
+
+            entity.HasIndex(e => new { e.GoalId, e.CreatedAt }, "IX_GoalHistory_Goal").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.ChangedFields).HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_GoalHistory_CreatedAt");
+            entity.Property(e => e.EventType).HasMaxLength(20);
+            entity.Property(e => e.FromStatus).HasMaxLength(20);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.ToStatus).HasMaxLength(20);
+
+            entity.HasOne(d => d.Goal).WithMany(p => p.GoalHistories)
+                .HasForeignKey(d => d.GoalId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalHistory_Goals");
+
+            entity.HasOne(d => d.User).WithMany(p => p.GoalHistories)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalHistory_Users");
         });
 
         modelBuilder.Entity<GoalMilestone>(entity =>
