@@ -31,7 +31,6 @@
     "bootstrap-icons": "^1.13.2",
     "chart.js": "^4.5.1",
     "ng2-charts": "^11.0.0",
-    "ngx-toastr": "^20.0.5",
     "rxjs": "~7.8.0",
     "sweetalert2": "^11.26.25",
     "tslib": "^2.3.0"

@@ -10,7 +10,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../core/services/toast.service';
 import {
   GOAL_STATUSES,
   GOAL_TYPE_LABELS,
@@ -30,7 +30,7 @@ import { isOverdue } from './goal-dates';
 export class Goals implements OnInit {
   private readonly goalsService = inject(GoalsService);
   private readonly lifeAreasService = inject(LifeAreasService);
-  private readonly toastr = inject(ToastrService);
+  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly statuses = GOAL_STATUSES;
@@ -78,7 +78,7 @@ export class Goals implements OnInit {
         },
         error: () => {
           this.loading.set(false);
-          this.toastr.error('Could not load your goals.');
+          this.toast.error('Could not load your goals.');
         },
       });
   }

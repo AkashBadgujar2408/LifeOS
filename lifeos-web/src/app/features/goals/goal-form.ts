@@ -11,7 +11,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../core/services/toast.service';
 import {
   GOAL_TYPES,
   GOAL_TYPE_LABELS,
@@ -41,7 +41,7 @@ export class GoalForm implements OnInit {
   private readonly goalsService = inject(GoalsService);
   private readonly lifeAreasService = inject(LifeAreasService);
   private readonly router = inject(Router);
-  private readonly toastr = inject(ToastrService);
+  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly id = input<string>();
@@ -74,7 +74,7 @@ export class GoalForm implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (areas) => this.lifeAreas.set(areas),
-        error: () => this.toastr.error('Could not load life areas.'),
+        error: () => this.toast.error('Could not load life areas.'),
       });
 
     const id = this.id();
@@ -97,7 +97,7 @@ export class GoalForm implements OnInit {
             this.loading.set(false);
           },
           error: () => {
-            this.toastr.error('That goal could not be found.');
+            this.toast.error('That goal could not be found.');
             this.router.navigate(['/goals']);
           },
         });
@@ -160,14 +160,14 @@ export class GoalForm implements OnInit {
     this.saving.set(true);
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (goal) => {
-        this.toastr.success(
+        this.toast.success(
           id ? 'Goal revised.' : `"${goal.title}" is set. Now add some milestones.`,
         );
         this.router.navigate(['/goals', goal.id]);
       },
       error: (err) => {
         this.saving.set(false);
-        this.toastr.error(err.error?.message ?? 'Could not save the goal.');
+        this.toast.error(err.error?.message ?? 'Could not save the goal.');
       },
     });
   }

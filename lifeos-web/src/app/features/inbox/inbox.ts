@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../core/services/toast.service';
 import Swal from 'sweetalert2';
 import {
   INBOX_ENTITY_TYPE,
@@ -36,7 +36,7 @@ const KIND_ICONS: Record<InboxKind, string> = {
 })
 export class Inbox {
   private readonly inboxService = inject(InboxService);
-  private readonly toastr = inject(ToastrService);
+  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly kinds = INBOX_KINDS;
@@ -88,9 +88,9 @@ export class Inbox {
           } else {
             this.items.update((items) => items.map((i) => (i.id === item.id ? updated : i)));
           }
-          this.toastr.success(processed ? 'Marked as processed.' : 'Moved back to open.');
+          this.toast.success(processed ? 'Marked as processed.' : 'Moved back to open.');
         },
-        error: (err) => this.toastr.error(err.error?.message ?? 'Could not update item.'),
+        error: (err) => this.toast.error(err.error?.message ?? 'Could not update item.'),
       });
   }
 
@@ -113,9 +113,9 @@ export class Inbox {
       .subscribe({
         next: () => {
           this.items.update((items) => items.filter((i) => i.id !== item.id));
-          this.toastr.success('Item deleted.');
+          this.toast.success('Item deleted.');
         },
-        error: (err) => this.toastr.error(err.error?.message ?? 'Could not delete item.'),
+        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete item.'),
       });
   }
 
@@ -131,7 +131,7 @@ export class Inbox {
         },
         error: () => {
           this.loading.set(false);
-          this.toastr.error('Could not load your inbox.');
+          this.toast.error('Could not load your inbox.');
         },
       });
   }

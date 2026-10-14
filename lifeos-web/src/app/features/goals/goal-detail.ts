@@ -15,7 +15,7 @@ import { DatePipe, formatDate } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../core/services/toast.service';
 import Swal from 'sweetalert2';
 import {
   GOAL_ENTITY_TYPE,
@@ -52,7 +52,7 @@ export class GoalDetail implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly goalsService = inject(GoalsService);
   private readonly router = inject(Router);
-  private readonly toastr = inject(ToastrService);
+  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly locale = inject(LOCALE_ID);
@@ -142,7 +142,7 @@ export class GoalDetail implements OnInit {
         },
         error: (err) => {
           this.adding.set(false);
-          this.toastr.error(err.error?.message ?? 'Could not add the milestone.');
+          this.toast.error(err.error?.message ?? 'Could not add the milestone.');
         },
       });
   }
@@ -156,7 +156,7 @@ export class GoalDetail implements OnInit {
         next: () => this.reload(),
         error: (err) => {
           this.busyMilestoneId.set(null);
-          this.toastr.error(err.error?.message ?? 'Could not update the milestone.');
+          this.toast.error(err.error?.message ?? 'Could not update the milestone.');
         },
       });
   }
@@ -193,7 +193,7 @@ export class GoalDetail implements OnInit {
           this.editingMilestoneId.set(null);
           this.reload();
         },
-        error: (err) => this.toastr.error(err.error?.message ?? 'Could not save the milestone.'),
+        error: (err) => this.toast.error(err.error?.message ?? 'Could not save the milestone.'),
       });
   }
 
@@ -216,7 +216,7 @@ export class GoalDetail implements OnInit {
       .subscribe({
         next: () => this.reload(),
         error: (err) => {
-          this.toastr.error(err.error?.message ?? 'Could not reorder the milestones.');
+          this.toast.error(err.error?.message ?? 'Could not reorder the milestones.');
           this.reload();
         },
       });
@@ -240,7 +240,7 @@ export class GoalDetail implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.reload(),
-        error: (err) => this.toastr.error(err.error?.message ?? 'Could not delete the milestone.'),
+        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the milestone.'),
       });
   }
 
@@ -278,11 +278,11 @@ export class GoalDetail implements OnInit {
         next: (updated) => {
           this.goal.set(updated);
           this.changingStatus.set(false);
-          this.toastr.success(`${historyTitle(updated.history[0])}.`);
+          this.toast.success(`${historyTitle(updated.history[0])}.`);
         },
         error: (err) => {
           this.changingStatus.set(false);
-          this.toastr.error(err.error?.message ?? 'Could not change the status.');
+          this.toast.error(err.error?.message ?? 'Could not change the status.');
         },
       });
   }
@@ -305,10 +305,10 @@ export class GoalDetail implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.toastr.success(`Deleted "${goal.title}".`);
+          this.toast.success(`Deleted "${goal.title}".`);
           this.router.navigate(['/goals']);
         },
-        error: (err) => this.toastr.error(err.error?.message ?? 'Could not delete the goal.'),
+        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the goal.'),
       });
   }
 
@@ -323,7 +323,7 @@ export class GoalDetail implements OnInit {
           this.busyMilestoneId.set(null);
         },
         error: () => {
-          this.toastr.error('That goal could not be found.');
+          this.toast.error('That goal could not be found.');
           this.router.navigate(['/goals']);
         },
       });

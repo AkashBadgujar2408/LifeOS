@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../core/services/toast.service';
 import Swal from 'sweetalert2';
 import { Tag, TagsService } from '../../core/services/tags.service';
 
@@ -25,7 +25,7 @@ const TAG_NAME_VALIDATORS = [Validators.required, Validators.maxLength(100)];
 export class Tags implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly tagsService = inject(TagsService);
-  private readonly toastr = inject(ToastrService);
+  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
 
@@ -48,7 +48,7 @@ export class Tags implements OnInit {
         },
         error: () => {
           this.loading.set(false);
-          this.toastr.error('Could not load your tags.');
+          this.toast.error('Could not load your tags.');
         },
       });
   }
@@ -86,11 +86,11 @@ export class Tags implements OnInit {
           this.creating.set(false);
           this.tags.update((tags) => sortByName([...tags, tag]));
           this.createForm.reset();
-          this.toastr.success(`Created "${tag.name}".`);
+          this.toast.success(`Created "${tag.name}".`);
         },
         error: (err) => {
           this.creating.set(false);
-          this.toastr.error(err.error?.message ?? 'Could not create the tag.');
+          this.toast.error(err.error?.message ?? 'Could not create the tag.');
         },
       });
   }
@@ -127,9 +127,9 @@ export class Tags implements OnInit {
         next: (renamed) => {
           this.tags.update((tags) => sortByName(tags.map((t) => (t.id === tag.id ? renamed : t))));
           this.editingId.set(null);
-          this.toastr.success(`Renamed to "${renamed.name}".`);
+          this.toast.success(`Renamed to "${renamed.name}".`);
         },
-        error: (err) => this.toastr.error(err.error?.message ?? 'Could not rename the tag.'),
+        error: (err) => this.toast.error(err.error?.message ?? 'Could not rename the tag.'),
       });
   }
 
@@ -152,9 +152,9 @@ export class Tags implements OnInit {
       .subscribe({
         next: () => {
           this.tags.update((tags) => tags.filter((t) => t.id !== tag.id));
-          this.toastr.success(`Deleted "${tag.name}".`);
+          this.toast.success(`Deleted "${tag.name}".`);
         },
-        error: (err) => this.toastr.error(err.error?.message ?? 'Could not delete the tag.'),
+        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the tag.'),
       });
   }
 

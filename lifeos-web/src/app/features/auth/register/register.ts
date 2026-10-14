@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthLayout } from '../../../shared/components/auth-layout/auth-layout';
 
@@ -23,7 +23,7 @@ export class Register {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly toastr = inject(ToastrService);
+  private readonly toast = inject(ToastService);
 
   protected readonly submitting = signal(false);
 
@@ -77,7 +77,7 @@ export class Register {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.toastr.error(err.error?.message ?? 'Registration failed.');
+        this.toast.error(err.error?.message ?? 'Registration failed.');
       },
     });
   }

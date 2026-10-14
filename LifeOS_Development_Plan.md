@@ -81,7 +81,7 @@ Simple CRUD per entity stays on EF Core (via the scaffolded `AppDbContext`). But
 | Dashboard layout/cards/sidebar | **@coreui/angular** (free tier) | Matches the CoreUI look you already know; Pro-only widgets avoided (see deviation #4). |
 | Data tables/grids | **ag-Grid Community** (free) | Sorting/filtering/paging for any list view (Tasks, later Finance transactions) without hand-rolling it. |
 | Confirm dialogs & alert popups | **SweetAlert2** | "Delete this goal?" confirmations, success/error popups. |
-| Toast notifications | **ngx-toastr** | Lightweight "Task saved" style non-blocking notifications. |
+| Toast notifications | **ng-bootstrap `NgbToast`** (via a small `ToastService`) | Lightweight "Task saved" style non-blocking notifications. Replaced ngx-toastr in Session 12: its latest release (20.0.5) only supports Angular 21, and ng-bootstrap is already in the stack, so this removes a dependency instead of adding one. |
 | Charts | **Chart.js** via **ng2-charts** | Free, sufficient for Month 1 dashboard visuals (streaks, progress, trends). |
 | Icons | **Bootstrap Icons** | Free, pairs directly with Bootstrap 5. |
 
@@ -347,7 +347,7 @@ Prioritized to match your stated interests (learning Angular, serious career goa
 .NET 10 LTS Web API (LifeOS.Core + LifeOS.Api) + Angular 22 (standalone components, Signals). Database: SQL Server LocalDB, `LifeOS_UAT`.
 
 ## Fixed frontend libraries — do not add others without updating the plan doc
-Bootstrap 5, ng-bootstrap, @coreui/angular (free tier), ag-Grid Community, SweetAlert2, ngx-toastr, ng2-charts (Chart.js), Bootstrap Icons.
+Bootstrap 5, ng-bootstrap, @coreui/angular (free tier), ag-Grid Community, SweetAlert2, ng2-charts (Chart.js), Bootstrap Icons.
 
 ## Backend conventions
 - **Areas + per-module folders** (pattern from OkayToolsEIA4, confirmed): `LifeOS.Api/Areas/<Module>/Controllers/`, attribute-routed as `api/<Module>/<Controller>`. `LifeOS.Core/<Module>/{DTOs,ServiceContracts,Services,AutoMapper}/` — one interface + implementation pair per domain concern (`IGoalsService`/`GoalsService`). Cross-cutting (Tags/EntityLinks/LifeAreas/Users/Auth) lives under the `Shared` module/area, not scattered.

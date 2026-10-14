@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal, OnInit, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../../core/services/toast.service';
 import { Tag, TagsService } from '../../../core/services/tags.service';
 
 @Component({
@@ -11,7 +11,7 @@ import { Tag, TagsService } from '../../../core/services/tags.service';
 })
 export class TagPicker implements OnInit {
   private readonly tagsService = inject(TagsService);
-  private readonly toastr = inject(ToastrService);
+  private readonly toast = inject(ToastService);
 
   readonly selectedTagIds = input<number[]>([]);
   readonly selectedTagIdsChange = output<number[]>();
@@ -30,7 +30,7 @@ export class TagPicker implements OnInit {
   ngOnInit(): void {
     this.tagsService.list().subscribe({
       next: (tags) => this.allTags.set(tags),
-      error: () => this.toastr.error('Could not load tags.'),
+      error: () => this.toast.error('Could not load tags.'),
     });
   }
 
@@ -61,7 +61,7 @@ export class TagPicker implements OnInit {
         this.selectTag(tag);
         this.newTagName.set('');
       },
-      error: (err) => this.toastr.error(err.error?.message ?? 'Could not create tag.'),
+      error: (err) => this.toast.error(err.error?.message ?? 'Could not create tag.'),
     });
   }
 }

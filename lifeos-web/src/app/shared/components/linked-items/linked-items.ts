@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../../core/services/toast.service';
 import { catchError, combineLatest, debounceTime, of, switchMap } from 'rxjs';
 import {
   EntityLinksService,
@@ -30,7 +30,7 @@ import {
 })
 export class LinkedItems {
   private readonly entityLinksService = inject(EntityLinksService);
-  private readonly toastr = inject(ToastrService);
+  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly entityType = input.required<string>();
@@ -100,7 +100,7 @@ export class LinkedItems {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (created) => this.links.update((links) => [...links, created]),
-        error: (err) => this.toastr.error(err.error?.message ?? 'Could not create link.'),
+        error: (err) => this.toast.error(err.error?.message ?? 'Could not create link.'),
       });
   }
 
@@ -110,7 +110,7 @@ export class LinkedItems {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.links.update((links) => links.filter((l) => l.linkId !== link.linkId)),
-        error: (err) => this.toastr.error(err.error?.message ?? 'Could not remove link.'),
+        error: (err) => this.toast.error(err.error?.message ?? 'Could not remove link.'),
       });
   }
 
@@ -126,7 +126,7 @@ export class LinkedItems {
         },
         error: () => {
           this.loading.set(false);
-          this.toastr.error('Could not load linked items.');
+          this.toast.error('Could not load linked items.');
         },
       });
   }

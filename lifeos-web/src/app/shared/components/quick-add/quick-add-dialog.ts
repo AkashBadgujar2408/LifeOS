@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
-import { ToastrService } from 'ngx-toastr';
+import { ToastService } from '../../../core/services/toast.service';
 import { INBOX_KINDS, InboxKind, InboxService } from '../../../core/services/inbox.service';
 
 const KIND_META: Record<InboxKind, { icon: string; placeholder: string }> = {
@@ -21,7 +21,7 @@ const KIND_META: Record<InboxKind, { icon: string; placeholder: string }> = {
 export class QuickAddDialog {
   private readonly fb = inject(FormBuilder);
   private readonly inboxService = inject(InboxService);
-  private readonly toastr = inject(ToastrService);
+  private readonly toast = inject(ToastService);
   protected readonly activeModal = inject(NgbActiveModal);
 
   protected readonly kinds = INBOX_KINDS;
@@ -71,12 +71,12 @@ export class QuickAddDialog {
     this.submitting.set(true);
     this.inboxService.create({ kind, title: title.trim(), notes: notes.trim() || null }).subscribe({
       next: () => {
-        this.toastr.success(`Captured to your ${kind} inbox.`);
+        this.toast.success(`Captured to your ${kind} inbox.`);
         this.activeModal.close();
       },
       error: (err) => {
         this.submitting.set(false);
-        this.toastr.error(err.error?.message ?? 'Could not save — try again.');
+        this.toast.error(err.error?.message ?? 'Could not save — try again.');
       },
     });
   }
