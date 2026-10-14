@@ -6,7 +6,12 @@
   --lifeos-surface: #ffffff;
   --lifeos-border: #dce7e3;
   --lifeos-text-secondary: #5b6b68;
-  --lifeos-gradient: linear-gradient(135deg, var(--lifeos-ink) 0%, var(--lifeos-teal) 55%, var(--lifeos-green) 100%);
+  --lifeos-gradient: linear-gradient(
+    135deg,
+    var(--lifeos-ink) 0%,
+    var(--lifeos-teal) 55%,
+    var(--lifeos-green) 100%
+  );
 
   // Re-theme CoreUI/Bootstrap's primary color to our teal so buttons, links and focus rings pick it up everywhere.
   --cui-primary: var(--lifeos-teal);
@@ -24,7 +29,12 @@ body {
   color: var(--lifeos-ink);
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: 'Sora', sans-serif;
   font-weight: 600;
 }
@@ -46,4 +56,26 @@ h1, h2, h3, h4, h5, h6 {
   --cui-btn-disabled-bg: var(--lifeos-teal);
   --cui-btn-disabled-border-color: var(--lifeos-teal);
   --cui-btn-focus-shadow-rgb: 21, 152, 149;
+}
+
+// Same gotcha as .btn-primary: the outline variant hardcodes CoreUI's indigo.
+.btn-outline-primary {
+  --cui-btn-color: var(--lifeos-teal);
+  --cui-btn-border-color: var(--lifeos-teal);
+  --cui-btn-hover-color: #fff;
+  --cui-btn-hover-bg: var(--lifeos-teal);
+  --cui-btn-hover-border-color: var(--lifeos-teal);
+  --cui-btn-active-color: #fff;
+  --cui-btn-active-bg: #0f7a78;
+  --cui-btn-active-border-color: #0f7a78;
+  --cui-btn-disabled-color: var(--lifeos-teal);
+  --cui-btn-disabled-border-color: var(--lifeos-teal);
+  --cui-btn-focus-shadow-rgb: 21, 152, 149;
+}
+
+// Mobile nav drawer (NgbOffcanvas renders it at <body> level, outside the Shell's encapsulated styles).
+.offcanvas.lifeos-drawer {
+  --cui-offcanvas-width: 17rem;
+  background-color: var(--lifeos-ink);
+  border-right: 0;
 }

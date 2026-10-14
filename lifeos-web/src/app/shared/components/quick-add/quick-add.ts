@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { QuickAddDialog } from './quick-add-dialog';
+import { QuickAddService } from '../../../core/services/quick-add.service';
 
 /**
  * Global capture entry point: a floating button plus the "q" keyboard shortcut (ignored while typing in a
@@ -17,22 +16,14 @@ import { QuickAddDialog } from './quick-add-dialog';
       style="width: 3.5rem; height: 3.5rem; z-index: 1030"
       title="Quick add (Q)"
       aria-label="Quick add"
-      (click)="open()"
+      (click)="quickAdd.open()"
     >
       <i class="bi bi-plus-lg fs-4"></i>
     </button>
   `,
 })
 export class QuickAdd {
-  private readonly modal = inject(NgbModal);
-
-  open(): void {
-    if (this.modal.hasOpenModals()) {
-      return;
-    }
-
-    this.modal.open(QuickAddDialog, { ariaLabelledBy: 'quick-add-title' });
-  }
+  protected readonly quickAdd = inject(QuickAddService);
 
   protected onKeydown(event: KeyboardEvent): void {
     if (event.key.toLowerCase() !== 'q' || event.ctrlKey || event.metaKey || event.altKey) {
@@ -50,6 +41,6 @@ export class QuickAdd {
     }
 
     event.preventDefault();
-    this.open();
+    this.quickAdd.open();
   }
 }

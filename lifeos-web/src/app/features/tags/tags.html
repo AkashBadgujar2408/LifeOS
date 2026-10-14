@@ -1,0 +1,115 @@
+<div class="container py-4">
+  <div style="max-width: 46rem">
+    <h1 class="h3 mb-1">Tags</h1>
+    <p class="text-body-secondary mb-4">
+      One set of labels shared by goals, tasks, habits and journal entries. Rename a tag here and it
+      changes everywhere.
+    </p>
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <form [formGroup]="createForm" (ngSubmit)="create()" novalidate>
+          <label class="form-label" for="new-tag">New tag</label>
+          <div class="d-flex gap-2 align-items-start">
+            <div class="flex-grow-1">
+              <input
+                id="new-tag"
+                type="text"
+                class="form-control"
+                [class.is-invalid]="fieldError('create')"
+                formControlName="name"
+                placeholder="e.g. Side project"
+                autocomplete="off"
+              />
+              @if (fieldError('create'); as error) {
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              }
+            </div>
+            <button type="submit" class="btn btn-primary" [disabled]="creating()">
+              Create tag
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="text-body-secondary">Loading...</div>
+    } @else if (tags().length === 0) {
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <i class="bi bi-tags fs-1 text-body-secondary"></i>
+          <p class="mt-2 mb-1 fw-semibold">No tags yet</p>
+          <p class="text-body-secondary small mb-0">
+            Create one above, or add tags while editing anything that supports them.
+          </p>
+        </div>
+      </div>
+    } @else {
+      <div class="card">
+        <ul class="list-group list-group-flush">
+          @for (tag of tags(); track tag.id) {
+            <li class="list-group-item py-2">
+              @if (editingId() === tag.id) {
+                <form
+                  class="d-flex gap-2 align-items-start"
+                  [formGroup]="renameForm"
+                  (ngSubmit)="saveRename(tag)"
+                  novalidate
+                >
+                  <div class="flex-grow-1">
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      [class.is-invalid]="fieldError('rename')"
+                      formControlName="name"
+                      [attr.aria-label]="'New name for ' + tag.name"
+                      id="rename-tag-input"
+                      placeholder="Type the new name"
+                      autocomplete="off"
+                      (keyup.escape)="cancelRename()"
+                    />
+                    @if (fieldError('rename'); as error) {
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    }
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    (click)="cancelRename()"
+                  >
+                    Cancel
+                  </button>
+                </form>
+              } @else {
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-tag text-body-secondary"></i>
+                  <span class="flex-grow-1 text-break">{{ tag.name }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    [attr.aria-label]="'Rename ' + tag.name"
+                    title="Rename"
+                    (click)="startRename(tag)"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger"
+                    [attr.aria-label]="'Delete ' + tag.name"
+                    title="Delete"
+                    (click)="remove(tag)"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              }
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+</div>

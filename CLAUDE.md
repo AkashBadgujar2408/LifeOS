@@ -33,6 +33,9 @@ Bootstrap 5, ng-bootstrap, @coreui/angular (free tier), ag-Grid Community, Sweet
 - Standalone components only, feature-folder structure under `src/app/features/<module>`.
 - One data-access service per feature wrapping `HttpClient`; no `HttpClient` in components. Import the response envelope type from `core/services/api-response.ts` — don't redeclare `ApiResponse<T>` per service.
 - Linkable detail screens drop in `<app-linked-items entityType="Goal" [entityId]="id" />` (`shared/components/linked-items/`); Quick Add (`shared/components/quick-add/`, FAB + `q` shortcut) is mounted once in the shell.
+- **Navigation lives in `core/layout/nav-items.ts`** (`NAV_GROUPS`) — the sidebar and mobile drawer both render from it. A module not built yet gets a `placeholder(...)` route in `app.routes.ts` (route `data` → `ModulePlaceholder` inputs via `withComponentInputBinding()`); when the module's session lands, replace that placeholder route with the real `loadComponent` route — never leave a nav entry pointing nowhere. Every route sets a `title` (`'<Page> | LifeOS'`).
+- Shell layout CSS lives in `core/layout/shell.scss` (the one layout exception to "utilities over bespoke CSS"). Open Quick Add from code via `QuickAddService.open(kind?)`, not by touching `NgbModal` directly.
+- `.btn-outline-primary` has the same CoreUI hardcoded-indigo gotcha as `.btn-primary` (both overridden in `styles.scss`) — check any other `.btn-*`/component variant you introduce for the same thing.
 - CommonJS-only libraries (currently `sweetalert2`) go in `angular.json`'s `allowedCommonJsDependencies` so `ng build` stays warning-free.
 - Signals for local state, OnPush change detection, reactive forms.
 - One shared layout/shell (`core/layout/shell.ts`) wraps every route; style with CoreUI/Bootstrap utilities + shared SCSS partials, not bespoke per-component CSS — exception only for modules that genuinely need custom visuals (Dashboard, Calendar).

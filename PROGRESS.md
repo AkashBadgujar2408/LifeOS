@@ -151,4 +151,27 @@
   - Test users `linkuser1`/`linkuser2` plus inbox items/links from verification now exist in `LifeOS_UAT` (dev data).
   - Python isn't installed on this machine — don't plan on Python scripts for file edits/verification.
 
-- Next up: **Session 8 — Nav shell**: full layout/navigation for the Month 1 modules (replacing the minimal Home/Inbox links), with empty states; no dead links. Start by doing the browser click-through above.
+## Last session: 2026-10-14 — Session 8 — Nav shell (+ Session 7's outstanding browser check)
+- Shipped:
+  - **Sidebar shell** (`core/layout/shell.{html,ts,scss}`): fixed ink sidebar on desktop, off-canvas drawer (NgbOffcanvas) behind a slim top bar below `lg`, one `ng-template` rendered in both so they can't drift. Blueprint nav groups trimmed to Month 1, defined once in `core/layout/nav-items.ts`. Sidebar has a Quick add button (with the `Q` hint), an Inbox open-count badge, and a user block (initials avatar, username, log out). Active link = brand gradient spine.
+  - **My Day** (`features/dashboard/my-day`) replaces Home as the landing route: large Sora date heading (the one display-type moment, per the design pass), time-of-day greeting, live "Waiting in your Inbox" counts per kind, and a "Today" card stating what will gather there. Home and the now-unused `PingService` deleted (`PingController` stays as an API health endpoint).
+  - **Placeholders, no dead links**: one `ModulePlaceholder` component, driven by route data, for Calendar/Goals/Tasks/Habits/Journal. Each says what the module will let you do; Tasks/Journal offer "capture now" buttons that open Quick Add with that kind preselected.
+  - **Tags page** (System → Tags): create, inline rename (autofocused, Esc cancels), delete with confirm, inline validation per convention. Replaces the Home tag-picker demo. API side: `TagRequest` now `[Required, StringLength(100)]` and names are trimmed (blank / whitespace / >100 chars → 400; `"  Padded  "` no longer creates a near-duplicate of `"Padded"`).
+  - `QuickAddService` (open from anywhere, optional kind preset), `InboxService.openCounts`/`openTotal`/`openCountsLoaded` (refreshed after every inbox change, reset on logout so the next user never sees the previous user's counts). Route titles on every page; `**` → My Day.
+- Fixed via the browser pass (all found by actually looking at it):
+  - Active-link gradient spine was clipped by the nav's `overflow-y: auto` → scroll container now extends to the sidebar edge.
+  - Nav overflowed on a ~670px-tall viewport (Tags cut off, bright default scrollbar) → tighter spacing, thin dark scrollbar.
+  - `.btn-outline-primary` was CoreUI indigo (same hardcoded-variable gotcha as `.btn-primary`) → overridden in `styles.scss`.
+  - My Day flashed "Nothing waiting" before counts loaded → "Checking your Inbox..." until the first count arrives.
+  - Quick Add dialog's `aria-labelledby` pointed at the title *input*, not the heading → fixed.
+  - Placeholder/Tags pages were centred while Inbox was left-aligned → all left-aligned in the same container.
+- Verified **in a real browser** (Chrome connected this time):
+  - Session 7 click-through, finally: `q` opens Quick Add with the title focused → empty submit shows the inline error → capture shows toast, sidebar badge 2→3 and My Day updates live → Inbox → link widget search ("health") → link created, already-linked item drops out of candidates → the link shows from the other item too → mark processed: badge 3→2. Capture times display in local time (UTC fix confirmed end-to-end).
+  - Session 8: every nav entry renders with the right page title; unknown URL redirects to My Day; Tasks/Journal capture buttons preset the kind; Tags create / empty-name error / duplicate rename rejected (toast, field stays open) / valid rename; drawer contains all 8 links + badge and closes on navigation; zero console errors.
+  - Lint, both builds (0 warnings), Prettier on all changed files clean; curl checks for the Tags validation.
+  - **Not visually verified at phone width**: `resize_window` didn't change the (probably maximised) Chrome window (`innerWidth` stayed 1536), and screenshots repeatedly timed out after window-level actions. The drawer was checked *functionally* via DOM (opens, lists links, closes on nav). Worth a 10-second look in DevTools' device mode next session.
+- Notes:
+  - Browser-automation gotchas, round 2: `computer` clicks occasionally don't land/register (same as Session 4's note) — `element.click()` via `javascript_tool` is reliable. `javascript_tool` output containing `localStorage` tokens or CSS `url(...?...)` text gets blocked by the extension ("Cookie/query string data") — keep JS probes free of credentials/URLs. Screenshot capture can time out for 30s after window changes; one retry usually works, more than that doesn't.
+  - Test tags `Side project`, `Health & fitness` (linkuser1) and `Padded` (linkuser2) exist in UAT from verification.
+
+- Next up: **Session 9 — Goals schema + scaffold**.

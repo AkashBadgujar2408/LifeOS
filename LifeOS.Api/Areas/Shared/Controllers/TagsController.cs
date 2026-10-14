@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
 using Microsoft.AspNetCore.Authorization;
@@ -5,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace LifeOS.Api.Areas.Shared.Controllers;
 
-public record TagRequest(string Name);
+public record TagRequest([Required, StringLength(100)] string Name);
 
 [ApiController]
 [Area("Shared")]

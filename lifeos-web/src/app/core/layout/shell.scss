@@ -1,0 +1,219 @@
+// App frame: fixed ink sidebar on desktop, slim top bar + off-canvas drawer below lg.
+// Colors come only from the --lifeos-* tokens in styles.scss.
+
+:host {
+  display: block;
+}
+
+.app-frame {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  position: sticky;
+  top: 0;
+  flex: 0 0 15.5rem;
+  height: 100vh;
+  background-color: var(--lifeos-ink);
+}
+
+.app-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: var(--lifeos-ink);
+}
+
+.app-content {
+  min-height: 100%;
+}
+
+// ---- Sidebar body (shared by desktop sidebar and mobile drawer) ----
+
+.sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 1.25rem 0.75rem 0.75rem;
+  color: rgba(255, 255, 255, 0.82);
+  background-color: var(--lifeos-ink);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.5rem 1rem;
+  font-family: 'Sora', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+}
+
+.sidebar-capture {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.55rem 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.5rem;
+  transition: background-color 0.15s ease;
+
+  span {
+    flex: 1 1 auto;
+    text-align: left;
+  }
+
+  kbd {
+    padding: 0.05rem 0.4rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: none;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.11);
+  }
+}
+
+// The scroll container reaches the sidebar's edge (negative margin) so the active link's spine, drawn
+// 0.75rem left of the link, isn't clipped by overflow.
+.sidebar-nav {
+  flex: 1 1 auto;
+  margin: 0 -0.75rem;
+  padding: 0 0.75rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.nav-group + .nav-group {
+  margin-top: 0.8rem;
+}
+
+.nav-group-label {
+  padding: 0 0.75rem 0.25rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.sidebar-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.38rem 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 0.4rem;
+
+  i {
+    font-size: 1.05rem;
+    opacity: 0.8;
+  }
+
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  // Active: the brand gradient as a thin spine on the left edge — the only place the sidebar uses it.
+  &.active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.09);
+
+    i {
+      opacity: 1;
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0.35rem;
+      bottom: 0.35rem;
+      left: -0.75rem;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: linear-gradient(180deg, var(--lifeos-teal), var(--lifeos-green));
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--lifeos-green);
+    outline-offset: 1px;
+  }
+}
+
+.sidebar-count {
+  min-width: 1.4rem;
+  padding: 0 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.35rem;
+  text-align: center;
+  color: var(--lifeos-ink);
+  background: var(--lifeos-green);
+  border-radius: 1rem;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.5rem 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.sidebar-avatar {
+  display: inline-flex;
+  flex: 0 0 2.1rem;
+  align-items: center;
+  justify-content: center;
+  height: 2.1rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--lifeos-ink);
+  background: var(--lifeos-gradient);
+  border-radius: 50%;
+}
+
+.sidebar-muted {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sidebar-logout {
+  color: rgba(255, 255, 255, 0.7);
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-capture {
+    transition: none;
+  }
+}

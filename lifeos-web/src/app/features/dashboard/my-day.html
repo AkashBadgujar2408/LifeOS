@@ -1,0 +1,50 @@
+<div class="container py-4 py-lg-5">
+  <header class="mb-4 mb-lg-5">
+    <h1 class="my-day-date mb-2">{{ today | date: 'EEEE, d MMMM' }}</h1>
+    <p class="text-body-secondary fs-5 mb-0">{{ greeting() }}</p>
+  </header>
+
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <section class="card h-100" aria-labelledby="inbox-heading">
+        <div class="card-body p-4">
+          <h2 id="inbox-heading" class="h5 mb-3">Waiting in your Inbox</h2>
+
+          @if (!inboxService.openCountsLoaded()) {
+            <p class="text-body-secondary mb-0">Checking your Inbox...</p>
+          } @else if (inboxService.openTotal() === 0) {
+            <p class="text-body-secondary mb-3">
+              Nothing waiting. Anything you capture with Quick Add shows up here until you sort it.
+            </p>
+            <button type="button" class="btn btn-primary" (click)="quickAdd.open()">
+              <i class="bi bi-plus-lg"></i> Quick add
+            </button>
+          } @else {
+            <ul class="list-unstyled mb-3">
+              @for (entry of waitingKinds(); track entry.kind) {
+                <li class="d-flex justify-content-between py-2 border-bottom">
+                  <span>{{ entry.label }}</span>
+                  <span class="fw-semibold">{{ entry.count }}</span>
+                </li>
+              }
+            </ul>
+            <a routerLink="/inbox" class="btn btn-outline-primary">Sort your Inbox</a>
+          }
+        </div>
+      </section>
+    </div>
+
+    <div class="col-lg-5">
+      <section class="card h-100" aria-labelledby="today-heading">
+        <div class="card-body p-4">
+          <h2 id="today-heading" class="h5 mb-3">Today</h2>
+          <p class="text-body-secondary mb-0">
+            Tasks due, events, habits to check off and your journal prompt will gather here as those
+            parts of LifeOS are built. Press <kbd>Q</kbd> on any page to capture something in the
+            meantime.
+          </p>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

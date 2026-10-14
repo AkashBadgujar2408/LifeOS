@@ -1,0 +1,36 @@
+<div class="container py-4">
+  <div style="max-width: 46rem">
+    <h1 class="h3 mb-1 d-flex align-items-center gap-2">
+      <i class="bi {{ icon() }} text-primary"></i>
+      {{ heading() }}
+    </h1>
+    <p class="text-body-secondary mb-4">{{ summary() }}</p>
+
+    <div class="card">
+      <div class="card-body p-4">
+        <p class="fw-semibold mb-2">
+          This part of LifeOS isn't built yet. Once it is, you'll be able to:
+        </p>
+        <ul class="mb-0 ps-3">
+          @for (point of willLetYou(); track point) {
+            <li class="mb-1">{{ point }}</li>
+          }
+        </ul>
+
+        @if (captureKind(); as kind) {
+          <hr class="my-4" style="border-color: var(--lifeos-border); opacity: 1" />
+          <p class="mb-3 text-body-secondary">
+            You don't have to wait: capture it now and it waits in your Inbox, ready to move here
+            later.
+          </p>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-primary" (click)="quickAdd.open(kind)">
+              <i class="bi bi-plus-lg"></i> {{ captureLabel() }}
+            </button>
+            <a routerLink="/inbox" class="btn btn-outline-secondary">Open Inbox</a>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</div>

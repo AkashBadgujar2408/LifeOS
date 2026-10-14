@@ -1,0 +1,9 @@
+// The date is the one display-type moment in the app: large, tight, ink — not a stat tile.
+.my-day-date {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(2.1rem, 1.4rem + 3vw, 3.6rem);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--lifeos-ink);
+}

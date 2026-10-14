@@ -34,6 +34,11 @@ export class QuickAddDialog {
     notes: ['', Validators.maxLength(4000)],
   });
 
+  /** Called by QuickAddService when opened from a context that implies the kind (e.g. the Tasks page). */
+  presetKind(kind: InboxKind): void {
+    this.form.controls.kind.setValue(kind);
+  }
+
   protected fieldError(name: 'title' | 'notes'): string | null {
     const control = this.form.get(name);
     if (!control || !control.touched || !control.errors) {

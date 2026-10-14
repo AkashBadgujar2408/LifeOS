@@ -1,33 +1,101 @@
-<nav class="navbar navbar-expand navbar-dark" style="background-color: var(--lifeos-ink)">
-  <div class="container-fluid">
-    <a routerLink="/" class="navbar-brand mb-0 h1 d-flex align-items-center gap-2 text-white">
-      <img src="logo.png" alt="LifeOS" height="32" width="32" />
-      LifeOS
+<!-- Sidebar body, rendered both in the desktop sidebar and the mobile drawer. -->
+<ng-template #sidebarBody>
+  <div class="sidebar-inner">
+    <a routerLink="/" class="sidebar-brand" (click)="closeDrawer()">
+      <img src="logo.png" alt="" height="30" width="30" />
+      <span id="drawer-title">LifeOS</span>
     </a>
 
-    <!-- Minimal links until the full Month 1 nav lands in Session 8. -->
-    <ul class="navbar-nav me-auto">
-      <li class="nav-item">
-        <a
-          class="nav-link"
-          routerLink="/"
-          routerLinkActive="active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          >Home</a
-        >
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" routerLink="/inbox" routerLinkActive="active">Inbox</a>
-      </li>
-    </ul>
+    <button type="button" class="sidebar-capture" (click)="openQuickAdd()">
+      <i class="bi bi-plus-lg"></i>
+      <span>Quick add</span>
+      <kbd>Q</kbd>
+    </button>
 
-    <div class="d-flex align-items-center gap-3">
-      <span class="text-white-50 small">{{ authService.currentUser()?.displayName }}</span>
-      <button type="button" class="btn btn-outline-light btn-sm" (click)="logout()">Log out</button>
+    <nav class="sidebar-nav" aria-label="Main">
+      @for (group of navGroups; track group.label) {
+        <div class="nav-group">
+          <div class="nav-group-label" [attr.id]="'nav-group-' + $index">{{ group.label }}</div>
+          <ul class="list-unstyled mb-0" [attr.aria-labelledby]="'nav-group-' + $index">
+            @for (item of group.items; track item.route) {
+              <li>
+                <a
+                  class="sidebar-link"
+                  [routerLink]="item.route"
+                  routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
+                  [routerLinkActiveOptions]="{ exact: item.exact ?? false }"
+                  (click)="closeDrawer()"
+                >
+                  <i class="bi {{ item.icon }}"></i>
+                  <span class="flex-grow-1">{{ item.label }}</span>
+                  @if (item.route === '/inbox' && inboxService.openTotal() > 0) {
+                    <span
+                      class="sidebar-count"
+                      [attr.aria-label]="inboxService.openTotal() + ' open items'"
+                      >{{ inboxService.openTotal() }}</span
+                    >
+                  }
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </nav>
+
+    <div class="sidebar-user">
+      <span class="sidebar-avatar" aria-hidden="true">{{ initials() }}</span>
+      <div class="flex-grow-1 min-w-0">
+        <div class="text-truncate fw-semibold">{{ authService.currentUser()?.displayName }}</div>
+        <div class="text-truncate sidebar-muted small">
+          {{ authService.currentUser()?.username }}
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn btn-sm sidebar-logout"
+        title="Log out"
+        aria-label="Log out"
+        (click)="logout()"
+      >
+        <i class="bi bi-box-arrow-right"></i>
+      </button>
     </div>
   </div>
-</nav>
+</ng-template>
 
-<router-outlet />
+<ng-template #drawer>
+  <div class="offcanvas-body p-0 h-100">
+    <ng-container [ngTemplateOutlet]="sidebarBody" />
+  </div>
+</ng-template>
+
+<div class="app-frame">
+  <aside class="app-sidebar d-none d-lg-flex">
+    <ng-container [ngTemplateOutlet]="sidebarBody" />
+  </aside>
+
+  <div class="app-main">
+    <header class="app-topbar d-lg-none">
+      <button
+        type="button"
+        class="btn btn-sm text-white"
+        aria-label="Open navigation"
+        (click)="openDrawer(drawer)"
+      >
+        <i class="bi bi-list fs-4"></i>
+      </button>
+      <a routerLink="/" class="d-flex align-items-center gap-2 text-white text-decoration-none">
+        <img src="logo.png" alt="" height="26" width="26" />
+        <span class="fw-semibold">LifeOS</span>
+      </a>
+    </header>
+
+    <main class="app-content">
+      <router-outlet />
+    </main>
+  </div>
+</div>
 
 <app-quick-add />

@@ -19,6 +19,7 @@ public class TagsService(AppDbContext db, IMapper mapper) : ITagsService
 
     public async Task<OperationResult<TagDto>> CreateAsync(string name)
     {
+        name = name.Trim();
         var nameExists = await db.Tags.AnyAsync(t => t.Name == name);
         if (nameExists)
         {
@@ -42,6 +43,7 @@ public class TagsService(AppDbContext db, IMapper mapper) : ITagsService
 
     public async Task<OperationResult<TagDto>> RenameAsync(int id, string name)
     {
+        name = name.Trim();
         var tag = await db.Tags.FindAsync(id);
         if (tag is null)
         {
