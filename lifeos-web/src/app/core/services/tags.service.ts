@@ -1,17 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
+import { ApiResponse } from './api-response';
 
 export interface Tag {
   id: number;
   name: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string | null;
-  data: T | null;
-  errors: string[] | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -20,7 +14,9 @@ export class TagsService {
   private readonly baseUrl = '/api/Shared/Tags';
 
   list(): Observable<Tag[]> {
-    return this.http.get<ApiResponse<Tag[]>>(this.baseUrl).pipe(map((response) => response.data ?? []));
+    return this.http
+      .get<ApiResponse<Tag[]>>(this.baseUrl)
+      .pipe(map((response) => response.data ?? []));
   }
 
   create(name: string): Observable<Tag> {
@@ -36,6 +32,8 @@ export class TagsService {
   }
 
   remove(id: number): Observable<void> {
-    return this.http.delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`).pipe(map(() => undefined));
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`)
+      .pipe(map(() => undefined));
   }
 }

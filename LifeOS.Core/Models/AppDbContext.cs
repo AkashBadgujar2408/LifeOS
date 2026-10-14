@@ -13,6 +13,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EntityLink> EntityLinks { get; set; }
 
+    public virtual DbSet<InboxItem> InboxItems { get; set; }
+
     public virtual DbSet<LifeArea> LifeAreas { get; set; }
 
     public virtual DbSet<Tag> Tags { get; set; }
@@ -23,13 +25,15 @@ public partial class AppDbContext : DbContext
     {
         modelBuilder.Entity<EntityLink>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__EntityLi__3214EC0703F22C2A");
-
             entity.ToTable("EntityLinks", "shared");
 
             entity.HasIndex(e => new { e.UserId, e.SourceEntityType, e.SourceEntityId }, "IX_EntityLinks_Source").HasFilter("([IsDeleted]=(0))");
 
             entity.HasIndex(e => new { e.UserId, e.TargetEntityType, e.TargetEntityId }, "IX_EntityLinks_Target").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.UserId, e.SourceEntityType, e.SourceEntityId, e.TargetEntityType, e.TargetEntityId }, "UX_EntityLinks_Pair")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_EntityLinks_CreatedAt");
             entity.Property(e => e.SourceEntityType).HasMaxLength(100);
@@ -41,10 +45,24 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_EntityLinks_Users");
         });
 
+        modelBuilder.Entity<InboxItem>(entity =>
+        {
+            entity.ToTable("InboxItems", "shared");
+
+            entity.HasIndex(e => new { e.UserId, e.Kind, e.ProcessedAt }, "IX_InboxItems_User_Kind").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_InboxItems_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Title).HasMaxLength(300);
+
+            entity.HasOne(d => d.User).WithMany(p => p.InboxItems)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InboxItems_Users");
+        });
+
         modelBuilder.Entity<LifeArea>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__LifeArea__3214EC0768042543");
-
             entity.ToTable("LifeAreas", "shared");
 
             entity.HasIndex(e => e.Name, "UX_LifeAreas_Name")
@@ -57,8 +75,6 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Tag>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Tags__3214EC07D8A12516");
-
             entity.ToTable("Tags", "shared");
 
             entity.HasIndex(e => new { e.UserId, e.Name }, "UX_Tags_UserId_Name")
@@ -76,8 +92,6 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Users__3214EC07B2583074");
-
             entity.ToTable("Users", "shared");
 
             entity.HasIndex(e => e.Email, "UX_Users_Email")

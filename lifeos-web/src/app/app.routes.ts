@@ -16,6 +16,12 @@ export const routes: Routes = [
     path: '',
     component: Shell,
     canActivate: [authGuard],
-    children: [{ path: '', component: Home }],
+    children: [
+      { path: '', component: Home },
+      {
+        path: 'inbox',
+        loadComponent: () => import('./features/inbox/inbox').then((m) => m.Inbox),
+      },
+    ],
   },
 ];

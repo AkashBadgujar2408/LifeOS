@@ -9,5 +9,6 @@ public class SharedProfile : Profile
     public SharedProfile()
     {
         CreateMap<Tag, TagDto>();
+        CreateMap<InboxItem, InboxItemDto>();
     }
 }

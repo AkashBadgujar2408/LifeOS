@@ -1,0 +1,79 @@
+<div>
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <span class="small fw-semibold text-body-secondary">
+      <i class="bi bi-link-45deg"></i> Linked items
+    </span>
+    <button type="button" class="btn btn-link btn-sm p-0" (click)="togglePicker()">
+      {{ pickerOpen() ? 'Done' : '+ Link item' }}
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="small text-body-secondary">Loading links...</div>
+  } @else {
+    @if (links().length === 0) {
+      <div class="small text-body-secondary">Not linked to anything yet.</div>
+    } @else {
+      <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
+        @for (link of links(); track link.linkId) {
+          <li class="d-flex align-items-center gap-2 small">
+            <span class="badge text-bg-light border">{{ displayName(link.entityType) }}</span>
+            <span class="flex-grow-1 text-truncate">{{ link.title }}</span>
+            <button
+              type="button"
+              class="btn btn-link btn-sm p-0 text-body-secondary"
+              [attr.aria-label]="'Unlink ' + link.title"
+              title="Unlink"
+              (click)="unlink(link)"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+
+  @if (pickerOpen()) {
+    <div class="border-top mt-2 pt-2">
+      <div class="d-flex gap-2 mb-2">
+        @if (types().length > 1) {
+          <select
+            class="form-select form-select-sm w-auto"
+            aria-label="Type of item to link"
+            [ngModel]="targetType()"
+            (ngModelChange)="targetType.set($event)"
+          >
+            @for (type of types(); track type.entityType) {
+              <option [value]="type.entityType">{{ type.displayName }}</option>
+            }
+          </select>
+        }
+        <input
+          type="search"
+          class="form-control form-control-sm"
+          aria-label="Search items to link"
+          placeholder="Search by title..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="searchTerm.set($event)"
+        />
+      </div>
+
+      @if (candidates().length === 0) {
+        <div class="small text-body-secondary">Nothing to link — no matching items.</div>
+      } @else {
+        <div class="list-group list-group-flush small">
+          @for (candidate of candidates(); track candidate.entityType + candidate.entityId) {
+            <button
+              type="button"
+              class="list-group-item list-group-item-action px-2 py-1"
+              (click)="link(candidate)"
+            >
+              <i class="bi bi-plus"></i> {{ candidate.title }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

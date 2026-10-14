@@ -205,8 +205,8 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
 | 5 | ✅ Tags | Tags CRUD API + reusable Angular tag-picker component; per-user global query filter added (`IUserOwned`) | **Done** — verified create/rename/delete via curl and in the browser, including per-user isolation with a second registered user |
-| 6 | EntityLinks | Generic link-between-any-two-entities API + reusable "linked items" widget | Can link e.g. a Task to a Goal and see it reflected both directions |
-| 7 | Quick Add | Global capture (shortcut/FAB) for a task/note/journal/idea from anywhere, routes into the right module's inbox | Quick Add works from any screen, item lands in correct module |
+| 6 | ✅ EntityLinks | Generic link-between-any-two-entities API + reusable "linked items" widget; pluggable `ILinkableEntityProvider` per entity type; undirected links stored canonically with a unique pair index | **Done** (API-verified; browser click-through pending) — two inbox items linked and visible from both ends; Goals/Tasks plug in by registering a provider when they exist |
+| 7 | ✅ Quick Add | Global capture (FAB + `q` shortcut) for a task/note/journal/idea from anywhere. **Deviation:** none of those modules exist yet, so "the right module's inbox" became one shared capture inbox (`shared.InboxItems`, tagged by Kind) + an Inbox screen; each module later processes its Kind's items into real entities | **Done** (API-verified; browser click-through pending) — items land in the inbox under the right Kind |
 | 8 | Nav shell | App layout/navigation matching the blueprint's nav groups, trimmed to Month 1 modules; empty states | All 7 modules reachable via nav, no dead links |
 
 ### Milestone 2 — Goals & Milestones

@@ -1,0 +1,72 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 class="modal-title h5">Quick add</h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body">
+    <div class="btn-group w-100 mb-3" role="radiogroup" aria-label="What are you capturing?">
+      @for (kind of kinds; track kind) {
+        <input
+          type="radio"
+          class="btn-check"
+          formControlName="kind"
+          [id]="'quick-add-kind-' + kind"
+          [value]="kind"
+        />
+        <label class="btn btn-outline-primary btn-sm" [for]="'quick-add-kind-' + kind">
+          <i class="bi {{ kindMeta[kind].icon }}"></i> {{ kind }}
+        </label>
+      }
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="quick-add-title">Title</label>
+      <input
+        id="quick-add-title"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('title')"
+        formControlName="title"
+        [placeholder]="kindMeta[form.controls.kind.value].placeholder"
+        autocomplete="off"
+        ngbAutofocus
+      />
+      @if (fieldError('title'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div>
+      <label class="form-label" for="quick-add-notes">
+        Notes <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="quick-add-notes"
+        class="form-control"
+        rows="3"
+        [class.is-invalid]="fieldError('notes')"
+        formControlName="notes"
+        placeholder="Any detail you'll want later"
+      ></textarea>
+      @if (fieldError('notes'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <span class="small text-body-secondary me-auto"> Lands in your Inbox until you sort it. </span>
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="submitting()">
+      {{ submitting() ? 'Saving...' : 'Capture' }}
+    </button>
+  </div>
+</form>

@@ -9,3 +9,5 @@ public partial class Tag : ISoftDeletable, IUserOwned;
 public partial class EntityLink : ISoftDeletable, IUserOwned;
 
 public partial class LifeArea : ISoftDeletable;
+
+public partial class InboxItem : ISoftDeletable, IUserOwned;

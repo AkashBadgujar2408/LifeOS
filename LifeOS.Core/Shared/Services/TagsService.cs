@@ -3,20 +3,12 @@ using AutoMapper.QueryableExtensions;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace LifeOS.Core.Shared.Services;
 
 public class TagsService(AppDbContext db, IMapper mapper) : ITagsService
 {
-    private const int SqlUniqueConstraintViolation = 2627;
-    private const int SqlUniqueIndexViolation = 2601;
-
-    private static bool IsUniqueConstraintViolation(DbUpdateException ex) =>
-        ex.InnerException is SqlException sqlEx &&
-        (sqlEx.Number == SqlUniqueConstraintViolation || sqlEx.Number == SqlUniqueIndexViolation);
-
     public async Task<List<TagDto>> GetAllAsync()
     {
         return await db.Tags
@@ -40,7 +32,7 @@ public class TagsService(AppDbContext db, IMapper mapper) : ITagsService
         {
             await db.SaveChangesAsync();
         }
-        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
             return OperationResult<TagDto>.Fail("A tag with this name already exists.");
         }
@@ -69,7 +61,7 @@ public class TagsService(AppDbContext db, IMapper mapper) : ITagsService
         {
             await db.SaveChangesAsync();
         }
-        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
         {
             return OperationResult<TagDto>.Fail("A tag with this name already exists.");
         }

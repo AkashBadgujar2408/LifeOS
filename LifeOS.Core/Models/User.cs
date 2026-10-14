@@ -25,5 +25,7 @@ public partial class User
 
     public virtual ICollection<EntityLink> EntityLinks { get; set; } = new List<EntityLink>();
 
+    public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();
+
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
 }

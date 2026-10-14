@@ -41,6 +41,11 @@ try
     builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
     builder.Services.AddScoped<IAuthService, AuthService>();
     builder.Services.AddScoped<ITagsService, TagsService>();
+    builder.Services.AddScoped<IEntityLinksService, EntityLinksService>();
+    builder.Services.AddScoped<IInboxService, InboxService>();
+
+    // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
+    builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

@@ -1,9 +1,25 @@
-<nav class="navbar navbar-expand" style="background-color: var(--lifeos-ink);">
+<nav class="navbar navbar-expand navbar-dark" style="background-color: var(--lifeos-ink)">
   <div class="container-fluid">
-    <span class="navbar-brand mb-0 h1 d-flex align-items-center gap-2 text-white">
+    <a routerLink="/" class="navbar-brand mb-0 h1 d-flex align-items-center gap-2 text-white">
       <img src="logo.png" alt="LifeOS" height="32" width="32" />
       LifeOS
-    </span>
+    </a>
+
+    <!-- Minimal links until the full Month 1 nav lands in Session 8. -->
+    <ul class="navbar-nav me-auto">
+      <li class="nav-item">
+        <a
+          class="nav-link"
+          routerLink="/"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          >Home</a
+        >
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" routerLink="/inbox" routerLinkActive="active">Inbox</a>
+      </li>
+    </ul>
 
     <div class="d-flex align-items-center gap-3">
       <span class="text-white-50 small">{{ authService.currentUser()?.displayName }}</span>
@@ -13,3 +29,5 @@
 </nav>
 
 <router-outlet />
+
+<app-quick-add />

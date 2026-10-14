@@ -1,0 +1,139 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Inbox</h1>
+      <p class="text-body-secondary mb-0 small">
+        Everything you capture with Quick Add (press <kbd>Q</kbd> anywhere) lands here first.
+      </p>
+    </div>
+    <div class="form-check form-switch mb-0">
+      <input
+        id="show-processed"
+        class="form-check-input"
+        type="checkbox"
+        role="switch"
+        [checked]="showProcessed()"
+        (change)="showProcessed.set($any($event.target).checked)"
+      />
+      <label class="form-check-label small" for="show-processed">Show processed</label>
+    </div>
+  </div>
+
+  <ul class="nav nav-pills mb-3 gap-1" role="tablist">
+    <li class="nav-item">
+      <button
+        type="button"
+        class="nav-link py-1 px-3"
+        [class.active]="kindFilter() === null"
+        (click)="kindFilter.set(null)"
+      >
+        All
+      </button>
+    </li>
+    @for (kind of kinds; track kind) {
+      <li class="nav-item">
+        <button
+          type="button"
+          class="nav-link py-1 px-3"
+          [class.active]="kindFilter() === kind"
+          (click)="kindFilter.set(kind)"
+        >
+          <i class="bi {{ kindIcons[kind] }}"></i> {{ kind }}
+          @if (openCounts().get(kind); as count) {
+            <span class="badge rounded-pill text-bg-light ms-1">{{ count }}</span>
+          }
+        </button>
+      </li>
+    }
+  </ul>
+
+  @if (loading() && items().length === 0) {
+    <div class="text-body-secondary">Loading...</div>
+  } @else if (visibleItems().length === 0) {
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-inbox fs-1 text-body-secondary"></i>
+        <p class="mt-2 mb-1 fw-semibold">Nothing here</p>
+        <p class="text-body-secondary small mb-0">
+          Press <kbd>Q</kbd> or the <i class="bi bi-plus-circle"></i> button to capture a thought.
+        </p>
+      </div>
+    </div>
+  } @else {
+    <div class="d-flex flex-column gap-2">
+      @for (item of visibleItems(); track item.id) {
+        <div class="card" [class.opacity-75]="item.processedAt">
+          <div class="card-body py-3">
+            <div class="d-flex align-items-start gap-3">
+              <i class="bi {{ kindIcons[item.kind] }} fs-5 text-primary" [title]="item.kind"></i>
+              <div class="flex-grow-1 min-w-0">
+                <div
+                  class="fw-semibold text-break"
+                  [class.text-decoration-line-through]="item.processedAt"
+                >
+                  {{ item.title }}
+                </div>
+                @if (item.notes) {
+                  <div class="small text-body-secondary text-break" style="white-space: pre-line">
+                    {{ item.notes }}
+                  </div>
+                }
+                <div class="small text-body-secondary mt-1">
+                  {{ item.kind }} · captured {{ item.createdAt | date: 'MMM d, h:mm a' }}
+                </div>
+              </div>
+              <div class="d-flex gap-1 flex-shrink-0">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  [class.active]="expandedLinksId() === item.id"
+                  title="Linked items"
+                  aria-label="Linked items"
+                  (click)="toggleLinks(item.id)"
+                >
+                  <i class="bi bi-link-45deg"></i>
+                </button>
+                @if (item.processedAt) {
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    title="Reopen"
+                    aria-label="Reopen"
+                    (click)="setProcessed(item, false)"
+                  >
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    title="Mark processed"
+                    aria-label="Mark processed"
+                    (click)="setProcessed(item, true)"
+                  >
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-danger"
+                  title="Delete"
+                  aria-label="Delete"
+                  (click)="remove(item)"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            @if (expandedLinksId() === item.id) {
+              <div class="border-top mt-3 pt-3">
+                <app-linked-items [entityType]="inboxEntityType" [entityId]="item.id" />
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

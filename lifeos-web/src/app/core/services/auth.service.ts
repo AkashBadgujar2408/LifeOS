@@ -1,6 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { ApiResponse } from './api-response';
 
 export interface AuthUser {
   userId: number;
@@ -12,13 +13,6 @@ export interface AuthUser {
 interface AuthResponseData extends AuthUser {
   token: string;
   expiresAtUtc: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string | null;
-  data: T | null;
-  errors: string[] | null;
 }
 
 export interface RegisterPayload {
