@@ -74,17 +74,11 @@ export const routes: Routes = [
         title: 'Revise goal | LifeOS',
         loadComponent: () => import('./features/goals/goal-form').then((m) => m.GoalForm),
       },
-      placeholder('tasks', 'Tasks', {
-        heading: 'Tasks',
-        icon: 'bi-check2-square',
-        summary: 'What needs doing today, this week, and someday.',
-        willLetYou: [
-          'Plan with Today, Upcoming and Someday views',
-          'Repeat tasks on a schedule, so the next one appears when you finish',
-          'Group tasks into projects and link them to the goals they serve',
-        ],
-        captureKind: 'Task',
-      }),
+      {
+        path: 'tasks',
+        title: 'Tasks | LifeOS',
+        loadComponent: () => import('./features/tasks/tasks').then((m) => m.Tasks),
+      },
       placeholder('habits', 'Habits', {
         heading: 'Habits',
         icon: 'bi-arrow-repeat',

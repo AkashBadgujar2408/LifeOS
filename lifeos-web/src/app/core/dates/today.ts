@@ -10,3 +10,12 @@ export function todayIso(): string {
 export function isOverdue(targetDate: string | null, done: boolean): boolean {
   return !done && targetDate !== null && targetDate < todayIso();
 }
+
+/** A "yyyy-MM-dd" calendar date moved by whole days, without going through UTC (no DST/timezone shifts). */
+export function addDaysIso(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  const date = new Date(year, month - 1, day + days);
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${mm}-${dd}`;
+}

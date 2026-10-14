@@ -262,4 +262,29 @@
   - Constraints, in a rolled-back transaction: recurrence without due date, partial recurrence, interval 0, bad priority, CompletedAt on an open task, duplicate project name — all rejected; a valid weekly task accepted.
   - `dotnet build` 0 warnings.
 
-- Next up: **Session 13 — Tasks API + UI** (CRUD, Today/Upcoming/Someday, recurring generation; process Inbox "Task" items into real tasks; `TaskLinkableProvider`).
+- Next up: Session 13 (done the same day, below).
+
+## Last session: 2026-10-14 — Session 13 — Tasks API + UI
+- Shipped (backend):
+  - `LifeOS.Core/Tasks/{DTOs,ServiceContracts,Services,AutoMapper}` + `Areas/Tasks/Controllers/TasksController` (`api/Tasks/Tasks`): list `?status=Open|Done` (Done = latest 100), get, create, update, `PUT {id}/completed` (body `{ completed, today }`), delete, `POST from-inbox/{inboxItemId}`.
+  - **`TaskRecurrence`** (pure): occurrence k computed from the anchor (no month-end drift; 29 Feb clamps); next due = first occurrence after the completed due date that isn't before the client's `today` (early completion moves past the due date; late completion skips missed ones; a daily task done a day late still gets today's instance). Completing a recurring task spawns the next instance (copies title/notes/priority/project/tags/rule) in a transaction and records `NextOccurrenceTaskId`, so reopen + complete never spawns twice. Editing the rule or moving the due date re-anchors the series.
+  - Validation: `[AllowedValues]` priority/frequency, interval 1–999, "A repeating task needs a due date", project/tag ownership. Delete soft-deletes task tags + links.
+  - **Inbox → task**: creates the task, **moves** the item's links to it, marks the item processed (one transaction); already-processed / other user's item → 400. `IEntityLinksService.CopyLinksAsync` added.
+  - `TaskLinkableProvider` ("Task") — goals can now link real tasks (and the goal detail widget lists them).
+  - **New `LifeOS.Core.Tests`** (xUnit): 14 recurrence cases + 8 goal-progress cases, 22/22.
+  - **Security fix found on the way**: the first unsandboxed build surfaced NuGet audit warnings — `System.Security.Cryptography.Pkcs` 9.0.11 (high + moderate advisories) via EF Core SqlServer → SqlClient 6.1.6. Pinned 10.0.13 in `LifeOS.Core`; `dotnet list package --vulnerable` now clean. Pre-existing, not caused by this session — sandboxed builds just never ran the audit.
+- Shipped (frontend):
+  - `features/tasks/`: Tasks page (Today with an Overdue section + red count badge, Upcoming grouped by day — "Tomorrow" / weekday + date, Someday, Done with completion time), quick-add row that adds *to the current view* (Today → today, Upcoming → tomorrow, Someday → no date), rows with tick box, repeat label ("Every 3 days"), priority flag, notes marker, tags; click a row to edit. `task-editor` dialog (title, due date picker, priority segmented control, repeat + "every N unit", notes, tags, delete) — also used by Inbox's new **Make it a task** button on open Task items. Bucketing/sorting/labels in `task-views.ts` + spec. `core/dates/today.ts` (moved from Goals, + `addDaysIso`). Tasks placeholder route replaced.
+  - **Toasts restyled per your feedback**: light green / light red tint, dark ink text, colored left edge, solid background (Bootstrap's toast was also translucent).
+- Fixed via the browser pass:
+  - Inbox conversion first *copied* links, so the goal listed "Inbox item: Book a physio appointment" *and* "Task: Book a physio appointment" → now moves them; the two duplicate test links were soft-deleted in UAT.
+- Verified:
+  - curl matrix: all validation paths; cross-user get/complete/convert → not found; weekly spawn on 21/Oct with tag + priority; reopen + complete → no second spawn; monthly re-anchored to 31/Oct → next 30/Nov; Open/Done lists; Task link candidates; inbox convert → task carries the goal link, inbox item has none, second convert rejected; delete → 404; anonymous 401.
+  - Browser: quick add to Today; New task (daily, High, Fitness tag) sorts first; **tick → "Done. Next one is due 15/Oct/2026."**, Upcoming 3→4 under "Tomorrow 15/Oct/2026"; Done view; Inbox "Make it a task" (prefilled, typed due date) → inbox empty, badge cleared; goal detail lists the real tasks; new toasts. No console errors.
+  - `dotnet build` 0 warnings (unsandboxed, with NuGet audit); lint clean; `ng build` 0 warnings; tests 22 backend + 19 frontend.
+- Notes:
+  - Linked items aren't shown inside the task editor yet, and there's no Projects UI — both are Session 14 (projects + task↔goal linking from the task side + sort options).
+  - The Tasks page fixes "today" when it loads; a page left open past midnight needs a reload to re-bucket.
+  - UAT test data for goaluser1: tasks Water the plants (weekly), Pay rent (monthly), Take vitamins (daily), Call mum, Buy running shoes, Book a physio appointment, Stretch after runs; tags Errands, Home.
+
+- Next up: **Session 14 — Projects + linking**: Projects CRUD + grouping UI, project picker in the task editor, linked-items in the task editor (task → goal from the task side), sort options (priority / due date).

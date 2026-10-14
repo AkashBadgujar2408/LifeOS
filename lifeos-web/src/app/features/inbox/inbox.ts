@@ -19,6 +19,8 @@ import {
   InboxService,
 } from '../../core/services/inbox.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { openTaskEditor } from '../tasks/task-editor';
 import { APP_DATE_TIME_FORMAT } from '../../core/dates/date-format';
 
 const KIND_ICONS: Record<InboxKind, string> = {
@@ -38,6 +40,7 @@ export class Inbox {
   private readonly inboxService = inject(InboxService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly modal = inject(NgbModal);
 
   protected readonly kinds = INBOX_KINDS;
   protected readonly kindIcons = KIND_ICONS;
@@ -92,6 +95,21 @@ export class Inbox {
         },
         error: (err) => this.toast.error(err.error?.message ?? 'Could not update item.'),
       });
+  }
+
+  /** Turns a captured Task into a real one (the API keeps its links and marks it processed). */
+  protected async makeTask(item: InboxItem): Promise<void> {
+    const result = await openTaskEditor(this.modal, {
+      inboxItemId: item.id,
+      defaults: { title: item.title, notes: item.notes },
+    });
+    if (result?.kind !== 'saved') {
+      return;
+    }
+
+    this.inboxService.refreshOpenCounts();
+    this.load(this.showProcessed());
+    this.toast.success(`"${result.task.title}" is now in Tasks.`);
   }
 
   protected async remove(item: InboxItem): Promise<void> {

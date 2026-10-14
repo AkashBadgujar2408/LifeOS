@@ -73,6 +73,39 @@ h6 {
   --cui-btn-focus-shadow-rgb: 21, 152, 149;
 }
 
+// Toasts (<app-toasts />, rendered via NgbToast). A light tint with dark text instead of Bootstrap's saturated
+// text-bg-* fills (white on CoreUI's success green was hard to read), solid rather than Bootstrap's translucent
+// toast background, with the brand color as an accent edge.
+.lifeos-toast {
+  --cui-toast-bg: var(--lifeos-surface);
+  --cui-toast-border-color: var(--lifeos-border);
+  --cui-toast-color: var(--lifeos-ink);
+  background-color: var(--cui-toast-bg);
+  color: var(--cui-toast-color);
+  border-left-width: 4px;
+  box-shadow: 0 0.25rem 0.75rem rgba(20, 27, 46, 0.12);
+
+  &.lifeos-toast-success {
+    --cui-toast-bg: #e8f7ee;
+    border-color: #c4ead3;
+    border-left-color: var(--lifeos-green);
+
+    .bi {
+      color: #2f9a5e;
+    }
+  }
+
+  &.lifeos-toast-error {
+    --cui-toast-bg: #fdecec;
+    border-color: #f5c9c9;
+    border-left-color: #dc3545;
+
+    .bi {
+      color: #c82333;
+    }
+  }
+}
+
 // Mobile nav drawer (NgbOffcanvas renders it at <body> level, outside the Shell's encapsulated styles).
 .offcanvas.lifeos-drawer {
   --cui-offcanvas-width: 17rem;

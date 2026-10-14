@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="LifeOS.Api/LifeOS.Api.csproj" />
+  <Project Path="LifeOS.Core.Tests/LifeOS.Core.Tests.csproj" />
   <Project Path="LifeOS.Core/LifeOS.Core.csproj" />
 </Solution>

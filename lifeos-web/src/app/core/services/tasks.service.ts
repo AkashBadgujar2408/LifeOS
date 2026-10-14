@@ -1,0 +1,106 @@
+import { Injectable, inject, signal } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, map, tap } from 'rxjs';
+import { ApiResponse } from './api-response';
+import { Tag } from './tags.service';
+
+export const TASK_PRIORITIES = ['None', 'Low', 'Medium', 'High'] as const;
+export type TaskPriority = (typeof TASK_PRIORITIES)[number];
+
+export const RECURRENCE_FREQUENCIES = ['Daily', 'Weekly', 'Monthly', 'Yearly'] as const;
+export type RecurrenceFrequency = (typeof RECURRENCE_FREQUENCIES)[number];
+
+/** Matches TaskLinkableProvider.Type on the API. */
+export const TASK_ENTITY_TYPE = 'Task';
+
+export interface TaskRecurrence {
+  frequency: RecurrenceFrequency;
+  interval: number;
+}
+
+export interface TaskItem {
+  id: number;
+  title: string;
+  notes: string | null;
+  /** Calendar date "yyyy-MM-dd"; null = Someday. Never pass it through `new Date()`. */
+  dueDate: string | null;
+  priority: TaskPriority;
+  status: 'Open' | 'Done';
+  completedAt: string | null;
+  projectId: number | null;
+  projectName: string | null;
+  recurrence: TaskRecurrence | null;
+  tags: Tag[];
+  createdAt: string;
+}
+
+export interface TaskPayload {
+  title: string;
+  notes: string | null;
+  dueDate: string | null;
+  priority: TaskPriority;
+  projectId: number | null;
+  recurrence: TaskRecurrence | null;
+  tagIds: number[];
+}
+
+export interface SetTaskCompletedResult {
+  task: TaskItem;
+  /** The next instance of a repeating task, when completing it created one. */
+  nextOccurrence: TaskItem | null;
+}
+
+@Injectable({ providedIn: 'root' })
+export class TasksService {
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = '/api/Tasks/Tasks';
+
+  // Bumped on any change made outside the Tasks page (e.g. an Inbox item turned into a task) so it can refresh.
+  private readonly changedVersionSignal = signal(0);
+  readonly changedVersion = this.changedVersionSignal.asReadonly();
+
+  list(status: 'Open' | 'Done'): Observable<TaskItem[]> {
+    const params = new HttpParams().set('status', status);
+    return this.http
+      .get<ApiResponse<TaskItem[]>>(this.baseUrl, { params })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  create(payload: TaskPayload): Observable<TaskItem> {
+    return this.http
+      .post<ApiResponse<TaskItem>>(this.baseUrl, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Turns an Inbox item into a real task; the API carries over its links and marks it processed. */
+  createFromInbox(inboxItemId: number, payload: TaskPayload): Observable<TaskItem> {
+    return this.http
+      .post<ApiResponse<TaskItem>>(`${this.baseUrl}/from-inbox/${inboxItemId}`, payload)
+      .pipe(
+        map((response) => response.data!),
+        tap(() => this.changedVersionSignal.update((v) => v + 1)),
+      );
+  }
+
+  update(id: number, payload: TaskPayload): Observable<TaskItem> {
+    return this.http
+      .put<ApiResponse<TaskItem>>(`${this.baseUrl}/${id}`, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** `today` is the user's local date: it decides where a repeating task's next occurrence lands. */
+  setCompleted(id: number, completed: boolean, today: string): Observable<SetTaskCompletedResult> {
+    return this.http
+      .put<ApiResponse<SetTaskCompletedResult>>(`${this.baseUrl}/${id}/completed`, {
+        completed,
+        today,
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  remove(id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`)
+      .pipe(map(() => undefined));
+  }
+}

@@ -1,0 +1,265 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Tasks</h1>
+      <p class="text-body-secondary mb-0 small">
+        What needs doing today, later, and someday. Tick a repeating task off and the next one
+        appears.
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="newTask()">
+      <i class="bi bi-plus-lg"></i> New task
+    </button>
+  </div>
+
+  <ul class="nav nav-pills gap-1 mb-3">
+    @for (v of views; track v) {
+      <li class="nav-item">
+        <button
+          type="button"
+          class="nav-link py-1 px-3"
+          [class.active]="view() === v"
+          (click)="setView(v)"
+        >
+          {{ viewLabels[v] }}
+          @if (v === 'today' && counts().overdue > 0) {
+            <span class="badge rounded-pill text-bg-danger ms-1" title="Overdue">
+              {{ counts().overdue }}
+            </span>
+          }
+          @if (v !== 'done' && counts()[v]; as count) {
+            <span class="badge rounded-pill text-bg-light ms-1">{{ count }}</span>
+          }
+        </button>
+      </li>
+    }
+  </ul>
+
+  @if (view() !== 'done') {
+    <form class="mb-3" [formGroup]="quickAddForm" (ngSubmit)="quickAdd()" novalidate>
+      <div class="input-group">
+        <span class="input-group-text bg-body"><i class="bi bi-plus-lg"></i></span>
+        <input
+          type="text"
+          class="form-control"
+          [class.is-invalid]="quickAddError()"
+          formControlName="title"
+          [placeholder]="
+            view() === 'someday'
+              ? 'Add a someday task, e.g. Learn to juggle'
+              : view() === 'upcoming'
+                ? 'Add a task for tomorrow, e.g. Call the dentist'
+                : 'Add a task for today, e.g. Renew passport'
+          "
+          [attr.aria-label]="'Add a task to ' + viewLabels[view()]"
+          autocomplete="off"
+        />
+        <button type="submit" class="btn btn-outline-primary" [disabled]="quickAdding()">
+          Add
+        </button>
+      </div>
+      @if (quickAddError(); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </form>
+  }
+
+  <ng-template #row let-task let-showDate="showDate">
+    <li class="list-group-item py-2">
+      <div class="d-flex align-items-start gap-2">
+        <input
+          class="form-check-input mt-1 flex-shrink-0"
+          type="checkbox"
+          [checked]="task.status === 'Done'"
+          [disabled]="busyId() === task.id"
+          [attr.aria-label]="(task.status === 'Done' ? 'Reopen ' : 'Complete ') + task.title"
+          (change)="toggle(task)"
+        />
+        <button
+          type="button"
+          class="btn btn-link p-0 text-start text-decoration-none link-body-emphasis flex-grow-1 min-w-0"
+          (click)="edit(task)"
+        >
+          <span
+            class="text-break"
+            [class.text-decoration-line-through]="task.status === 'Done'"
+            [class.text-body-secondary]="task.status === 'Done'"
+          >
+            {{ task.title }}
+          </span>
+          <span class="d-flex flex-wrap align-items-center column-gap-3 row-gap-1 small mt-1">
+            @if (showDate && task.dueDate) {
+              <span
+                [class.text-danger]="isOverdue(task)"
+                [class.text-body-secondary]="!isOverdue(task)"
+              >
+                <i class="bi bi-calendar-event"></i> {{ task.dueDate | date }}
+              </span>
+            }
+            @if (task.completedAt && task.status === 'Done') {
+              <span class="text-body-secondary">
+                <i class="bi bi-check2"></i> {{ task.completedAt | date: dateTimeFormat }}
+              </span>
+            }
+            @if (task.recurrence) {
+              <span class="text-body-secondary">
+                <i class="bi bi-arrow-repeat"></i> {{ recurrenceLabel(task.recurrence) }}
+              </span>
+            }
+            @if (priorityMeta[task.priority]; as meta) {
+              <span class="{{ meta.tone }}">
+                <i class="bi {{ meta.icon }}"></i> {{ task.priority }}
+              </span>
+            }
+            @if (task.notes) {
+              <span class="text-body-secondary" title="Has notes"
+                ><i class="bi bi-text-left"></i
+              ></span>
+            }
+            @for (tag of task.tags; track tag.id) {
+              <span class="badge text-bg-light border fw-normal">{{ tag.name }}</span>
+            }
+          </span>
+        </button>
+      </div>
+    </li>
+  </ng-template>
+
+  <ng-template #empty let-icon="icon" let-title="title" let-text="text">
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi {{ icon }} fs-1 text-body-secondary"></i>
+        <p class="mt-2 mb-1 fw-semibold">{{ title }}</p>
+        <p class="text-body-secondary small mb-0">{{ text }}</p>
+      </div>
+    </div>
+  </ng-template>
+
+  @if (loading()) {
+    <div class="text-body-secondary">Loading...</div>
+  } @else {
+    @switch (view()) {
+      @case ('today') {
+        @if (counts().today === 0) {
+          <ng-container
+            *ngTemplateOutlet="
+              empty;
+              context: {
+                icon: 'bi-sun',
+                title: 'Nothing due today',
+                text: 'Add one above, or pull something forward from Upcoming or Someday.',
+              }
+            "
+          />
+        } @else {
+          <div class="d-flex flex-column gap-3">
+            @if (buckets().overdue.length > 0) {
+              <section>
+                <h2 class="h6 text-danger mb-2">Overdue</h2>
+                <ul class="list-group">
+                  @for (task of buckets().overdue; track task.id) {
+                    <ng-container
+                      *ngTemplateOutlet="row; context: { $implicit: task, showDate: true }"
+                    />
+                  }
+                </ul>
+              </section>
+            }
+            @if (buckets().today.length > 0) {
+              <section>
+                @if (buckets().overdue.length > 0) {
+                  <h2 class="h6 mb-2">Today</h2>
+                }
+                <ul class="list-group">
+                  @for (task of buckets().today; track task.id) {
+                    <ng-container
+                      *ngTemplateOutlet="row; context: { $implicit: task, showDate: false }"
+                    />
+                  }
+                </ul>
+              </section>
+            }
+          </div>
+        }
+      }
+      @case ('upcoming') {
+        @if (upcomingGroups().length === 0) {
+          <ng-container
+            *ngTemplateOutlet="
+              empty;
+              context: {
+                icon: 'bi-calendar-week',
+                title: 'Nothing scheduled ahead',
+                text: 'Tasks with a future due date show up here, grouped by day.',
+              }
+            "
+          />
+        } @else {
+          <div class="d-flex flex-column gap-3">
+            @for (group of upcomingGroups(); track group.date) {
+              <section>
+                <h2 class="h6 mb-2">
+                  {{ relativeDayLabel(group.date) ?? (group.date | date: 'EEEE') }}
+                  <span class="text-body-secondary fw-normal small ms-1">{{
+                    group.date | date
+                  }}</span>
+                </h2>
+                <ul class="list-group">
+                  @for (task of group.tasks; track task.id) {
+                    <ng-container
+                      *ngTemplateOutlet="row; context: { $implicit: task, showDate: false }"
+                    />
+                  }
+                </ul>
+              </section>
+            }
+          </div>
+        }
+      }
+      @case ('someday') {
+        @if (buckets().someday.length === 0) {
+          <ng-container
+            *ngTemplateOutlet="
+              empty;
+              context: {
+                icon: 'bi-cloud',
+                title: 'No someday tasks',
+                text: 'Anything without a due date lives here until you give it one.',
+              }
+            "
+          />
+        } @else {
+          <ul class="list-group">
+            @for (task of buckets().someday; track task.id) {
+              <ng-container
+                *ngTemplateOutlet="row; context: { $implicit: task, showDate: false }"
+              />
+            }
+          </ul>
+        }
+      }
+      @case ('done') {
+        @if (doneTasks() === null) {
+          <div class="text-body-secondary">Loading...</div>
+        } @else if (doneTasks()!.length === 0) {
+          <ng-container
+            *ngTemplateOutlet="
+              empty;
+              context: {
+                icon: 'bi-check2-all',
+                title: 'Nothing completed yet',
+                text: 'Ticked-off tasks land here; untick one to bring it back.',
+              }
+            "
+          />
+        } @else {
+          <ul class="list-group">
+            @for (task of doneTasks(); track task.id) {
+              <ng-container *ngTemplateOutlet="row; context: { $implicit: task, showDate: true }" />
+            }
+          </ul>
+        }
+      }
+    }
+  }
+</div>

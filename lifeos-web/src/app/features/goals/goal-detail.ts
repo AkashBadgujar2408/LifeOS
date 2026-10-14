@@ -38,7 +38,7 @@ import {
   historyTitle,
   revisionSummary,
 } from './goal-status';
-import { isOverdue } from './goal-dates';
+import { isOverdue } from '../../core/dates/today';
 
 const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(200)];
 

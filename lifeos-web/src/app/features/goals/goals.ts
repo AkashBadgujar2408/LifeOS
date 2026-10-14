@@ -19,7 +19,7 @@ import {
   GoalsService,
 } from '../../core/services/goals.service';
 import { LifeArea, LifeAreasService } from '../../core/services/life-areas.service';
-import { isOverdue } from './goal-dates';
+import { isOverdue } from '../../core/dates/today';
 
 @Component({
   selector: 'app-goals',

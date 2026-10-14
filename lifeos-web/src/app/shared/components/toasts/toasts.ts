@@ -11,7 +11,7 @@ import { ToastService } from '../../../core/services/toast.service';
     <div class="lifeos-toasts toast-container position-fixed top-0 end-0 p-3" aria-live="polite">
       @for (toast of toastService.toasts(); track toast.id) {
         <ngb-toast
-          [class]="toast.kind === 'success' ? 'text-bg-success' : 'text-bg-danger'"
+          [class]="'lifeos-toast lifeos-toast-' + toast.kind"
           [autohide]="true"
           [delay]="toast.kind === 'error' ? 6000 : 4000"
           (hidden)="toastService.dismiss(toast.id)"
@@ -25,7 +25,7 @@ import { ToastService } from '../../../core/services/toast.service';
             <span class="flex-grow-1">{{ toast.message }}</span>
             <button
               type="button"
-              class="btn-close btn-close-white"
+              class="btn-close"
               aria-label="Dismiss"
               (click)="toastService.dismiss(toast.id)"
             ></button>

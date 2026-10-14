@@ -178,6 +178,44 @@ public class EntityLinksService(AppDbContext db, IEnumerable<ILinkableEntityProv
         await db.SaveChangesAsync();
     }
 
+    public async Task CopyLinksAsync(string fromType, int fromId, string toType, int toId)
+    {
+        var links = await db.EntityLinks
+            .Where(l => (l.SourceEntityType == fromType && l.SourceEntityId == fromId) ||
+                        (l.TargetEntityType == fromType && l.TargetEntityId == fromId))
+            .ToListAsync();
+
+        var userId = db.CurrentUserId!.Value;
+        foreach (var link in links)
+        {
+            var (otherType, otherId) = link.SourceEntityType == fromType && link.SourceEntityId == fromId
+                ? (link.TargetEntityType, link.TargetEntityId)
+                : (link.SourceEntityType, link.SourceEntityId);
+            if (otherType == toType && otherId == toId)
+            {
+                continue;
+            }
+
+            var (sourceType, sourceId, targetType, targetId) = Canonicalize(toType, toId, otherType, otherId);
+            var exists = await db.EntityLinks.AnyAsync(l =>
+                l.SourceEntityType == sourceType && l.SourceEntityId == sourceId &&
+                l.TargetEntityType == targetType && l.TargetEntityId == targetId);
+            if (!exists)
+            {
+                db.EntityLinks.Add(new EntityLink
+                {
+                    UserId = userId,
+                    SourceEntityType = sourceType,
+                    SourceEntityId = sourceId,
+                    TargetEntityType = targetType,
+                    TargetEntityId = targetId,
+                });
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
     // Links are undirected, so each pair has exactly one stored form: the ordinally smaller (Type, Id) is Source.
     private static (string, int, string, int) Canonicalize(string typeA, int idA, string typeB, int idB)
     {

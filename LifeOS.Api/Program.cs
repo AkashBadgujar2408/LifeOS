@@ -3,6 +3,8 @@ using LifeOS.Api.Infrastructure;
 using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Models;
+using LifeOS.Core.Tasks.ServiceContracts;
+using LifeOS.Core.Tasks.Services;
 using LifeOS.Core.Shared.ServiceContracts;
 using LifeOS.Core.Shared.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -48,10 +50,12 @@ try
     builder.Services.AddScoped<ILifeAreasService, LifeAreasService>();
     builder.Services.AddScoped<IGoalsService, GoalsService>();
     builder.Services.AddScoped<IGoalMilestonesService, GoalMilestonesService>();
+    builder.Services.AddScoped<ITasksService, TasksService>();
 
     // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
     builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, GoalLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, TaskLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

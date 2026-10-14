@@ -220,7 +220,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
 | 12 | ✅ Schema + scaffold | `database/schema/03_tasks.sql` creating schema `tasks` with `tasks.TaskItems` (title, notes, DueDate `DATE` — NULL = Someday, Priority None/Low/Medium/High, Status Open/Done + CompletedAt, structured recurrence: frequency + interval + anchor date, NextOccurrenceTaskId, ProjectId), `tasks.Projects` (unique live name per user) and `tasks.TaskTags`; apply + re-scaffold. **Deviation:** table is `TaskItems`, not `Tasks` — an entity named `Task` collides with `System.Threading.Tasks.Task` | **Done** — scaffold additive; fresh DB from scripts scaffolds identically; every CHECK verified in SQL |
-| 13 | Tasks API + UI | CRUD, Today/Upcoming/Someday views, recurring task generation | Recurring task correctly spawns next instance on completion |
+| 13 | ✅ Tasks API + UI | CRUD, Today (with Overdue)/Upcoming (grouped by day)/Someday/Done views, quick add per view, task editor dialog, recurring generation (`TaskRecurrence`, xUnit-tested; idempotent via `NextOccurrenceTaskId`); Inbox "Make it a task" (moves links, marks processed); `TaskLinkableProvider` | **Done** — ticking a daily task spawned tomorrow's instance (toast "Next one is due 15/Oct/2026"), weekly → +7 days, month-end anchors don't drift; 22 backend + 19 frontend tests green |
 | 14 | Projects + linking | Project grouping UI, task-to-goal linking, priority sorting | A project groups multiple tasks; a task can link back to a goal |
 
 ### Milestone 4 — Calendar & Reminders

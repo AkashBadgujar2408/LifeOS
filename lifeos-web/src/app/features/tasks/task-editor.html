@@ -1,0 +1,163 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="task-editor-heading" class="modal-title h5">{{ heading() }}</h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    @if (inboxItemId()) {
+      <div class="small text-body-secondary">
+        <i class="bi bi-inbox"></i> From your Inbox. Anything it's linked to moves to the task, and
+        it's marked processed.
+      </div>
+    }
+
+    <div>
+      <label class="form-label" for="task-title">Task</label>
+      <input
+        id="task-title"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('title')"
+        formControlName="title"
+        placeholder="e.g. Renew passport"
+        autocomplete="off"
+        ngbAutofocus
+      />
+      @if (fieldError('title'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="task-due-date">
+          Due <span class="text-body-secondary small">(empty = Someday)</span>
+        </label>
+        <div class="input-group">
+          <input
+            id="task-due-date"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('dueDate')"
+            formControlName="dueDate"
+            placeholder="e.g. 31/Oct/2026"
+            autocomplete="off"
+            ngbDatepicker
+            #dueDatePicker="ngbDatepicker"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick a due date"
+            (click)="dueDatePicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('dueDate'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+
+      <div class="col-sm-6">
+        <span class="form-label d-block" id="task-priority-label">Priority</span>
+        <div class="btn-group w-100" role="radiogroup" aria-labelledby="task-priority-label">
+          @for (priority of priorities; track priority) {
+            <input
+              type="radio"
+              class="btn-check"
+              formControlName="priority"
+              [id]="'task-priority-' + priority"
+              [value]="priority"
+            />
+            <label class="btn btn-outline-primary btn-sm" [for]="'task-priority-' + priority">
+              {{ priority }}
+            </label>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label" for="task-repeat">Repeat</label>
+      <div class="d-flex flex-wrap align-items-start gap-2">
+        <select id="task-repeat" class="form-select w-auto" formControlName="repeat">
+          <option value="None">Doesn't repeat</option>
+          @for (frequency of frequencies; track frequency) {
+            <option [value]="frequency">{{ frequency }}</option>
+          }
+        </select>
+        @if (form.controls.repeat.value !== 'None') {
+          <div class="d-flex align-items-center gap-2">
+            <label class="text-body-secondary small mb-0" for="task-interval">every</label>
+            <input
+              id="task-interval"
+              type="number"
+              min="1"
+              max="999"
+              class="form-control"
+              style="width: 5.5rem"
+              [class.is-invalid]="fieldError('interval')"
+              formControlName="interval"
+              placeholder="1"
+            />
+            <span class="text-body-secondary small">
+              {{ intervalUnit() }}
+            </span>
+          </div>
+        }
+      </div>
+      @if (fieldError('interval'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+      @if (form.controls.repeat.value !== 'None') {
+        <div class="form-text">The next one appears when you tick this one off.</div>
+      }
+    </div>
+
+    <div>
+      <label class="form-label" for="task-notes">
+        Notes <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="task-notes"
+        class="form-control"
+        rows="3"
+        [class.is-invalid]="fieldError('notes')"
+        formControlName="notes"
+        placeholder="Details, links, the reference number you'll need"
+      ></textarea>
+      @if (fieldError('notes'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div>
+      <span class="form-label d-block">
+        Tags <span class="text-body-secondary small">(optional)</span>
+      </span>
+      <app-tag-picker [selectedTagIds]="tagIds()" (selectedTagIdsChange)="tagIds.set($event)" />
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    @if (task()) {
+      <button type="button" class="btn btn-outline-danger me-auto" (click)="remove()">
+        <i class="bi bi-trash"></i> Delete
+      </button>
+    }
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ task() ? 'Save' : inboxItemId() ? 'Create task' : 'Add task' }}
+    </button>
+  </div>
+</form>
