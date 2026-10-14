@@ -310,3 +310,23 @@
   - Links made in the task editor apply immediately (like everywhere else) — Cancel doesn't undo them.
 
 - Next up: **Session 15 — Calendar schema + scaffold** (`04_calendar.sql`, Events/Reminders, first stored procedure + Dapper for the unified feed).
+
+## Last session: 2026-10-14 — Session 15 — Calendar schema + scaffold + first stored procedure
+- Shipped:
+  - `database/schema/04_calendar.sql` → schema `calendar`:
+    - `calendar.Events`: Title, Notes, Location, **`IsAllDay` + either `StartDate`/`EndDate` (DATE, inclusive) or `StartsAt`/`EndsAt` (DATETIME2 UTC)** — `CK_Events_Shape` allows exactly one shape, end ≥ start. Filtered indexes per shape for range overlap.
+    - `calendar.Reminders`: Title, Notes, `RemindAt` (UTC), `DismissedAt`, optional `EntityType`/`EntityId` target (`CK_Reminders_Target`: both or neither), indexes for "due and not dismissed" and by target. CRUD/surfacing is Session 17.
+  - Partials `Event`/`Reminder : ISoftDeletable, IUserOwned`. Scaffold diff purely additive.
+  - **First stored procedure** `database/procedures/calendar.GetCalendarFeed.sql`: one row shape across five UNION ALL branches — all-day events (date overlap), timed events (UTC overlap, half-open), task due dates (open + done, LEFT JOIN project name), milestone targets (with goal title) and goal targets; abandoned goals and their milestones excluded; explicit `UserId`/`IsDeleted` filters on every branch and joined parent; `THROW` on a reversed range. Takes local `@FromDate/@ToDate` **and** `@FromUtc/@ToUtc` (client-computed) so timed events land on the user's local day.
+  - **Dapper 2.1.89** added to `LifeOS.Core`. `Calendar/{DTOs,ServiceContracts,Services}` — `CalendarFeedService` calls the proc on the context's own connection with explicit `DbType`s, reads into a private row class, converts DATE → `DateOnly` and DATETIME2 → UTC kind. `GET api/Calendar/Feed?from&to[&fromUtc&toUtc]` (`Areas/Calendar/Controllers/FeedController`): from/to required (`[BindRequired]`), max 92 days, UTC bounds default to UTC midnights.
+- Decisions (mine — say if you want them changed): goal target dates are on the calendar too (plan said milestones only); abandoned goals are not; done tasks/milestones are included with `isDone` so the UI can show them struck through; no event recurrence yet.
+- Fixed along the way: a missing `from` bound to 0001-01-01 and got a misleading "at most 92 days" error → now a 400 "A value for the 'from' parameter … was not provided."
+- Verified:
+  - UAT backed up first; script applied twice (idempotent); proc applied.
+  - **Fresh DB from `00`–`04` + the proc scaffolds identically to `Models/`** (only the known `User.Username` position). Scratch DB dropped.
+  - Constraints in a rolled-back transaction: valid all-day/timed event and free reminder accepted; end-before-start (both shapes), all-day with times, timed without end, half a reminder target, reversed proc range — all rejected.
+  - Seeded projuser1 (kept in UAT for Session 16): Mum's birthday (18/Oct), Diwali break (30/Oct–2/Nov), Dentist (21/Oct 10:00Z), Late call with Tokyo (31/Oct 20:00Z = 1/Nov 01:30 IST), a deleted event, milestones "Shortlist cities" (25/Oct) + "Check passport validity" (10/Oct, done) on Visit Japan, goal "Finish the Kanji N5 deck" (28/Oct), abandoned goal "Learn to unicycle" + milestone; projuser2: one event on 18/Oct.
+  - Proc direct + via API for an IST October: 9 items from all 4 sources in order, month-crossing holiday included; deleted / other user's / abandoned excluded; the late call is in **November** with IST bounds and in October with default UTC bounds — the reason the UTC bounds exist. Dates serialize as `"2026-10-10"`, instants with `Z`. projuser2 sees only their own event; validation 400s; anonymous 401.
+  - `dotnet build` 0 warnings (unsandboxed, NuGet audit; `--vulnerable` clean); 22 backend tests. No frontend changes this session.
+
+- Next up: **Session 16 — Calendar UI**: month/week view on the feed, Events CRUD (`api/Calendar/Events`) + `EventLinkableProvider`, client computes `fromUtc`/`toUtc` from local midnights.

@@ -25,6 +25,8 @@ public partial class User
 
     public virtual ICollection<EntityLink> EntityLinks { get; set; } = new List<EntityLink>();
 
+    public virtual ICollection<Event> Events { get; set; } = new List<Event>();
+
     public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();
 
     public virtual ICollection<GoalMilestone> GoalMilestones { get; set; } = new List<GoalMilestone>();
@@ -36,6 +38,8 @@ public partial class User
     public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();
 
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
+
+    public virtual ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
 

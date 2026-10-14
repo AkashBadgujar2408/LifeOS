@@ -226,7 +226,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 ### Milestone 4 — Calendar & Reminders
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
-| 15 | Schema + scaffold | `database/schema/04_calendar.sql` creating schema `calendar` with `calendar.Events`, `calendar.Reminders`; unified calendar query (stored procedure + Dapper, joining across `calendar`, `tasks`, `goals` schemas) aggregating events + task due dates + goal milestones | Scaffold regenerates cleanly; stored procedure returns a merged feed across sources |
+| 15 | ✅ Schema + scaffold | `database/schema/04_calendar.sql` creating schema `calendar` with `calendar.Events` (all-day DATE range *or* timed UTC, `CK_Events_Shape`) and `calendar.Reminders` (UTC `RemindAt`, dismissal, optional EntityType/EntityId target); first stored procedure `calendar.GetCalendarFeed` (UNION across `calendar`, `tasks`, `goals`: events + task due dates + milestones + goal targets) called via Dapper from `CalendarFeedService`, exposed as `GET api/Calendar/Feed` | **Done** — scaffold additive and deterministic (fresh DB from scripts matches); feed returns all four sources merged for an IST user, with a late-night UTC event correctly falling into the next local month |
 | 16 | Calendar UI | Month/week calendar view (free Angular calendar component) wired to the aggregated feed | Items from all 3 sources render on the right days |
 | 17 | Reminders | Reminder CRUD + due-items surfaced (computed on load, no job server yet) | A due reminder shows up without a background service running |
 

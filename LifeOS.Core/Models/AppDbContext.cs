@@ -13,6 +13,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EntityLink> EntityLinks { get; set; }
 
+    public virtual DbSet<Event> Events { get; set; }
+
     public virtual DbSet<Goal> Goals { get; set; }
 
     public virtual DbSet<GoalHistory> GoalHistories { get; set; }
@@ -26,6 +28,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<LifeArea> LifeAreas { get; set; }
 
     public virtual DbSet<Project> Projects { get; set; }
+
+    public virtual DbSet<Reminder> Reminders { get; set; }
 
     public virtual DbSet<Tag> Tags { get; set; }
 
@@ -57,6 +61,24 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_EntityLinks_Users");
+        });
+
+        modelBuilder.Entity<Event>(entity =>
+        {
+            entity.ToTable("Events", "calendar");
+
+            entity.HasIndex(e => new { e.UserId, e.StartDate }, "IX_Events_User_StartDate").HasFilter("([IsDeleted]=(0) AND [IsAllDay]=(1))");
+
+            entity.HasIndex(e => new { e.UserId, e.StartsAt }, "IX_Events_User_StartsAt").HasFilter("([IsDeleted]=(0) AND [IsAllDay]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Events_CreatedAt");
+            entity.Property(e => e.Location).HasMaxLength(200);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.User).WithMany(p => p.Events)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Events_Users");
         });
 
         modelBuilder.Entity<Goal>(entity =>
@@ -203,6 +225,24 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Projects_Users");
+        });
+
+        modelBuilder.Entity<Reminder>(entity =>
+        {
+            entity.ToTable("Reminders", "calendar");
+
+            entity.HasIndex(e => new { e.EntityType, e.EntityId }, "IX_Reminders_Entity").HasFilter("([IsDeleted]=(0) AND [EntityType] IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.UserId, e.RemindAt }, "IX_Reminders_User_Due").HasFilter("([IsDeleted]=(0) AND [DismissedAt] IS NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Reminders_CreatedAt");
+            entity.Property(e => e.EntityType).HasMaxLength(50);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.User).WithMany(p => p.Reminders)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Reminders_Users");
         });
 
         modelBuilder.Entity<Tag>(entity =>

@@ -25,3 +25,7 @@ public partial class Project : ISoftDeletable, IUserOwned;
 public partial class TaskItem : ISoftDeletable, IUserOwned;
 
 public partial class TaskTag : ISoftDeletable, IUserOwned;
+
+public partial class Event : ISoftDeletable, IUserOwned;
+
+public partial class Reminder : ISoftDeletable, IUserOwned;

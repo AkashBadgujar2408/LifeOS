@@ -1,5 +1,7 @@
 using System.Text;
 using LifeOS.Api.Infrastructure;
+using LifeOS.Core.Calendar.ServiceContracts;
+using LifeOS.Core.Calendar.Services;
 using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Models;
@@ -52,6 +54,7 @@ try
     builder.Services.AddScoped<IGoalMilestonesService, GoalMilestonesService>();
     builder.Services.AddScoped<ITasksService, TasksService>();
     builder.Services.AddScoped<IProjectsService, ProjectsService>();
+    builder.Services.AddScoped<ICalendarFeedService, CalendarFeedService>();
 
     // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
     builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();
