@@ -174,4 +174,24 @@
   - Browser-automation gotchas, round 2: `computer` clicks occasionally don't land/register (same as Session 4's note) — `element.click()` via `javascript_tool` is reliable. `javascript_tool` output containing `localStorage` tokens or CSS `url(...?...)` text gets blocked by the extension ("Cookie/query string data") — keep JS probes free of credentials/URLs. Screenshot capture can time out for 30s after window changes; one retry usually works, more than that doesn't.
   - Test tags `Side project`, `Health & fitness` (linkuser1) and `Padded` (linkuser2) exist in UAT from verification.
 
-- Next up: **Session 9 — Goals schema + scaffold**.
+## Last session: 2026-10-14 — Session 9 — Goals schema + scaffold
+- Shipped:
+  - `database/schema/02_goals.sql` → schema `goals`:
+    - `goals.Goals`: `LifeAreaId` (required — "Personal / Fun" covers recreational goals, and the Life Balance Wheel needs every goal in an area), `Title`, `Description`, `GoalType` (`ShortTerm`/`LongTerm`/`BucketList`), `Status` (`Active` default/`Completed`/`Postponed`/`Abandoned`), `TargetDate` (**`DATE`** — a calendar date with no timezone to shift), `CompletedAt`. CHECK constraints on type/status, plus `CK_Goals_CompletedAt` (only a Completed goal may have `CompletedAt`).
+    - `goals.GoalMilestones`: `GoalId`, `Title`, `TargetDate` (`DATE`), `CompletedAt` (non-null = done), `SortOrder`. Progress % is computed from these (Session 10), never stored.
+    - `goals.GoalTags`: real FK join to `shared.Tags` (surrogate Id + filtered unique pair index, so untag-then-retag works under soft delete).
+    - All PKs/constraints explicitly named; indexes outside the create-table guards; re-runnable.
+  - Re-scaffolded: `Goal`, `GoalMilestone`, `GoalTag` + navigations on `User`/`LifeArea`/`Tag`. Partials added (`ISoftDeletable, IUserOwned` on all three), so per-user + soft-delete filtering applies automatically.
+  - New conventions in `CLAUDE.md`: DATE vs DATETIME2, per-module tag join tables, NVARCHAR+CHECK for status/type, join fan-out.
+- Verified:
+  - Script applied twice (idempotent). Scaffold diff purely additive, no `HasName("PK__…")`. **Fresh DB from `01`+`02` scripts scaffolds identically to `Models/`** (only the known, documented `User.Username` position difference).
+  - The "done when": inserted "Become a Technical Lead" (Career, LongTerm, 3 milestones/1 done, tag *Side project*) and "Finish GTA V" (Personal / Fun, ShortTerm, tag *Gaming*) for linkuser1 — read back side by side via SQL (33.3% / 0% progress computed from milestones).
+  - Constraints reject: bad GoalType, bad Status (`'Revised'`), CompletedAt on an Active goal, duplicate goal-tag; untag-then-retag allowed.
+  - EF level via a temporary endpoint (removed before commit, `PingController` restored byte-identical): linkuser1 gets both goals with life area, milestones and tags; linkuser2 gets `[]`; anonymous 401. `targetDate` serializes as `"2027-12-31"`, `createdAt` with `Z`. `dotnet build` 0 warnings.
+- Notes for Session 10 (Goals API + UI):
+  - My first verification query had a real **join fan-out bug** (tags repeated ×3 because milestones were joined in the same GROUP BY) — fixed with `OUTER APPLY`. EF flagged the same shape: `MultipleCollectionIncludeWarning` when projecting milestones + tags together. In `GoalsService`, use `.AsSplitQuery()` for detail loads and project counts (not collections) for list views.
+  - EF doesn't scaffold CHECK constraints — validate GoalType/Status values in the service/DTO (`[AllowedValues]`) so bad input returns a clean 400, not a SQL exception → 500.
+  - The two seeded goals (+ tag `Gaming`) remain in UAT for linkuser1 — handy real data for building the Goals list/detail screens.
+  - Multi-agents: offered, not used this session — Sessions 8 and 9 were sequential and both touched the shared shell/`AppDbContext`, so a fork would have cost more coordination than it saved (see the fork history above).
+
+- Next up: **Session 10 — Goals API + UI**: CRUD for goals and milestones, progress % calculation, list/detail/create/edit screens (replace the `goals` placeholder route with the real feature route, per the nav convention).

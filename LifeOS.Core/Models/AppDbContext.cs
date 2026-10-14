@@ -13,6 +13,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EntityLink> EntityLinks { get; set; }
 
+    public virtual DbSet<Goal> Goals { get; set; }
+
+    public virtual DbSet<GoalMilestone> GoalMilestones { get; set; }
+
+    public virtual DbSet<GoalTag> GoalTags { get; set; }
+
     public virtual DbSet<InboxItem> InboxItems { get; set; }
 
     public virtual DbSet<LifeArea> LifeAreas { get; set; }
@@ -43,6 +49,80 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_EntityLinks_Users");
+        });
+
+        modelBuilder.Entity<Goal>(entity =>
+        {
+            entity.ToTable("Goals", "goals");
+
+            entity.HasIndex(e => e.LifeAreaId, "IX_Goals_LifeAreaId").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.UserId, e.Status }, "IX_Goals_User_Status").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Goals_CreatedAt");
+            entity.Property(e => e.GoalType).HasMaxLength(20);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Active", "DF_Goals_Status");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.Goals)
+                .HasForeignKey(d => d.LifeAreaId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Goals_LifeAreas");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Goals)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Goals_Users");
+        });
+
+        modelBuilder.Entity<GoalMilestone>(entity =>
+        {
+            entity.ToTable("GoalMilestones", "goals");
+
+            entity.HasIndex(e => new { e.GoalId, e.SortOrder }, "IX_GoalMilestones_Goal").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_GoalMilestones_CreatedAt");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Goal).WithMany(p => p.GoalMilestones)
+                .HasForeignKey(d => d.GoalId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalMilestones_Goals");
+
+            entity.HasOne(d => d.User).WithMany(p => p.GoalMilestones)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalMilestones_Users");
+        });
+
+        modelBuilder.Entity<GoalTag>(entity =>
+        {
+            entity.ToTable("GoalTags", "goals");
+
+            entity.HasIndex(e => e.TagId, "IX_GoalTags_Tag").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.GoalId, e.TagId }, "UX_GoalTags_Goal_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_GoalTags_CreatedAt");
+
+            entity.HasOne(d => d.Goal).WithMany(p => p.GoalTags)
+                .HasForeignKey(d => d.GoalId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalTags_Goals");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.GoalTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.GoalTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalTags_Users");
         });
 
         modelBuilder.Entity<InboxItem>(entity =>

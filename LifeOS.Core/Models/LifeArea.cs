@@ -18,4 +18,6 @@ public partial class LifeArea
     public bool IsDeleted { get; set; }
 
     public DateTime? DeletedAt { get; set; }
+
+    public virtual ICollection<Goal> Goals { get; set; } = new List<Goal>();
 }

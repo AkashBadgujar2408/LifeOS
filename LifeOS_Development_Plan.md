@@ -212,7 +212,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 ### Milestone 2 — Goals & Milestones
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
-| 9 | Schema + scaffold | `database/schema/02_goals.sql` creating schema `goals` with `goals.Goals` (title, description, LifeAreaId, type: short-term/long-term/bucket-list, target date, status) and `goals.GoalMilestones`; apply + re-scaffold | Scaffold regenerates cleanly; Life Area + Tags support both "Technical Lead" and "Finish GTA V" style entries side by side |
+| 9 | ✅ Schema + scaffold | `database/schema/02_goals.sql` creating schema `goals` with `goals.Goals` (title, description, LifeAreaId, GoalType ShortTerm/LongTerm/BucketList, TargetDate as `DATE`, Status Active/Completed/Postponed/Abandoned, CompletedAt), `goals.GoalMilestones` (CompletedAt = done, SortOrder) and `goals.GoalTags` (real FK join to `shared.Tags`); apply + re-scaffold | **Done** — scaffold additive and deterministic (fresh-from-scripts DB scaffolds identically); "Become a Technical Lead" (Career/LongTerm) and "Finish GTA V" (Personal-Fun/ShortTerm) stored side by side with tags + milestones, read back via SQL and via EF with per-user isolation |
 | 10 | Goals API + UI | CRUD for goals and milestones, progress % calculation, list/detail/create/edit screens | Can create a goal, add milestones, see progress update |
 | 11 | Review flow + linking | Mark goal postponed/abandoned/revised; link goal to tasks via EntityLinks | Goal status changes persist; linked tasks visible on goal detail |
 

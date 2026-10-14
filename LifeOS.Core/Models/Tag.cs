@@ -19,5 +19,7 @@ public partial class Tag
 
     public DateTime? DeletedAt { get; set; }
 
+    public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
+
     public virtual User User { get; set; } = null!;
 }

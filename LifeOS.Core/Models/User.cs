@@ -25,6 +25,12 @@ public partial class User
 
     public virtual ICollection<EntityLink> EntityLinks { get; set; } = new List<EntityLink>();
 
+    public virtual ICollection<GoalMilestone> GoalMilestones { get; set; } = new List<GoalMilestone>();
+
+    public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
+
+    public virtual ICollection<Goal> Goals { get; set; } = new List<Goal>();
+
     public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
