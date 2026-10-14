@@ -1,0 +1,183 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="event-editor-heading" class="modal-title h5">
+      {{ event() ? 'Edit event' : 'New event' }}
+    </h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    <div>
+      <label class="form-label" for="event-title">Title</label>
+      <input
+        id="event-title"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('title')"
+        formControlName="title"
+        placeholder="e.g. Dentist check-up"
+        autocomplete="off"
+        ngbAutofocus
+      />
+      @if (fieldError('title'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div class="form-check form-switch">
+      <input
+        id="event-all-day"
+        class="form-check-input"
+        type="checkbox"
+        role="switch"
+        formControlName="isAllDay"
+      />
+      <label class="form-check-label" for="event-all-day">All day</label>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="event-start-date">
+          {{ form.controls.isAllDay.value ? 'First day' : 'Starts' }}
+        </label>
+        <div class="input-group">
+          <input
+            id="event-start-date"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('startDate')"
+            formControlName="startDate"
+            placeholder="e.g. 21/Oct/2026"
+            autocomplete="off"
+            ngbDatepicker
+            #startPicker="ngbDatepicker"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the start date"
+            (click)="startPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('startDate'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+        @if (!form.controls.isAllDay.value) {
+          <ngb-timepicker
+            class="d-block mt-2"
+            formControlName="startTime"
+            [spinners]="false"
+            [minuteStep]="5"
+            aria-label="Start time"
+          />
+        }
+      </div>
+
+      <div class="col-sm-6">
+        <label class="form-label" for="event-end-date">
+          {{ form.controls.isAllDay.value ? 'Last day' : 'Ends' }}
+        </label>
+        <div class="input-group">
+          <input
+            id="event-end-date"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('endDate')"
+            formControlName="endDate"
+            placeholder="e.g. 21/Oct/2026"
+            autocomplete="off"
+            ngbDatepicker
+            #endPicker="ngbDatepicker"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the end date"
+            (click)="endPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('endDate'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+        @if (!form.controls.isAllDay.value) {
+          <ngb-timepicker
+            class="d-block mt-2"
+            formControlName="endTime"
+            [spinners]="false"
+            [minuteStep]="5"
+            aria-label="End time"
+          />
+        }
+      </div>
+    </div>
+    @if (fieldError('times'); as error) {
+      <div class="invalid-feedback d-block mt-n2">{{ error }}</div>
+    }
+
+    <div>
+      <label class="form-label" for="event-location">
+        Location <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <input
+        id="event-location"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('location')"
+        formControlName="location"
+        placeholder="e.g. City Dental, MG Road"
+        autocomplete="off"
+      />
+      @if (fieldError('location'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div>
+      <label class="form-label" for="event-notes">
+        Notes <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="event-notes"
+        class="form-control"
+        rows="3"
+        [class.is-invalid]="fieldError('notes')"
+        formControlName="notes"
+        placeholder="What to bring, who's coming, the booking reference"
+      ></textarea>
+      @if (fieldError('notes'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    @if (event(); as event) {
+      <div class="border-top pt-3">
+        <app-linked-items [entityType]="eventEntityType" [entityId]="event.id" />
+      </div>
+    }
+  </div>
+
+  <div class="modal-footer">
+    @if (event()) {
+      <button type="button" class="btn btn-outline-danger me-auto" (click)="remove()">
+        <i class="bi bi-trash"></i> Delete
+      </button>
+    }
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ event() ? 'Save' : 'Add event' }}
+    </button>
+  </div>
+</form>

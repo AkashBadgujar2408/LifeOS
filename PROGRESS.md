@@ -330,3 +330,22 @@
   - `dotnet build` 0 warnings (unsandboxed, NuGet audit; `--vulnerable` clean); 22 backend tests. No frontend changes this session.
 
 - Next up: **Session 16 — Calendar UI**: month/week view on the feed, Events CRUD (`api/Calendar/Events`) + `EventLinkableProvider`, client computes `fromUtc`/`toUtc` from local midnights.
+
+## Last session: 2026-10-14 — Session 16 — Calendar UI + Events CRUD (browser pass partly done — finish it first next session)
+- Shipped (backend):
+  - `EventsService`/`IEventsService` + `Areas/Calendar/Controllers/EventsController` (`api/Calendar/Events`): get, create, update, delete. Validation mirrors `CK_Events_Shape`: all-day needs a start date (end defaults to it, end ≥ start); timed needs both times **with a timezone** (no `Z`/offset → 400), stored as UTC; switching shape clears the other pair. Delete soft-deletes the event, its links and any reminders targeting it.
+  - `EventLinkableProvider` ("Event"); `CalendarProfile` (AutoMapper).
+- Shipped (frontend):
+  - **New library: FullCalendar 7.1.2** (`@fullcalendar/angular`, `fullcalendar`, `temporal-polyfill`; MIT, supports Angular 16–22) — the plan's "free Angular calendar component". Chosen over angular-calendar (needs two drag libs + date-fns). Plan doc library list updated. `angular.json` loads `skeleton.css` + the `forma` theme CSS; **no palette file** — `features/calendar/calendar.scss` maps `--fc-forma-*` onto the LifeOS tokens on `:host`.
+  - New accent tokens in `styles.scss`: `--lifeos-blue`, `--lifeos-amber`, `--lifeos-violet` (calendar source colours: Event teal, Task blue, Milestone amber, Goal violet).
+  - `features/calendar/`: Calendar page (month + week, `en-gb` locale → Monday-first, "October 2026" / 24h times), legend chips that show/hide each source, "New event" button, drag-select to create (all-day range in month, time range in week), click → event editor / task editor / goal page (milestones go to their goal). `calendar-feed.ts` (pure, 7 specs): `feedRange()` turns FullCalendar's visible span into local `from`/`to` + `fromUtc`/`toUtc`; `toEventInput()`; local↔UTC helpers. `event-editor` dialog: title, all-day switch, start/end date pickers + ng-bootstrap timepickers (5-min steps), location, notes, linked items when editing, delete.
+  - `core/dates/today.ts`: `toLocalIsoDate`, `localMidnight`; `TasksService.get(id)`. Calendar placeholder route replaced.
+- FullCalendar v7 gotchas found (also in CLAUDE.md): event `className` is a space-separated **string** (arrays don't type-check); `color: 'var(--x)'` works (it becomes the event's `--fc-event-color`); per-view `views.timeGridWeek.height` leaves the time grid at **0px** — use calendar-level `height` only; `@fullcalendar/angular/locales/*` points at files that don't exist — import `fullcalendar/locales/en-gb`.
+- Verified:
+  - curl: all-day (end defaulted), timed with `+05:30` offset → stored `01:30Z`, no-timezone / end-before-start / missing end / reversed all-day / no start / blank title → 400; timed → all-day switch clears times; other user get/put/delete → not found; link candidate; event in the feed; delete → 404; anonymous 401.
+  - Browser (projuser1, IST): month view shows all four sources in their colours, done milestone struck through, Diwali break spans the week break, Dentist (10:00Z) at **15:30**, Tokyo call (20:00Z on 31 Oct) on **1 Nov at 01:30**; week view grid opens around working hours with Dentist 15:30–16:00. 
+  - lint clean; `ng build` clean; tests 22 backend + 32 frontend; `dotnet build` 0 warnings.
+- **Not yet verified in the browser (do this first in Session 17)**: creating an event by drag-select and via "New event"; the event editor (save, all-day toggle, validation messages, timepicker, delete, linked items); clicking a task (task editor) and a milestone/goal (navigation); legend toggles; month/week navigation reloading the feed; console errors. Also check the "+N more" popover is themed (it may render outside the component host, where the `--fc-forma-*` mapping doesn't reach).
+- Test data added for projuser1: event "Team offsite" (23/Oct, all-day).
+
+- Next up: finish the Session 16 browser checks above, then **Session 17 — Reminders** (CRUD + due reminders surfaced on load; deleting a task/goal should also drop reminders targeting it, like events already do).

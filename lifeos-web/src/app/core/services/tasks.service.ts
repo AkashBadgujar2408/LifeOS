@@ -70,6 +70,12 @@ export class TasksService {
       .pipe(map((response) => response.data ?? []));
   }
 
+  get(id: number): Observable<TaskItem> {
+    return this.http
+      .get<ApiResponse<TaskItem>>(`${this.baseUrl}/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
   create(payload: TaskPayload): Observable<TaskItem> {
     return this.http
       .post<ApiResponse<TaskItem>>(this.baseUrl, payload)

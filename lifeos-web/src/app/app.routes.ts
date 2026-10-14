@@ -44,16 +44,11 @@ export const routes: Routes = [
         title: 'Tags | LifeOS',
         loadComponent: () => import('./features/tags/tags').then((m) => m.Tags),
       },
-      placeholder('calendar', 'Calendar', {
-        heading: 'Calendar',
-        icon: 'bi-calendar3',
-        summary: 'Events, task due dates and goal milestones on one calendar.',
-        willLetYou: [
-          'See a month or week view of everything with a date',
-          'Add events and set reminders that show up when they are due',
-          'Spot busy days before you commit to more',
-        ],
-      }),
+      {
+        path: 'calendar',
+        title: 'Calendar | LifeOS',
+        loadComponent: () => import('./features/calendar/calendar').then((m) => m.Calendar),
+      },
       {
         path: 'goals',
         title: 'Goals | LifeOS',

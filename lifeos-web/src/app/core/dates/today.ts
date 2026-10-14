@@ -1,9 +1,13 @@
+/** A Date's *local* calendar date, "yyyy-MM-dd" (never via toISOString(), which would give the UTC date). */
+export function toLocalIsoDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 /** Today as a local calendar date, "yyyy-MM-dd": comparable as a string with the API's DATE values. */
 export function todayIso(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
+  return toLocalIsoDate(new Date());
 }
 
 /** A target date that's passed while the thing is still open. Both sides are "yyyy-MM-dd". */
@@ -14,8 +18,11 @@ export function isOverdue(targetDate: string | null, done: boolean): boolean {
 /** A "yyyy-MM-dd" calendar date moved by whole days, without going through UTC (no DST/timezone shifts). */
 export function addDaysIso(isoDate: string, days: number): string {
   const [year, month, day] = isoDate.split('-').map(Number);
-  const date = new Date(year, month - 1, day + days);
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${mm}-${dd}`;
+  return toLocalIsoDate(new Date(year, month - 1, day + days));
+}
+
+/** Local midnight at the start of a "yyyy-MM-dd" day, as a Date. */
+export function localMidnight(isoDate: string): Date {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(year, month - 1, day);
 }

@@ -6,6 +6,10 @@
   --lifeos-surface: #ffffff;
   --lifeos-border: #dce7e3;
   --lifeos-text-secondary: #5b6b68;
+  // Secondary accents, for telling kinds of thing apart (e.g. calendar sources) next to teal.
+  --lifeos-blue: #3d6fb6;
+  --lifeos-amber: #b7791f;
+  --lifeos-violet: #8a4fbf;
   --lifeos-gradient: linear-gradient(
     135deg,
     var(--lifeos-ink) 0%,

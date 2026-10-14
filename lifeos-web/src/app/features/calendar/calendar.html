@@ -1,0 +1,43 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Calendar</h1>
+      <p class="text-body-secondary mb-0 small">
+        Events, task due dates and goal milestones in one place. Drag across days or times to add an
+        event.
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="newEvent()">
+      <i class="bi bi-plus-lg"></i> New event
+    </button>
+  </div>
+
+  <div
+    class="d-flex flex-wrap align-items-center gap-2 mb-3"
+    role="group"
+    aria-label="Show on the calendar"
+  >
+    @for (source of sourceTypes; track source) {
+      <button
+        type="button"
+        class="btn btn-sm lifeos-cal-filter"
+        [class]="'lifeos-cal-filter-' + source.toLowerCase()"
+        [class.is-off]="isHidden(source)"
+        [attr.aria-pressed]="!isHidden(source)"
+        (click)="toggleSource(source)"
+      >
+        <span class="lifeos-cal-swatch" aria-hidden="true"></span>
+        {{ sourceLabels[source] }}
+      </button>
+    }
+    @if (loading()) {
+      <span class="small text-body-secondary ms-auto">Loading...</span>
+    }
+  </div>
+
+  <div class="card">
+    <div class="card-body p-2 p-md-3">
+      <full-calendar [options]="options" [events]="events()" />
+    </div>
+  </div>
+</div>
