@@ -113,7 +113,7 @@ database/
   schema/                 -> hand-written SQL DDL, source of truth for the schema (see below), one schema + file per module:
                              01_shared.sql   (schema `shared`:   Users, Tags, EntityLinks, LifeAreas)
                              02_goals.sql    (schema `goals`:    Goals, GoalMilestones)
-                             03_tasks.sql    (schema `tasks`:    Tasks, Projects)
+                             03_tasks.sql    (schema `tasks`:    TaskItems, Projects, TaskTags)
                              04_calendar.sql (schema `calendar`: Events, Reminders)
                              05_habits.sql   (schema `habits`:   Habits, HabitEntries)
                              06_journal.sql  (schema `journal`:  JournalEntries)
@@ -219,7 +219,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 ### Milestone 3 — Tasks & Personal Projects
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
-| 12 | Schema + scaffold | `database/schema/03_tasks.sql` creating schema `tasks` with `tasks.Tasks` (title, due date, priority, status, recurrence rule, ProjectId) and `tasks.Projects`; apply + re-scaffold | Scaffold regenerates cleanly, no hand-edited Model files lost |
+| 12 | ✅ Schema + scaffold | `database/schema/03_tasks.sql` creating schema `tasks` with `tasks.TaskItems` (title, notes, DueDate `DATE` — NULL = Someday, Priority None/Low/Medium/High, Status Open/Done + CompletedAt, structured recurrence: frequency + interval + anchor date, NextOccurrenceTaskId, ProjectId), `tasks.Projects` (unique live name per user) and `tasks.TaskTags`; apply + re-scaffold. **Deviation:** table is `TaskItems`, not `Tasks` — an entity named `Task` collides with `System.Threading.Tasks.Task` | **Done** — scaffold additive; fresh DB from scripts scaffolds identically; every CHECK verified in SQL |
 | 13 | Tasks API + UI | CRUD, Today/Upcoming/Someday views, recurring task generation | Recurring task correctly spawns next instance on completion |
 | 14 | Projects + linking | Project grouping UI, task-to-goal linking, priority sorting | A project groups multiple tasks; a task can link back to a goal |
 

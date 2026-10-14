@@ -35,5 +35,11 @@ public partial class User
 
     public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();
 
+    public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
+
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
+
+    public virtual ICollection<TaskItem> TaskItems { get; set; } = new List<TaskItem>();
+
+    public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();
 }

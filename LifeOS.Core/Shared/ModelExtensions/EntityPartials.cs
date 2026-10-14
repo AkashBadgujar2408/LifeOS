@@ -19,3 +19,9 @@ public partial class GoalMilestone : ISoftDeletable, IUserOwned;
 public partial class GoalTag : ISoftDeletable, IUserOwned;
 
 public partial class GoalHistory : ISoftDeletable, IUserOwned;
+
+public partial class Project : ISoftDeletable, IUserOwned;
+
+public partial class TaskItem : ISoftDeletable, IUserOwned;
+
+public partial class TaskTag : ISoftDeletable, IUserOwned;

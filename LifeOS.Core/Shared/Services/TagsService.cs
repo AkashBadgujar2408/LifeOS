@@ -86,6 +86,9 @@ public class TagsService(AppDbContext db, IMapper mapper) : ITagsService
         await db.GoalTags
             .Where(gt => gt.TagId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(gt => gt.IsDeleted, true).SetProperty(gt => gt.DeletedAt, now));
+        await db.TaskTags
+            .Where(tt => tt.TagId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(tt => tt.IsDeleted, true).SetProperty(tt => tt.DeletedAt, now));
 
         tag.IsDeleted = true;
         tag.DeletedAt = now;

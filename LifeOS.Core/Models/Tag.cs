@@ -21,5 +21,7 @@ public partial class Tag
 
     public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
 
+    public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();
+
     public virtual User User { get; set; } = null!;
 }

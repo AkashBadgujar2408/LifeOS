@@ -243,4 +243,23 @@
   - The Session 10 test revision (type → Long-term + Fitness tag) predates the history table, so goal 7's history starts at today's postponement.
   - Didn't redo the "fresh DB from scripts scaffolds identically" check this time — the diff was purely additive and every constraint is explicitly named, same as Session 9's verified pattern. Worth repeating before `LifeOS_Live` is created.
 
-- Next up: **Milestone 3 — Session 12 — Tasks schema + scaffold** (`database/schema/03_tasks.sql`: `tasks.Tasks` with title, due date as `DATE`, priority, status, recurrence rule, ProjectId; `tasks.Projects`; `tasks.TaskTags` per the per-module tag-join convention + add it to `TagsService.DeleteAsync`'s detach list).
+- Next up: Session 12 (done the same day, below).
+
+## Interim (same day) — ngx-toastr replaced with ng-bootstrap's NgbToast
+- Your question: ngx-toastr's latest (20.0.5, Feb 2026) only declares Angular 21 as a peer — the reason every install needed `--legacy-peer-deps`. Replaced with `core/services/toast.service.ts` (signal queue, same `success()`/`error()` shape, max 4 stacked) + `shared/components/toasts/` (`NgbToast`, mounted in `App` so auth screens get toasts too; errors stay 6 s, successes 4 s). Considered ngx-sonner (supports ≥19) but it would add a dependency; ng-bootstrap is already in the stack.
+- Removed `provideAnimations()` (only ngx-toastr used it) and `toastr.css`. Plain `npm install` works again. Verified in the browser: wrong-password error toast on Login, success toast on Tags, auto-hide, no console errors. Commit `5294b2c`.
+
+## Last session: 2026-10-14 — Session 12 — Tasks schema + scaffold
+- Shipped: `database/schema/03_tasks.sql` → schema `tasks`:
+  - `tasks.Projects` (Name, Description, Status Active/Completed/Archived, `UX_Projects_User_Name` filtered unique — same rule as Tags).
+  - `tasks.TaskItems`: ProjectId (nullable FK), Title, Notes, **DueDate `DATE` (NULL = Someday)**, Priority None/Low/Medium/High (default None), Status Open/Done + CompletedAt (`CK_TaskItems_CompletedAt`), **recurrence as structured columns** — `RecurrenceFrequency` Daily/Weekly/Monthly/Yearly + `RecurrenceInterval` 1–999 + `RecurrenceAnchorDate` (series' first due date; occurrences are computed from the anchor so monthly can't drift 31→28→28) — `CK_TaskItems_Recurrence` requires all three or none, plus a due date. `NextOccurrenceTaskId` (self-FK) records the spawned next instance so complete → reopen → complete can't spawn twice.
+  - `tasks.TaskTags` (same shape as GoalTags). `TagsService.DeleteAsync` now detaches task tags too.
+  - Partials `Project`/`TaskItem`/`TaskTag : ISoftDeletable, IUserOwned`.
+- **Deviation from the plan**: the table is `TaskItems`, not `Tasks`. First scaffold produced entity `Task` → `CS0104 'Task' is an ambiguous reference` across every async signature in Core. Dropped the two (empty) tables, renamed, re-applied. Rule added to CLAUDE.md.
+- Verified:
+  - Script applied twice (idempotent). Scaffold diff purely additive; no `PK__` names.
+  - **Fresh DB from `00`–`03` scripts scaffolds identically to `Models/`** (only the known `User.Username` position difference) — the check skipped in Session 11 is now done; scratch DB dropped.
+  - Constraints, in a rolled-back transaction: recurrence without due date, partial recurrence, interval 0, bad priority, CompletedAt on an open task, duplicate project name — all rejected; a valid weekly task accepted.
+  - `dotnet build` 0 warnings.
+
+- Next up: **Session 13 — Tasks API + UI** (CRUD, Today/Upcoming/Someday, recurring generation; process Inbox "Task" items into real tasks; `TaskLinkableProvider`).
