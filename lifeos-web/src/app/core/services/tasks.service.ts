@@ -59,8 +59,12 @@ export class TasksService {
   private readonly changedVersionSignal = signal(0);
   readonly changedVersion = this.changedVersionSignal.asReadonly();
 
-  list(status: 'Open' | 'Done'): Observable<TaskItem[]> {
-    const params = new HttpParams().set('status', status);
+  /** Open tasks, or the latest 100 done; optionally only one project's. */
+  list(status: 'Open' | 'Done', projectId?: number): Observable<TaskItem[]> {
+    let params = new HttpParams().set('status', status);
+    if (projectId !== undefined) {
+      params = params.set('projectId', projectId);
+    }
     return this.http
       .get<ApiResponse<TaskItem[]>>(this.baseUrl, { params })
       .pipe(map((response) => response.data ?? []));

@@ -5,8 +5,11 @@ namespace LifeOS.Core.Tasks.ServiceContracts;
 
 public interface ITasksService
 {
-    /// <summary>Open tasks (all of them; the client buckets Today/Upcoming/Someday by its local date) or the most recently done.</summary>
-    Task<List<TaskItemDto>> GetAllAsync(string status);
+    /// <summary>
+    /// Open tasks (all of them; the client buckets Today/Upcoming/Someday by its local date) or the most recently done,
+    /// optionally only those in one project.
+    /// </summary>
+    Task<List<TaskItemDto>> GetAllAsync(string status, int? projectId = null);
     Task<OperationResult<TaskItemDto>> GetAsync(int id);
     Task<OperationResult<TaskItemDto>> CreateAsync(TaskRequest request);
     Task<OperationResult<TaskItemDto>> UpdateAsync(int id, TaskRequest request);

@@ -13,14 +13,14 @@ namespace LifeOS.Api.Areas.Tasks.Controllers;
 public class TasksController(ITasksService tasksService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string status = TaskStatuses.Open)
+    public async Task<IActionResult> GetAll([FromQuery] string status = TaskStatuses.Open, [FromQuery] int? projectId = null)
     {
         if (status is not (TaskStatuses.Open or TaskStatuses.Done))
         {
             return BadRequest(ApiResponse<List<TaskItemDto>>.Fail("Status must be Open or Done."));
         }
 
-        var tasks = await tasksService.GetAllAsync(status);
+        var tasks = await tasksService.GetAllAsync(status, projectId);
         return Ok(ApiResponse<List<TaskItemDto>>.Ok(tasks));
     }
 

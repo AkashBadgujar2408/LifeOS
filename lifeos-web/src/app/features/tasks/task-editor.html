@@ -86,6 +86,20 @@
     </div>
 
     <div>
+      <label class="form-label" for="task-project">
+        Project <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <select id="task-project" class="form-select" formControlName="projectId">
+        <option [ngValue]="null">No project</option>
+        @for (project of projectOptions(); track project.id) {
+          <option [ngValue]="project.id">
+            {{ project.name }}{{ project.status === 'Active' ? '' : ' (' + project.status + ')' }}
+          </option>
+        }
+      </select>
+    </div>
+
+    <div>
       <label class="form-label" for="task-repeat">Repeat</label>
       <div class="d-flex flex-wrap align-items-start gap-2">
         <select id="task-repeat" class="form-select w-auto" formControlName="repeat">
@@ -145,6 +159,20 @@
       </span>
       <app-tag-picker [selectedTagIds]="tagIds()" (selectedTagIdsChange)="tagIds.set($event)" />
     </div>
+
+    @if (task(); as task) {
+      <div class="border-top pt-3">
+        <app-linked-items
+          [entityType]="taskEntityType"
+          [entityId]="task.id"
+          [preferredLinkType]="goalEntityType"
+        />
+      </div>
+    } @else if (!inboxItemId()) {
+      <div class="form-text mt-0">
+        <i class="bi bi-link-45deg"></i> Once it's saved, open it again to link it to a goal.
+      </div>
+    }
   </div>
 
   <div class="modal-footer">

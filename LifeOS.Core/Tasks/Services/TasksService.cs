@@ -15,9 +15,14 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
     private const string NotFound = "Task not found.";
     private const int DoneListLimit = 100;
 
-    public async Task<List<TaskItemDto>> GetAllAsync(string status)
+    public async Task<List<TaskItemDto>> GetAllAsync(string status, int? projectId = null)
     {
         var query = db.TaskItems.Where(t => t.Status == status);
+        if (projectId is not null)
+        {
+            query = query.Where(t => t.ProjectId == projectId);
+        }
+
         query = status == TaskStatuses.Done
             ? query.OrderByDescending(t => t.CompletedAt).Take(DoneListLimit)
             : query.OrderBy(t => t.DueDate == null).ThenBy(t => t.DueDate).ThenBy(t => t.CreatedAt);
@@ -58,7 +63,7 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
             return OperationResult<TaskItemDto>.Fail(NotFound);
         }
 
-        var error = await ValidateAsync(request);
+        var error = await ValidateAsync(request, task.ProjectId);
         if (error is not null)
         {
             return OperationResult<TaskItemDto>.Fail(error);
@@ -253,7 +258,8 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         return task;
     }
 
-    private async Task<string?> ValidateAsync(TaskRequest request)
+    /// <param name="currentProjectId">The task's project before an edit: it may stay even if it's no longer active.</param>
+    private async Task<string?> ValidateAsync(TaskRequest request, int? currentProjectId = null)
     {
         if (request.Title.Trim().Length == 0)
         {
@@ -266,9 +272,22 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
             return "A repeating task needs a due date to repeat from.";
         }
 
-        if (request.ProjectId is not null && !await db.Projects.AnyAsync(p => p.Id == request.ProjectId))
+        // Only active projects take new tasks; a task already in a completed/archived project can keep it.
+        if (request.ProjectId is not null && request.ProjectId != currentProjectId)
         {
-            return "Project not found.";
+            var projectStatus = await db.Projects
+                .Where(p => p.Id == request.ProjectId)
+                .Select(p => p.Status)
+                .FirstOrDefaultAsync();
+            if (projectStatus is null)
+            {
+                return "Project not found.";
+            }
+
+            if (projectStatus != ProjectStatuses.Active)
+            {
+                return $"That project is {projectStatus.ToLowerInvariant()}. Reopen it to add tasks.";
+            }
         }
 
         // Tags go through the per-user filter, so another user's tag id counts as missing.

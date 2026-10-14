@@ -1,0 +1,55 @@
+@let t = task();
+<div class="d-flex align-items-start gap-2">
+  <input
+    class="form-check-input mt-1 flex-shrink-0"
+    type="checkbox"
+    [checked]="t.status === 'Done'"
+    [disabled]="busy()"
+    [attr.aria-label]="(t.status === 'Done' ? 'Reopen ' : 'Complete ') + t.title"
+    (change)="toggled.emit(t)"
+  />
+  <button
+    type="button"
+    class="btn btn-link p-0 text-start text-decoration-none link-body-emphasis flex-grow-1 min-w-0"
+    (click)="opened.emit(t)"
+  >
+    <span
+      class="text-break"
+      [class.text-decoration-line-through]="t.status === 'Done'"
+      [class.text-body-secondary]="t.status === 'Done'"
+    >
+      {{ t.title }}
+    </span>
+    <span class="d-flex flex-wrap align-items-center column-gap-3 row-gap-1 small mt-1">
+      @if (showDate() && t.dueDate) {
+        <span [class.text-danger]="overdue()" [class.text-body-secondary]="!overdue()">
+          <i class="bi bi-calendar-event"></i> {{ t.dueDate | date }}
+        </span>
+      }
+      @if (t.completedAt && t.status === 'Done') {
+        <span class="text-body-secondary">
+          <i class="bi bi-check2"></i> {{ t.completedAt | date: dateTimeFormat }}
+        </span>
+      }
+      @if (t.recurrence) {
+        <span class="text-body-secondary">
+          <i class="bi bi-arrow-repeat"></i> {{ recurrenceLabel(t.recurrence) }}
+        </span>
+      }
+      @if (priorityMeta[t.priority]; as meta) {
+        <span class="{{ meta.tone }}"> <i class="bi {{ meta.icon }}"></i> {{ t.priority }} </span>
+      }
+      @if (showProject() && t.projectName) {
+        <span class="text-body-secondary" title="Project">
+          <i class="bi bi-kanban"></i> {{ t.projectName }}
+        </span>
+      }
+      @if (t.notes) {
+        <span class="text-body-secondary" title="Has notes"><i class="bi bi-text-left"></i></span>
+      }
+      @for (tag of t.tags; track tag.id) {
+        <span class="badge text-bg-light border fw-normal">{{ tag.name }}</span>
+      }
+    </span>
+  </button>
+</div>

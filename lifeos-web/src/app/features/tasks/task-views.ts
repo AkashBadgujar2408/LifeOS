@@ -4,7 +4,7 @@ import { TaskItem, TaskPriority, TaskRecurrence } from '../../core/services/task
 export type TaskView = 'today' | 'upcoming' | 'someday' | 'done';
 
 export interface TaskBuckets {
-  /** Due before today, oldest first. Shown at the top of Today. */
+  /** Due before today. Shown at the top of Today. */
   overdue: TaskItem[];
   today: TaskItem[];
   upcoming: TaskItem[];
@@ -15,14 +15,42 @@ const PRIORITY_RANK: Record<TaskPriority, number> = { High: 0, Medium: 1, Low: 2
 
 const byPriority = (a: TaskItem, b: TaskItem) =>
   PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
-const byDueDate = (a: TaskItem, b: TaskItem) => (a.dueDate ?? '').localeCompare(b.dueDate ?? '');
+// Someday (no date) sorts after every dated task.
+const byDueDate = (a: TaskItem, b: TaskItem) =>
+  (a.dueDate ?? '9999-12-31').localeCompare(b.dueDate ?? '9999-12-31');
 const byCreated = (a: TaskItem, b: TaskItem) => a.createdAt.localeCompare(b.createdAt);
+
+export type TaskSort = 'dueDate' | 'priority' | 'recent';
+
+export const TASK_SORTS: TaskSort[] = ['dueDate', 'priority', 'recent'];
+
+export const TASK_SORT_LABELS: Record<TaskSort, string> = {
+  dueDate: 'Due date',
+  priority: 'Priority',
+  recent: 'Recently added',
+};
+
+const COMPARERS: Record<TaskSort, (a: TaskItem, b: TaskItem) => number> = {
+  dueDate: (a, b) => byDueDate(a, b) || byPriority(a, b) || byCreated(a, b),
+  priority: (a, b) => byPriority(a, b) || byDueDate(a, b) || byCreated(a, b),
+  recent: (a, b) => byCreated(b, a),
+};
+
+/** A sorted copy. Ties always fall back to something stable, so the order never jumps around between loads. */
+export function sortTasks(tasks: TaskItem[], sort: TaskSort): TaskItem[] {
+  return [...tasks].sort(COMPARERS[sort]);
+}
 
 /**
  * Splits open tasks into the views by the user's *local* date (`today`, "yyyy-MM-dd"), which is why this happens
  * client-side rather than in the API. Dates compare as strings because they're all zero-padded ISO dates.
+ * Each bucket is ordered by `sort`; Upcoming is still shown grouped by day (see groupByDueDate).
  */
-export function bucketTasks(tasks: TaskItem[], today: string): TaskBuckets {
+export function bucketTasks(
+  tasks: TaskItem[],
+  today: string,
+  sort: TaskSort = 'dueDate',
+): TaskBuckets {
   const buckets: TaskBuckets = { overdue: [], today: [], upcoming: [], someday: [] };
   for (const task of tasks) {
     if (task.dueDate === null) {
@@ -36,10 +64,9 @@ export function bucketTasks(tasks: TaskItem[], today: string): TaskBuckets {
     }
   }
 
-  buckets.overdue.sort((a, b) => byDueDate(a, b) || byPriority(a, b) || byCreated(a, b));
-  buckets.today.sort((a, b) => byPriority(a, b) || byCreated(a, b));
-  buckets.upcoming.sort((a, b) => byDueDate(a, b) || byPriority(a, b) || byCreated(a, b));
-  buckets.someday.sort((a, b) => byPriority(a, b) || byCreated(a, b));
+  for (const bucket of Object.values(buckets)) {
+    bucket.sort(COMPARERS[sort]);
+  }
   return buckets;
 }
 
@@ -48,18 +75,16 @@ export interface DateGroup {
   tasks: TaskItem[];
 }
 
-/** Upcoming tasks grouped under one heading per due date (input already sorted by date). */
+/** Dated tasks grouped under one heading per due date, days in order; tasks keep their order within a day. */
 export function groupByDueDate(tasks: TaskItem[]): DateGroup[] {
-  const groups: DateGroup[] = [];
+  const groups = new Map<string, TaskItem[]>();
   for (const task of tasks) {
-    const last = groups.at(-1);
-    if (last && last.date === task.dueDate) {
-      last.tasks.push(task);
-    } else {
-      groups.push({ date: task.dueDate!, tasks: [task] });
-    }
+    const date = task.dueDate!;
+    groups.set(date, [...(groups.get(date) ?? []), task]);
   }
-  return groups;
+  return [...groups]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, grouped]) => ({ date, tasks: grouped }));
 }
 
 /** "Tomorrow" for the day after `today`, otherwise null (the caller shows the formatted date). */

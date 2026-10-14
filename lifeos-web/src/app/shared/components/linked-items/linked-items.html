@@ -56,6 +56,7 @@
           placeholder="Search by title..."
           [ngModel]="searchTerm()"
           (ngModelChange)="searchTerm.set($event)"
+          (keydown.enter)="$event.preventDefault()"
         />
       </div>
 

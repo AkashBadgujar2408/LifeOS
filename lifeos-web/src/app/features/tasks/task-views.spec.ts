@@ -6,6 +6,7 @@ import {
   groupByDueDate,
   recurrenceLabel,
   relativeDayLabel,
+  sortTasks,
 } from './task-views';
 
 let nextId = 1;
@@ -57,6 +58,52 @@ describe('bucketTasks', () => {
   });
 });
 
+describe('sortTasks', () => {
+  const urgentLater = task({
+    dueDate: '2026-10-20',
+    priority: 'High',
+    createdAt: '2026-10-03T00:00:00Z',
+  });
+  const plainSooner = task({
+    dueDate: '2026-10-16',
+    priority: 'None',
+    createdAt: '2026-10-05T00:00:00Z',
+  });
+  const someday = task({ dueDate: null, priority: 'Medium', createdAt: '2026-10-04T00:00:00Z' });
+  const tasks = [someday, urgentLater, plainSooner];
+
+  it('by due date puts the soonest first and undated tasks last', () => {
+    expect(sortTasks(tasks, 'dueDate')).toEqual([plainSooner, urgentLater, someday]);
+  });
+
+  it('by priority puts High first, breaking ties by due date', () => {
+    const highSooner = task({ dueDate: '2026-10-15', priority: 'High' });
+    expect(sortTasks([...tasks, highSooner], 'priority')).toEqual([
+      highSooner,
+      urgentLater,
+      someday,
+      plainSooner,
+    ]);
+  });
+
+  it('by recently added puts the newest first', () => {
+    expect(sortTasks(tasks, 'recent')).toEqual([plainSooner, someday, urgentLater]);
+  });
+
+  it('returns a copy, leaving the input alone', () => {
+    sortTasks(tasks, 'dueDate');
+    expect(tasks).toEqual([someday, urgentLater, plainSooner]);
+  });
+
+  it('applies to each bucket', () => {
+    const low = task({ dueDate: '2026-10-16', priority: 'Low' });
+    const high = task({ dueDate: '2026-10-19', priority: 'High' });
+
+    expect(bucketTasks([low, high], TODAY, 'priority').upcoming).toEqual([high, low]);
+    expect(bucketTasks([low, high], TODAY, 'dueDate').upcoming).toEqual([low, high]);
+  });
+});
+
 describe('groupByDueDate', () => {
   it('puts tasks on the same day under one heading, keeping order', () => {
     const a = task({ dueDate: '2026-10-15' });
@@ -66,6 +113,17 @@ describe('groupByDueDate', () => {
     expect(groupByDueDate([a, b, c])).toEqual([
       { date: '2026-10-15', tasks: [a, b] },
       { date: '2026-10-18', tasks: [c] },
+    ]);
+  });
+
+  it('orders the days even when the tasks are sorted some other way', () => {
+    const later = task({ dueDate: '2026-10-18', priority: 'High' });
+    const soon = task({ dueDate: '2026-10-15', priority: 'Low' });
+    const soonToo = task({ dueDate: '2026-10-15', priority: 'High' });
+
+    expect(groupByDueDate([later, soonToo, soon])).toEqual([
+      { date: '2026-10-15', tasks: [soonToo, soon] },
+      { date: '2026-10-18', tasks: [later] },
     ]);
   });
 });

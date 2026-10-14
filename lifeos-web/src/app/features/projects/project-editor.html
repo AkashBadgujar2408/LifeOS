@@ -1,0 +1,58 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="project-editor-heading" class="modal-title h5">
+      {{ project() ? 'Edit project' : 'New project' }}
+    </h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    <div>
+      <label class="form-label" for="project-name">Name</label>
+      <input
+        id="project-name"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('name')"
+        formControlName="name"
+        placeholder="e.g. Balcony herb garden"
+        autocomplete="off"
+        ngbAutofocus
+      />
+      @if (fieldError('name'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div>
+      <label class="form-label" for="project-description">
+        Description <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="project-description"
+        class="form-control"
+        rows="3"
+        [class.is-invalid]="fieldError('description')"
+        formControlName="description"
+        placeholder="What done looks like, and why it matters"
+      ></textarea>
+      @if (fieldError('description'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ project() ? 'Save' : 'Create project' }}
+    </button>
+  </div>
+</form>

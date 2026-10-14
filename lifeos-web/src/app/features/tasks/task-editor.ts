@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { catchError, of } from 'rxjs';
 import {
   AbstractControl,
   FormBuilder,
@@ -9,9 +11,12 @@ import {
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
+import { GOAL_ENTITY_TYPE } from '../../core/services/goals.service';
+import { Project, ProjectsService } from '../../core/services/projects.service';
 import {
   RECURRENCE_FREQUENCIES,
   RecurrenceFrequency,
+  TASK_ENTITY_TYPE,
   TASK_PRIORITIES,
   TaskItem,
   TaskPayload,
@@ -19,6 +24,7 @@ import {
   TasksService,
 } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
+import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
 
 export interface TaskEditorOptions {
@@ -27,7 +33,7 @@ export interface TaskEditorOptions {
   /** Create the task from this Inbox item (its links carry over and it gets marked processed). */
   inboxItemId?: number;
   /** Starting values for a new task. */
-  defaults?: Partial<Pick<TaskPayload, 'title' | 'notes' | 'dueDate'>>;
+  defaults?: Partial<Pick<TaskPayload, 'title' | 'notes' | 'dueDate' | 'projectId'>>;
 }
 
 export type TaskEditorResult = { kind: 'saved'; task: TaskItem } | { kind: 'deleted'; id: number };
@@ -62,7 +68,7 @@ function repeatNeedsDueDate(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-task-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, TagPicker],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, TagPicker, LinkedItems],
   templateUrl: './task-editor.html',
 })
 export class TaskEditor {
@@ -73,6 +79,21 @@ export class TaskEditor {
 
   protected readonly priorities = TASK_PRIORITIES;
   protected readonly frequencies = RECURRENCE_FREQUENCIES;
+  protected readonly taskEntityType = TASK_ENTITY_TYPE;
+  protected readonly goalEntityType = GOAL_ENTITY_TYPE;
+
+  private readonly projects = toSignal(
+    inject(ProjectsService)
+      .list()
+      .pipe(catchError(() => of<Project[]>([]))),
+    { initialValue: [] },
+  );
+
+  /** Active projects, plus the one the task is already in even if that's since been completed/archived. */
+  protected readonly projectOptions = computed(() => {
+    const currentId = this.task()?.projectId;
+    return this.projects().filter((p) => p.status === 'Active' || p.id === currentId);
+  });
 
   protected readonly task = signal<TaskItem | null>(null);
   protected readonly inboxItemId = signal<number | null>(null);
@@ -85,6 +106,7 @@ export class TaskEditor {
       notes: this.fb.nonNullable.control('', Validators.maxLength(4000)),
       dueDate: this.fb.control<string | null>(null),
       priority: this.fb.nonNullable.control<TaskPriority>('None'),
+      projectId: this.fb.control<number | null>(null),
       repeat: this.fb.nonNullable.control<RecurrenceFrequency | 'None'>('None'),
       interval: this.fb.nonNullable.control(1, [
         Validators.required,
@@ -104,6 +126,7 @@ export class TaskEditor {
       notes: task?.notes ?? defaults?.notes ?? '',
       dueDate: task ? task.dueDate : (defaults?.dueDate ?? null),
       priority: task?.priority ?? 'None',
+      projectId: task ? task.projectId : (defaults?.projectId ?? null),
       repeat: task?.recurrence?.frequency ?? 'None',
       interval: task?.recurrence?.interval ?? 1,
     });
@@ -175,7 +198,7 @@ export class TaskEditor {
       notes: value.notes.trim() || null,
       dueDate: value.dueDate || null,
       priority: value.priority,
-      projectId: this.task()?.projectId ?? null,
+      projectId: value.projectId,
       recurrence:
         value.repeat === 'None' ? null : { frequency: value.repeat, interval: value.interval },
       tagIds: this.tagIds(),

@@ -51,11 +51,13 @@ try
     builder.Services.AddScoped<IGoalsService, GoalsService>();
     builder.Services.AddScoped<IGoalMilestonesService, GoalMilestonesService>();
     builder.Services.AddScoped<ITasksService, TasksService>();
+    builder.Services.AddScoped<IProjectsService, ProjectsService>();
 
     // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
     builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, GoalLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, TaskLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, ProjectLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

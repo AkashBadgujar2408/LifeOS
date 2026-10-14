@@ -79,6 +79,17 @@ export const routes: Routes = [
         title: 'Tasks | LifeOS',
         loadComponent: () => import('./features/tasks/tasks').then((m) => m.Tasks),
       },
+      {
+        path: 'projects',
+        title: 'Projects | LifeOS',
+        loadComponent: () => import('./features/projects/projects').then((m) => m.Projects),
+      },
+      {
+        path: 'projects/:id',
+        title: 'Project | LifeOS',
+        loadComponent: () =>
+          import('./features/projects/project-detail').then((m) => m.ProjectDetail),
+      },
       placeholder('habits', 'Habits', {
         heading: 'Habits',
         icon: 'bi-arrow-repeat',

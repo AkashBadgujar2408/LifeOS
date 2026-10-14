@@ -35,6 +35,8 @@ export class LinkedItems {
 
   readonly entityType = input.required<string>();
   readonly entityId = input.required<number>();
+  /** Type the picker starts on (e.g. "Goal" from a task); defaults to the first registered type. */
+  readonly preferredLinkType = input<string>();
 
   protected readonly links = signal<LinkedItem[]>([]);
   protected readonly loading = signal(true);
@@ -78,7 +80,8 @@ export class LinkedItems {
     effect(() => {
       const types = this.types();
       if (!this.targetType() && types.length > 0) {
-        this.targetType.set(types[0].entityType);
+        const preferred = types.find((t) => t.entityType === this.preferredLinkType());
+        this.targetType.set((preferred ?? types[0]).entityType);
       }
     });
 

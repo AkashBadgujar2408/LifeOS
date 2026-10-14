@@ -288,3 +288,25 @@
   - UAT test data for goaluser1: tasks Water the plants (weekly), Pay rent (monthly), Take vitamins (daily), Call mum, Buy running shoes, Book a physio appointment, Stretch after runs; tags Errands, Home.
 
 - Next up: **Session 14 — Projects + linking**: Projects CRUD + grouping UI, project picker in the task editor, linked-items in the task editor (task → goal from the task side), sort options (priority / due date).
+
+## Last session: 2026-10-14 — Session 14 — Projects + linking
+- Shipped (backend):
+  - `ProjectsService`/`IProjectsService` + `Areas/Tasks/Controllers/ProjectsController` (`api/Tasks/Projects`): list (all statuses, with `OpenTaskCount`/`DoneTaskCount`/`NextDueDate` as scalar subqueries — no fan-out), get, create, update (name/description), `PUT {id}/status` (Active/Completed/Archived), delete. Duplicate-name pre-check + `DbUpdateException` safety net (same as Tags). **Delete keeps the tasks** (ProjectId → null) and removes the project's links.
+  - `ProjectLinkableProvider` ("Project") — projects link to the goal they serve.
+  - `GET api/Tasks/Tasks?projectId=` filter. Task validation: only an **Active** project accepts a newly assigned task ("That project is archived. Reopen it to add tasks."); a task already in a completed/archived project can still be edited and keep it.
+- Shipped (frontend):
+  - `features/projects/`: Projects page (Active/Completed/Archived pills with counts, cards with open/done counts + next due date), project detail (description, quick-add into the project, "Task with details", open tasks soonest-first, collapsible Done, status card with Mark completed/Archive/Reopen — confirms when completing with open tasks, linked items defaulting to Goal, edit/delete dialogs). Nav entry + routes; "Projects" button on the Tasks page.
+  - `features/tasks/task-row` — extracted shared row component (Tasks page + project detail), now also shows the project name.
+  - Task editor: **project picker** (active projects + the task's current one) and **linked items** when editing (picker starts on Goal) — task → goal linking from the task side.
+  - **Sort options** on the Tasks page: Due date (default, = previous behaviour) / Priority / Recently added, remembered per browser in localStorage (try/catch). `sortTasks` + `groupByDueDate` no longer assumes date-sorted input; 6 new specs.
+  - `LinkedItems`: optional `preferredLinkType` input; Enter in its search box no longer submits a surrounding form (it now lives inside the task editor form).
+- Fixed via the browser pass: the sort `<select>` showed "Due date" after reload while the list was sorted by the remembered option (`[value]` on the select runs before the `@for` options exist) → `[selected]` per option.
+- Verified:
+  - curl matrix (new users `projuser1`/`projuser2`, password in the scratch script, not committed): create/trim, duplicate + empty name, counts + next due, project filter, cross-user get/assign/filter → not found/empty, rename duplicate, bad status, archive → new task rejected but existing task editable, link candidates, delete → tasks survive with no project, name reusable, anonymous 401.
+  - Browser (projuser1): empty-name inline error → created "Plan the Japan trip" → quick-added 2 tasks → editor shows the project preselected, set date + High, linked goal "Visit Japan" from the task (Enter in search didn't submit) → linked the project to the goal → ticked a task (1 open · 1 done) → goal detail lists both Project and Task → Upcoming with Priority/Recently added sorts + project chip → archive (quick add hidden, Reopen offered). No console errors.
+  - `dotnet build` 0 warnings (unsandboxed, NuGet audit clean); lint clean; `ng build` clean; tests 22 backend + 25 frontend.
+- Notes:
+  - Project "progress" is deliberately just counts, not a %: recurring tasks keep adding done instances, so done/total would mislead.
+  - Links made in the task editor apply immediately (like everywhere else) — Cancel doesn't undo them.
+
+- Next up: **Session 15 — Calendar schema + scaffold** (`04_calendar.sql`, Events/Reminders, first stored procedure + Dapper for the unified feed).

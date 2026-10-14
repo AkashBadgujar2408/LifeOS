@@ -11,20 +11,24 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe, NgTemplateOutlet, formatDate } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { APP_DATE_FORMAT, APP_DATE_TIME_FORMAT } from '../../core/dates/date-format';
+import { APP_DATE_FORMAT } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
 import { TaskItem, TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import {
+  TASK_SORTS,
+  TASK_SORT_LABELS,
+  TaskSort,
   TaskView,
   bucketTasks,
   defaultDueDateFor,
   groupByDueDate,
-  recurrenceLabel,
   relativeDayLabel,
 } from './task-views';
 import { openTaskEditor } from './task-editor';
+import { TaskRow } from './task-row';
 
 const VIEW_LABELS: Record<TaskView, string> = {
   today: 'Today',
@@ -33,16 +37,22 @@ const VIEW_LABELS: Record<TaskView, string> = {
   done: 'Done',
 };
 
-const PRIORITY_META: Record<string, { icon: string; tone: string } | undefined> = {
-  High: { icon: 'bi-flag-fill', tone: 'text-danger' },
-  Medium: { icon: 'bi-flag-fill', tone: 'text-warning' },
-  Low: { icon: 'bi-flag', tone: 'text-body-secondary' },
-};
+// A per-browser convenience only: if storage is unavailable the page just starts on the default sort.
+const SORT_STORAGE_KEY = 'lifeos.tasks.sort';
+
+function loadSort(): TaskSort {
+  try {
+    const stored = localStorage.getItem(SORT_STORAGE_KEY) as TaskSort | null;
+    return stored && TASK_SORTS.includes(stored) ? stored : 'dueDate';
+  } catch {
+    return 'dueDate';
+  }
+}
 
 @Component({
   selector: 'app-tasks',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule],
+  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, TaskRow],
   templateUrl: './tasks.html',
 })
 export class Tasks {
@@ -55,9 +65,8 @@ export class Tasks {
 
   protected readonly views: TaskView[] = ['today', 'upcoming', 'someday', 'done'];
   protected readonly viewLabels = VIEW_LABELS;
-  protected readonly priorityMeta = PRIORITY_META;
-  protected readonly recurrenceLabel = recurrenceLabel;
-  protected readonly dateTimeFormat = APP_DATE_TIME_FORMAT;
+  protected readonly sorts = TASK_SORTS;
+  protected readonly sortLabels = TASK_SORT_LABELS;
 
   /** The user's local date, fixed for the life of the page (reloading picks up a new day). */
   protected readonly today = todayIso();
@@ -68,7 +77,11 @@ export class Tasks {
   /** Task currently being ticked/unticked, so a double click can't fire twice. */
   protected readonly busyId = signal<number | null>(null);
 
-  protected readonly buckets = computed(() => bucketTasks(this.openTasks(), this.today));
+  protected readonly sort = signal<TaskSort>(loadSort());
+
+  protected readonly buckets = computed(() =>
+    bucketTasks(this.openTasks(), this.today, this.sort()),
+  );
   protected readonly upcomingGroups = computed(() => groupByDueDate(this.buckets().upcoming));
   protected readonly counts = computed(() => {
     const b = this.buckets();
@@ -101,12 +114,17 @@ export class Tasks {
     }
   }
 
-  protected relativeDayLabel(date: string): string | null {
-    return relativeDayLabel(date, this.today);
+  protected setSort(sort: TaskSort): void {
+    this.sort.set(sort);
+    try {
+      localStorage.setItem(SORT_STORAGE_KEY, sort);
+    } catch {
+      // Not remembered; the choice still applies for this visit.
+    }
   }
 
-  protected isOverdue(task: TaskItem): boolean {
-    return task.status === 'Open' && task.dueDate !== null && task.dueDate < this.today;
+  protected relativeDayLabel(date: string): string | null {
+    return relativeDayLabel(date, this.today);
   }
 
   protected quickAddError(): string | null {

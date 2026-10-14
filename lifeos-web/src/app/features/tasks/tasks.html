@@ -7,33 +7,57 @@
         appears.
       </p>
     </div>
-    <button type="button" class="btn btn-primary" (click)="newTask()">
-      <i class="bi bi-plus-lg"></i> New task
-    </button>
+    <div class="d-flex gap-2">
+      <a routerLink="/projects" class="btn btn-outline-secondary">
+        <i class="bi bi-kanban"></i> Projects
+      </a>
+      <button type="button" class="btn btn-primary" (click)="newTask()">
+        <i class="bi bi-plus-lg"></i> New task
+      </button>
+    </div>
   </div>
 
-  <ul class="nav nav-pills gap-1 mb-3">
-    @for (v of views; track v) {
-      <li class="nav-item">
-        <button
-          type="button"
-          class="nav-link py-1 px-3"
-          [class.active]="view() === v"
-          (click)="setView(v)"
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <ul class="nav nav-pills gap-1">
+      @for (v of views; track v) {
+        <li class="nav-item">
+          <button
+            type="button"
+            class="nav-link py-1 px-3"
+            [class.active]="view() === v"
+            (click)="setView(v)"
+          >
+            {{ viewLabels[v] }}
+            @if (v === 'today' && counts().overdue > 0) {
+              <span class="badge rounded-pill text-bg-danger ms-1" title="Overdue">
+                {{ counts().overdue }}
+              </span>
+            }
+            @if (v !== 'done' && counts()[v]; as count) {
+              <span class="badge rounded-pill text-bg-light ms-1">{{ count }}</span>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+
+    @if (view() !== 'done') {
+      <div class="d-flex align-items-center gap-2">
+        <label class="small text-body-secondary text-nowrap" for="task-sort">Sort by</label>
+        <select
+          id="task-sort"
+          class="form-select form-select-sm w-auto"
+          (change)="setSort($any($event.target).value)"
         >
-          {{ viewLabels[v] }}
-          @if (v === 'today' && counts().overdue > 0) {
-            <span class="badge rounded-pill text-bg-danger ms-1" title="Overdue">
-              {{ counts().overdue }}
-            </span>
+          @for (option of sorts; track option) {
+            <option [value]="option" [selected]="option === sort()">
+              {{ sortLabels[option] }}
+            </option>
           }
-          @if (v !== 'done' && counts()[v]; as count) {
-            <span class="badge rounded-pill text-bg-light ms-1">{{ count }}</span>
-          }
-        </button>
-      </li>
+        </select>
+      </div>
     }
-  </ul>
+  </div>
 
   @if (view() !== 'done') {
     <form class="mb-3" [formGroup]="quickAddForm" (ngSubmit)="quickAdd()" novalidate>
@@ -64,65 +88,19 @@
     </form>
   }
 
-  <ng-template #row let-task let-showDate="showDate">
-    <li class="list-group-item py-2">
-      <div class="d-flex align-items-start gap-2">
-        <input
-          class="form-check-input mt-1 flex-shrink-0"
-          type="checkbox"
-          [checked]="task.status === 'Done'"
-          [disabled]="busyId() === task.id"
-          [attr.aria-label]="(task.status === 'Done' ? 'Reopen ' : 'Complete ') + task.title"
-          (change)="toggle(task)"
+  <ng-template #list let-tasks let-showDate="showDate">
+    <div class="list-group" role="list">
+      @for (task of tasks; track task.id) {
+        <app-task-row
+          [task]="task"
+          [today]="today"
+          [showDate]="showDate"
+          [busy]="busyId() === task.id"
+          (toggled)="toggle($event)"
+          (opened)="edit($event)"
         />
-        <button
-          type="button"
-          class="btn btn-link p-0 text-start text-decoration-none link-body-emphasis flex-grow-1 min-w-0"
-          (click)="edit(task)"
-        >
-          <span
-            class="text-break"
-            [class.text-decoration-line-through]="task.status === 'Done'"
-            [class.text-body-secondary]="task.status === 'Done'"
-          >
-            {{ task.title }}
-          </span>
-          <span class="d-flex flex-wrap align-items-center column-gap-3 row-gap-1 small mt-1">
-            @if (showDate && task.dueDate) {
-              <span
-                [class.text-danger]="isOverdue(task)"
-                [class.text-body-secondary]="!isOverdue(task)"
-              >
-                <i class="bi bi-calendar-event"></i> {{ task.dueDate | date }}
-              </span>
-            }
-            @if (task.completedAt && task.status === 'Done') {
-              <span class="text-body-secondary">
-                <i class="bi bi-check2"></i> {{ task.completedAt | date: dateTimeFormat }}
-              </span>
-            }
-            @if (task.recurrence) {
-              <span class="text-body-secondary">
-                <i class="bi bi-arrow-repeat"></i> {{ recurrenceLabel(task.recurrence) }}
-              </span>
-            }
-            @if (priorityMeta[task.priority]; as meta) {
-              <span class="{{ meta.tone }}">
-                <i class="bi {{ meta.icon }}"></i> {{ task.priority }}
-              </span>
-            }
-            @if (task.notes) {
-              <span class="text-body-secondary" title="Has notes"
-                ><i class="bi bi-text-left"></i
-              ></span>
-            }
-            @for (tag of task.tags; track tag.id) {
-              <span class="badge text-bg-light border fw-normal">{{ tag.name }}</span>
-            }
-          </span>
-        </button>
-      </div>
-    </li>
+      }
+    </div>
   </ng-template>
 
   <ng-template #empty let-icon="icon" let-title="title" let-text="text">
@@ -156,13 +134,12 @@
             @if (buckets().overdue.length > 0) {
               <section>
                 <h2 class="h6 text-danger mb-2">Overdue</h2>
-                <ul class="list-group">
-                  @for (task of buckets().overdue; track task.id) {
-                    <ng-container
-                      *ngTemplateOutlet="row; context: { $implicit: task, showDate: true }"
-                    />
-                  }
-                </ul>
+                <ng-container
+                  *ngTemplateOutlet="
+                    list;
+                    context: { $implicit: buckets().overdue, showDate: true }
+                  "
+                />
               </section>
             }
             @if (buckets().today.length > 0) {
@@ -170,13 +147,9 @@
                 @if (buckets().overdue.length > 0) {
                   <h2 class="h6 mb-2">Today</h2>
                 }
-                <ul class="list-group">
-                  @for (task of buckets().today; track task.id) {
-                    <ng-container
-                      *ngTemplateOutlet="row; context: { $implicit: task, showDate: false }"
-                    />
-                  }
-                </ul>
+                <ng-container
+                  *ngTemplateOutlet="list; context: { $implicit: buckets().today, showDate: false }"
+                />
               </section>
             }
           </div>
@@ -204,13 +177,9 @@
                     group.date | date
                   }}</span>
                 </h2>
-                <ul class="list-group">
-                  @for (task of group.tasks; track task.id) {
-                    <ng-container
-                      *ngTemplateOutlet="row; context: { $implicit: task, showDate: false }"
-                    />
-                  }
-                </ul>
+                <ng-container
+                  *ngTemplateOutlet="list; context: { $implicit: group.tasks, showDate: false }"
+                />
               </section>
             }
           </div>
@@ -229,13 +198,9 @@
             "
           />
         } @else {
-          <ul class="list-group">
-            @for (task of buckets().someday; track task.id) {
-              <ng-container
-                *ngTemplateOutlet="row; context: { $implicit: task, showDate: false }"
-              />
-            }
-          </ul>
+          <ng-container
+            *ngTemplateOutlet="list; context: { $implicit: buckets().someday, showDate: false }"
+          />
         }
       }
       @case ('done') {
@@ -253,11 +218,9 @@
             "
           />
         } @else {
-          <ul class="list-group">
-            @for (task of doneTasks(); track task.id) {
-              <ng-container *ngTemplateOutlet="row; context: { $implicit: task, showDate: true }" />
-            }
-          </ul>
+          <ng-container
+            *ngTemplateOutlet="list; context: { $implicit: doneTasks(), showDate: true }"
+          />
         }
       }
     }

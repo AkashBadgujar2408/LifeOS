@@ -1,0 +1,99 @@
+<div class="container py-4">
+  <a routerLink="/tasks" class="small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Tasks
+  </a>
+
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Projects</h1>
+      <p class="text-body-secondary mb-0 small">
+        Tasks that belong together. Link a project to the goal it moves forward.
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="newProject()">
+      <i class="bi bi-plus-lg"></i> New project
+    </button>
+  </div>
+
+  <ul class="nav nav-pills gap-1 mb-3">
+    @for (status of statuses; track status) {
+      <li class="nav-item">
+        <button
+          type="button"
+          class="nav-link py-1 px-3"
+          [class.active]="statusFilter() === status"
+          (click)="statusFilter.set(status)"
+        >
+          {{ status }}
+          @if (statusCounts().get(status); as count) {
+            <span class="badge rounded-pill text-bg-light ms-1">{{ count }}</span>
+          }
+        </button>
+      </li>
+    }
+  </ul>
+
+  @if (loading()) {
+    <div class="text-body-secondary">Loading...</div>
+  } @else if (visibleProjects().length === 0) {
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-kanban fs-1 text-body-secondary"></i>
+        @if (projects().length === 0) {
+          <p class="mt-2 mb-1 fw-semibold">No projects yet</p>
+          <p class="text-body-secondary small mb-3">
+            A project is anything with more than one step: "Renovate the balcony", "Plan the Japan
+            trip", "Learn Spanish to A2".
+          </p>
+          <button type="button" class="btn btn-primary btn-sm" (click)="newProject()">
+            Start a project
+          </button>
+        } @else {
+          <p class="mt-2 mb-0 fw-semibold">No {{ statusFilter().toLowerCase() }} projects</p>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="row g-3">
+      @for (project of visibleProjects(); track project.id) {
+        <div class="col-md-6 col-xl-4">
+          <div class="card h-100 position-relative">
+            <div class="card-body d-flex flex-column gap-2">
+              <a
+                [routerLink]="['/projects', project.id]"
+                class="stretched-link link-body-emphasis text-decoration-none fw-semibold text-break"
+              >
+                {{ project.name }}
+              </a>
+
+              @if (project.description) {
+                <p class="small text-body-secondary mb-0 text-truncate">
+                  {{ project.description }}
+                </p>
+              }
+
+              <div class="mt-auto d-flex flex-wrap column-gap-3 row-gap-1 small">
+                <span>
+                  <span class="fw-semibold">{{ project.openTaskCount }}</span>
+                  <span class="text-body-secondary"> open</span>
+                </span>
+                <span>
+                  <span class="fw-semibold">{{ project.doneTaskCount }}</span>
+                  <span class="text-body-secondary"> done</span>
+                </span>
+                @if (project.nextDueDate) {
+                  <span
+                    [class.text-danger]="isOverdue(project.nextDueDate, false)"
+                    [class.text-body-secondary]="!isOverdue(project.nextDueDate, false)"
+                  >
+                    <i class="bi bi-calendar-event"></i> Next due {{ project.nextDueDate | date }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

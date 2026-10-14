@@ -1,0 +1,193 @@
+<div class="container py-4">
+  <a routerLink="/projects" class="small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Projects
+  </a>
+
+  @if (project(); as project) {
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-4">
+      <div class="min-w-0">
+        <div class="small text-body-secondary mb-1">
+          <i class="bi bi-kanban"></i> Project
+          @if (project.status !== 'Active') {
+            <span class="badge text-bg-light border ms-1">{{ project.status }}</span>
+          }
+        </div>
+        <h1 class="h3 mb-0 text-break">{{ project.name }}</h1>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="edit(project)">
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" (click)="remove(project)">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-8 d-flex flex-column gap-3">
+        @if (project.description) {
+          <div class="card">
+            <div class="card-body text-break" style="white-space: pre-line">
+              {{ project.description }}
+            </div>
+          </div>
+        }
+
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+              <h2 class="h6 mb-0">Tasks</h2>
+              @if (project.status === 'Active') {
+                <button type="button" class="btn btn-link btn-sm p-0" (click)="newTask()">
+                  <i class="bi bi-plus-lg"></i> Task with details
+                </button>
+              }
+            </div>
+
+            @if (project.status === 'Active') {
+              <form class="mb-3" [formGroup]="quickAddForm" (ngSubmit)="quickAdd()" novalidate>
+                <div class="input-group">
+                  <span class="input-group-text bg-body"><i class="bi bi-plus-lg"></i></span>
+                  <input
+                    type="text"
+                    class="form-control"
+                    [class.is-invalid]="quickAddError()"
+                    formControlName="title"
+                    placeholder="Add a task to this project, e.g. Buy seed trays"
+                    aria-label="Add a task to this project"
+                    autocomplete="off"
+                  />
+                  <button type="submit" class="btn btn-outline-primary" [disabled]="quickAdding()">
+                    Add
+                  </button>
+                </div>
+                @if (quickAddError(); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </form>
+            } @else {
+              <p class="small text-body-secondary">
+                This project is {{ project.status.toLowerCase() }}. Reopen it to add tasks.
+              </p>
+            }
+
+            @if (sortedOpenTasks().length === 0) {
+              <p class="small text-body-secondary mb-0">
+                @if (doneTasks().length > 0) {
+                  Nothing left open. Every task here is done.
+                } @else {
+                  No tasks yet. Break the project into the next few concrete steps.
+                }
+              </p>
+            } @else {
+              <div class="list-group" role="list">
+                @for (task of sortedOpenTasks(); track task.id) {
+                  <app-task-row
+                    [task]="task"
+                    [today]="today"
+                    [showDate]="true"
+                    [showProject]="false"
+                    [busy]="busyId() === task.id"
+                    (toggled)="toggleTask($event)"
+                    (opened)="editTask($event)"
+                  />
+                }
+              </div>
+            }
+
+            @if (doneTasks().length > 0) {
+              <button
+                type="button"
+                class="btn btn-link btn-sm px-0 mt-3 text-decoration-none"
+                [attr.aria-expanded]="showDone()"
+                (click)="showDone.set(!showDone())"
+              >
+                <i
+                  class="bi"
+                  [class.bi-chevron-right]="!showDone()"
+                  [class.bi-chevron-down]="showDone()"
+                ></i>
+                Done ({{ doneTasks().length }})
+              </button>
+              @if (showDone()) {
+                <div class="list-group mt-2" role="list">
+                  @for (task of doneTasks(); track task.id) {
+                    <app-task-row
+                      [task]="task"
+                      [today]="today"
+                      [showDate]="true"
+                      [showProject]="false"
+                      [busy]="busyId() === task.id"
+                      (toggled)="toggleTask($event)"
+                      (opened)="editTask($event)"
+                    />
+                  }
+                </div>
+              }
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4 d-flex flex-column gap-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <i
+                class="bi {{ statusMeta[project.status].icon }} fs-5 {{
+                  statusMeta[project.status].tone
+                }}"
+              ></i>
+              <div>
+                <div class="fw-semibold">{{ statusMeta[project.status].label }}</div>
+                <div class="small text-body-secondary">
+                  {{ project.openTaskCount }} open · {{ project.doneTaskCount }} done
+                </div>
+              </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+              @for (action of statusActions[project.status]; track action.status) {
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  [class.btn-primary]="action.primary"
+                  [class.btn-outline-secondary]="!action.primary"
+                  [disabled]="changingStatus()"
+                  (click)="changeStatus(project, action)"
+                >
+                  <i class="bi {{ action.icon }}"></i> {{ action.label }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <dl class="mb-0 small">
+              <dt class="text-body-secondary fw-normal">Next due</dt>
+              <dd>
+                {{ project.nextDueDate ? (project.nextDueDate | date) : 'Nothing scheduled' }}
+              </dd>
+              <dt class="text-body-secondary fw-normal">Started</dt>
+              <dd class="mb-0">{{ project.createdAt | date }}</dd>
+            </dl>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <app-linked-items
+              [entityType]="projectEntityType"
+              [entityId]="project.id"
+              [preferredLinkType]="goalEntityType"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="text-body-secondary">Loading...</div>
+  }
+</div>

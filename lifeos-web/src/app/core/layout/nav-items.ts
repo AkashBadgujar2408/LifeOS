@@ -29,6 +29,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Goals', route: '/goals', icon: 'bi-flag' },
       { label: 'Tasks', route: '/tasks', icon: 'bi-check2-square' },
+      { label: 'Projects', route: '/projects', icon: 'bi-kanban' },
       { label: 'Habits', route: '/habits', icon: 'bi-arrow-repeat' },
     ],
   },

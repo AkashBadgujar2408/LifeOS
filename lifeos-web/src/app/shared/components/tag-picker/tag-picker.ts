@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, inject, input, output, signal, OnInit, computed } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  input,
+  output,
+  signal,
+  OnInit,
+  computed,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../../core/services/toast.service';
 import { Tag, TagsService } from '../../../core/services/tags.service';
