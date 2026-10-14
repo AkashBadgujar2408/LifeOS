@@ -19,6 +19,7 @@ import {
   InboxService,
 } from '../../core/services/inbox.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { APP_DATE_TIME_FORMAT } from '../../core/dates/date-format';
 
 const KIND_ICONS: Record<InboxKind, string> = {
   Task: 'bi-check2-square',
@@ -41,6 +42,7 @@ export class Inbox {
   protected readonly kinds = INBOX_KINDS;
   protected readonly kindIcons = KIND_ICONS;
   protected readonly inboxEntityType = INBOX_ENTITY_TYPE;
+  protected readonly dateTimeFormat = APP_DATE_TIME_FORMAT;
 
   protected readonly items = signal<InboxItem[]>([]);
   protected readonly loading = signal(true);

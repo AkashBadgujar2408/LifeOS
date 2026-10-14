@@ -40,6 +40,7 @@
     "@angular/build": "^22.2.2",
     "@angular/cli": "^22.2.2",
     "@angular/compiler-cli": "^22.2.0",
+    "@angular/localize": "^22.2.2",
     "@eslint/js": "^10.0.1",
     "angular-eslint": "22.6.0",
     "eslint": "^10.12.0",
@@ -48,6 +49,7 @@
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
     "typescript-eslint": "8.71.0",
+    "vite": "^8.3.0",
     "vitest": "^5.0.0"
   }
 }

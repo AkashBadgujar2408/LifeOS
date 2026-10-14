@@ -79,9 +79,18 @@ public class TagsService(AppDbContext db, IMapper mapper) : ITagsService
             return OperationResult<bool>.Fail("Tag not found.");
         }
 
+        var now = DateTime.UtcNow;
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        // Detach the tag from everything it was on; each module's tag join table gets a line here.
+        await db.GoalTags
+            .Where(gt => gt.TagId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(gt => gt.IsDeleted, true).SetProperty(gt => gt.DeletedAt, now));
+
         tag.IsDeleted = true;
-        tag.DeletedAt = DateTime.UtcNow;
+        tag.DeletedAt = now;
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return OperationResult<bool>.Ok(true);
     }

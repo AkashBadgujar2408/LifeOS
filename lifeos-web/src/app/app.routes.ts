@@ -54,16 +54,26 @@ export const routes: Routes = [
           'Spot busy days before you commit to more',
         ],
       }),
-      placeholder('goals', 'Goals', {
-        heading: 'Goals',
-        icon: 'bi-flag',
-        summary: 'Big and small: "Become a technical lead" sits next to "Finish GTA V".',
-        willLetYou: [
-          'Set short-term, long-term and bucket-list goals by life area',
-          'Break a goal into milestones and watch progress add up',
-          'Postpone, revise or let go of a goal without losing its history',
-        ],
-      }),
+      {
+        path: 'goals',
+        title: 'Goals | LifeOS',
+        loadComponent: () => import('./features/goals/goals').then((m) => m.Goals),
+      },
+      {
+        path: 'goals/new',
+        title: 'New goal | LifeOS',
+        loadComponent: () => import('./features/goals/goal-form').then((m) => m.GoalForm),
+      },
+      {
+        path: 'goals/:id',
+        title: 'Goal | LifeOS',
+        loadComponent: () => import('./features/goals/goal-detail').then((m) => m.GoalDetail),
+      },
+      {
+        path: 'goals/:id/edit',
+        title: 'Edit goal | LifeOS',
+        loadComponent: () => import('./features/goals/goal-form').then((m) => m.GoalForm),
+      },
       placeholder('tasks', 'Tasks', {
         heading: 'Tasks',
         icon: 'bi-check2-square',

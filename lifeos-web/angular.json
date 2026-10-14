@@ -3,9 +3,7 @@
   "version": 1,
   "cli": {
     "packageManager": "npm",
-    "schematicCollections": [
-      "angular-eslint"
-    ],
+    "schematicCollections": ["angular-eslint"],
     "analytics": "e7ee45bc-55d4-44e5-9a61-4778e04b6d08"
   },
   "newProjectRoot": "projects",
@@ -39,7 +37,8 @@
               "node_modules/bootstrap-icons/font/bootstrap-icons.css",
               "node_modules/ngx-toastr/toastr.css",
               "src/styles.scss"
-            ]
+            ],
+            "polyfills": ["@angular/localize/init"]
           },
           "configurations": {
             "production": {

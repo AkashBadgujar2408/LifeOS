@@ -213,7 +213,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
 | 9 | ✅ Schema + scaffold | `database/schema/02_goals.sql` creating schema `goals` with `goals.Goals` (title, description, LifeAreaId, GoalType ShortTerm/LongTerm/BucketList, TargetDate as `DATE`, Status Active/Completed/Postponed/Abandoned, CompletedAt), `goals.GoalMilestones` (CompletedAt = done, SortOrder) and `goals.GoalTags` (real FK join to `shared.Tags`); apply + re-scaffold | **Done** — scaffold additive and deterministic (fresh-from-scripts DB scaffolds identically); "Become a Technical Lead" (Career/LongTerm) and "Finish GTA V" (Personal-Fun/ShortTerm) stored side by side with tags + milestones, read back via SQL and via EF with per-user isolation |
-| 10 | Goals API + UI | CRUD for goals and milestones, progress % calculation, list/detail/create/edit screens | Can create a goal, add milestones, see progress update |
+| 10 | ✅ Goals API + UI | CRUD for goals and milestones (add/edit/tick/reorder/delete), server-side progress % calculation, list (status + life-area filters)/detail/create/edit screens; `GoalLinkableProvider` registered so goals are linkable now; app-wide `14/Oct/2026` date format + ng-bootstrap datepickers | **Done** — created a goal, added 3 milestones, ticked one → 33% on detail and list, verified in the browser |
 | 11 | Review flow + linking | Mark goal postponed/abandoned/revised; link goal to tasks via EntityLinks | Goal status changes persist; linked tasks visible on goal detail |
 
 ### Milestone 3 — Tasks & Personal Projects

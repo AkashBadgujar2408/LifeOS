@@ -6,7 +6,7 @@
         <button
           type="button"
           class="btn-close btn-close-white"
-          style="font-size: 0.6rem;"
+          style="font-size: 0.6rem"
           aria-label="Remove tag"
           (click)="removeTag(tag.id)"
         ></button>
@@ -17,14 +17,14 @@
     }
   </div>
 
-  <div class="input-group input-group-sm mb-2" style="max-width: 300px;">
+  <div class="input-group input-group-sm mb-2" style="max-width: 300px">
     <input
       type="text"
       class="form-control"
       placeholder="New or existing tag..."
       [ngModel]="newTagName()"
       (ngModelChange)="newTagName.set($event)"
-      (keyup.enter)="addNewTag()"
+      (keydown.enter)="$event.preventDefault(); addNewTag()"
     />
     <button type="button" class="btn btn-outline-secondary" (click)="addNewTag()">Add</button>
   </div>

@@ -194,4 +194,33 @@
   - The two seeded goals (+ tag `Gaming`) remain in UAT for linkuser1 — handy real data for building the Goals list/detail screens.
   - Multi-agents: offered, not used this session — Sessions 8 and 9 were sequential and both touched the shared shell/`AppDbContext`, so a fork would have cost more coordination than it saved (see the fork history above).
 
-- Next up: **Session 10 — Goals API + UI**: CRUD for goals and milestones, progress % calculation, list/detail/create/edit screens (replace the `goals` placeholder route with the real feature route, per the nav convention).
+## Last session: 2026-10-14 — Session 10 — Goals API + UI
+- Shipped (backend):
+  - `LifeOS.Core/Goals/{DTOs,ServiceContracts,Services,AutoMapper}` + `Areas/Goals/Controllers`: `GoalsController` (`api/Goals/Goals`: list with optional `status`, get, create, update, delete) and `GoalMilestonesController` (nested `api/Goals/Goals/{goalId}/Milestones`: add, edit, `PUT {id}/completed`, `PUT order`, delete).
+  - **Progress is computed, never stored**: `GoalProgress.Percent` = floor(done / total × 100), a Completed goal is always 100 %, no milestones = 0. List projects milestone *counts* + next open milestone (no collection fan-out); detail uses `.AsSplitQuery()` for milestones + tags. No `MultipleCollectionIncludeWarning` in the log.
+  - Validation: `[AllowedValues]` on GoalType, `[Range]` on LifeAreaId, life area must exist, every tag id must be the caller's (per-user filter makes another user's tag "Tag not found."). Tags synced on update (soft-delete removed, new row for re-added).
+  - Goal delete soft-deletes its milestones + goal tags (`ExecuteUpdate`) and its EntityLinks, in one transaction. Milestone changes touch `Goal.UpdatedAt` (keeps Session 24's "goal untouched 14+ days" rule honest).
+  - **Fixed a gap from Session 9**: deleting a Tag left its `goals.GoalTags` rows alive → `TagsService.DeleteAsync` now detaches the tag (each future module tag-join table gets a line there).
+  - `LifeAreasController` (`GET api/Shared/LifeAreas`, read-only) + `ILifeAreasService`.
+  - `GoalLinkableProvider` ("Goal") registered — pulled forward from Session 11 since delete needed the type constant anyway; goal detail already shows the linked-items widget.
+- Shipped (frontend):
+  - `features/goals/`: list (status pills with counts + life-area filter, cards with progress bar, "x of y milestones", next milestone, overdue target date in red, tags), detail (progress, milestones: tick / inline edit / move up-down / delete with confirm / add with optional date; details card; linked items), shared create/edit form (title, life area, goal-type segmented control with hint, target date, description, tag picker). Placeholder route replaced by 4 real routes.
+  - `core/services/goals.service.ts`, `life-areas.service.ts` (cached with `shareReplay`).
+  - **App-wide date format `14/Oct/2026`** (your mid-session request): `core/dates/date-format.ts` — `DATE_PIPE_DEFAULT_OPTIONS`, `AppDateParserFormatter`, `IsoDateAdapter`, `dateFieldError`; My Day heading ("Wednesday, 14/Oct/2026"), Inbox capture time, all goal dates. Native `type="date"` inputs replaced by ng-bootstrap datepickers (typed `14/Oct/2026`, `14 october 2026`, `14/10/2026` all parse; junk shows an inline error).
+- Fixed via the browser pass:
+  - Enter in the tag picker submitted the surrounding goal form → `keydown.enter` + `preventDefault()`.
+  - Datepicker popup had no month/year navigation: `$localize is not defined` — ng-bootstrap needs `@angular/localize`, never installed (modals/toasts didn't need it). Added via `ng add`.
+  - After adding a milestone, blurring the (refocused, empty) add box showed "Enter a milestone." → add-form title error only after a submit attempt.
+  - Truncated "Target date (optional)" placeholder shortened.
+- Tooling:
+  - `ng test` had never actually run: vitest couldn't resolve `vite` (nested under `@angular/build`) → `vite@8.3.0` added as a direct devDependency. Stale Session 1 `app.spec.ts` assertion (`.navbar-brand`, gone since the Session 8 shell) removed. First real spec: `date-format.spec.ts` (formatter/parser + ISO adapter). 6/6 green.
+  - npm installs need `--legacy-peer-deps` (ngx-toastr peer range) — noted in CLAUDE.md.
+- Verified:
+  - curl matrix (scratch script, two fresh users): every validation path (blank/whitespace title, bad type, life area 0 / 999, foreign or unknown tag) → 400 with a clean message; cross-user get/update/add-milestone → not found, list `[]`; milestone add → tick (33 %) → tick (66 %, next milestone advances) → untick → edit → reorder (incomplete / duplicate id lists rejected) → delete → second delete 404; untag → retag; tag delete detaches it from the goal; goal searchable as a link candidate; goal delete → 404 for goal and its milestones; anonymous 401.
+  - Browser (goaluser1): empty state → empty submit shows both inline errors → create → detail → 3 milestones (typed date, picked date, invalid text error) → tick → 33 % on detail and list card → edit (type + tag via Enter) → reorder up/down → all dates in `dd/MMM/yyyy`. No console errors (the existing `NG0913` logo-size warning is pre-existing).
+  - `dotnet build` 0 warnings; lint clean; `ng build` 0 warnings; tests green.
+- Notes:
+  - Sandbox gotcha: sandboxed `curl` can't reach localhost and a sandboxed `Stop-Process` silently fails — run local API/dev-server commands unsandboxed. `TaskStop` on a background `ng serve` leaves the node child running (kill the port owner).
+  - Test users `goaluser1`/`goaluser2` (password in the scratch script, not committed) + goal "Run a half marathon" exist in UAT. The Session 9 seed goals still belong to `linkuser1`.
+
+- Next up: **Session 11 — Review flow + linking**: change goal status (Active ↔ Completed/Postponed/Abandoned, with `CompletedAt`), "revise" as an edit, linking goals to tasks (Tasks don't exist until Session 13 — link to inbox items for now, the widget is already on goal detail).
