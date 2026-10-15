@@ -29,3 +29,7 @@ public partial class TaskTag : ISoftDeletable, IUserOwned;
 public partial class Event : ISoftDeletable, IUserOwned;
 
 public partial class Reminder : ISoftDeletable, IUserOwned;
+
+public partial class Habit : ISoftDeletable, IUserOwned;
+
+public partial class HabitEntry : ISoftDeletable, IUserOwned;

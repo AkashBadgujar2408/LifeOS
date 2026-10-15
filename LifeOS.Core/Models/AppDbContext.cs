@@ -23,6 +23,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<GoalTag> GoalTags { get; set; }
 
+    public virtual DbSet<Habit> Habits { get; set; }
+
+    public virtual DbSet<HabitEntry> HabitEntries { get; set; }
+
     public virtual DbSet<InboxItem> InboxItems { get; set; }
 
     public virtual DbSet<LifeArea> LifeAreas { get; set; }
@@ -177,6 +181,56 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_GoalTags_Users");
+        });
+
+        modelBuilder.Entity<Habit>(entity =>
+        {
+            entity.ToTable("Habits", "habits");
+
+            entity.HasIndex(e => e.LifeAreaId, "IX_Habits_LifeAreaId").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.UserId, e.Title }, "UX_Habits_User_Title")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Habits_CreatedAt");
+            entity.Property(e => e.ScheduleDays).HasDefaultValue((byte)127, "DF_Habits_ScheduleDays");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Active", "DF_Habits_Status");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.Habits)
+                .HasForeignKey(d => d.LifeAreaId)
+                .HasConstraintName("FK_Habits_LifeAreas");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Habits)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Habits_Users");
+        });
+
+        modelBuilder.Entity<HabitEntry>(entity =>
+        {
+            entity.ToTable("HabitEntries", "habits");
+
+            entity.HasIndex(e => new { e.UserId, e.EntryDate }, "IX_HabitEntries_User_Date").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.HabitId, e.EntryDate }, "UX_HabitEntries_Habit_Date")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_HabitEntries_CreatedAt");
+
+            entity.HasOne(d => d.Habit).WithMany(p => p.HabitEntries)
+                .HasForeignKey(d => d.HabitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HabitEntries_Habits");
+
+            entity.HasOne(d => d.User).WithMany(p => p.HabitEntries)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HabitEntries_Users");
         });
 
         modelBuilder.Entity<InboxItem>(entity =>

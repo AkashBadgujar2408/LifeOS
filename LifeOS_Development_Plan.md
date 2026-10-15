@@ -233,7 +233,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 ### Milestone 5 — Habits & Routines
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
-| 18 | Schema + scaffold | `database/schema/05_habits.sql` creating schema `habits` with `habits.Habits`, `habits.HabitEntries` (daily completion log); apply + re-scaffold; streak calculation logic | Scaffold regenerates cleanly, streak logic unit-tested |
+| 18 | ✅ Schema + scaffold | `database/schema/05_habits.sql` creating schema `habits` with `habits.Habits` (weekday `ScheduleDays` bitmask, `StartDate`, optional Life Area, Active/Archived, unique live title) and `habits.HabitEntries` (one row per day done, filtered unique per habit + day); apply + re-scaffold; `HabitStreaks` (current / longest / done today / due today / last missed) | **Done** — scaffold additive, fresh DB from scripts scaffolds identically, every CHECK/unique index verified in SQL, 21 streak tests green (43 backend total) |
 | 19 | Habits UI | Daily check-off grid + streak display | Checking off a day updates the streak correctly, including breaks |
 
 ### Milestone 6 — Journal & Reflections

@@ -35,6 +35,10 @@ public partial class User
 
     public virtual ICollection<Goal> Goals { get; set; } = new List<Goal>();
 
+    public virtual ICollection<HabitEntry> HabitEntries { get; set; } = new List<HabitEntry>();
+
+    public virtual ICollection<Habit> Habits { get; set; } = new List<Habit>();
+
     public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();
 
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();

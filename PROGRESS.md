@@ -376,3 +376,22 @@
   - UAT test data for projuser1: reminders "Order the soil online" (09:34), "Pay the electricity bill" (10:00), "Start on this" (11:19, task Get soil); "Cousin's wedding" is now timed 15 Oct 18:00–22:00.
 
 - Next up: **Session 18 — Habits schema + scaffold + streak logic**.
+
+## Last session: 2026-10-15 — Session 18 — Habits schema + scaffold + streak logic
+- Shipped:
+  - `database/schema/05_habits.sql` → schema `habits`:
+    - `habits.Habits`: Title (unique per user while live, `UX_Habits_User_Title`), Description, optional `LifeAreaId` (shared taxonomy, like goals), **`ScheduleDays` TINYINT weekday bitmask** (ISO order Mon = 1 … Sun = 64; 127 = every day, default; `CK_Habits_ScheduleDays` 1–127), `StartDate` (DATE — nothing before it can be missed), `Status` Active/Archived (`CK_Habits_Status`).
+    - `habits.HabitEntries`: one row per day done (`EntryDate` DATE, the user's local day), `UserId` repeated for the global filter, `UX_HabitEntries_Habit_Date` filtered on `IsDeleted = 0` (un-tick = soft delete, re-tick works), `IX_HabitEntries_User_Date` for the grid's date-range reads.
+    - Streaks are **not stored** — always computed from entries.
+  - Re-scaffold: `Habit`, `HabitEntry`, nav properties on `User`/`LifeArea` — purely additive. Partials `Habit`/`HabitEntry : ISoftDeletable, IUserOwned`.
+  - **`HabitStreaks`** (`LifeOS.Core/Habits/Services/`, pure): `IsScheduled(mask, day)` and `Calculate(mask, startDate, doneDates, today)` → `HabitStreak(Current, Longest, DoneToday, DueToday, LastMissed)`. Only scheduled days from the start date to today count; today not yet done doesn't break the streak; unscheduled days neither break nor extend it; ticks on unscheduled days / before the start / in the future are ignored; `LastMissed` is what Session 24's "streak broken" insight will read. 21 xUnit cases (written by a parallel sub-agent, reviewed).
+- Decisions (mine — say if you want them changed): weekday schedule (e.g. Mon/Wed/Fri) rather than "N times per week"; no pause state (archive instead); linking a habit to its goal goes through EntityLinks (Session 19 adds `HabitLinkableProvider`), not a column.
+- Verified:
+  - UAT backed up first (`LifeOS_UAT_pre18.bak` in the session scratchpad); script applied twice (idempotent).
+  - Constraints in a rolled-back transaction: default mask 127 / status Active; mask 0 and 128, status "Paused", duplicate live title, duplicate entry for the same day → rejected; un-tick + re-tick and reusing a deleted habit's title → accepted.
+  - **Fresh DB from `00`–`05` + the proc scaffolds identically to `Models/`** (only the known `User.Username` position). Scratch DB dropped.
+  - `dotnet build` 0 warnings; tests **43 backend** (22 + 21 new) + 39 frontend.
+- Notes:
+  - At the end of the session the local API wouldn't rebind `127.0.0.1:5217` ("address already in use", with no listener visible) after a stuck `LifeOS.Api.exe` was killed — an OS socket left behind, not a code issue (the build is clean and nothing in Session 18 touches the API surface). If it persists, a reboot or `netsh int ip reset`-free option: change the port temporarily in `launchSettings.json` + `proxy.conf.json`.
+
+- Next up: **Session 19 — Habits UI**: Habits API (CRUD, tick/un-tick a day with the client's `today`, streaks via `HabitStreaks`), `HabitLinkableProvider`, daily check-off grid + streak display; replace the Habits placeholder route.
