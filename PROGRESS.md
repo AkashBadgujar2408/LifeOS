@@ -392,6 +392,6 @@
   - **Fresh DB from `00`–`05` + the proc scaffolds identically to `Models/`** (only the known `User.Username` position). Scratch DB dropped.
   - `dotnet build` 0 warnings; tests **43 backend** (22 + 21 new) + 39 frontend.
 - Notes:
-  - At the end of the session the local API wouldn't rebind `127.0.0.1:5217` ("address already in use", with no listener visible) after a stuck `LifeOS.Api.exe` was killed — an OS socket left behind, not a code issue (the build is clean and nothing in Session 18 touches the API surface). If it persists, a reboot or `netsh int ip reset`-free option: change the port temporarily in `launchSettings.json` + `proxy.conf.json`.
+  - At the end of the session the local API wouldn't rebind `127.0.0.1:5217` ("address already in use", with no listener visible) after a stuck `LifeOS.Api.exe` was killed — an OS socket left behind, not a code issue (the build is clean and nothing in Session 18 touches the API surface). If it persists after a reboot, change the port in `launchSettings.json` + `proxy.conf.json`.
 
 - Next up: **Session 19 — Habits UI**: Habits API (CRUD, tick/un-tick a day with the client's `today`, streaks via `HabitStreaks`), `HabitLinkableProvider`, daily check-off grid + streak display; replace the Habits placeholder route.
