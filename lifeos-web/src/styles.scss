@@ -171,3 +171,10 @@ h6 {
   opacity: 0.55;
   text-decoration: line-through;
 }
+
+// Lets a flex child shrink below its content so `.text-truncate` / `.text-break` inside it work. Neither Bootstrap nor
+// CoreUI ships this utility; templates used it before it existed here (found Session 21: a long journal excerpt pushed
+// the page wider than the viewport).
+.min-w-0 {
+  min-width: 0 !important;
+}

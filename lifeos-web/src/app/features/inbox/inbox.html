@@ -116,6 +116,19 @@
                       <span class="d-none d-md-inline ms-1">Make it a task</span>
                     </button>
                   }
+                  @if (item.kind === 'Journal') {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-primary"
+                      title="Add it to that day's journal"
+                      aria-label="Add it to that day's journal"
+                      [disabled]="processingId() === item.id"
+                      (click)="makeJournalEntry(item)"
+                    >
+                      <i class="bi bi-journal-text"></i>
+                      <span class="d-none d-md-inline ms-1">Add to journal</span>
+                    </button>
+                  }
                   <button
                     type="button"
                     class="btn btn-sm btn-outline-primary"

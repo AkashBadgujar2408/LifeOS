@@ -1,3 +1,6 @@
+/** Short weekday names in ISO order (Monday first), matching the en-gb calendar and the habit schedule bits. */
+export const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+
 /** A Date's *local* calendar date, "yyyy-MM-dd" (never via toISOString(), which would give the UTC date). */
 export function toLocalIsoDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');

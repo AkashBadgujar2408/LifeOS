@@ -40,10 +40,12 @@
             class="btn btn-link btn-sm p-0 text-start text-break"
             (click)="openTarget.emit(r)"
           >
-            <i class="bi bi-link-45deg"></i> {{ r.entityType }}: {{ r.entityTitle }}
+            <i class="bi bi-link-45deg"></i> {{ targetLabels[r.entityType] }}: {{ r.entityTitle }}
           </button>
         } @else {
-          <span class="text-body-secondary">{{ r.entityType }} no longer available</span>
+          <span class="text-body-secondary"
+            >{{ targetLabels[r.entityType] }} no longer available</span
+          >
         }
       </div>
     }

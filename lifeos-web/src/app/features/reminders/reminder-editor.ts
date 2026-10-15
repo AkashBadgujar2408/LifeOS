@@ -12,6 +12,7 @@ import { dateFieldError } from '../../core/dates/date-format';
 import { toLocalIsoDate } from '../../core/dates/today';
 import {
   Reminder,
+  REMINDER_TARGET_LABELS,
   ReminderPayload,
   ReminderTargetType,
   RemindersService,
@@ -92,10 +93,12 @@ export class ReminderEditor {
   protected targetLabel(): string | null {
     const r = this.reminder();
     if (r) {
-      return r.entityType ? `${r.entityType}: ${r.entityTitle ?? '(no longer available)'}` : null;
+      return r.entityType
+        ? `${REMINDER_TARGET_LABELS[r.entityType]}: ${r.entityTitle ?? '(no longer available)'}`
+        : null;
     }
     const t = this.draftTarget();
-    return t ? `${t.entityType}: ${t.title}` : null;
+    return t ? `${REMINDER_TARGET_LABELS[t.entityType]}: ${t.title}` : null;
   }
 
   protected fieldError(name: 'title' | 'date' | 'time' | 'notes'): string | null {

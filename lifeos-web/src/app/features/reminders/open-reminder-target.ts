@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { CalendarService } from '../../core/services/calendar.service';
+import { JournalService } from '../../core/services/journal.service';
 import { Reminder, RemindersService } from '../../core/services/reminders.service';
 import { TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -9,9 +10,9 @@ import { openEventEditor } from '../calendar/event-editor';
 import { openTaskEditor } from '../tasks/task-editor';
 
 /**
- * Opens what a reminder is about, the same way the calendar does: tasks and events in their editor, goals and
- * projects and habits on their page. Kept out of ReminderRow so the editors (which embed reminder rows) don't import
- * themselves in a cycle.
+ * Opens what a reminder is about, the same way the calendar does: tasks and events in their editor, goals,
+ * projects, habits and journal entries on their page. Kept out of ReminderRow so the editors (which embed reminder
+ * rows) don't import themselves in a cycle.
  */
 @Injectable({ providedIn: 'root' })
 export class ReminderTargetOpener {
@@ -19,6 +20,7 @@ export class ReminderTargetOpener {
   private readonly modal = inject(NgbModal);
   private readonly tasksService = inject(TasksService);
   private readonly calendarService = inject(CalendarService);
+  private readonly journalService = inject(JournalService);
   private readonly toast = inject(ToastService);
   private readonly remindersService = inject(RemindersService);
 
@@ -32,6 +34,13 @@ export class ReminderTargetOpener {
         break;
       case 'Habit':
         void this.router.navigate(['/habits', reminder.entityId]);
+        break;
+      case 'JournalEntry':
+        // Journal pages are addressed by day; the reminder only knows the entry's id.
+        this.journalService.get(reminder.entityId!).subscribe({
+          next: (entry) => void this.router.navigate(['/journal', entry.entryDate]),
+          error: () => this.toast.error('Could not open the journal entry.'),
+        });
         break;
       case 'Task':
         this.tasksService.get(reminder.entityId!).subscribe({

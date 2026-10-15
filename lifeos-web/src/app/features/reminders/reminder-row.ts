@@ -10,7 +10,11 @@ import {
 import { DatePipe } from '@angular/common';
 import { NgbDropdownModule, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { APP_DATE_TIME_FORMAT } from '../../core/dates/date-format';
-import { Reminder, RemindersService } from '../../core/services/reminders.service';
+import {
+  REMINDER_TARGET_LABELS,
+  Reminder,
+  RemindersService,
+} from '../../core/services/reminders.service';
 import { ToastService } from '../../core/services/toast.service';
 import { openReminderEditor } from './reminder-editor';
 import { SnoozePreset, snoozePresets } from './reminder-times';
@@ -37,6 +41,7 @@ export class ReminderRow {
   readonly openTarget = output<Reminder>();
 
   protected readonly dateTimeFormat = APP_DATE_TIME_FORMAT;
+  protected readonly targetLabels = REMINDER_TARGET_LABELS;
 
   protected readonly isDue = computed(() => {
     const r = this.reminder();

@@ -1,0 +1,234 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Journal</h1>
+      <p class="text-body-secondary mb-0 small">One entry a day: a few lines, a mood, or both.</p>
+    </div>
+    <a routerLink="/journal/week" class="btn btn-outline-primary">
+      <i class="bi bi-calendar-week"></i> Weekly reflection
+    </a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-8 d-flex flex-column gap-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              aria-label="Previous day"
+              (click)="goToDay(-1)"
+            >
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <div class="text-center">
+              <h2 class="h5 mb-0">{{ day() | date: weekdayFormat }}</h2>
+              <div class="small text-body-secondary">
+                {{ day() | date }}
+                @if (isToday()) {
+                  · today
+                } @else {
+                  ·
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0 align-baseline"
+                    (click)="goToDay('today')"
+                  >
+                    back to today
+                  </button>
+                }
+              </div>
+            </div>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              aria-label="Next day"
+              [disabled]="isToday()"
+              (click)="goToDay(1)"
+            >
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+
+          @if (loadingEntry()) {
+            <div class="text-body-secondary small">Loading...</div>
+          } @else {
+            <form
+              [formGroup]="form"
+              (ngSubmit)="save()"
+              novalidate
+              class="d-flex flex-column gap-3"
+            >
+              <div>
+                <span class="form-label d-block" id="journal-mood-label">How was the day?</span>
+                <div
+                  class="d-flex flex-wrap gap-2"
+                  role="group"
+                  aria-labelledby="journal-mood-label"
+                >
+                  @for (mood of moods; track mood.value) {
+                    <button
+                      type="button"
+                      class="btn btn-sm flex-fill d-flex flex-column align-items-center py-2"
+                      [class.btn-primary]="form.controls.mood.value === mood.value"
+                      [class.btn-outline-secondary]="form.controls.mood.value !== mood.value"
+                      [attr.aria-pressed]="form.controls.mood.value === mood.value"
+                      (click)="selectMood(mood.value)"
+                    >
+                      <i class="bi {{ mood.icon }} fs-4" aria-hidden="true"></i>
+                      <span class="small">{{ mood.label }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label" for="journal-title">
+                  Title <span class="text-body-secondary small">(optional)</span>
+                </label>
+                <input
+                  id="journal-title"
+                  type="text"
+                  class="form-control"
+                  [class.is-invalid]="fieldError('title')"
+                  formControlName="title"
+                  placeholder="e.g. The day the kingfishers came back"
+                  autocomplete="off"
+                />
+                @if (fieldError('title'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+
+              <div>
+                <label class="form-label" for="journal-content"
+                  >What happened, what you noticed</label
+                >
+                <textarea
+                  id="journal-content"
+                  class="form-control"
+                  rows="9"
+                  [class.is-invalid]="fieldError('content') || emptyError()"
+                  formControlName="content"
+                  (input)="emptyError.set(false)"
+                  placeholder="A few honest lines are enough. What stood out today?"
+                ></textarea>
+                @if (fieldError('content'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                } @else if (emptyError()) {
+                  <div class="invalid-feedback d-block">Write something or pick a mood.</div>
+                }
+              </div>
+
+              <div class="row g-3 align-items-end">
+                <div class="col-sm-6">
+                  <label class="form-label" for="journal-life-area">
+                    Life area <span class="text-body-secondary small">(optional)</span>
+                  </label>
+                  <select id="journal-life-area" class="form-select" formControlName="lifeAreaId">
+                    <option [ngValue]="null">No particular area</option>
+                    @for (area of lifeAreas(); track area.id) {
+                      <option [ngValue]="area.id">{{ area.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="col-sm-6 d-flex justify-content-sm-end gap-2">
+                  @if (entry()) {
+                    <button type="button" class="btn btn-outline-danger" (click)="remove()">
+                      <i class="bi bi-trash"></i> Delete
+                    </button>
+                  }
+                  <button type="submit" class="btn btn-primary" [disabled]="saving()">
+                    {{ entry() ? 'Save changes' : 'Save entry' }}
+                  </button>
+                </div>
+              </div>
+
+              @if (entry(); as saved) {
+                <div class="small text-body-secondary">
+                  Saved {{ saved.updatedAt ?? saved.createdAt | date: dateTimeFormat }}
+                  @if (form.dirty) {
+                    · <span class="text-warning-emphasis">unsaved changes</span>
+                  }
+                </div>
+              }
+            </form>
+          }
+        </div>
+      </div>
+
+      @if (entry(); as saved) {
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <app-linked-items [entityType]="entryEntityType" [entityId]="saved.id" />
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100">
+              <div class="card-body">
+                <app-entity-reminders
+                  entityType="JournalEntry"
+                  [entityId]="saved.id"
+                  [entityTitle]="saved.title || 'Journal, ' + (saved.entryDate | date)"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="col-lg-4 d-flex flex-column gap-3">
+      <div class="card">
+        <div class="card-body">
+          <h2 class="h6 mb-3">Mood, last 30 days</h2>
+          <app-mood-trend [points]="moodPoints()" [from]="trendFrom()" [to]="today()" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h2 class="h6 mb-3">Recent entries</h2>
+          @if (recent().length === 0) {
+            <p class="small text-body-secondary mb-0">Nothing in the last 30 days yet.</p>
+          } @else {
+            <div class="list-group list-group-flush">
+              @for (item of recent(); track item.id) {
+                <button
+                  type="button"
+                  class="list-group-item list-group-item-action px-0 d-flex gap-2 align-items-start"
+                  [attr.aria-current]="item.entryDate === day() ? 'date' : null"
+                  (click)="openDay(item.entryDate)"
+                >
+                  <span class="text-body-secondary" style="width: 1.25rem">
+                    @if (item.mood) {
+                      <i
+                        class="bi {{ moodMeta(item.mood).icon }}"
+                        [title]="moodMeta(item.mood).label"
+                      ></i>
+                    }
+                  </span>
+                  <span class="min-w-0 flex-grow-1">
+                    <span class="d-block small" [class.fw-semibold]="item.entryDate === day()">
+                      {{ item.entryDate | date }}
+                      @if (item.mood) {
+                        <span class="text-body-secondary"> · {{ moodMeta(item.mood).label }}</span>
+                      }
+                    </span>
+                    <span class="d-block small text-body-secondary text-truncate">
+                      {{ item.title || item.content || 'Mood only' }}
+                    </span>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

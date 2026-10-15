@@ -1,4 +1,4 @@
-import { addDaysIso, localMidnight } from '../../core/dates/today';
+import { WEEKDAY_NAMES, addDaysIso, localMidnight } from '../../core/dates/today';
 import { Habit, HabitEntryResult } from '../../core/services/habits.service';
 
 /** Every day of the week: the API's default schedule (HabitStreaks.EveryDay). */
@@ -8,7 +8,7 @@ export const EVERY_DAY = 127;
 export const WEEKDAYS = 31;
 
 /** ISO order, matching the bitmask: bit 0 is Monday ... bit 6 is Sunday. */
-export const WEEKDAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+export { WEEKDAY_NAMES };
 
 /** 0 = Monday ... 6 = Sunday for a "yyyy-MM-dd" day (JavaScript's getDay() has Sunday = 0). */
 export function isoWeekdayIndex(isoDate: string): number {

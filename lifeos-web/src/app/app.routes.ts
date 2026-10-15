@@ -9,8 +9,9 @@ const loadPlaceholder = () =>
     (m) => m.ModulePlaceholder,
   );
 
-// Each placeholder route is swapped for the real feature route when that module's session lands.
-const placeholder = (path: string, title: string, data: ModulePlaceholderData) => ({
+// Each placeholder route is swapped for the real feature route when that module's session lands. Every Month 1 module
+// is built now; exported so later-phase modules can use it again without it being flagged as unused meanwhile.
+export const placeholder = (path: string, title: string, data: ModulePlaceholderData) => ({
   path,
   title: `${title} | LifeOS`,
   loadComponent: loadPlaceholder,
@@ -100,17 +101,29 @@ export const routes: Routes = [
         title: 'Habit | LifeOS',
         loadComponent: () => import('./features/habits/habit-detail').then((m) => m.HabitDetail),
       },
-      placeholder('journal', 'Journal', {
-        heading: 'Journal',
-        icon: 'bi-journal-text',
-        summary: 'A daily entry, a mood, and a weekly look back.',
-        willLetYou: [
-          'Write or edit one entry per day',
-          'Record your mood and see how it trends',
-          'Answer a short weekly reflection prompt',
-        ],
-        captureKind: 'Journal',
-      }),
+      {
+        path: 'journal',
+        title: 'Journal | LifeOS',
+        loadComponent: () => import('./features/journal/journal').then((m) => m.Journal),
+      },
+      // Before 'journal/:date', so "week" isn't read as a date.
+      {
+        path: 'journal/week',
+        title: 'Weekly reflection | LifeOS',
+        loadComponent: () =>
+          import('./features/journal/weekly-reflection').then((m) => m.WeeklyReflection),
+      },
+      {
+        path: 'journal/week/:weekStart',
+        title: 'Weekly reflection | LifeOS',
+        loadComponent: () =>
+          import('./features/journal/weekly-reflection').then((m) => m.WeeklyReflection),
+      },
+      {
+        path: 'journal/:date',
+        title: 'Journal | LifeOS',
+        loadComponent: () => import('./features/journal/journal').then((m) => m.Journal),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

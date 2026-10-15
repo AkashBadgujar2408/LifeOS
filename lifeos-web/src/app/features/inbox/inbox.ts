@@ -22,6 +22,9 @@ import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { openTaskEditor } from '../tasks/task-editor';
 import { APP_DATE_TIME_FORMAT } from '../../core/dates/date-format';
+import { toLocalIsoDate, todayIso } from '../../core/dates/today';
+import { JournalService } from '../../core/services/journal.service';
+import { Router } from '@angular/router';
 
 const KIND_ICONS: Record<InboxKind, string> = {
   Task: 'bi-check2-square',
@@ -41,6 +44,8 @@ export class Inbox {
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly modal = inject(NgbModal);
+  private readonly journalService = inject(JournalService);
+  private readonly router = inject(Router);
 
   protected readonly kinds = INBOX_KINDS;
   protected readonly kindIcons = KIND_ICONS;
@@ -52,6 +57,8 @@ export class Inbox {
   protected readonly kindFilter = signal<InboxKind | null>(null);
   protected readonly showProcessed = signal(false);
   protected readonly expandedLinksId = signal<number | null>(null);
+  /** The item being turned into a journal entry. */
+  protected readonly processingId = signal<number | null>(null);
 
   protected readonly visibleItems = computed(() => {
     const kind = this.kindFilter();
@@ -110,6 +117,32 @@ export class Inbox {
     this.inboxService.refreshOpenCounts();
     this.load(this.showProcessed());
     this.toast.success(`"${result.task.title}" is now in Tasks.`);
+  }
+
+  /**
+   * Turns a captured Journal thought into the journal entry for the day it was captured (appended if that day
+   * already has one); the API moves its links and marks it processed. Then opens that day.
+   */
+  protected makeJournalEntry(item: InboxItem): void {
+    const day = toLocalIsoDate(new Date(item.createdAt));
+    this.processingId.set(item.id);
+    this.journalService
+      .createFromInbox(item.id, day)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (entry) => {
+          this.processingId.set(null);
+          this.inboxService.refreshOpenCounts();
+          this.toast.success('Added to your journal.');
+          void this.router.navigate(
+            entry.entryDate === todayIso() ? ['/journal'] : ['/journal', entry.entryDate],
+          );
+        },
+        error: (err) => {
+          this.processingId.set(null);
+          this.toast.error(err.error?.message ?? 'Could not add it to the journal.');
+        },
+      });
   }
 
   protected async remove(item: InboxItem): Promise<void> {

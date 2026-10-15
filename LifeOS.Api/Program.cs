@@ -6,6 +6,8 @@ using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Habits.ServiceContracts;
 using LifeOS.Core.Habits.Services;
+using LifeOS.Core.Journal.ServiceContracts;
+using LifeOS.Core.Journal.Services;
 using LifeOS.Core.Models;
 using LifeOS.Core.Tasks.ServiceContracts;
 using LifeOS.Core.Tasks.Services;
@@ -60,6 +62,7 @@ try
     builder.Services.AddScoped<IEventsService, EventsService>();
     builder.Services.AddScoped<IRemindersService, RemindersService>();
     builder.Services.AddScoped<IHabitsService, HabitsService>();
+    builder.Services.AddScoped<IJournalService, JournalService>();
 
     // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
     builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();
@@ -68,6 +71,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, ProjectLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, EventLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, HabitLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, JournalEntryLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

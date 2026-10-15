@@ -7,7 +7,17 @@ import { ToastService } from './toast.service';
 export type ReminderStatus = 'Pending' | 'Dismissed';
 
 /** Types a reminder can be about (the linkable types, minus inbox items). Same strings as EntityLinks. */
-export type ReminderTargetType = 'Task' | 'Event' | 'Goal' | 'Project' | 'Habit';
+export type ReminderTargetType = 'Task' | 'Event' | 'Goal' | 'Project' | 'Habit' | 'JournalEntry';
+
+/** How each target type reads in the UI ("About Journal entry: 15/Oct/2026"), not the stored type string. */
+export const REMINDER_TARGET_LABELS: Record<ReminderTargetType, string> = {
+  Task: 'Task',
+  Event: 'Event',
+  Goal: 'Goal',
+  Project: 'Project',
+  Habit: 'Habit',
+  JournalEntry: 'Journal entry',
+};
 
 export interface Reminder {
   id: number;

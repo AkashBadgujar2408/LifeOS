@@ -1,0 +1,148 @@
+<div class="container py-4">
+  <a routerLink="/journal" class="small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Journal
+  </a>
+
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Weekly reflection</h1>
+      <p class="text-body-secondary mb-0 small">
+        Five minutes, once a week: look back before you plan forward.
+      </p>
+    </div>
+    <div class="d-flex align-items-center gap-1">
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        aria-label="Previous week"
+        (click)="goToWeek(-1)"
+      >
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <span class="small px-2 text-nowrap">
+        {{ days()[0].day | date: dayMonthFormat }} – {{ days()[6].day | date: dayMonthFormat }}
+        @if (isThisWeek()) {
+          <span class="text-body-secondary">· this week</span>
+        }
+      </span>
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        aria-label="Next week"
+        [disabled]="isThisWeek()"
+        (click)="goToWeek(1)"
+      >
+        <i class="bi bi-chevron-right"></i>
+      </button>
+      @if (!isThisWeek()) {
+        <button type="button" class="btn btn-link btn-sm" (click)="goToWeek('this')">
+          This week
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (review(); as review) {
+    <div class="row g-3">
+      <div class="col-lg-7">
+        <div class="card">
+          <div class="card-body">
+            <form
+              [formGroup]="form"
+              (ngSubmit)="save()"
+              novalidate
+              class="d-flex flex-column gap-3"
+            >
+              @for (prompt of prompts; track prompt.name) {
+                <div>
+                  <label class="form-label fw-semibold" [for]="'reflection-' + prompt.name">
+                    {{ prompt.label }}
+                  </label>
+                  <textarea
+                    class="form-control"
+                    rows="3"
+                    [id]="'reflection-' + prompt.name"
+                    [class.is-invalid]="fieldError(prompt.name)"
+                    [formControlName]="prompt.name"
+                    [placeholder]="prompt.placeholder"
+                  ></textarea>
+                  @if (fieldError(prompt.name); as error) {
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  }
+                </div>
+              }
+
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <span class="small text-body-secondary">
+                  @if (review.reflection; as saved) {
+                    Saved {{ saved.updatedAt ?? saved.createdAt | date: dateTimeFormat }}
+                  } @else {
+                    Not written yet. Any one answer is enough.
+                  }
+                  @if (form.dirty) {
+                    · <span class="text-warning-emphasis">unsaved changes</span>
+                  }
+                </span>
+                <button type="submit" class="btn btn-primary" [disabled]="saving()">
+                  Save reflection
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h6 mb-1">The week in your journal</h2>
+            <p class="small text-body-secondary mb-3">
+              @if (weekAverage(); as average) {
+                Average mood {{ average }} across {{ moodDays() }}
+                {{ moodDays() === 1 ? 'day' : 'days' }} with a mood ({{ review.days.length }}
+                {{ review.days.length === 1 ? 'entry' : 'entries' }}).
+              } @else if (review.days.length > 0) {
+                {{ review.days.length }} {{ review.days.length === 1 ? 'entry' : 'entries' }}, no
+                moods recorded.
+              } @else {
+                No entries this week.
+              }
+            </p>
+            <div class="list-group list-group-flush">
+              @for (item of days(); track item.day) {
+                <button
+                  type="button"
+                  class="list-group-item list-group-item-action px-0 d-flex gap-2 align-items-start"
+                  [disabled]="item.future"
+                  (click)="openDay(item.day)"
+                >
+                  <span class="small text-body-secondary" style="width: 2.25rem">
+                    {{ item.weekday }}
+                  </span>
+                  <span class="text-body-secondary" style="width: 1.25rem">
+                    @if (item.summary?.mood; as mood) {
+                      <i class="bi {{ moodMeta(mood).icon }}" [title]="moodMeta(mood).label"></i>
+                    }
+                  </span>
+                  <span class="min-w-0 flex-grow-1 small">
+                    @if (item.summary; as summary) {
+                      <span class="d-block text-truncate">
+                        {{ summary.title || summary.excerpt || moodMeta(summary.mood!).label }}
+                      </span>
+                    } @else if (item.future) {
+                      <span class="text-body-secondary">—</span>
+                    } @else {
+                      <span class="text-body-secondary">No entry</span>
+                    }
+                  </span>
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="text-body-secondary">Loading...</div>
+  }
+</div>

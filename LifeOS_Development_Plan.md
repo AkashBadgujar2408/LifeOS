@@ -240,7 +240,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
 | 20 | ✅ Schema + scaffold | `database/schema/06_journal.sql` creating schema `journal` with `journal.JournalEntries` (one per user per day: `EntryDate` DATE, optional title, content, mood 1–5, optional Life Area; not empty) and `journal.WeeklyReflections` (one per ISO week: Monday `WeekStartDate`, went well / was hard / next focus); apply + re-scaffold; `JournalWeeks` (week start) | **Done** — scaffold additive, fresh DB from scripts scaffolds identically, every CHECK/unique index verified in SQL, 7 new tests (50 backend) |
-| 21 | Journal UI | Daily entry editor, mood picker, simple weekly reflection prompt screen | Can write/edit an entry, mood is stored and shown on a simple trend view |
+| 21 | ✅ Journal UI | `JournalService` + `api/Journal/Entries` (by day: get / save = create-or-rewrite / delete; list, moods, by id; process inbox `Journal` items, appending to that day's entry) + `api/Journal/Reflections/{monday}`; `JournalEntryLinkableProvider`; journal page (day navigation, mood picker, entry, linked items, reminders), 30-day mood trend (first ng2-charts chart), recent entries, weekly reflection screen (3 prompts + the week's entries); "Add to journal" in the Inbox | **Done** — wrote/edited entries, mood stored and plotted on the trend, weekly answers saved for this and last week, inbox item appended to today's entry — verified in the browser |
 
 ### Milestone 7 — Dashboard, My Day & Lightweight Insights
 | # | Session | Deliverable | Done when |
