@@ -9,5 +9,6 @@ public class CalendarProfile : Profile
     public CalendarProfile()
     {
         CreateMap<Event, EventDto>();
+        CreateMap<Reminder, ReminderDto>().ForMember(d => d.EntityTitle, o => o.Ignore());
     }
 }

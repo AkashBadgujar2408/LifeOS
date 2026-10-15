@@ -29,11 +29,14 @@
                 >
                   <i class="bi {{ item.icon }}"></i>
                   <span class="flex-grow-1">{{ item.label }}</span>
-                  @if (item.route === '/inbox' && inboxService.openTotal() > 0) {
+                  @if (badgeCount(item.route); as count) {
                     <span
                       class="sidebar-count"
-                      [attr.aria-label]="inboxService.openTotal() + ' open items'"
-                      >{{ inboxService.openTotal() }}</span
+                      [class.sidebar-count-alert]="item.route === '/reminders'"
+                      [attr.aria-label]="
+                        count + (item.route === '/reminders' ? ' due' : ' open items')
+                      "
+                      >{{ count }}</span
                     >
                   }
                 </a>

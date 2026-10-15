@@ -13,7 +13,7 @@ import { ToastService } from '../../../core/services/toast.service';
         <ngb-toast
           [class]="'lifeos-toast lifeos-toast-' + toast.kind"
           [autohide]="true"
-          [delay]="toast.kind === 'error' ? 6000 : 4000"
+          [delay]="toast.kind === 'success' ? 4000 : toast.kind === 'error' ? 6000 : 10000"
           (hidden)="toastService.dismiss(toast.id)"
         >
           <div class="d-flex align-items-start gap-2">
@@ -21,6 +21,7 @@ import { ToastService } from '../../../core/services/toast.service';
               class="bi"
               [class.bi-check-circle-fill]="toast.kind === 'success'"
               [class.bi-exclamation-triangle-fill]="toast.kind === 'error'"
+              [class.bi-bell-fill]="toast.kind === 'reminder'"
             ></i>
             <span class="flex-grow-1">{{ toast.message }}</span>
             <button

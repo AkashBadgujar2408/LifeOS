@@ -2,6 +2,7 @@ using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using LifeOS.Core.Goals.DTOs;
 using LifeOS.Core.Goals.ServiceContracts;
+using LifeOS.Core.Calendar.ServiceContracts;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
@@ -10,7 +11,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LifeOS.Core.Goals.Services;
 
-public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService) : IGoalsService
+public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
+    IRemindersService remindersService) : IGoalsService
 {
     private const string NotFound = "Goal not found.";
 
@@ -198,6 +200,7 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         goal.DeletedAt = now;
         await db.SaveChangesAsync();
         await entityLinksService.RemoveAllForEntityAsync(GoalLinkableProvider.Type, id);
+        await remindersService.RemoveAllForEntityAsync(GoalLinkableProvider.Type, id);
 
         await transaction.CommitAsync();
         return OperationResult<bool>.Ok(true);

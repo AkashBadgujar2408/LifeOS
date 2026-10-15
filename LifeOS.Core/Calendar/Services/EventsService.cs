@@ -9,7 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LifeOS.Core.Calendar.Services;
 
-public class EventsService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService) : IEventsService
+public class EventsService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
+    IRemindersService remindersService) : IEventsService
 {
     private const string NotFound = "Event not found.";
 
@@ -67,15 +68,12 @@ public class EventsService(AppDbContext db, IMapper mapper, IEntityLinksService 
         var now = DateTime.UtcNow;
         await using var transaction = await db.Database.BeginTransactionAsync();
 
-        // A reminder about a deleted event would surface something that no longer exists.
-        await db.Reminders
-            .Where(r => r.EntityType == EventLinkableProvider.Type && r.EntityId == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsDeleted, true).SetProperty(r => r.DeletedAt, now));
-
         calendarEvent.IsDeleted = true;
         calendarEvent.DeletedAt = now;
         await db.SaveChangesAsync();
         await entityLinksService.RemoveAllForEntityAsync(EventLinkableProvider.Type, id);
+        // A reminder about a deleted event would surface something that no longer exists.
+        await remindersService.RemoveAllForEntityAsync(EventLinkableProvider.Type, id);
 
         await transaction.CommitAsync();
         return OperationResult<bool>.Ok(true);

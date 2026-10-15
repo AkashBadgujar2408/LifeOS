@@ -108,6 +108,16 @@ h6 {
       color: #c82333;
     }
   }
+
+  &.lifeos-toast-reminder {
+    --cui-toast-bg: #fdf5e6;
+    border-color: #f0dcb4;
+    border-left-color: var(--lifeos-amber);
+
+    .bi {
+      color: var(--lifeos-amber);
+    }
+  }
 }
 
 // Mobile nav drawer (NgbOffcanvas renders it at <body> level, outside the Shell's encapsulated styles).
@@ -115,4 +125,49 @@ h6 {
   --cui-offcanvas-width: 17rem;
   background-color: var(--lifeos-ink);
   border-right: 0;
+}
+
+// Reminders (rows on the Reminders page, My Day and inside editors): a due one reads amber, like its toast.
+.reminder-due {
+  color: var(--lifeos-amber);
+  font-weight: 600;
+}
+
+.reminder-icon.bi-bell-fill {
+  color: var(--lifeos-amber);
+}
+
+// Calendar (FullCalendar 7, "forma" theme): its colours come from --fc-forma-* custom properties, mapped onto the
+// LifeOS tokens here. Global rather than in calendar.scss because FullCalendar appends the "+N more" popover to
+// <body>, outside the component host, where host-scoped variables don't reach.
+:root {
+  // One colour per source; toEventInput() points each event's --fc-event-color at these.
+  --lifeos-cal-event: var(--lifeos-teal);
+  --lifeos-cal-task: var(--lifeos-blue);
+  --lifeos-cal-milestone: var(--lifeos-amber);
+  --lifeos-cal-goal: var(--lifeos-violet);
+
+  --fc-forma-primary: var(--lifeos-teal);
+  --fc-forma-primary-over: color-mix(in oklab, var(--lifeos-teal) 85%, var(--lifeos-ink));
+  --fc-forma-primary-down: color-mix(in oklab, var(--lifeos-teal) 70%, var(--lifeos-ink));
+  --fc-forma-primary-foreground: #fff;
+  --fc-forma-event: var(--lifeos-teal);
+  --fc-forma-event-contrast: #fff;
+  --fc-forma-highlight: color-mix(in oklab, var(--lifeos-teal) 22%, transparent);
+  --fc-forma-background: var(--lifeos-surface);
+  --fc-forma-foreground: var(--lifeos-ink);
+  --fc-forma-muted-foreground: var(--lifeos-text-secondary);
+  --fc-forma-border: var(--lifeos-border);
+  --fc-forma-muted-border: var(--lifeos-border);
+}
+
+// Match the app's type rather than the theme's 16px.
+.fc {
+  font-size: 0.875rem;
+}
+
+// Done tasks / ticked milestones / completed goals stay visible but recede.
+.lifeos-cal-done {
+  opacity: 0.55;
+  text-decoration: line-through;
 }

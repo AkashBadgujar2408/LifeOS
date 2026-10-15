@@ -350,3 +350,29 @@
 - Test data added for projuser1: event "Team offsite" (23/Oct, all-day).
 
 - Next up: finish the Session 16 browser checks above, then **Session 17 — Reminders** (CRUD + due reminders surfaced on load; deleting a task/goal should also drop reminders targeting it, like events already do).
+
+## Last session: 2026-10-15 — Session 16 (finished) + Session 17 — Reminders
+- **Session 16 browser checks, finished:**
+  - Timed edit of "Cousin's wedding" (all-day off, 15 Oct 18:00–22:00 IST) → saved, shows "18:00" on 15 Oct; DB has `12:30Z`–`16:30Z` with the dates cleared. The end-before-start inline error fired again on the way (as intended).
+  - "New event" button (today 09:00–10:00 prefilled) → created; linking from the event editor (event ↔ event) works; delete from the editor (SweetAlert) → event, its link **and its reminder** all soft-deleted.
+  - Click a task → task editor; click a goal target → goal page; legend toggle hides/shows Tasks; next month reloads the feed (Diwali break, Tokyo call on 1 Nov 01:30). No console errors.
+  - **Fixed: the "+N more" popover was unthemed** (transparent, default colours, header overlapping) — FullCalendar appends it to `<body>`, outside the component host where the `--fc-forma-*` mapping lived. The mapping, `--lifeos-cal-*` source colours, `.fc` font size and `.lifeos-cal-done` moved to `styles.scss` (`:root`). Re-checked with 4 events on one day (test events deleted afterwards).
+- Shipped (Session 17, backend):
+  - `RemindersService`/`IRemindersService` + `Areas/Calendar/Controllers/RemindersController` (`api/Calendar/Reminders`): `?status=Pending|Dismissed[&entityType&entityId]` (Pending soonest first; Dismissed = latest 50), `GET due` (pending with `RemindAt <= now`), get, create, update, `PUT {id}/dismissed` (`{ dismissed }`, dismissing twice keeps the first time), `PUT {id}/snooze` (`{ until }`, must be in the future; makes it pending again), delete.
+  - Validation: title, time with a timezone (same rule as events), target both-or-neither, target type = any linkable provider except `InboxItem`, target must exist for this user (checked through the provider). Responses carry the target's current title (`entityTitle`).
+  - **Deleting a task / goal / project / event now drops reminders about it** (`RemoveAllForEntityAsync`, in the same transaction as the links cleanup); `EventsService` switched from its inline query to the service.
+- Shipped (Session 17, frontend):
+  - `core/services/reminders.service.ts`: one `due` signal for the whole app + `changedVersion`; announces newly-due reminders as a new amber **reminder toast** kind (bell icon, 10 s; at most 3, then "N more reminders are due."). The shell refreshes on load, every 60 s and when the tab becomes visible; reset on logout. Client deletes of tasks/goals/projects/events call `notifyChanged()`.
+  - `features/reminders/`: Reminders page (nav under Overview, **Due now** in amber / **Coming up** / **Done** with Restore), reminder editor dialog (title, day picker, 5-min timepicker, notes, "About Task: …"), `ReminderRow` (Done, snooze menu: in 1 hour / this evening 18:00 / tomorrow 09:00 / pick a time), `reminder-times.ts` (pure, 7 specs), `ReminderTargetOpener`.
+  - `shared/components/entity-reminders` on the task editor, event editor, goal detail and project detail ("+ Remind me" prefills the item's title and target).
+  - My Day: "Reminders due" card when anything is due; amber sidebar badge on Reminders.
+- Verified:
+  - curl matrix: free + targeted create (`+05:30` offset stored as UTC, `task` normalised to `Task`), no-timezone / blank title / missing time / half target / inbox target / unknown type / other user's task → 400; due vs pending vs by-entity lists; other user get/dismiss/delete → not found, lists empty; dismiss → gone from due, in Dismissed; snooze into the past rejected, future accepted; update; delete → 404; anonymous 401; deleting a task drops its reminders.
+  - Browser (projuser1, IST): from the task editor, reminder "Order the soil online" at 08:33 → at 08:33 the **sidebar badge appeared without a reload** (toast seen by you); after a reload: toast + My Day card + badge; snooze "In 1 hour" → 09:34 and the card/badge cleared; empty title → inline error; new free reminder at the default time (next hour ≥ 30 min away); Done → Done view with "done 8:34 AM", Restore → back in Coming up; target link → task editor. No console errors.
+  - `dotnet build` 0 warnings (unsandboxed, NuGet audit; `--vulnerable` clean); lint + Prettier clean; `ng build` clean; tests 22 backend + 39 frontend.
+- Notes:
+  - Reminders fire only while LifeOS is open in a tab (as planned: no job server until Phase 2). No browser `Notification` permission yet — could be added later without a server.
+  - Reminders aren't drawn on the calendar; they'd be a sixth feed branch if wanted.
+  - UAT test data for projuser1: reminders "Order the soil online" (09:34), "Pay the electricity bill" (10:00), "Start on this" (11:19, task Get soil); "Cousin's wedding" is now timed 15 Oct 18:00–22:00.
+
+- Next up: **Session 18 — Habits schema + scaffold + streak logic**.

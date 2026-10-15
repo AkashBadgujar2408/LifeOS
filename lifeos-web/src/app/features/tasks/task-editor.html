@@ -168,6 +168,9 @@
           [preferredLinkType]="goalEntityType"
         />
       </div>
+      <div class="border-top pt-3">
+        <app-entity-reminders entityType="Task" [entityId]="task.id" [entityTitle]="task.title" />
+      </div>
     } @else if (!inboxItemId()) {
       <div class="form-text mt-0">
         <i class="bi bi-link-45deg"></i> Once it's saved, open it again to link it to a goal.

@@ -22,6 +22,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'My Day', route: '/', icon: 'bi-sun', exact: true },
       { label: 'Inbox', route: '/inbox', icon: 'bi-inbox' },
       { label: 'Calendar', route: '/calendar', icon: 'bi-calendar3' },
+      { label: 'Reminders', route: '/reminders', icon: 'bi-bell' },
     ],
   },
   {

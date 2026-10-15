@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map, tap } from 'rxjs';
 import { ApiResponse } from './api-response';
+import { RemindersService } from './reminders.service';
 import { Tag } from './tags.service';
 
 export const TASK_PRIORITIES = ['None', 'Low', 'Medium', 'High'] as const;
@@ -53,6 +54,7 @@ export interface SetTaskCompletedResult {
 @Injectable({ providedIn: 'root' })
 export class TasksService {
   private readonly http = inject(HttpClient);
+  private readonly remindersService = inject(RemindersService);
   private readonly baseUrl = '/api/Tasks/Tasks';
 
   // Bumped on any change made outside the Tasks page (e.g. an Inbox item turned into a task) so it can refresh.
@@ -109,8 +111,10 @@ export class TasksService {
   }
 
   remove(id: number): Observable<void> {
-    return this.http
-      .delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`)
-      .pipe(map(() => undefined));
+    return this.http.delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`).pipe(
+      map(() => undefined),
+      // Reminders about it are deleted with it.
+      tap(() => this.remindersService.notifyChanged()),
+    );
   }
 }

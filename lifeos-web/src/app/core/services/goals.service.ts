@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { ApiResponse } from './api-response';
+import { RemindersService } from './reminders.service';
 import { Tag } from './tags.service';
 
 export const GOAL_TYPES = ['ShortTerm', 'LongTerm', 'BucketList'] as const;
@@ -87,6 +88,7 @@ export interface MilestonePayload {
 @Injectable({ providedIn: 'root' })
 export class GoalsService {
   private readonly http = inject(HttpClient);
+  private readonly remindersService = inject(RemindersService);
   private readonly baseUrl = '/api/Goals/Goals';
 
   list(status?: GoalStatus): Observable<GoalSummary[]> {
@@ -121,9 +123,11 @@ export class GoalsService {
   }
 
   remove(id: number): Observable<void> {
-    return this.http
-      .delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`)
-      .pipe(map(() => undefined));
+    return this.http.delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`).pipe(
+      map(() => undefined),
+      // Reminders about it are deleted with it.
+      tap(() => this.remindersService.notifyChanged()),
+    );
   }
 
   addMilestone(goalId: number, payload: MilestonePayload): Observable<GoalMilestone> {

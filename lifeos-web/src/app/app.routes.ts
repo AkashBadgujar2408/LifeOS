@@ -50,6 +50,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/calendar/calendar').then((m) => m.Calendar),
       },
       {
+        path: 'reminders',
+        title: 'Reminders | LifeOS',
+        loadComponent: () => import('./features/reminders/reminders').then((m) => m.Reminders),
+      },
+      {
         path: 'goals',
         title: 'Goals | LifeOS',
         loadComponent: () => import('./features/goals/goals').then((m) => m.Goals),

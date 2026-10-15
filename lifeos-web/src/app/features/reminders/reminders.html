@@ -1,0 +1,99 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Reminders</h1>
+      <p class="text-body-secondary mb-0 small">
+        They pop up while LifeOS is open. To remind yourself about a task, event, goal or project,
+        add the reminder from that item.
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="newReminder()">
+      <i class="bi bi-plus-lg"></i> New reminder
+    </button>
+  </div>
+
+  <ul class="nav nav-pills mb-3 gap-1">
+    <li class="nav-item">
+      <button
+        type="button"
+        class="nav-link py-1 px-3"
+        [class.active]="view() === 'Pending'"
+        (click)="view.set('Pending')"
+      >
+        Pending
+      </button>
+    </li>
+    <li class="nav-item">
+      <button
+        type="button"
+        class="nav-link py-1 px-3"
+        [class.active]="view() === 'Dismissed'"
+        (click)="view.set('Dismissed')"
+      >
+        Done
+      </button>
+    </li>
+  </ul>
+
+  @if (loading() && reminders().length === 0) {
+    <div class="text-body-secondary">Loading...</div>
+  } @else if (reminders().length === 0) {
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-bell fs-1 text-body-secondary"></i>
+        @if (view() === 'Pending') {
+          <p class="mt-2 mb-1 fw-semibold">No reminders coming up</p>
+          <p class="text-body-secondary small mb-0">
+            Add one here, or from a task, event, goal or project.
+          </p>
+        } @else {
+          <p class="mt-2 mb-0 fw-semibold">Nothing done yet</p>
+        }
+      </div>
+    </div>
+  } @else if (view() === 'Pending') {
+    @if (sections().due.length > 0) {
+      <section class="card mb-3" aria-labelledby="due-heading">
+        <div class="card-body">
+          <h2 id="due-heading" class="h6 reminder-due mb-3">
+            Due now
+            <span class="badge rounded-pill text-bg-warning">{{ sections().due.length }}</span>
+          </h2>
+          <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+            @for (reminder of sections().due; track reminder.id) {
+              <li>
+                <app-reminder-row [reminder]="reminder" (openTarget)="targetOpener.open($event)" />
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+    }
+    @if (sections().upcoming.length > 0) {
+      <section class="card" aria-labelledby="upcoming-heading">
+        <div class="card-body">
+          <h2 id="upcoming-heading" class="h6 mb-3">Coming up</h2>
+          <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+            @for (reminder of sections().upcoming; track reminder.id) {
+              <li>
+                <app-reminder-row [reminder]="reminder" (openTarget)="targetOpener.open($event)" />
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+    }
+  } @else {
+    <section class="card" aria-label="Done reminders">
+      <div class="card-body">
+        <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+          @for (reminder of reminders(); track reminder.id) {
+            <li>
+              <app-reminder-row [reminder]="reminder" (openTarget)="targetOpener.open($event)" />
+            </li>
+          }
+        </ul>
+      </div>
+    </section>
+  }
+</div>

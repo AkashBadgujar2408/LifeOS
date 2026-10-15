@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { ApiResponse } from './api-response';
+import { RemindersService } from './reminders.service';
 
 /** Matches EventLinkableProvider.Type on the API. */
 export const EVENT_ENTITY_TYPE = 'Event';
@@ -65,6 +66,7 @@ export interface CalendarEventPayload {
 @Injectable({ providedIn: 'root' })
 export class CalendarService {
   private readonly http = inject(HttpClient);
+  private readonly remindersService = inject(RemindersService);
 
   feed(range: FeedRange): Observable<CalendarFeedItem[]> {
     const params = new HttpParams({ fromObject: { ...range } });
@@ -92,8 +94,10 @@ export class CalendarService {
   }
 
   deleteEvent(id: number): Observable<void> {
-    return this.http
-      .delete<ApiResponse<boolean>>(`/api/Calendar/Events/${id}`)
-      .pipe(map(() => undefined));
+    return this.http.delete<ApiResponse<boolean>>(`/api/Calendar/Events/${id}`).pipe(
+      map(() => undefined),
+      // Reminders about it are deleted with it.
+      tap(() => this.remindersService.notifyChanged()),
+    );
   }
 }

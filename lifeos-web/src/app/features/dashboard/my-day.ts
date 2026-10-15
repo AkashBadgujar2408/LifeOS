@@ -4,6 +4,9 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { INBOX_KINDS, InboxKind, InboxService } from '../../core/services/inbox.service';
 import { QuickAddService } from '../../core/services/quick-add.service';
+import { RemindersService } from '../../core/services/reminders.service';
+import { ReminderTargetOpener } from '../reminders/open-reminder-target';
+import { ReminderRow } from '../reminders/reminder-row';
 
 const KIND_LABELS: Record<InboxKind, [singular: string, plural: string]> = {
   Task: ['Task', 'Tasks'],
@@ -19,7 +22,7 @@ const KIND_LABELS: Record<InboxKind, [singular: string, plural: string]> = {
 @Component({
   selector: 'app-my-day',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, ReminderRow],
   templateUrl: './my-day.html',
   styleUrl: './my-day.scss',
 })
@@ -27,6 +30,8 @@ export class MyDay {
   private readonly authService = inject(AuthService);
   protected readonly inboxService = inject(InboxService);
   protected readonly quickAdd = inject(QuickAddService);
+  protected readonly remindersService = inject(RemindersService);
+  protected readonly targetOpener = inject(ReminderTargetOpener);
 
   protected readonly kinds = INBOX_KINDS;
   protected readonly today = new Date();

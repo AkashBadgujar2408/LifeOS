@@ -164,6 +164,13 @@
       <div class="border-top pt-3">
         <app-linked-items [entityType]="eventEntityType" [entityId]="event.id" />
       </div>
+      <div class="border-top pt-3">
+        <app-entity-reminders
+          entityType="Event"
+          [entityId]="event.id"
+          [entityTitle]="event.title"
+        />
+      </div>
     }
   </div>
 

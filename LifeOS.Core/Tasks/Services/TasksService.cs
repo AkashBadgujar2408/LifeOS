@@ -1,5 +1,6 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using LifeOS.Core.Calendar.ServiceContracts;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
@@ -10,7 +11,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LifeOS.Core.Tasks.Services;
 
-public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService) : ITasksService
+public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
+    IRemindersService remindersService) : ITasksService
 {
     private const string NotFound = "Task not found.";
     private const int DoneListLimit = 100;
@@ -193,6 +195,7 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         task.DeletedAt = now;
         await db.SaveChangesAsync();
         await entityLinksService.RemoveAllForEntityAsync(TaskLinkableProvider.Type, id);
+        await remindersService.RemoveAllForEntityAsync(TaskLinkableProvider.Type, id);
 
         await transaction.CommitAsync();
         return OperationResult<bool>.Ok(true);

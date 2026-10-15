@@ -1,5 +1,6 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using LifeOS.Core.Calendar.ServiceContracts;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
@@ -10,7 +11,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LifeOS.Core.Tasks.Services;
 
-public class ProjectsService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService) : IProjectsService
+public class ProjectsService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
+    IRemindersService remindersService) : IProjectsService
 {
     private const string NotFound = "Project not found.";
     private const string DuplicateName = "A project with this name already exists.";
@@ -138,6 +140,7 @@ public class ProjectsService(AppDbContext db, IMapper mapper, IEntityLinksServic
         project.DeletedAt = now;
         await db.SaveChangesAsync();
         await entityLinksService.RemoveAllForEntityAsync(ProjectLinkableProvider.Type, id);
+        await remindersService.RemoveAllForEntityAsync(ProjectLinkableProvider.Type, id);
 
         await transaction.CommitAsync();
         return OperationResult<bool>.Ok(true);

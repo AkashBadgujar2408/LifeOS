@@ -1,0 +1,98 @@
+@let r = reminder();
+<div class="d-flex align-items-start gap-3">
+  <i
+    class="bi fs-5 reminder-icon"
+    [class.bi-bell-fill]="isDue()"
+    [class.bi-bell]="!isDue() && !r.dismissedAt"
+    [class.bi-bell-slash]="r.dismissedAt"
+    [class.text-body-secondary]="!isDue()"
+    aria-hidden="true"
+  ></i>
+
+  <div class="flex-grow-1 min-w-0">
+    <button
+      type="button"
+      class="btn btn-link p-0 text-start fw-semibold text-body text-decoration-none text-break"
+      [class.text-decoration-line-through]="r.dismissedAt"
+      (click)="edit()"
+    >
+      {{ r.title }}
+    </button>
+    <div class="small" [class.reminder-due]="isDue()" [class.text-body-secondary]="!isDue()">
+      @if (isDue()) {
+        Due ·
+      }
+      {{ r.remindAt | date: dateTimeFormat }}
+      @if (r.dismissedAt) {
+        · done {{ r.dismissedAt | date: dateTimeFormat }}
+      }
+    </div>
+    @if (r.notes) {
+      <div class="small text-body-secondary text-break" style="white-space: pre-line">
+        {{ r.notes }}
+      </div>
+    }
+    @if (showTarget() && r.entityType) {
+      <div class="small mt-1">
+        @if (r.entityTitle) {
+          <button
+            type="button"
+            class="btn btn-link btn-sm p-0 text-start text-break"
+            (click)="openTarget.emit(r)"
+          >
+            <i class="bi bi-link-45deg"></i> {{ r.entityType }}: {{ r.entityTitle }}
+          </button>
+        } @else {
+          <span class="text-body-secondary">{{ r.entityType }} no longer available</span>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="d-flex gap-1 flex-shrink-0">
+    @if (r.dismissedAt) {
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary"
+        title="Make it pending again"
+        (click)="setDismissed(false)"
+      >
+        <i class="bi bi-arrow-counterclockwise"></i> Restore
+      </button>
+    } @else {
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-primary"
+        [attr.aria-label]="'Mark ' + r.title + ' done'"
+        (click)="setDismissed(true)"
+      >
+        <i class="bi bi-check2"></i> Done
+      </button>
+      <div
+        ngbDropdown
+        placement="bottom-end"
+        container="body"
+        (openChange)="refreshPresets($event)"
+      >
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-secondary"
+          ngbDropdownToggle
+          [attr.aria-label]="'Snooze ' + r.title"
+        >
+          <i class="bi bi-alarm"></i>
+        </button>
+        <div ngbDropdownMenu>
+          <h3 class="dropdown-header">Snooze until</h3>
+          @for (preset of presets(); track preset.label) {
+            <button type="button" ngbDropdownItem (click)="snooze(preset)">
+              {{ preset.label }}
+            </button>
+          }
+          <div class="dropdown-divider"></div>
+          <button type="button" ngbDropdownItem (click)="edit()">Pick a time...</button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

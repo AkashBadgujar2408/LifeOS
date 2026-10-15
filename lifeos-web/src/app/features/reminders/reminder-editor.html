@@ -1,0 +1,112 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="reminder-editor-heading" class="modal-title h5">
+      {{ reminder() ? 'Edit reminder' : 'New reminder' }}
+    </h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    @if (targetLabel(); as label) {
+      <div class="small text-body-secondary">
+        <i class="bi bi-link-45deg"></i> About {{ label }}
+      </div>
+    }
+
+    <div>
+      <label class="form-label" for="reminder-title">Remind me to</label>
+      <input
+        id="reminder-title"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('title')"
+        formControlName="title"
+        placeholder="e.g. Call the plumber back"
+        autocomplete="off"
+        ngbAutofocus
+      />
+      @if (fieldError('title'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-7">
+        <label class="form-label" for="reminder-date">Day</label>
+        <div class="input-group">
+          <input
+            id="reminder-date"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('date')"
+            formControlName="date"
+            placeholder="e.g. 21/Oct/2026"
+            autocomplete="off"
+            ngbDatepicker
+            #datePicker="ngbDatepicker"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the day"
+            (click)="datePicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('date'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-5">
+        <span class="form-label d-block" id="reminder-time-label">Time</span>
+        <ngb-timepicker
+          formControlName="time"
+          [spinners]="false"
+          [minuteStep]="5"
+          aria-labelledby="reminder-time-label"
+        />
+        @if (fieldError('time'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label" for="reminder-notes">
+        Notes <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="reminder-notes"
+        class="form-control"
+        rows="2"
+        [class.is-invalid]="fieldError('notes')"
+        formControlName="notes"
+        placeholder="Anything you'll want to know when it pops up"
+      ></textarea>
+      @if (fieldError('notes'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    @if (reminder()) {
+      <button type="button" class="btn btn-outline-danger me-auto" (click)="remove()">
+        <i class="bi bi-trash"></i> Delete
+      </button>
+    }
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ reminder() ? 'Save' : 'Add reminder' }}
+    </button>
+  </div>
+</form>

@@ -217,3 +217,8 @@
     transition: none;
   }
 }
+
+// Due reminders: amber, matching their toast, so the badge reads as "needs you now" rather than "waiting".
+.sidebar-count-alert {
+  background: color-mix(in srgb, var(--lifeos-amber) 55%, white);
+}

@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   OnInit,
   TemplateRef,
   computed,
@@ -12,8 +13,11 @@ import { NgbOffcanvas } from '@ng-bootstrap/ng-bootstrap';
 import { AuthService } from '../services/auth.service';
 import { InboxService } from '../services/inbox.service';
 import { QuickAddService } from '../services/quick-add.service';
+import { RemindersService } from '../services/reminders.service';
 import { QuickAdd } from '../../shared/components/quick-add/quick-add';
 import { NAV_GROUPS } from './nav-items';
+
+const REMINDER_CHECK_MS = 60_000;
 
 @Component({
   selector: 'app-shell',
@@ -28,6 +32,8 @@ export class Shell implements OnInit {
   protected readonly authService = inject(AuthService);
   protected readonly inboxService = inject(InboxService);
   protected readonly quickAdd = inject(QuickAddService);
+  protected readonly remindersService = inject(RemindersService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly navGroups = NAV_GROUPS;
 
@@ -42,6 +48,33 @@ export class Shell implements OnInit {
 
   ngOnInit(): void {
     this.inboxService.refreshOpenCounts();
+
+    // No job server (deferred to Phase 2): reminders surface because the app asks what's due — now, every minute
+    // while it's open, and whenever the tab comes back into view.
+    this.remindersService.refreshDue();
+    const timer = setInterval(() => this.remindersService.refreshDue(), REMINDER_CHECK_MS);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        this.remindersService.refreshDue();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    this.destroyRef.onDestroy(() => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    });
+  }
+
+  /** Sidebar count for a nav entry, or 0 for none. */
+  protected badgeCount(route: string): number {
+    switch (route) {
+      case '/inbox':
+        return this.inboxService.openTotal();
+      case '/reminders':
+        return this.remindersService.due().length;
+      default:
+        return 0;
+    }
   }
 
   protected openDrawer(content: TemplateRef<unknown>): void {
@@ -62,6 +95,7 @@ export class Shell implements OnInit {
     this.closeDrawer();
     this.authService.logout();
     this.inboxService.resetOpenCounts();
+    this.remindersService.reset();
     this.router.navigateByUrl('/login');
   }
 }

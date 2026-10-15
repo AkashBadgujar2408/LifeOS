@@ -1,38 +1,7 @@
-// The Calendar is one of the two modules allowed bespoke CSS (CLAUDE.md). FullCalendar's "forma" theme reads its
-// colours from --fc-forma-* custom properties; they're mapped onto the LifeOS tokens here, on the host, so the
-// calendar inherits them without touching the global stylesheet.
+// The Calendar is one of the two modules allowed bespoke CSS (CLAUDE.md). FullCalendar's "forma" colour mapping lives in
+// styles.scss (global), not here: the "+N more" popover is appended to <body>, outside this host.
 :host {
   display: block;
-
-  // One colour per source; toEventInput() points each event's --fc-event-color at these.
-  --lifeos-cal-event: var(--lifeos-teal);
-  --lifeos-cal-task: var(--lifeos-blue);
-  --lifeos-cal-milestone: var(--lifeos-amber);
-  --lifeos-cal-goal: var(--lifeos-violet);
-
-  --fc-forma-primary: var(--lifeos-teal);
-  --fc-forma-primary-over: color-mix(in oklab, var(--lifeos-teal) 85%, var(--lifeos-ink));
-  --fc-forma-primary-down: color-mix(in oklab, var(--lifeos-teal) 70%, var(--lifeos-ink));
-  --fc-forma-primary-foreground: #fff;
-  --fc-forma-event: var(--lifeos-teal);
-  --fc-forma-event-contrast: #fff;
-  --fc-forma-highlight: color-mix(in oklab, var(--lifeos-teal) 22%, transparent);
-  --fc-forma-background: var(--lifeos-surface);
-  --fc-forma-foreground: var(--lifeos-ink);
-  --fc-forma-muted-foreground: var(--lifeos-text-secondary);
-  --fc-forma-border: var(--lifeos-border);
-  --fc-forma-muted-border: var(--lifeos-border);
-
-  // Match the app's type rather than the theme's 16px.
-  ::ng-deep .fc {
-    font-size: 0.875rem;
-  }
-
-  // Done tasks / ticked milestones / completed goals stay visible but recede.
-  ::ng-deep .lifeos-cal-done {
-    opacity: 0.55;
-    text-decoration: line-through;
-  }
 }
 
 // Legend chips double as show/hide toggles.

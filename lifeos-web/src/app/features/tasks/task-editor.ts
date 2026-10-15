@@ -25,6 +25,7 @@ import {
 } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
 
 export interface TaskEditorOptions {
@@ -68,7 +69,7 @@ function repeatNeedsDueDate(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-task-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, TagPicker, LinkedItems],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, TagPicker, LinkedItems, EntityReminders],
   templateUrl: './task-editor.html',
 })
 export class TaskEditor {

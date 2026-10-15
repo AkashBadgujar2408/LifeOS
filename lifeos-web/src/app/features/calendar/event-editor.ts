@@ -24,6 +24,7 @@ import {
 } from '../../core/services/calendar.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { localDateTimeToUtc, utcToLocalParts } from './calendar-feed';
 
 /** Starting values for a new event, already in local terms (what the user clicked on). */
@@ -83,7 +84,7 @@ function eventShape(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-event-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, NgbTimepicker, LinkedItems],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, NgbTimepicker, LinkedItems, EntityReminders],
   templateUrl: './event-editor.html',
 })
 export class EventEditor {

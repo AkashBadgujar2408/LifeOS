@@ -4,6 +4,26 @@
     <p class="text-body-secondary fs-5 mb-0">{{ greeting() }}</p>
   </header>
 
+  @if (remindersService.due().length > 0) {
+    <section class="card mb-3" aria-labelledby="due-reminders-heading">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 id="due-reminders-heading" class="h5 mb-0 reminder-due">
+            <i class="bi bi-bell-fill"></i> Reminders due
+          </h2>
+          <a routerLink="/reminders" class="small">All reminders</a>
+        </div>
+        <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+          @for (reminder of remindersService.due(); track reminder.id) {
+            <li>
+              <app-reminder-row [reminder]="reminder" (openTarget)="targetOpener.open($event)" />
+            </li>
+          }
+        </ul>
+      </div>
+    </section>
+  }
+
   <div class="row g-3">
     <div class="col-lg-7">
       <section class="card h-100" aria-labelledby="inbox-heading">

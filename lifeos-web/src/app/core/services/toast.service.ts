@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export type ToastKind = 'success' | 'error';
+export type ToastKind = 'success' | 'error' | 'reminder';
 
 export interface Toast {
   id: number;
@@ -24,6 +24,11 @@ export class ToastService {
 
   error(message: string): void {
     this.show('error', message);
+  }
+
+  /** A reminder that has come due; stays up longer than a confirmation. */
+  reminder(message: string): void {
+    this.show('reminder', message);
   }
 
   dismiss(id: number): void {

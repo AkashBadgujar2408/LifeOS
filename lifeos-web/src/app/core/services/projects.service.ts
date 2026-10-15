@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { ApiResponse } from './api-response';
+import { RemindersService } from './reminders.service';
 
 export const PROJECT_STATUSES = ['Active', 'Completed', 'Archived'] as const;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
@@ -29,6 +30,7 @@ export interface ProjectPayload {
 @Injectable({ providedIn: 'root' })
 export class ProjectsService {
   private readonly http = inject(HttpClient);
+  private readonly remindersService = inject(RemindersService);
   private readonly baseUrl = '/api/Tasks/Projects';
 
   /** Every project, any status, sorted by name. */
@@ -64,8 +66,10 @@ export class ProjectsService {
 
   /** Deletes the project; its tasks stay, without a project. */
   remove(id: number): Observable<void> {
-    return this.http
-      .delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`)
-      .pipe(map(() => undefined));
+    return this.http.delete<ApiResponse<boolean>>(`${this.baseUrl}/${id}`).pipe(
+      map(() => undefined),
+      // Reminders about it are deleted with it.
+      tap(() => this.remindersService.notifyChanged()),
+    );
   }
 }

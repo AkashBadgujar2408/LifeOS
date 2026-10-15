@@ -28,6 +28,7 @@ import {
 import { TaskItem, TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { openTaskEditor } from '../tasks/task-editor';
 import { TaskRow } from '../tasks/task-row';
 import { sortTasks } from '../tasks/task-views';
@@ -61,7 +62,7 @@ const STATUS_ACTIONS: Record<ProjectStatus, StatusAction[]> = {
 @Component({
   selector: 'app-project-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, RouterLink, LinkedItems, TaskRow],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink, LinkedItems, EntityReminders, TaskRow],
   templateUrl: './project-detail.html',
 })
 export class ProjectDetail implements OnInit {
