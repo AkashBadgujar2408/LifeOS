@@ -2,6 +2,8 @@ using System.Text;
 using LifeOS.Api.Infrastructure;
 using LifeOS.Core.Calendar.ServiceContracts;
 using LifeOS.Core.Calendar.Services;
+using LifeOS.Core.Dashboard.ServiceContracts;
+using LifeOS.Core.Dashboard.Services;
 using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Habits.ServiceContracts;
@@ -63,6 +65,7 @@ try
     builder.Services.AddScoped<IRemindersService, RemindersService>();
     builder.Services.AddScoped<IHabitsService, HabitsService>();
     builder.Services.AddScoped<IJournalService, JournalService>();
+    builder.Services.AddScoped<IDashboardService, DashboardService>();
 
     // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
     builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();

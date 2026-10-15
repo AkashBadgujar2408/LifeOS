@@ -458,3 +458,20 @@
   - UAT test data: habituser1 entries 13–15 Oct, reflections for weeks of 5 and 12 Oct, reminder "Re-read" on 15 Oct.
 
 - Next up: **Session 22 — Dashboard API** (aggregation stored procedure + Dapper across goals/tasks/calendar/habits/journal).
+
+## Last session: 2026-10-15 — Session 22 — Dashboard API (+ Story Mode added to the plan)
+- Shipped:
+  - `database/schema/07_dashboard.sql` → schema `dashboard` (no tables — a home for the dashboard procedures, so nothing to scaffold).
+  - **`database/procedures/dashboard.GetMyDay.sql`** — seven result sets in one call: (1) open tasks due today or overdue + today's done ones (priority-ordered, project name), (2) today's events (all-day overlap on `@Today`, timed overlap on the client's UTC day span), (3) undismissed reminders due before the end of the day, (4) active goals with milestone counts, next open milestone and `LastActivityAt` (`GREATEST` of goal/milestone/history timestamps; each child aggregated in its own `OUTER APPLY` — no fan-out), (5) active started habits, (6) their ticked days (full history), (7) the latest journal entry ≤ today with a 280-char excerpt. Every query filters `UserId`/`IsDeleted` itself.
+  - `LifeOS.Core/Dashboard/` — `IDashboardService`/`DashboardService` read the sets in order with Dapper `QueryMultipleAsync`; progress via `GoalProgress`, streaks via `HabitStreaks` (never stored). `GET api/Dashboard/MyDay?today&dayStartUtc&dayEndUtc` (`Areas/Dashboard/Controllers/MyDayController`): `today` required, span must be positive and ≤ 26 h (DST days are 23/25), UTC bounds default to UTC midnights.
+  - **Plan doc: "Story Mode" added as the first Phase 2 module** (5 sessions) — your life as a biography with light game elements, confirmed with you this session: goals as main/side missions and collectibles, milestones as objectives, `story.Chapters`, goal prerequisites, a Life Story timeline, "Mission passed" debriefs, derived life-area stats, a "Previously on…" recap; no penalties, nothing stored that can be computed. Phase totals updated.
+- Verified:
+  - UAT backed up first (`LifeOS_UAT_pre22.bak`, session scratchpad); schema script applied twice; proc applied.
+  - curl with new users `dashuser1` (IST) / `dashuser2` (password in the scratch seed script, not committed): overdue + today's tasks with the done one kept, tomorrow's/someday's excluded; all-day holiday spanning today + morning standup included, a 19:00Z call (00:30 IST tomorrow) excluded; morning + evening reminders included, tomorrow's excluded; goal 1/3 milestones → 33%, next milestone "Run 10k"; habit ticked 8–10 and 12–14 → current 3, best 3, last missed 11 Oct, due today; latest journal 13 Oct. dashuser2 gets all-empty; missing `today` / reversed span / 2-day span → 400; anonymous 401.
+  - Fresh scratch DB from `00`–`07` + both procs: everything applies cleanly and the proc runs. Scratch DB dropped. No table changes → no re-scaffold.
+  - `dotnet build` 0 warnings; 50 backend tests.
+- Notes:
+  - Session 22 was interrupted once mid-write (the C# files were rejected before being written) — nothing partial was left behind; the build was re-checked clean before continuing.
+  - UAT test data: dashuser1 tasks/events/reminders/goals ("Run a half marathon" — accidentally under Learning — and "See the northern lights"), habit "Stretch", journal 13 Oct.
+
+- Next up: **Session 23 — Dashboard UI**: My Day assembled from `api/Dashboard/MyDay` (tasks with tick-off, today's events, reminders, habits to check, goals in motion, journal prompt).

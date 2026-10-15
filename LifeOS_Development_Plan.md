@@ -265,11 +265,12 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 
 Session estimates use the same yardstick as Month 1 (schema+scaffold session, API+core-CRUD session(s), specialized UI/logic session(s) per module, scaled to how many sub-modules the blueprint lists for each).
 
-### Phase 2 — Personal Administration & Growth (~Month 2, ~17 sessions ≈ 34h ≈ 2.5 weeks at 2h/day)
-Prioritized to match your stated interests (learning Angular, serious career goals) over the blueprint's original ordering.
+### Phase 2 — Personal Administration & Growth (~Month 2, ~22 sessions ≈ 44h ≈ 3 weeks at 2h/day)
+Prioritized to match your stated interests (learning Angular, serious career goals) over the blueprint's original ordering. **Story Mode comes first** (added at your request, 2026-10-15): it builds directly on Month 1's data and Milestone 7's dashboard/insights work.
 
 | Module | Est. sessions | Notes |
 |---|---|---|
+| **Story Mode — your life as a biography, with light game elements** | 5 | Not in the blueprint; confirmed with you 2026-10-15 (biography first, game elements light). A layer over existing data, never a second place to track things: long-term goals = main missions, short-term = side missions, bucket list = collectibles, milestones = objectives. New data is small: `story.Chapters` (named life eras with dates + a summary you write) and goal prerequisites (one mission unlocks another). Sessions: (1) schema + scaffold; (2) Life Story timeline — a stored procedure assembling goal history, completed milestones, journal highlights and chapters, read like a book; (3) mission view of goals (main/side/collectibles, locked/unlocked) + a "Mission passed" debrief on goal completion whose note joins the story; (4) per-life-area stats derived from habit ticks/milestones/journaling (same data as the Life Balance Wheel) + a "Previously on…" recap card on My Day; (5) achievements (computed, never stored) + polish. Rules: XP/stats always derived from real activity, **no penalties** for missed days, deterministic sentence templates (an AI narrator is a Phase 5 item). |
 | Education & Learning | 4 | Lets you formally track "Learning Angular" instead of improvising it inside Goals |
 | Career & Professional Growth | 4 | Timeline, goals, applications, achievements |
 | Personal Finance & Wealth Management | 5 | Largest module in the blueprint; faster than it looks since you can port logic from your `OkayToolsEIA4`/WealthTrackr-style reference repo |
@@ -299,8 +300,8 @@ Prioritized to match your stated interests (learning Angular, serious career goa
 | Cross-module automation, external integrations, optional AI assistant | 4+ | Genuinely open-ended — treat as "keep going" rather than a fixed-scope milestone |
 
 ### Totals
-- Phases 2–5 combined: **~51 sessions ≈ ~100 hours ≈ ~7.3 weeks** of actual work at 2h/day.
-- Grand total with Month 1: **~79 sessions ≈ ~155 hours**, which spread across real calendar time (accounting for missed days, the Angular learning curve flattening out, and plain life) lands at roughly **4 months to a complete 20-module LifeOS**, not 1.
+- Phases 2–5 combined: **~56 sessions ≈ ~110 hours ≈ ~8 weeks** of actual work at 2h/day.
+- Grand total with Month 1: **~84 sessions ≈ ~165 hours**, which spread across real calendar time (accounting for missed days, the Angular learning curve flattening out, and plain life) lands at roughly **4 months to a complete 20-module LifeOS**, not 1.
 - Each module retains its full sub-module breakdown from the original blueprint (unchanged) — see `LifeOS_Complete_Life_Management_Blueprint.docx` Section 2 for the complete catalogue. Nothing there needs to change; only the build order and pacing do. Session-level breakdowns per module (like Section 6 has for Month 1) get written once we're actually starting that phase, not now — no point planning Session 47 in detail before Session 12 has taught us anything about real pace.
 
 ---
