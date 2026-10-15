@@ -43,7 +43,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Calendar & Reminders | `calendar` | Events, Reminders | `Calendar/` (+ proc `calendar.GetCalendarFeed`) | `calendar`, `reminders` |
 | Habits | `habits` | Habits, HabitEntries | `Habits/` | `habits` |
 | Journal | `journal` | JournalEntries, WeeklyReflections | `Journal/` | `journal` |
-| Story Mode (Phase 2, in progress) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — pure rules so far (`MissionKinds`, `MissionGraph`, `ChapterRules`) | — (Sessions 29–32) |
+| Story Mode (Phase 2, in progress) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — Chapters, Life Story (+ proc `story.GetLifeStory`), pure `MissionKinds`/`MissionGraph`/`ChapterRules`/`LifeStoryBuilder` | `story` (Sessions 30–32 add missions, ratings, achievements) |
 | Dashboard & Insights | `dashboard` (procedures only) | — | `Dashboard/` (+ procs `dashboard.GetMyDay`, `dashboard.GetLifeBalance`) | `dashboard` (My Day) |
 
 Every module has the same server layout: `DTOs/` (request/response shapes, status constants), `ServiceContracts/`
@@ -98,6 +98,7 @@ EF Core handles single-entity CRUD. Queries that join across schemas or aggregat
 | `calendar.GetCalendarFeed` | `GET api/Calendar/Feed` | events + task due dates + milestone and goal targets in a range, one row shape |
 | `dashboard.GetMyDay` | `GET api/Dashboard/MyDay` | seven result sets (`QueryMultiple`): tasks, events, reminders, goals, habits, habit entries, latest journal |
 | `dashboard.GetLifeBalance` | `GET api/Dashboard/LifeBalance` | per life area: active goals, completions, habit days, journal entries |
+| `story.GetLifeStory` | `GET api/Story/LifeStory` | every story beat (goal events, objectives, habits begun, great/hard days); the service maps moments to local days with the user's IANA timezone |
 
 Rows come back as DATE → `DateTime` and DATETIME2 → unspecified kind; the service converts them to `DateOnly` and UTC
 (EF's UTC converter doesn't cover Dapper).
@@ -117,6 +118,7 @@ All routes need a JWT except register, login and ping.
 | `api/Habits/Habits` | CRUD, `PUT {id}/status`, `PUT {id}/entries/{date}` (tick/untick, returns the new streak) |
 | `api/Journal/Entries`, `Reflections` | entries by day (`GET`/`PUT`/`DELETE day/{date}`), `GET moods`, `POST from-inbox/{id}`; reflections `GET`/`PUT {monday}` |
 | `api/Dashboard/MyDay`, `LifeBalance` | the My Day snapshot (with insights); activity per life area |
+| `api/Story/Chapters`, `LifeStory` | Chapters CRUD (a new current chapter closes the previous); the story filed into chapters (`?tz=`) |
 
 Swagger UI (`/swagger`, Development only) has the full request/response shapes.
 

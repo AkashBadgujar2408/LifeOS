@@ -124,6 +124,11 @@ export const routes: Routes = [
         title: 'Journal | LifeOS',
         loadComponent: () => import('./features/journal/journal').then((m) => m.Journal),
       },
+      {
+        path: 'story',
+        title: 'Your story | LifeOS',
+        loadComponent: () => import('./features/story/story').then((m) => m.Story),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

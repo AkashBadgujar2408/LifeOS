@@ -12,8 +12,9 @@ export interface NavGroup {
 }
 
 /**
- * The blueprint's navigation groups, trimmed to Month 1 modules. Later phases add groups (Life administration,
- * Experiences, Insights) and items here — the shell renders whatever this list contains.
+ * The blueprint's navigation groups, trimmed to the modules built so far, plus "Your story" (Story Mode, Phase 2).
+ * Later phases add groups (Life administration, Experiences, Insights) and items here — the shell renders whatever
+ * this list contains.
  */
 export const NAV_GROUPS: NavGroup[] = [
   {
@@ -37,6 +38,10 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Wellbeing',
     items: [{ label: 'Journal', route: '/journal', icon: 'bi-journal-text' }],
+  },
+  {
+    label: 'Your story',
+    items: [{ label: 'Story', route: '/story', icon: 'bi-book' }],
   },
   {
     label: 'System',

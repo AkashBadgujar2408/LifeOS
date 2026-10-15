@@ -15,6 +15,8 @@ using LifeOS.Core.Tasks.ServiceContracts;
 using LifeOS.Core.Tasks.Services;
 using LifeOS.Core.Shared.ServiceContracts;
 using LifeOS.Core.Shared.Services;
+using LifeOS.Core.Story.ServiceContracts;
+using LifeOS.Core.Story.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -67,6 +69,8 @@ try
     builder.Services.AddScoped<IHabitsService, HabitsService>();
     builder.Services.AddScoped<IJournalService, JournalService>();
     builder.Services.AddScoped<IDashboardService, DashboardService>();
+    builder.Services.AddScoped<IChaptersService, ChaptersService>();
+    builder.Services.AddScoped<ILifeStoryService, LifeStoryService>();
 
     // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
     builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();

@@ -1,0 +1,172 @@
+<div class="container py-4 py-lg-5 story">
+  <header class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+    <div>
+      <h1 class="story-title mb-1">Your story</h1>
+      @if (story(); as s) {
+        <p class="text-body-secondary mb-0">
+          {{ s.chapterCount }} {{ s.chapterCount === 1 ? 'chapter' : 'chapters' }} ·
+          {{ s.missionsPassed }} {{ s.missionsPassed === 1 ? 'mission' : 'missions' }} passed ·
+          {{ s.milestonesDone }} {{ s.milestonesDone === 1 ? 'objective' : 'objectives' }} done
+        </p>
+      } @else {
+        <p class="text-body-secondary mb-0">Your life, told by what you actually did.</p>
+      }
+    </div>
+    <div class="d-flex gap-2">
+      @if (current()) {
+        <button type="button" class="btn btn-outline-primary" (click)="jumpToNow()">
+          <i class="bi bi-arrow-down"></i> Jump to now
+        </button>
+      }
+      <button type="button" class="btn btn-primary" (click)="editChapter()">
+        <i class="bi bi-plus-lg"></i> New chapter
+      </button>
+    </div>
+  </header>
+
+  @if (loadFailed() && !story()) {
+    <app-load-error message="Couldn't load your story." (retry)="load()" />
+  } @else if (!story()) {
+    <p class="text-body-secondary">Gathering your story...</p>
+  } @else if (isEmpty()) {
+    <section class="card">
+      <div class="card-body p-4">
+        <h2 class="h5">Every story starts with a chapter</h2>
+        <p class="text-body-secondary">
+          Name the part of your life you're in now — "The LifeOS year", "Final year at college",
+          "New city". As you set goals, tick milestones, start habits and write in your journal,
+          they appear here, in the chapter they happened in.
+        </p>
+        <button type="button" class="btn btn-primary" (click)="editChapter()">
+          Name your current chapter
+        </button>
+      </div>
+    </section>
+  } @else {
+    @for (section of story()!.sections; track $index; let i = $index) {
+      <section
+        class="story-section"
+        [class.story-gap]="!section.chapter"
+        [attr.id]="section.chapter?.isCurrent ? 'chapter-now' : null"
+        [attr.aria-label]="
+          section.chapter ? section.chapter.title : gapHeading(story()!.sections, i)
+        "
+      >
+        @if (section.chapter; as chapter) {
+          <header class="story-chapter-head">
+            <div class="story-chapter-number">
+              Chapter {{ chapterNumbers().get(chapter.id) }}
+              @if (chapter.isCurrent) {
+                <span class="badge story-now ms-1">Now</span>
+              }
+            </div>
+            <div class="d-flex align-items-start justify-content-between gap-2">
+              <h2 class="story-chapter-title mb-1">{{ chapter.title }}</h2>
+              <button
+                type="button"
+                class="btn btn-sm btn-link text-body-secondary flex-shrink-0"
+                [attr.aria-label]="'Edit chapter ' + chapter.title"
+                (click)="editChapter(chapter)"
+              >
+                <i class="bi bi-pencil"></i>
+              </button>
+            </div>
+            <p class="small text-body-secondary mb-2">
+              {{ chapter.startDate | date }} –
+              {{ chapter.endDate ? (chapter.endDate | date) : 'now' }} ·
+              {{ chapterLength(chapter.startDate, chapter.endDate, today) }}
+            </p>
+            @if (chapter.summary) {
+              <p class="story-summary mb-0">{{ chapter.summary }}</p>
+            }
+          </header>
+        } @else {
+          <header class="story-chapter-head">
+            <h2 class="story-gap-title mb-1">{{ gapHeading(story()!.sections, i) }}</h2>
+            <p class="small text-body-secondary mb-0">
+              {{ section.from | date }} – {{ section.to | date }} · no chapter covers these days
+            </p>
+          </header>
+        }
+
+        @if (section.beats.length === 0) {
+          <p class="story-empty small text-body-secondary">Nothing recorded in this chapter yet.</p>
+        } @else {
+          <ol class="story-beats list-unstyled mb-0">
+            @for (beat of section.beats; track $index) {
+              @let text = beatText(beat);
+              @let link = beatLink(beat);
+              <li class="story-beat">
+                <span class="story-beat-icon story-tone-{{ text.tone }}" aria-hidden="true">
+                  <i class="bi {{ text.icon }}"></i>
+                </span>
+                <div class="min-w-0 flex-grow-1">
+                  <div class="d-flex flex-wrap align-items-baseline column-gap-2">
+                    <span class="story-beat-date small text-body-secondary">{{
+                      beat.day | date
+                    }}</span>
+                    @if (link) {
+                      <a [routerLink]="link" class="story-beat-headline link-body-emphasis">{{
+                        text.headline
+                      }}</a>
+                    } @else {
+                      <span class="story-beat-headline">{{ text.headline }}</span>
+                    }
+                  </div>
+
+                  @switch (beat.kind) {
+                    @case ('MilestoneDone') {
+                      <div class="small text-body-secondary">for {{ beat.parentTitle }}</div>
+                    }
+                    @case ('GoalStarted') {
+                      <div class="small text-body-secondary">
+                        {{ beat.lifeAreaName }}
+                        @if (beat.toDate) {
+                          · aiming for {{ beat.toDate | date }}
+                        }
+                      </div>
+                    }
+                    @case ('GoalRescheduled') {
+                      <div class="small text-body-secondary">
+                        from {{ beat.fromDate ? (beat.fromDate | date) : 'no date' }} to
+                        {{ beat.toDate ? (beat.toDate | date) : 'no date' }}
+                      </div>
+                    }
+                    @case ('HabitStarted') {
+                      @if (beat.lifeAreaName) {
+                        <div class="small text-body-secondary">{{ beat.lifeAreaName }}</div>
+                      }
+                    }
+                    @case ('JournalHighlight') {
+                      @if (beat.detail) {
+                        <p class="story-quote small mb-0">{{ beat.detail }}</p>
+                      }
+                    }
+                  }
+
+                  @if (beat.kind === 'MissionPassed' && (beat.detail || beat.advice)) {
+                    <div class="story-debrief small">
+                      @if (beat.detail) {
+                        <p class="mb-1">
+                          <span class="fw-semibold">How it went:</span> {{ beat.detail }}
+                        </p>
+                      }
+                      @if (beat.advice) {
+                        <p class="mb-0">
+                          <span class="fw-semibold">To my past self:</span> {{ beat.advice }}
+                        </p>
+                      }
+                    </div>
+                  }
+                  @if (beat.note) {
+                    <p class="story-quote small mb-0">“{{ beat.note }}”</p>
+                  }
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      </section>
+    }
+  }
+</div>

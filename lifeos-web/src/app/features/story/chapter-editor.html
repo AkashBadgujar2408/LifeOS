@@ -1,0 +1,143 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="chapter-editor-heading" class="modal-title h5">
+      {{ chapter() ? 'Edit chapter' : 'New chapter' }}
+    </h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    <div>
+      <label class="form-label" for="chapter-title">Title</label>
+      <input
+        id="chapter-title"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('title')"
+        formControlName="title"
+        placeholder="e.g. The move to Pune"
+        autocomplete="off"
+        ngbAutofocus
+      />
+      @if (fieldError('title'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="chapter-start">Began</label>
+        <div class="input-group">
+          <input
+            id="chapter-start"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('startDate')"
+            formControlName="startDate"
+            placeholder="e.g. 01/Jul/2022"
+            autocomplete="off"
+            ngbDatepicker
+            #startPicker="ngbDatepicker"
+            [minDate]="earliest"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the start date"
+            (click)="startPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('startDate'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+
+      <div class="col-sm-6">
+        <label class="form-label" for="chapter-end">Ended</label>
+        <div class="input-group">
+          <input
+            id="chapter-end"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('endDate')"
+            formControlName="endDate"
+            [placeholder]="form.controls.isCurrent.value ? 'Still going' : 'e.g. 30/Sep/2026'"
+            autocomplete="off"
+            ngbDatepicker
+            #endPicker="ngbDatepicker"
+            [minDate]="earliest"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the end date"
+            [disabled]="form.controls.isCurrent.value"
+            (click)="endPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('endDate'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+        <div class="form-check mt-2">
+          <input
+            id="chapter-current"
+            class="form-check-input"
+            type="checkbox"
+            formControlName="isCurrent"
+          />
+          <label class="form-check-label" for="chapter-current"
+            >Still going (my current chapter)</label
+          >
+        </div>
+      </div>
+    </div>
+
+    @if (form.controls.isCurrent.value && !chapter()?.isCurrent) {
+      <p class="small text-body-secondary mb-0">
+        Starting a new current chapter closes the one you're in now, the day before this one begins.
+      </p>
+    }
+
+    <div>
+      <label class="form-label" for="chapter-summary">
+        What this chapter was about <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="chapter-summary"
+        class="form-control"
+        rows="4"
+        [class.is-invalid]="fieldError('summary')"
+        formControlName="summary"
+        placeholder="Where you were, who was around, what you were chasing"
+      ></textarea>
+      @if (fieldError('summary'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    @if (chapter()) {
+      <button type="button" class="btn btn-outline-danger me-auto" (click)="remove()">
+        Delete
+      </button>
+    }
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ chapter() ? 'Save' : 'Add chapter' }}
+    </button>
+  </div>
+</form>

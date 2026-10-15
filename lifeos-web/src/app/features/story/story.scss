@@ -1,0 +1,149 @@
+// Story Mode reads like a book: big chapter headings, a quiet spine down the left with one mark per thing that
+// happened. One of the modules allowed its own visuals (CLAUDE.md); colours are LifeOS tokens only.
+
+.story {
+  max-width: 52rem;
+}
+
+.story-title {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(2rem, 1.4rem + 2.5vw, 3rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--lifeos-ink);
+}
+
+.story-section {
+  padding-top: 2.5rem;
+  scroll-margin-top: 1rem;
+
+  & + & {
+    border-top: 1px solid var(--lifeos-border);
+    margin-top: 2.5rem;
+  }
+}
+
+.story-chapter-head {
+  margin-bottom: 1.25rem;
+}
+
+.story-chapter-number {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lifeos-teal);
+  margin-bottom: 0.25rem;
+}
+
+.story-now {
+  background: var(--lifeos-teal);
+  color: #fff;
+  letter-spacing: 0.04em;
+}
+
+.story-chapter-title {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(1.4rem, 1.1rem + 1.2vw, 1.9rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--lifeos-ink);
+}
+
+.story-gap-title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--cui-secondary-color);
+}
+
+.story-summary {
+  font-size: 1.05rem;
+  line-height: 1.6;
+  max-width: 40rem;
+}
+
+.story-gap .story-beats {
+  opacity: 0.85;
+}
+
+// The spine: a hairline down the left, each beat's icon sits on it.
+.story-beats {
+  position: relative;
+  padding-left: 0.25rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 1.05rem;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 1px;
+    background: var(--lifeos-border);
+  }
+}
+
+.story-beat {
+  position: relative;
+  display: flex;
+  gap: 0.85rem;
+  padding: 0.55rem 0;
+}
+
+.story-beat-icon {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 50%;
+  background: var(--lifeos-canvas);
+  border: 1px solid var(--lifeos-border);
+  font-size: 0.85rem;
+}
+
+.story-tone-win {
+  background: var(--lifeos-teal);
+  border-color: var(--lifeos-teal);
+  color: #fff;
+}
+
+.story-tone-step {
+  color: var(--lifeos-teal);
+}
+
+.story-tone-quiet {
+  color: var(--cui-secondary-color);
+}
+
+.story-tone-hard {
+  color: var(--lifeos-amber);
+}
+
+.story-beat-date {
+  min-width: 5.75rem;
+}
+
+.story-beat-headline {
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.story-quote {
+  color: var(--cui-secondary-color);
+  font-style: italic;
+  margin-top: 0.15rem;
+}
+
+.story-debrief {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid var(--lifeos-teal);
+  background: var(--lifeos-canvas);
+  border-radius: 0 4px 4px 0;
+}
+
+.story-empty {
+  padding-left: 2.6rem;
+}
