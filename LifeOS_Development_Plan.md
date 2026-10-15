@@ -2,7 +2,7 @@
 
 **A session-based build plan for a personal Life OS / ERP, scoped for Claude Code + Claude Pro, .NET Core Web API + Angular.**
 
-Prepared: 2026-10-13
+Prepared: 2026-10-13 · **Status 2026-10-15: Month 1 complete** — all seven core modules built, plus the UX, testing and docs passes (Sessions 1–27, Section 6). Next: Phase 2, starting with Story Mode (Section 7); the backlog carried out of Month 1 is in Section 7 too. **This is the main project document**; `PROGRESS.md` is the per-session log, `docs/ARCHITECTURE.md` the code map, `CLAUDE.md` the conventions. (`LifeOS_Development_Plan.docx` is an early Word copy, as of Session 5 — this file is the maintained version.)
 
 ---
 
@@ -254,7 +254,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 |---|---|---|---|
 | 25 | ✅ UX pass | One error envelope from the API (validation included) + `apiErrorMessage` on the client (44 call sites) with a "can't reach the server" case; expired/revoked logins → back to login with a return URL instead of failing every request; list pages show a "couldn't load — try again" block instead of a misleading empty state; duplicate toasts suppressed; every page checked at 375px; forms/placeholders audited (already complete) | **Done** — expired login, revoked token, API down and retry all exercised in the browser; no horizontal scroll on any of 18 pages |
 | 26 | ✅ Testing pass | Gaps closed: `core/dates/today.ts` (every local-date helper, DST, leap years — had no tests), recurrence edges (quarterly from the 31st, years overdue, yearly done late, anchor ahead of the completed date → fixed to count from k = 0), link canonicalisation (the duplicate-link index depends on it), a streak edge; `npm run test:tz` runs the frontend suite in six real timezones | **Done** — 74 backend + 85 frontend green, and the frontend green in all six timezones |
-| 27 | Docs | README, `CLAUDE.md`, architecture notes updated; Phase 2 backlog confirmed | A cold reader (or a fresh Claude Code session) can onboard from the docs alone |
+| 27 | ✅ Docs | Root `README.md` (setup from zero, run, test, layout, backups, troubleshooting), `docs/ARCHITECTURE.md` (request flow, modules, data rules, cross-cutting features, procedures, API surface, adding-a-module checklist), `lifeos-web/README.md`, `CLAUDE.md` tidied and pointed at this plan as the main document; Month 1 backlog collected here (Section 7) after checking the Blueprint | **Done** — setup steps re-run from scratch against a fresh database; the backlog order awaits your confirmation |
 | 28 | Buffer | Catch-up for whatever slipped | — |
 
 ---
@@ -264,6 +264,31 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 **Straight answer to "will all 20 modules be done in a month": no.** Month 1 delivers 6 of 20 modules (plus shared foundation) to a genuinely solid standard. At that same pace and quality bar, the realistic timeline for the **complete 20-module Personal ERP is roughly 3 more months beyond Month 1 — about 4 months total**, not 1. The estimate below makes that explicit instead of leaving the remaining 14 modules as a vague "later."
 
 Session estimates use the same yardstick as Month 1 (schema+scaffold session, API+core-CRUD session(s), specialized UI/logic session(s) per module, scaled to how many sub-modules the blueprint lists for each).
+
+### Backlog carried out of Month 1 (please confirm the order)
+Month 1 built the six core modules to a solid standard, not every sub-module the Blueprint lists for them, and a few platform items were deliberately deferred. Everything left over is collected here so nothing is lost; checked against `LifeOS_Complete_Life_Management_Blueprint.docx` Section 2 on 2026-10-15.
+
+**Folded into Story Mode** (it's the natural home — Blueprint Section 7 calls this the "Life Timeline"):
+- Journal → *Personal Milestones*, *Year in Review* — the Life Story timeline and its chapters cover both.
+- Dashboard → **Life Balance Wheel as self-assessment.** The Blueprint defines it as "satisfaction across life areas" and warns against arbitrary life scores in favour of "category-specific metrics and self-assessment". Session 24's wheel measures *activity*; add a short monthly self-rating per life area (1–10, optional note) and show it beside the activity bars. Fits Story Mode session 4 (life-area stats).
+
+**Gaps in the six built modules** (Blueprint sub-modules not built yet; suggested slot in brackets):
+| Module | Missing | Suggested slot |
+|---|---|---|
+| Dashboard | Personal KPIs (per-module figures), upcoming milestones incl. birthdays/anniversaries | Phase 2, after Story Mode (birthdays need Family, Phase 3) |
+| Goals | Life Vision statement; goal progress trend over time | Story Mode (vision = the story's premise) |
+| Tasks | Task dependencies; focus sessions (Pomodoro); productivity review (completion rate, estimated vs actual time) | Phase 5 Reports for the review; dependencies/focus as a small Tasks follow-up |
+| Calendar | **Recurring events**; recurring reminders; time blocking; time tracking + planned vs actual; time by life area | Recurring events/reminders: a Calendar follow-up early in Phase 2 (most-felt gap); time tracking with Phase 5 |
+| Journal | Gratitude, life lessons and decision journal (entry types); monthly reflection prompts; memories with photos | Entry types + monthly reflection: small Journal follow-up; photos need attachments (Documents, Phase 2) |
+| Habits | Measurable habits (e.g. pages read); bad-habit reduction; 7/30/90-day challenges; routines (morning/evening); habit library/categories; habit analytics | Challenges fit Story Mode's light game elements; the rest a Habits follow-up |
+
+**Platform items deferred in Month 1:**
+- **Global search** (plan, gaps table) — Phase 2.
+- **Attachments / file upload** — with Documents (Phase 2).
+- **Notifications when the app is closed** (background jobs; reminders are only computed while it's open) — Phase 5 automation.
+- **Data export/import and permanent deletion** (Blueprint principle 9: "data portability and permanent deletion are foundational") — Phase 2; everything is soft-deleted today.
+- **Enable/disable life areas or modules per user** (Blueprint principle 9: modularity) — Phase 2+.
+- Password reset; tags on journal entries; dismissing an insight; mood trend beyond 30 days; detail pages titled by their item ("Visit Japan | LifeOS" rather than "Goal | LifeOS").
 
 ### Phase 2 — Personal Administration & Growth (~Month 2, ~22 sessions ≈ 44h ≈ 3 weeks at 2h/day)
 Prioritized to match your stated interests (learning Angular, serious career goals) over the blueprint's original ordering. **Story Mode comes first** (added at your request, 2026-10-15): it builds directly on Month 1's data and Milestone 7's dashboard/insights work.

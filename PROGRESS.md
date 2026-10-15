@@ -1,5 +1,10 @@
 # LifeOS Progress Log
 
+> **Where things stand (2026-10-15):** Month 1 is complete — Sessions 1–27, all seven core modules plus the UX, testing
+> and docs passes. The main document is `LifeOS_Development_Plan.md` (roadmap, decisions, backlog); this file is the
+> detailed per-session log, newest at the bottom. **Next: Phase 2, starting with Story Mode** — but first confirm the
+> order of the "Backlog carried out of Month 1" in the plan's Section 7.
+
 ## Last session: 2026-10-13 — Session 1 — Solution & Angular scaffold
 - Shipped:
   - `.sln` with `LifeOS.Core` (classlib) + `LifeOS.Api` (webapi, `-controllers`, .NET 10), project reference wired.
@@ -535,3 +540,18 @@
 - Verified: 74 backend tests (8 new) + 85 frontend (10 new), and the frontend suite green in all six timezones. `dotnet build` 0 warnings, lint + Prettier clean.
 
 - Next up: **Session 27 — Docs** (README, architecture notes, CLAUDE.md tidy, Phase 2 backlog confirmed).
+
+## Last session: 2026-10-15 — Session 27 — Docs
+- Shipped:
+  - **`README.md`** (new, repo root): what LifeOS is, where the documents are (the plan first — confirmed with you this session as the main document), prerequisites, first-time setup (database from the scripts in PowerShell or Git Bash, npm install, the JWT key), running, tests/checks, repository layout, changing the schema, backups, troubleshooting (stuck ports, LocalDB stopped, `-I`, "Can't reach the server", login expiry, `$localize`).
+  - **`docs/ARCHITECTURE.md`** (new): request flow diagram, module table (schema/tables/server/pages), the data rules that apply everywhere (database-first, user + soft-delete filters, the two kinds of time, `OperationResult`, computed-never-stored), cross-cutting features (links, inbox, reminders, tags, history), stored procedures, the full API surface, the frontend's structure, and an adding-a-module checklist.
+  - `lifeos-web/README.md`: the Angular CLI boilerplate replaced with the real commands and layout.
+  - **Plan (main document):** status line at the top; Sessions 22–27 ticked; a new **"Backlog carried out of Month 1"** in Section 7, built by checking `LifeOS_Complete_Life_Management_Blueprint.docx` module by module — Blueprint sub-modules the six built modules don't have yet (recurring events, measurable habits/challenges/routines, gratitude/decision journal, task dependencies/focus sessions, KPIs...) with a suggested slot each, and the deferred platform items (search, attachments, background notifications, export/permanent delete, modularity, password reset...).
+  - **Found while checking the Blueprint:** it defines the Life Balance Wheel as *self-rated satisfaction* and warns against arbitrary life scores; Session 24's wheel measures *activity*. Proposed in the backlog: a monthly self-rating per life area shown beside the activity bars, as part of Story Mode.
+  - `CLAUDE.md`: points at the plan as the main document (and marks the plan `.docx` as a stale Session-5 copy), stale "later/future" wording fixed, the end-of-session checklist now includes the plan, `test:tz` and `docs/ARCHITECTURE.md`.
+- Verified: **the README's setup, run literally against a brand-new database** (`LifeOS_ReadmeCheck`): 18 tables, 3 procedures, 6 life areas; the API pointed at it (`ConnectionStrings__LifeOS`) registered a user, served My Day and saved a goal. Scratch database dropped. All links between the docs checked.
+- Notes:
+  - `LifeOS_Development_Plan.docx` was left as it is (an early copy, as of Session 5); say if you'd like it regenerated from the `.md`.
+  - Stray dev servers from this session were ended (ports 4200/5217 free).
+
+- Next up: **confirm the Month 1 backlog order** (plan, Section 7), then **Phase 2 — Story Mode, session 1** (`story` schema: Chapters + goal prerequisites; scaffold).
