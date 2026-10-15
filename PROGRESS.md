@@ -475,3 +475,14 @@
   - UAT test data: dashuser1 tasks/events/reminders/goals ("Run a half marathon" — accidentally under Learning — and "See the northern lights"), habit "Stretch", journal 13 Oct.
 
 - Next up: **Session 23 — Dashboard UI**: My Day assembled from `api/Dashboard/MyDay` (tasks with tick-off, today's events, reminders, habits to check, goals in motion, journal prompt).
+
+## Last session: 2026-10-15 — Session 23 — Dashboard UI (My Day)
+- Shipped:
+  - `core/services/dashboard.service.ts` (`getMyDay(today)` — sends the local day's midnights as UTC) and `features/dashboard/my-day-view.ts` (pure: `splitTasks`, `habitToday`, `habitsInOrder`, `laterToday`, `daysBetween`, `daySummary`; 7 specs).
+  - **My Day rebuilt on `api/Dashboard/MyDay`**: big date + greeting + a one-line summary in words ("1 task left · 1 overdue · 2 events · 1 habit to tick", or "A clear day"); due reminders (unchanged, from the shell's signal); **Tasks** (Overdue / Today groups, tick off in place — reloads so a repeat landing today shows, toast for the next occurrence — title opens the task editor); **Habits** (today's tick via `app-habit-day`, streak 🔥, "Not today" for off-schedule, still-to-do first; the tick patches in the returned streak); **Schedule** (all-day with date span, timed with local time or "until …" for ones that began yesterday, location; click opens the event editor; "Reminders later today" — moves to the due card by itself as times pass); **Journal** (today's excerpt + mood, or "How was today?" with the last entry's age); **Inbox** counts; **Goals in motion** (up to 4: life area, target date, progress bar, next milestone, or a nudge to add milestones; "N more" link).
+  - The page reloads its snapshot when reminders change elsewhere, and on tab focus after midnight.
+- Verified:
+  - Browser (dashuser1, IST, 21:00): every card matched the seeded data (overdue taxes, call the bank, groceries done; holiday + standup, late IST call not shown; both reminders due so none "later"; Stretch 🔥3; journal "2 days ago"; half marathon 33% next "Run 10k (20/Nov)"); ticked Stretch → 🔥4 and the summary dropped "1 habit to tick"; ticked "Call the bank" → struck through, summary down to "1 overdue · 2 events". 375px (iframe): no horizontal scroll. No console errors.
+  - `ng build` clean, lint + Prettier clean, tests 50 backend + 62 frontend.
+
+- Next up: **Session 24 — Rule-based Insights + Life Balance Wheel (stretch)**.

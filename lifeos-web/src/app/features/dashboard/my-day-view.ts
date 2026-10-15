@@ -1,0 +1,73 @@
+import { localMidnight } from '../../core/dates/today';
+import { MyDay, MyDayHabit, MyDayReminder, MyDayTask } from '../../core/services/dashboard.service';
+
+/** What a habit asks of you today: tick it, already ticked, or nothing (not on its schedule). */
+export type HabitToday = 'open' | 'done' | 'off';
+
+export function habitToday(habit: MyDayHabit): HabitToday {
+  if (habit.streak.doneToday) {
+    return 'done';
+  }
+  return habit.streak.dueToday ? 'open' : 'off';
+}
+
+/** Still to do first, then done today, then the ones that aren't on today; the API's (title) order within each. */
+export function habitsInOrder(habits: readonly MyDayHabit[]): MyDayHabit[] {
+  const rank: Record<HabitToday, number> = { open: 0, done: 1, off: 2 };
+  return [...habits].sort((a, b) => rank[habitToday(a)] - rank[habitToday(b)]);
+}
+
+/** Overdue (due before today, still open) apart from today's; keeps the API's order inside each group. */
+export function splitTasks(
+  tasks: readonly MyDayTask[],
+  today: string,
+): { overdue: MyDayTask[]; today: MyDayTask[] } {
+  return {
+    overdue: tasks.filter((t) => t.dueDate < today && !t.isDone),
+    today: tasks.filter((t) => t.dueDate >= today || t.isDone),
+  };
+}
+
+/**
+ * Reminders still to come later today. Ones already due are left out: the shell's due list (refreshed every
+ * minute) shows those, so a reminder moves from here to there by itself as its time passes.
+ */
+export function laterToday(
+  reminders: readonly MyDayReminder[],
+  dueIds: ReadonlySet<number>,
+  now: Date,
+): MyDayReminder[] {
+  return reminders.filter((r) => !dueIds.has(r.id) && new Date(r.remindAt) > now);
+}
+
+/** Whole local days from one "yyyy-MM-dd" to another (positive when `to` is later). */
+export function daysBetween(from: string, to: string): number {
+  return Math.round((localMidnight(to).getTime() - localMidnight(from).getTime()) / 86_400_000);
+}
+
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+/**
+ * The one line under the date: what today holds, in words ("3 tasks left · 1 overdue · 2 events · 1 habit to
+ * tick"). Only non-zero parts; an empty list means a clear day.
+ */
+export function daySummary(myDay: MyDay): string[] {
+  const { overdue, today } = splitTasks(myDay.tasks, myDay.today);
+  const tasksLeft = today.filter((t) => !t.isDone).length;
+  const habitsLeft = myDay.habits.filter((h) => habitToday(h) === 'open').length;
+
+  const parts: string[] = [];
+  if (tasksLeft > 0) {
+    parts.push(plural(tasksLeft, 'task left', 'tasks left'));
+  }
+  if (overdue.length > 0) {
+    parts.push(`${overdue.length} overdue`);
+  }
+  if (myDay.events.length > 0) {
+    parts.push(plural(myDay.events.length, 'event', 'events'));
+  }
+  if (habitsLeft > 0) {
+    parts.push(plural(habitsLeft, 'habit to tick', 'habits to tick'));
+  }
+  return parts;
+}

@@ -1,8 +1,34 @@
 <div class="container py-4 py-lg-5">
-  <header class="mb-4 mb-lg-5">
-    <h1 class="my-day-date mb-2">{{ today | date: 'EEEE' }}, {{ today | date }}</h1>
-    <p class="text-body-secondary fs-5 mb-0">{{ greeting() }}</p>
+  <header class="mb-4">
+    <h1 class="my-day-date mb-2">{{ today() | date: 'EEEE' }}, {{ today() | date }}</h1>
+    <p class="text-body-secondary fs-5 mb-1">{{ greeting() }}</p>
+    @if (data()) {
+      @if (summary().length > 0) {
+        <p class="my-day-summary mb-0">
+          @for (part of summary(); track part; let last = $last) {
+            <span>{{ part }}</span>
+            @if (!last) {
+              <span class="text-body-tertiary" aria-hidden="true"> · </span>
+            }
+          }
+        </p>
+      } @else {
+        <p class="my-day-summary mb-0">A clear day. Nothing due, nothing scheduled.</p>
+      }
+    }
   </header>
+
+  @if (loadError()) {
+    <div
+      class="alert alert-warning d-flex align-items-center justify-content-between gap-3"
+      role="alert"
+    >
+      <span>Couldn't load your day.</span>
+      <button type="button" class="btn btn-sm btn-outline-primary" (click)="load()">
+        Try again
+      </button>
+    </div>
+  }
 
   @if (remindersService.due().length > 0) {
     <section class="card mb-3" aria-labelledby="due-reminders-heading">
@@ -24,47 +50,384 @@
     </section>
   }
 
-  <div class="row g-3">
-    <div class="col-lg-7">
-      <section class="card h-100" aria-labelledby="inbox-heading">
-        <div class="card-body p-4">
-          <h2 id="inbox-heading" class="h5 mb-3">Waiting in your Inbox</h2>
+  @if (data(); as day) {
+    <div class="row g-3">
+      <div class="col-lg-7 d-flex flex-column gap-3">
+        <!-- Tasks -->
+        <section class="card" aria-labelledby="tasks-heading">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h2 id="tasks-heading" class="h5 mb-0">Tasks</h2>
+              <a routerLink="/tasks" class="small">All tasks</a>
+            </div>
 
-          @if (!inboxService.openCountsLoaded()) {
-            <p class="text-body-secondary mb-0">Checking your Inbox...</p>
-          } @else if (inboxService.openTotal() === 0) {
-            <p class="text-body-secondary mb-3">
-              Nothing waiting. Anything you capture with Quick Add shows up here until you sort it.
-            </p>
-            <button type="button" class="btn btn-primary" (click)="quickAdd.open()">
-              <i class="bi bi-plus-lg"></i> Quick add
-            </button>
-          } @else {
-            <ul class="list-unstyled mb-3">
-              @for (entry of waitingKinds(); track entry.kind) {
-                <li class="d-flex justify-content-between py-2 border-bottom">
-                  <span>{{ entry.label }}</span>
-                  <span class="fw-semibold">{{ entry.count }}</span>
-                </li>
+            @if (day.tasks.length === 0) {
+              <p class="text-body-secondary mb-3">Nothing due today.</p>
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                (click)="quickAdd.open('Task')"
+              >
+                <i class="bi bi-plus-lg"></i> Capture a task
+              </button>
+            } @else {
+              @if (tasks().overdue.length > 0) {
+                <h3 class="my-day-group text-danger">Overdue</h3>
+                <ul class="list-unstyled mb-3 d-flex flex-column gap-2">
+                  @for (task of tasks().overdue; track task.id) {
+                    <li>
+                      <ng-container
+                        *ngTemplateOutlet="taskRow; context: { $implicit: task, overdue: true }"
+                      />
+                    </li>
+                  }
+                </ul>
               }
-            </ul>
-            <a routerLink="/inbox" class="btn btn-outline-primary">Sort your Inbox</a>
-          }
-        </div>
-      </section>
-    </div>
+              @if (tasks().today.length > 0) {
+                @if (tasks().overdue.length > 0) {
+                  <h3 class="my-day-group">Today</h3>
+                }
+                <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                  @for (task of tasks().today; track task.id) {
+                    <li>
+                      <ng-container
+                        *ngTemplateOutlet="taskRow; context: { $implicit: task, overdue: false }"
+                      />
+                    </li>
+                  }
+                </ul>
+              }
+            }
+          </div>
+        </section>
 
-    <div class="col-lg-5">
-      <section class="card h-100" aria-labelledby="today-heading">
-        <div class="card-body p-4">
-          <h2 id="today-heading" class="h5 mb-3">Today</h2>
-          <p class="text-body-secondary mb-0">
-            Tasks due, events, habits to check off and your journal prompt will gather here as those
-            parts of LifeOS are built. Press <kbd>Q</kbd> on any page to capture something in the
-            meantime.
-          </p>
-        </div>
-      </section>
+        <!-- Habits -->
+        <section class="card" aria-labelledby="habits-heading">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h2 id="habits-heading" class="h5 mb-0">Habits</h2>
+              <a routerLink="/habits" class="small">All habits</a>
+            </div>
+
+            @if (habits().length === 0) {
+              <p class="text-body-secondary mb-0">
+                No active habits yet. <a routerLink="/habits">Start one</a> and tick it off here
+                each day.
+              </p>
+            } @else {
+              <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                @for (habit of habits(); track habit.id) {
+                  @let state = habitToday(habit);
+                  <li class="d-flex align-items-center gap-3" [class.opacity-75]="state === 'off'">
+                    <app-habit-day
+                      [day]="today()"
+                      [state]="state"
+                      [habitTitle]="habit.title"
+                      [busy]="busyHabitId() === habit.id"
+                      (toggled)="toggleHabit(habit)"
+                    />
+                    <a
+                      [routerLink]="['/habits', habit.id]"
+                      class="flex-grow-1 min-w-0 text-truncate link-body-emphasis text-decoration-none"
+                      [class.text-body-secondary]="state === 'done'"
+                    >
+                      {{ habit.title }}
+                    </a>
+                    @if (state === 'off') {
+                      <span class="small text-body-secondary flex-shrink-0">Not today</span>
+                    }
+                    @if (habit.streak.current > 0) {
+                      <span
+                        class="small fw-semibold flex-shrink-0 my-day-streak"
+                        title="Current streak"
+                      >
+                        <i class="bi bi-fire"></i> {{ habit.streak.current }}
+                      </span>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="col-lg-5 d-flex flex-column gap-3">
+        <!-- Schedule -->
+        <section class="card" aria-labelledby="schedule-heading">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h2 id="schedule-heading" class="h5 mb-0">Schedule</h2>
+              <a routerLink="/calendar" class="small">Calendar</a>
+            </div>
+
+            @if (day.events.length === 0 && laterReminders().length === 0) {
+              <p class="text-body-secondary mb-0">Nothing on the calendar today.</p>
+            }
+
+            @if (day.events.length > 0) {
+              <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                @for (event of day.events; track event.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="btn btn-link p-0 w-100 text-start text-decoration-none d-flex gap-3 link-body-emphasis"
+                      (click)="openEvent(event)"
+                    >
+                      <span class="my-day-time flex-shrink-0 small text-body-secondary">
+                        @if (event.isAllDay) {
+                          All day
+                        } @else if (startedEarlier(event)) {
+                          until {{ event.endsAt | date: 'h:mm a' }}
+                        } @else {
+                          {{ event.startsAt | date: 'h:mm a' }}
+                        }
+                      </span>
+                      <span class="min-w-0">
+                        <span class="d-block text-break">{{ event.title }}</span>
+                        @if (spansDays(event) || event.location) {
+                          <span class="d-block small text-body-secondary">
+                            @if (spansDays(event)) {
+                              {{ event.startDate | date: dayMonthFormat }} –
+                              {{ event.endDate | date: dayMonthFormat }}
+                            }
+                            @if (spansDays(event) && event.location) {
+                              ·
+                            }
+                            @if (event.location) {
+                              <i class="bi bi-geo-alt"></i> {{ event.location }}
+                            }
+                          </span>
+                        }
+                      </span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+
+            @if (laterReminders().length > 0) {
+              <h3 class="my-day-group" [class.mt-3]="day.events.length > 0">
+                Reminders later today
+              </h3>
+              <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                @for (reminder of laterReminders(); track reminder.id) {
+                  <li class="d-flex gap-3">
+                    <span class="my-day-time flex-shrink-0 small text-body-secondary">
+                      {{ reminder.remindAt | date: 'h:mm a' }}
+                    </span>
+                    <span class="min-w-0">
+                      <span class="d-block text-break"
+                        ><i class="bi bi-bell"></i> {{ reminder.title }}</span
+                      >
+                      @if (reminder.entityType) {
+                        <span class="d-block small text-body-secondary">
+                          {{ targetLabels[reminder.entityType] }}
+                        </span>
+                      }
+                    </span>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <!-- Journal -->
+        <section class="card" aria-labelledby="journal-heading">
+          <div class="card-body p-4">
+            <h2 id="journal-heading" class="h5 mb-3">Journal</h2>
+            @if (journal(); as j) {
+              @if (j.writtenToday) {
+                <p class="small text-body-secondary mb-2">
+                  Written today
+                  @if (j.entry.mood) {
+                    · <i class="bi {{ moodMeta(j.entry.mood).icon }}"></i>
+                    {{ moodMeta(j.entry.mood).label }}
+                  }
+                </p>
+                @if (j.entry.title) {
+                  <p class="fw-semibold mb-1">{{ j.entry.title }}</p>
+                }
+                @if (j.entry.excerpt) {
+                  <p class="my-day-excerpt text-body-secondary mb-3">{{ j.entry.excerpt }}</p>
+                }
+                <a routerLink="/journal" class="btn btn-outline-primary btn-sm"
+                  >Open today's entry</a
+                >
+              } @else {
+                <p class="mb-1">How was today?</p>
+                <p class="small text-body-secondary mb-3">
+                  Last entry {{ j.entry.entryDate | date }} ({{
+                    j.daysAgo === 1 ? 'yesterday' : j.daysAgo + ' days ago'
+                  }}).
+                </p>
+                <a routerLink="/journal" class="btn btn-primary btn-sm">Write today's entry</a>
+              }
+            } @else {
+              <p class="mb-1">How was today?</p>
+              <p class="small text-body-secondary mb-3">A few lines or just a mood is enough.</p>
+              <a routerLink="/journal" class="btn btn-primary btn-sm">Write your first entry</a>
+            }
+          </div>
+        </section>
+
+        <!-- Inbox -->
+        <section class="card" aria-labelledby="inbox-heading">
+          <div class="card-body p-4">
+            <h2 id="inbox-heading" class="h5 mb-3">Inbox</h2>
+            @if (!inboxService.openCountsLoaded()) {
+              <p class="text-body-secondary mb-0">Checking your Inbox...</p>
+            } @else if (inboxService.openTotal() === 0) {
+              <p class="text-body-secondary mb-3">
+                Nothing waiting. Press <kbd>Q</kbd> anywhere to capture something.
+              </p>
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                (click)="quickAdd.open()"
+              >
+                <i class="bi bi-plus-lg"></i> Quick add
+              </button>
+            } @else {
+              <ul class="list-unstyled mb-3">
+                @for (entry of waitingKinds(); track entry.kind) {
+                  <li class="d-flex justify-content-between py-2 border-bottom">
+                    <span>{{ entry.label }}</span>
+                    <span class="fw-semibold">{{ entry.count }}</span>
+                  </li>
+                }
+              </ul>
+              <a routerLink="/inbox" class="btn btn-outline-primary btn-sm">Sort your Inbox</a>
+            }
+          </div>
+        </section>
+      </div>
+
+      <!-- Goals -->
+      <div class="col-12">
+        <section class="card" aria-labelledby="goals-heading">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <h2 id="goals-heading" class="h5 mb-0">Goals in motion</h2>
+              <a routerLink="/goals" class="small">
+                @if (moreGoals() > 0) {
+                  {{ moreGoals() }} more
+                } @else {
+                  All goals
+                }
+              </a>
+            </div>
+
+            @if (goals().length === 0) {
+              <p class="text-body-secondary mb-0">
+                No active goals. <a routerLink="/goals">Set one</a> — big or small.
+              </p>
+            } @else {
+              <div class="row g-4">
+                @for (goal of goals(); track goal.id) {
+                  <div class="col-md-6">
+                    <a
+                      [routerLink]="['/goals', goal.id]"
+                      class="d-block text-decoration-none link-body-emphasis fw-semibold text-truncate"
+                    >
+                      {{ goal.title }}
+                    </a>
+                    <div class="small text-body-secondary mb-2">
+                      {{ goal.lifeAreaName }}
+                      @if (goal.targetDate) {
+                        · by {{ goal.targetDate | date }}
+                      }
+                    </div>
+                    @if (goal.milestoneCount > 0) {
+                      <div
+                        class="progress"
+                        style="height: 0.4rem"
+                        role="progressbar"
+                        [attr.aria-label]="goal.title + ' progress'"
+                        [attr.aria-valuenow]="goal.progressPercent"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      >
+                        <div class="progress-bar" [style.width.%]="goal.progressPercent"></div>
+                      </div>
+                      <div class="d-flex justify-content-between gap-2 small mt-1">
+                        <span class="text-body-secondary text-truncate min-w-0">
+                          @if (goal.nextMilestoneTitle) {
+                            Next: {{ goal.nextMilestoneTitle }}
+                            @if (goal.nextMilestoneTargetDate) {
+                              ({{ goal.nextMilestoneTargetDate | date: dayMonthFormat }})
+                            }
+                          } @else {
+                            All milestones done
+                          }
+                        </span>
+                        <span class="fw-semibold flex-shrink-0">{{ goal.progressPercent }}%</span>
+                      </div>
+                    } @else {
+                      <div class="small text-body-secondary">
+                        No milestones yet — break it into steps to track progress.
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </section>
+      </div>
     </div>
-  </div>
+  } @else if (!loadError()) {
+    <p class="text-body-secondary">Gathering your day...</p>
+  }
 </div>
+
+<ng-template #taskRow let-task let-overdue="overdue">
+  <div class="d-flex align-items-start gap-2">
+    <input
+      class="form-check-input mt-1 flex-shrink-0"
+      type="checkbox"
+      [checked]="task.isDone"
+      [disabled]="busyTaskId() === task.id"
+      [attr.aria-label]="(task.isDone ? 'Reopen ' : 'Complete ') + task.title"
+      (change)="toggleTask(task)"
+    />
+    <button
+      type="button"
+      class="btn btn-link p-0 text-start text-decoration-none link-body-emphasis flex-grow-1 min-w-0"
+      (click)="openTask(task)"
+    >
+      <span
+        class="text-break"
+        [class.text-decoration-line-through]="task.isDone"
+        [class.text-body-secondary]="task.isDone"
+      >
+        {{ task.title }}
+      </span>
+      @if (overdue || task.isRecurring || priorityMeta[task.priority] || task.projectName) {
+        <span class="d-flex flex-wrap align-items-center column-gap-3 row-gap-1 small mt-1">
+          @if (overdue) {
+            <span class="text-danger"
+              ><i class="bi bi-calendar-event"></i> {{ task.dueDate | date }}</span
+            >
+          }
+          @if (task.isRecurring) {
+            <span class="text-body-secondary" title="Repeats"
+              ><i class="bi bi-arrow-repeat"></i
+            ></span>
+          }
+          @if (priorityMeta[task.priority]; as meta) {
+            <span class="{{ meta.tone }}"
+              ><i class="bi {{ meta.icon }}"></i> {{ task.priority }}</span
+            >
+          }
+          @if (task.projectName) {
+            <span class="text-body-secondary" title="Project">
+              <i class="bi bi-kanban"></i> {{ task.projectName }}
+            </span>
+          }
+        </span>
+      }
+    </button>
+  </div>
+</ng-template>

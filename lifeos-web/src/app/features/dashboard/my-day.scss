@@ -7,3 +7,35 @@
   letter-spacing: -0.03em;
   color: var(--lifeos-ink);
 }
+
+// What the day holds, as a sentence rather than a row of number tiles.
+.my-day-summary {
+  font-weight: 600;
+  color: var(--lifeos-teal);
+}
+
+// Small uppercase labels splitting a card into groups (Overdue / Today, Reminders later today).
+.my-day-group {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+
+// A fixed time column so event titles line up.
+.my-day-time {
+  width: 4.75rem;
+  padding-top: 0.1rem;
+}
+
+.my-day-streak {
+  color: var(--lifeos-amber);
+}
+
+.my-day-excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
