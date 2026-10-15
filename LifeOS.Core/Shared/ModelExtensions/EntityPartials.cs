@@ -33,3 +33,7 @@ public partial class Reminder : ISoftDeletable, IUserOwned;
 public partial class Habit : ISoftDeletable, IUserOwned;
 
 public partial class HabitEntry : ISoftDeletable, IUserOwned;
+
+public partial class JournalEntry : ISoftDeletable, IUserOwned;
+
+public partial class WeeklyReflection : ISoftDeletable, IUserOwned;

@@ -29,6 +29,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InboxItem> InboxItems { get; set; }
 
+    public virtual DbSet<JournalEntry> JournalEntries { get; set; }
+
     public virtual DbSet<LifeArea> LifeAreas { get; set; }
 
     public virtual DbSet<Project> Projects { get; set; }
@@ -42,6 +44,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<TaskTag> TaskTags { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+
+    public virtual DbSet<WeeklyReflection> WeeklyReflections { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -249,6 +253,29 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_InboxItems_Users");
         });
 
+        modelBuilder.Entity<JournalEntry>(entity =>
+        {
+            entity.ToTable("JournalEntries", "journal");
+
+            entity.HasIndex(e => e.LifeAreaId, "IX_JournalEntries_LifeAreaId").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.UserId, e.EntryDate }, "UX_JournalEntries_User_Date")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_JournalEntries_CreatedAt");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.JournalEntries)
+                .HasForeignKey(d => d.LifeAreaId)
+                .HasConstraintName("FK_JournalEntries_LifeAreas");
+
+            entity.HasOne(d => d.User).WithMany(p => p.JournalEntries)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_JournalEntries_Users");
+        });
+
         modelBuilder.Entity<LifeArea>(entity =>
         {
             entity.ToTable("LifeAreas", "shared");
@@ -393,6 +420,22 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Email).HasMaxLength(256);
             entity.Property(e => e.PasswordHash).HasMaxLength(500);
             entity.Property(e => e.Username).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<WeeklyReflection>(entity =>
+        {
+            entity.ToTable("WeeklyReflections", "journal");
+
+            entity.HasIndex(e => new { e.UserId, e.WeekStartDate }, "UX_WeeklyReflections_User_Week")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_WeeklyReflections_CreatedAt");
+
+            entity.HasOne(d => d.User).WithMany(p => p.WeeklyReflections)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WeeklyReflections_Users");
         });
 
         OnModelCreatingPartial(modelBuilder);

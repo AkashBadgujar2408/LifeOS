@@ -22,4 +22,6 @@ public partial class LifeArea
     public virtual ICollection<Goal> Goals { get; set; } = new List<Goal>();
 
     public virtual ICollection<Habit> Habits { get; set; } = new List<Habit>();
+
+    public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
 }

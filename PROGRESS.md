@@ -419,3 +419,19 @@
   - UAT test data: projuser1 habit "Morning walk" (linked to Visit Japan, reminder 15 Oct 21:00); habituser1 habit "Gym".
 
 - Next up: **Session 20 — Journal schema + scaffold** (`06_journal.sql`).
+
+## Last session: 2026-10-15 — Session 20 — Journal schema + scaffold
+- Shipped:
+  - `database/schema/06_journal.sql` → schema `journal`:
+    - `journal.JournalEntries`: `EntryDate` (DATE, the user's local day), optional `Title`, `Content`, `Mood` TINYINT 1–5 (`CK_JournalEntries_Mood`), optional `LifeAreaId`; `CK_JournalEntries_NotEmpty` (content or mood); **one live entry per user per day** (`UX_JournalEntries_User_Date`, filtered, includes Mood for the trend view).
+    - `journal.WeeklyReflections`: one per user per ISO week (`UX_WeeklyReflections_User_Week`, filtered), `WeekStartDate` must be a Monday (`CK_WeeklyReflections_Monday`, DATEFIRST-independent), three prompts `WentWell` / `WasHard` / `NextFocus`, not all empty.
+  - Re-scaffold: `JournalEntry`, `WeeklyReflection`, nav properties on `User`/`LifeArea` — purely additive. Partials `: ISoftDeletable, IUserOwned`.
+  - `JournalWeeks` (`LifeOS.Core/Journal/Services/`, pure): `WeekStart`, `IsWeekStart`, `Range`; 7 xUnit cases.
+- Decisions (mine — say if you want them changed): one entry per day (the plan's "daily entry"), mood as a 1–5 number, weekly reflections stored as their own small table (the plan named only JournalEntries, but the Session 21 prompt screen needs somewhere to keep answers); no tags on journal entries for now (Life Area only, as planned).
+- Verified:
+  - UAT backed up first (`LifeOS_UAT_pre20.bak` in the session scratchpad); script applied twice (idempotent).
+  - Constraints in a rolled-back transaction: words-only / mood-only entries, a Monday reflection, rewriting a deleted day, a Monday under `SET DATEFIRST 7` → accepted; empty entry, mood 0 and 6, second entry same day, Tuesday/Sunday week start, empty reflection, second reflection same week → rejected.
+  - **Fresh DB from `00`–`06` + the proc scaffolds identically to `Models/`** (only the known `User.Username` position). Scratch DB dropped.
+  - `dotnet build` 0 warnings; tests **50 backend** + 48 frontend; API starts and queries fine with the new entities in the model.
+
+- Next up: **Session 21 — Journal UI**: Journal API (entry by day, upsert, delete, mood trend, weekly reflection get/save), process inbox `Journal` items into entries, `JournalEntryLinkableProvider`; daily editor + mood picker, trend view, weekly reflection screen; replace the Journal placeholder route.

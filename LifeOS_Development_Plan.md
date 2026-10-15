@@ -239,7 +239,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 ### Milestone 6 — Journal & Reflections
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
-| 20 | Schema + scaffold | `database/schema/06_journal.sql` creating schema `journal` with `journal.JournalEntries` (date, content, mood, LifeAreaId); apply + re-scaffold | Scaffold regenerates cleanly |
+| 20 | ✅ Schema + scaffold | `database/schema/06_journal.sql` creating schema `journal` with `journal.JournalEntries` (one per user per day: `EntryDate` DATE, optional title, content, mood 1–5, optional Life Area; not empty) and `journal.WeeklyReflections` (one per ISO week: Monday `WeekStartDate`, went well / was hard / next focus); apply + re-scaffold; `JournalWeeks` (week start) | **Done** — scaffold additive, fresh DB from scripts scaffolds identically, every CHECK/unique index verified in SQL, 7 new tests (50 backend) |
 | 21 | Journal UI | Daily entry editor, mood picker, simple weekly reflection prompt screen | Can write/edit an entry, mood is stored and shown on a simple trend view |
 
 ### Milestone 7 — Dashboard, My Day & Lightweight Insights

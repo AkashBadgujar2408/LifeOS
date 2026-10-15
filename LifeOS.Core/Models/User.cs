@@ -41,6 +41,8 @@ public partial class User
 
     public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();
 
+    public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
+
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
 
     public virtual ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
@@ -50,4 +52,6 @@ public partial class User
     public virtual ICollection<TaskItem> TaskItems { get; set; } = new List<TaskItem>();
 
     public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();
+
+    public virtual ICollection<WeeklyReflection> WeeklyReflections { get; set; } = new List<WeeklyReflection>();
 }
