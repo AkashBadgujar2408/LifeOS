@@ -234,7 +234,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
 | 18 | ✅ Schema + scaffold | `database/schema/05_habits.sql` creating schema `habits` with `habits.Habits` (weekday `ScheduleDays` bitmask, `StartDate`, optional Life Area, Active/Archived, unique live title) and `habits.HabitEntries` (one row per day done, filtered unique per habit + day); apply + re-scaffold; `HabitStreaks` (current / longest / done today / due today / last missed) | **Done** — scaffold additive, fresh DB from scripts scaffolds identically, every CHECK/unique index verified in SQL, 21 streak tests green (43 backend total) |
-| 19 | Habits UI | Daily check-off grid + streak display | Checking off a day updates the streak correctly, including breaks |
+| 19 | ✅ Habits UI | `HabitsService` + `api/Habits/Habits` (CRUD, Active/Archived, tick/un-tick a day with the client's `today`, streaks via `HabitStreaks`), `HabitLinkableProvider` (habits link to goals and can be reminder targets); Habits page with a 7-day check-off grid (page back through weeks) + streaks; habit page with a 12-week history, linked items and reminders | **Done** — ticking Mon–Thu gave a 4-day streak, un-ticking Tue broke it to 2 (missed day shown); archive/restore, link to goal, reminder → habit verified in the browser |
 
 ### Milestone 6 — Journal & Reflections
 | # | Session | Deliverable | Done when |

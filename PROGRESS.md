@@ -395,3 +395,27 @@
   - At the end of the session the local API wouldn't rebind `127.0.0.1:5217` ("address already in use", with no listener visible) after a stuck `LifeOS.Api.exe` was killed — an OS socket left behind, not a code issue (the build is clean and nothing in Session 18 touches the API surface). If it persists after a reboot, change the port in `launchSettings.json` + `proxy.conf.json`.
 
 - Next up: **Session 19 — Habits UI**: Habits API (CRUD, tick/un-tick a day with the client's `today`, streaks via `HabitStreaks`), `HabitLinkableProvider`, daily check-off grid + streak display; replace the Habits placeholder route.
+
+## Last session: 2026-10-15 — Session 19 — Habits API + UI
+- Shipped (backend):
+  - `HabitsService`/`IHabitsService` + `Areas/Habits/Controllers/HabitsController` (`api/Habits/Habits`): list/get with `?today&from` (streak as of the client's today from the full history; `doneDates` only for the window, max 400 days), create, update, `PUT {id}/status` (Active/Archived), `PUT {id}/entries/{date}` (`{ done, today }` → `{ entryDate, done, streak }`), delete. Duplicate-title pre-check + `DbUpdateException` safety net; a double-click race on a tick is treated as done.
+  - Tick rules: not in the future, not before the start date, only on scheduled days, only while Active. **Un-ticking is allowed on any past day** (so a day ticked before a schedule/start change can still be removed). Ticking twice / un-ticking an undone day are no-ops.
+  - Delete soft-deletes the habit, its entries, its links and reminders about it. `HabitLinkableProvider` ("Habit") → habits link to goals and can be reminder targets.
+  - `HabitsProfile` (AutoMapper; streak + done dates filled in after `ProjectTo`).
+- Shipped (frontend):
+  - `core/services/habits.service.ts`; `features/habits/habit-schedule.ts` (pure: `isScheduled`, `scheduleLabel`, `daysEnding`, `dayState`, `canToggle`, `applyEntry`; 9 specs).
+  - **Habits page**: Active/Archived pills, "N of M done today", a 7-day check-off grid ending today with previous/next week paging, current + best streak per habit; header row on desktop, weekday letters above the cells on phones.
+  - `app-habit-day` cell component (done = teal tick, today open = dashed, missed = red tint, off schedule / before start = dot, future = dashed outline) — small bespoke SCSS on LifeOS tokens.
+  - **Habit page** (`/habits/:id`): current/longest/days-in-12-weeks, today's state + last missed, a 12-week Monday-aligned history you can tick from, Archive/Restore, Edit, Delete (SweetAlert), linked items (defaults to Goal), reminders.
+  - Habit editor dialog: name, weekday toggles + Every day/Weekdays presets, start date (ngbDatepicker), optional life area, "why it matters". Inline errors on every field.
+  - `ReminderTargetType` + `ReminderTargetOpener` know `Habit`; Habits placeholder route replaced. New `APP_DAY_MONTH_FORMAT` (`dd/MMM`) for the week-range label.
+- Verified:
+  - curl (new users `habituser1`/`habituser2`, password in the scratch script, not committed): create (trimmed, life area name), duplicate (case-insensitive) / blank / mask 0 and 200 / no start / unknown life area → 400; streak walk (tick 12–15 Oct → 4, un-tick 13 → 2 with `lastMissed` 13, re-tick → 4); idempotent tick/un-tick; future / before start / off-schedule → 400; un-tick an off-schedule day → allowed; archived → tick rejected; bad status / bad windows → 400; other user list empty, get/tick/status/delete → 404; link candidates; delete → entries, reminders and links gone; anonymous 401.
+  - Browser (projuser1, IST): empty-name inline error → created "Morning walk" (Weekdays, from 05/Oct) → ticked Mon–Thu → 🔥4 / best 4 (Fri 9 shown missed, weekend dotted) → un-ticked Tue → 2 / best 2 → habit page with history, "Last missed 13/Oct/2026" → linked goal "Visit Japan" (shows on the goal too) → Archive (days inert, Restore offered) → Restore → "+ Remind me" → reminder shows "Habit: Morning walk" and opens the habit. Phone width (375px): no horizontal scroll. No console errors.
+  - Fixed via the browser pass: off-schedule and before-start cells were invisible (now a dot); archived done-days lost their tick mark.
+  - `dotnet build` 0 warnings; lint + Prettier clean (`src/app`; `src/index.html` has a pre-existing Prettier warning, untouched); `ng build` clean; tests 43 backend + 48 frontend.
+- Notes:
+  - The API port problem from Session 18 was gone after the restart.
+  - UAT test data: projuser1 habit "Morning walk" (linked to Visit Japan, reminder 15 Oct 21:00); habituser1 habit "Gym".
+
+- Next up: **Session 20 — Journal schema + scaffold** (`06_journal.sql`).

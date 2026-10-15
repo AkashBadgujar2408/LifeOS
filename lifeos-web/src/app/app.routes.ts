@@ -90,16 +90,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/projects/project-detail').then((m) => m.ProjectDetail),
       },
-      placeholder('habits', 'Habits', {
-        heading: 'Habits',
-        icon: 'bi-arrow-repeat',
-        summary: 'Small routines, checked off daily.',
-        willLetYou: [
-          'Check off each day on a simple grid',
-          'Keep a streak going, and see honestly when it breaks',
-          'Tie a habit to the goal it supports',
-        ],
-      }),
+      {
+        path: 'habits',
+        title: 'Habits | LifeOS',
+        loadComponent: () => import('./features/habits/habits').then((m) => m.Habits),
+      },
+      {
+        path: 'habits/:id',
+        title: 'Habit | LifeOS',
+        loadComponent: () => import('./features/habits/habit-detail').then((m) => m.HabitDetail),
+      },
       placeholder('journal', 'Journal', {
         heading: 'Journal',
         icon: 'bi-journal-text',

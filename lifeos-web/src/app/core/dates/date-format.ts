@@ -8,6 +8,8 @@ import { NgbDateAdapter, NgbDateParserFormatter, NgbDateStruct } from '@ng-boots
  */
 export const APP_DATE_FORMAT = 'dd/MMM/yyyy';
 export const APP_DATE_TIME_FORMAT = 'dd/MMM/yyyy, h:mm a';
+/** Compact day + month for range labels inside one screen ("09/Oct – 15/Oct"), where the year is obvious. */
+export const APP_DAY_MONTH_FORMAT = 'dd/MMM';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 

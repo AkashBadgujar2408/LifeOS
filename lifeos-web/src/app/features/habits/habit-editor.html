@@ -1,0 +1,136 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="habit-editor-heading" class="modal-title h5">
+      {{ habit() ? 'Edit habit' : 'New habit' }}
+    </h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    <div>
+      <label class="form-label" for="habit-title">Name</label>
+      <input
+        id="habit-title"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('title')"
+        formControlName="title"
+        placeholder="e.g. Read 20 pages"
+        autocomplete="off"
+        ngbAutofocus
+      />
+      @if (fieldError('title'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div>
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="form-label mb-0" id="habit-schedule-label">Which days</span>
+        <span class="d-flex gap-2">
+          @for (preset of presets; track preset.mask) {
+            <button
+              type="button"
+              class="btn btn-link btn-sm p-0"
+              (click)="setSchedule(preset.mask)"
+            >
+              {{ preset.label }}
+            </button>
+          }
+        </span>
+      </div>
+      <div class="d-flex flex-wrap gap-1" role="group" aria-labelledby="habit-schedule-label">
+        @for (day of weekdayNames; track day; let index = $index) {
+          <button
+            type="button"
+            class="btn btn-sm flex-fill"
+            [class.btn-primary]="hasDay(index)"
+            [class.btn-outline-secondary]="!hasDay(index)"
+            [attr.aria-pressed]="hasDay(index)"
+            (click)="toggleDay(index)"
+          >
+            {{ day }}
+          </button>
+        }
+      </div>
+      @if (fieldError('scheduleDays'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="habit-start-date">Starts on</label>
+        <div class="input-group">
+          <input
+            id="habit-start-date"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('startDate')"
+            formControlName="startDate"
+            placeholder="e.g. 15/Oct/2026"
+            autocomplete="off"
+            ngbDatepicker
+            #startDatePicker="ngbDatepicker"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the start date"
+            (click)="startDatePicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('startDate'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        } @else {
+          <div class="form-text">Days before it can't be missed.</div>
+        }
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="habit-life-area">
+          Life area <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <select id="habit-life-area" class="form-select" formControlName="lifeAreaId">
+          <option [ngValue]="null">No particular area</option>
+          @for (area of lifeAreas(); track area.id) {
+            <option [ngValue]="area.id">{{ area.name }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label" for="habit-description">
+        Why it matters <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="habit-description"
+        class="form-control"
+        rows="2"
+        [class.is-invalid]="fieldError('description')"
+        formControlName="description"
+        placeholder="e.g. Ten minutes before bed instead of the phone"
+      ></textarea>
+      @if (fieldError('description'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ habit() ? 'Save' : 'Create habit' }}
+    </button>
+  </div>
+</form>

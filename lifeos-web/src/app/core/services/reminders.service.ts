@@ -7,7 +7,7 @@ import { ToastService } from './toast.service';
 export type ReminderStatus = 'Pending' | 'Dismissed';
 
 /** Types a reminder can be about (the linkable types, minus inbox items). Same strings as EntityLinks. */
-export type ReminderTargetType = 'Task' | 'Event' | 'Goal' | 'Project';
+export type ReminderTargetType = 'Task' | 'Event' | 'Goal' | 'Project' | 'Habit';
 
 export interface Reminder {
   id: number;

@@ -1,0 +1,88 @@
+// The tick grid is the one visual Habits can't get from Bootstrap utilities (CLAUDE.md allows bespoke CSS where a
+// module genuinely needs it). Colours come from the LifeOS tokens only.
+:host {
+  display: inline-flex;
+}
+
+.habit-day {
+  --habit-day-size: 2rem;
+  width: var(--habit-day-size);
+  height: var(--habit-day-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--lifeos-border);
+  background: var(--lifeos-surface);
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+
+  &.habit-day-sm {
+    --habit-day-size: 1.15rem;
+    border-radius: 0.3rem;
+    font-size: 0.7rem;
+  }
+}
+
+button.habit-day {
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--lifeos-teal);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--lifeos-teal);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+}
+
+.habit-day-done {
+  background: var(--lifeos-teal);
+  border-color: var(--lifeos-teal);
+}
+
+// Today, due and not done yet: an invitation, not a failure.
+.habit-day-open {
+  border-color: var(--lifeos-teal);
+  border-style: dashed;
+}
+
+// A scheduled day that passed undone: shown honestly, so a broken streak is visible on the grid.
+.habit-day-missed {
+  border-color: color-mix(in srgb, var(--cui-danger) 45%, transparent);
+  background: color-mix(in srgb, var(--cui-danger) 8%, var(--lifeos-surface));
+}
+
+// Not a day the habit runs (off schedule, before it started, not yet come): just a faint placeholder.
+.habit-day-off,
+.habit-day-notStarted,
+.habit-day-future {
+  border-color: transparent;
+  background: var(--lifeos-canvas);
+}
+
+.habit-day-future {
+  background: transparent;
+  border: 1px dashed var(--lifeos-border);
+}
+
+// Off schedule or before the start: a small dot, so the column still reads as "a day, just not this habit's".
+.habit-day-off::after,
+.habit-day-notStarted::after {
+  content: '';
+  width: 0.3rem;
+  height: 0.3rem;
+  border-radius: 50%;
+  background: var(--lifeos-border);
+}

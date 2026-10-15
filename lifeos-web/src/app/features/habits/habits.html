@@ -1,0 +1,162 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Habits</h1>
+      <p class="text-body-secondary mb-0 small">
+        @if (todaySummary().due > 0) {
+          {{ todaySummary().done }} of {{ todaySummary().due }} done today.
+        } @else {
+          Small routines, ticked off day by day.
+        }
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="newHabit()">
+      <i class="bi bi-plus-lg"></i> New habit
+    </button>
+  </div>
+
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <ul class="nav nav-pills gap-1">
+      @for (status of statuses; track status) {
+        <li class="nav-item">
+          <button
+            type="button"
+            class="nav-link py-1 px-3"
+            [class.active]="statusFilter() === status"
+            (click)="statusFilter.set(status)"
+          >
+            {{ status }}
+            @if (statusCounts().get(status); as count) {
+              <span class="badge rounded-pill text-bg-light ms-1">{{ count }}</span>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+
+    <div class="d-flex align-items-center gap-1">
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        aria-label="Previous week"
+        (click)="shiftWeek(-1)"
+      >
+        <i class="bi bi-chevron-left"></i>
+      </button>
+      <span class="small px-2 text-nowrap">
+        {{ days()[0] | date: dayMonthFormat }} –
+        {{ days()[days().length - 1] | date: dayMonthFormat }}
+      </span>
+      <button
+        type="button"
+        class="btn btn-outline-secondary btn-sm"
+        aria-label="Next week"
+        [disabled]="atToday()"
+        (click)="shiftWeek(1)"
+      >
+        <i class="bi bi-chevron-right"></i>
+      </button>
+      @if (!atToday()) {
+        <button type="button" class="btn btn-link btn-sm" (click)="backToToday()">Today</button>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="text-body-secondary">Loading...</div>
+  } @else if (rows().length === 0) {
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-arrow-repeat fs-1 text-body-secondary"></i>
+        @if (statusFilter() === 'Active') {
+          <p class="mt-2 mb-1 fw-semibold">No habits yet</p>
+          <p class="text-body-secondary small mb-3">
+            Start with one small thing you want to do most days: "Read 20 pages", "Walk after
+            lunch", "No phone after 10 pm".
+          </p>
+          <button type="button" class="btn btn-primary btn-sm" (click)="newHabit()">
+            Start a habit
+          </button>
+        } @else {
+          <p class="mt-2 mb-0 fw-semibold">No archived habits</p>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="card">
+      <div class="list-group list-group-flush" role="list">
+        <div
+          class="list-group-item d-none d-md-flex align-items-end gap-3 small text-body-secondary"
+          aria-hidden="true"
+        >
+          <span class="flex-grow-1">Habit</span>
+          <span class="d-flex gap-2">
+            @for (header of dayHeaders(); track header.day) {
+              <span
+                class="text-center lh-sm"
+                style="width: 2rem"
+                [class.fw-semibold]="header.isToday"
+                [class.text-body]="header.isToday"
+              >
+                {{ header.weekday }}<br />{{ header.dayOfMonth }}
+              </span>
+            }
+          </span>
+          <span class="text-end" style="width: 5.5rem">Streak</span>
+        </div>
+
+        @for (row of rows(); track row.habit.id) {
+          <div class="list-group-item d-flex flex-wrap align-items-center column-gap-3 row-gap-2">
+            <div class="flex-grow-1 min-w-0" style="flex-basis: 12rem">
+              <a
+                [routerLink]="['/habits', row.habit.id]"
+                class="link-body-emphasis text-decoration-none fw-semibold text-break"
+              >
+                {{ row.habit.title }}
+              </a>
+              <div class="small text-body-secondary">
+                {{ scheduleLabel(row.habit.scheduleDays) }}
+                @if (row.habit.lifeAreaName) {
+                  · {{ row.habit.lifeAreaName }}
+                }
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              @for (cell of row.cells; track cell.day; let index = $index) {
+                <span class="d-flex flex-column align-items-center">
+                  <span class="d-md-none small text-body-secondary lh-sm" aria-hidden="true">
+                    {{ dayHeaders()[index].weekday.charAt(0) }}
+                  </span>
+                  <app-habit-day
+                    [day]="cell.day"
+                    [state]="cell.state"
+                    [habitTitle]="row.habit.title"
+                    [readonly]="row.habit.status === 'Archived'"
+                    [busy]="busyCell() === row.habit.id + ':' + cell.day"
+                    (toggled)="toggle(row.habit, $event)"
+                  />
+                </span>
+              }
+            </div>
+
+            <div class="text-md-end small" style="min-width: 5.5rem">
+              @if (row.habit.streak.current > 0) {
+                <span class="fw-semibold" [title]="'Current streak'">
+                  <i class="bi bi-fire text-warning"></i> {{ row.habit.streak.current }}
+                </span>
+              } @else {
+                <span class="text-body-secondary">No streak</span>
+              }
+              <div class="text-body-secondary">best {{ row.habit.streak.longest }}</div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+    <p class="small text-body-secondary mt-2 mb-0">
+      Tap a circle to tick a day off, tap again to undo. Dashed means today, still to do; a red tint
+      is a scheduled day that was missed.
+    </p>
+  }
+</div>

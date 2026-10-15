@@ -1,0 +1,158 @@
+<div class="container py-4">
+  <a routerLink="/habits" class="small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Habits
+  </a>
+
+  @if (habit(); as habit) {
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-4">
+      <div class="min-w-0">
+        <div class="small text-body-secondary mb-1">
+          <i class="bi bi-arrow-repeat"></i> Habit · {{ scheduleLabel(habit.scheduleDays) }}
+          @if (habit.lifeAreaName) {
+            · {{ habit.lifeAreaName }}
+          }
+          @if (habit.status === 'Archived') {
+            <span class="badge text-bg-light border ms-1">Archived</span>
+          }
+        </div>
+        <h1 class="h3 mb-0 text-break">{{ habit.title }}</h1>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="edit()">
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+        @if (habit.status === 'Active') {
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            [disabled]="changingStatus()"
+            (click)="setArchived(habit, true)"
+          >
+            <i class="bi bi-archive"></i> Archive
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            [disabled]="changingStatus()"
+            (click)="setArchived(habit, false)"
+          >
+            <i class="bi bi-arrow-counterclockwise"></i> Restore
+          </button>
+        }
+        <button type="button" class="btn btn-outline-danger btn-sm" (click)="remove(habit)">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-8 d-flex flex-column gap-3">
+        <div class="card">
+          <div class="card-body">
+            <div class="row text-center g-2">
+              <div class="col-4">
+                <div class="h3 mb-0">
+                  @if (habit.streak.current > 0) {
+                    <i class="bi bi-fire text-warning fs-5"></i>
+                  }
+                  {{ habit.streak.current }}
+                </div>
+                <div class="small text-body-secondary">current streak</div>
+              </div>
+              <div class="col-4">
+                <div class="h3 mb-0">{{ habit.streak.longest }}</div>
+                <div class="small text-body-secondary">longest</div>
+              </div>
+              <div class="col-4">
+                <div class="h3 mb-0">{{ doneInHistory() }}</div>
+                <div class="small text-body-secondary">days in 12 weeks</div>
+              </div>
+            </div>
+            <p class="small text-body-secondary text-center mb-0 mt-3">
+              @if (!habit.streak.dueToday) {
+                Today isn't on the schedule.
+              } @else if (habit.streak.doneToday) {
+                Done today.
+              } @else {
+                Still to do today — the streak holds until the day is over.
+              }
+              @if (habit.streak.lastMissed) {
+                Last missed {{ habit.streak.lastMissed | date }}.
+              }
+            </p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h6 mb-3">Last 12 weeks</h2>
+            <div class="d-flex gap-1">
+              <div class="d-flex flex-column gap-1 small text-body-secondary" aria-hidden="true">
+                @for (name of weekdayNames; track name) {
+                  <span class="lh-1 d-flex align-items-center" style="height: 1.15rem">
+                    {{ name }}
+                  </span>
+                }
+              </div>
+              @for (week of weeks(); track week.monday) {
+                <div class="d-flex flex-column gap-1">
+                  @for (cell of week.days; track cell.day) {
+                    <app-habit-day
+                      [day]="cell.day"
+                      [state]="cell.state"
+                      [habitTitle]="habit.title"
+                      [readonly]="habit.status === 'Archived'"
+                      [busy]="busyDay() === cell.day"
+                      [small]="true"
+                      (toggled)="toggle($event)"
+                    />
+                  }
+                </div>
+              }
+            </div>
+            <p class="small text-body-secondary mt-3 mb-0">
+              @if (habit.status === 'Archived') {
+                Archived: the history stays, but days can't be ticked. Restore it to carry on.
+              } @else {
+                Forgot to tick a day? Tap it here. Started counting {{ habit.startDate | date }}.
+              }
+            </p>
+          </div>
+        </div>
+
+        @if (habit.description) {
+          <div class="card">
+            <div class="card-body text-break" style="white-space: pre-line">
+              {{ habit.description }}
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="col-lg-4 d-flex flex-column gap-3">
+        <div class="card">
+          <div class="card-body">
+            <app-linked-items
+              [entityType]="habitEntityType"
+              [entityId]="habit.id"
+              [preferredLinkType]="goalEntityType"
+            />
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <app-entity-reminders
+              entityType="Habit"
+              [entityId]="habit.id"
+              [entityTitle]="habit.title"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="text-body-secondary">Loading...</div>
+  }
+</div>

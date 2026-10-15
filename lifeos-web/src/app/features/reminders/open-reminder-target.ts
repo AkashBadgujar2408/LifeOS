@@ -10,7 +10,7 @@ import { openTaskEditor } from '../tasks/task-editor';
 
 /**
  * Opens what a reminder is about, the same way the calendar does: tasks and events in their editor, goals and
- * projects on their page. Kept out of ReminderRow so the editors (which embed reminder rows) don't import
+ * projects and habits on their page. Kept out of ReminderRow so the editors (which embed reminder rows) don't import
  * themselves in a cycle.
  */
 @Injectable({ providedIn: 'root' })
@@ -29,6 +29,9 @@ export class ReminderTargetOpener {
         break;
       case 'Project':
         void this.router.navigate(['/projects', reminder.entityId]);
+        break;
+      case 'Habit':
+        void this.router.navigate(['/habits', reminder.entityId]);
         break;
       case 'Task':
         this.tasksService.get(reminder.entityId!).subscribe({
