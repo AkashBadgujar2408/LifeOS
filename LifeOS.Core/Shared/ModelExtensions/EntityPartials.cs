@@ -37,3 +37,11 @@ public partial class HabitEntry : ISoftDeletable, IUserOwned;
 public partial class JournalEntry : ISoftDeletable, IUserOwned;
 
 public partial class WeeklyReflection : ISoftDeletable, IUserOwned;
+
+public partial class Chapter : ISoftDeletable, IUserOwned;
+
+public partial class MissionPrerequisite : ISoftDeletable, IUserOwned;
+
+public partial class MissionDebrief : ISoftDeletable, IUserOwned;
+
+public partial class LifeAreaRating : ISoftDeletable, IUserOwned;

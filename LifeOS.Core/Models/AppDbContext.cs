@@ -11,6 +11,8 @@ public partial class AppDbContext : DbContext
     {
     }
 
+    public virtual DbSet<Chapter> Chapters { get; set; }
+
     public virtual DbSet<EntityLink> EntityLinks { get; set; }
 
     public virtual DbSet<Event> Events { get; set; }
@@ -33,6 +35,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<LifeArea> LifeAreas { get; set; }
 
+    public virtual DbSet<LifeAreaRating> LifeAreaRatings { get; set; }
+
+    public virtual DbSet<MissionDebrief> MissionDebriefs { get; set; }
+
+    public virtual DbSet<MissionPrerequisite> MissionPrerequisites { get; set; }
+
     public virtual DbSet<Project> Projects { get; set; }
 
     public virtual DbSet<Reminder> Reminders { get; set; }
@@ -49,6 +57,27 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Chapter>(entity =>
+        {
+            entity.ToTable("Chapters", "story");
+
+            entity.HasIndex(e => e.UserId, "UX_Chapters_User_Open")
+                .IsUnique()
+                .HasFilter("([EndDate] IS NULL AND [IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.UserId, e.StartDate }, "UX_Chapters_User_Start")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Chapters_CreatedAt");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.User).WithOne(p => p.Chapter)
+                .HasForeignKey<Chapter>(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Chapters_Users");
+        });
+
         modelBuilder.Entity<EntityLink>(entity =>
         {
             entity.ToTable("EntityLinks", "shared");
@@ -286,6 +315,79 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_LifeAreas_CreatedAt");
             entity.Property(e => e.Name).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<LifeAreaRating>(entity =>
+        {
+            entity.ToTable("LifeAreaRatings", "story");
+
+            entity.HasIndex(e => new { e.UserId, e.MonthStart }, "IX_LifeAreaRatings_User_Month").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.UserId, e.LifeAreaId, e.MonthStart }, "UX_LifeAreaRatings_User_Area_Month")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_LifeAreaRatings_CreatedAt");
+            entity.Property(e => e.Note).HasMaxLength(500);
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.LifeAreaRatings)
+                .HasForeignKey(d => d.LifeAreaId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LifeAreaRatings_LifeAreas");
+
+            entity.HasOne(d => d.User).WithMany(p => p.LifeAreaRatings)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LifeAreaRatings_Users");
+        });
+
+        modelBuilder.Entity<MissionDebrief>(entity =>
+        {
+            entity.ToTable("MissionDebriefs", "story");
+
+            entity.HasIndex(e => e.GoalId, "UX_MissionDebriefs_Goal")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MissionDebriefs_CreatedAt");
+
+            entity.HasOne(d => d.Goal).WithOne(p => p.MissionDebrief)
+                .HasForeignKey<MissionDebrief>(d => d.GoalId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MissionDebriefs_Goals");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MissionDebriefs)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MissionDebriefs_Users");
+        });
+
+        modelBuilder.Entity<MissionPrerequisite>(entity =>
+        {
+            entity.ToTable("MissionPrerequisites", "story");
+
+            entity.HasIndex(e => e.RequiresGoalId, "IX_MissionPrerequisites_Requires").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.GoalId, e.RequiresGoalId }, "UX_MissionPrerequisites_Pair")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MissionPrerequisites_CreatedAt");
+
+            entity.HasOne(d => d.Goal).WithMany(p => p.MissionPrerequisiteGoals)
+                .HasForeignKey(d => d.GoalId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MissionPrerequisites_Goal");
+
+            entity.HasOne(d => d.RequiresGoal).WithMany(p => p.MissionPrerequisiteRequiresGoals)
+                .HasForeignKey(d => d.RequiresGoalId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MissionPrerequisites_RequiresGoal");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MissionPrerequisites)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MissionPrerequisites_Users");
         });
 
         modelBuilder.Entity<Project>(entity =>

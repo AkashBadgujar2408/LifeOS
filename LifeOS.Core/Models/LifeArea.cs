@@ -24,4 +24,6 @@ public partial class LifeArea
     public virtual ICollection<Habit> Habits { get; set; } = new List<Habit>();
 
     public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
+
+    public virtual ICollection<LifeAreaRating> LifeAreaRatings { get; set; } = new List<LifeAreaRating>();
 }

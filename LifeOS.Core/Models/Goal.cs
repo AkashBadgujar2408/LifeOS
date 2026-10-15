@@ -39,5 +39,11 @@ public partial class Goal
 
     public virtual LifeArea LifeArea { get; set; } = null!;
 
+    public virtual MissionDebrief? MissionDebrief { get; set; }
+
+    public virtual ICollection<MissionPrerequisite> MissionPrerequisiteGoals { get; set; } = new List<MissionPrerequisite>();
+
+    public virtual ICollection<MissionPrerequisite> MissionPrerequisiteRequiresGoals { get; set; } = new List<MissionPrerequisite>();
+
     public virtual User User { get; set; } = null!;
 }

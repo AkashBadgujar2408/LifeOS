@@ -8,7 +8,7 @@ Prepared: 2026-10-13 · **Status 2026-10-15: Month 1 complete** — all seven co
 
 ## 0. Purpose of this document
 
-This is the working plan for building LifeOS: what we're building, in what order, and how we'll split the work into sessions that fit a **Claude Pro + Claude Code** workflow on a **1-month timeline at ~2 hours/day**. It is a living document — update it as scope, decisions, or priorities change. It is based on `LifeOS_Complete_Life_Management_Blueprint.docx` (a ChatGPT-authored concept document), but **deviates from it in several places** where I think the blueprint needs adjusting for a real, buildable, one-person project. Those deviations are called out explicitly in Section 2 so you can push back on any of them.
+This is the working plan for building LifeOS: what we're building, in what order, and how we'll split the work into sessions that fit a **Claude Pro + Claude Code** workflow on a **1-month timeline at ~2 hours/day**. It is a living document — update it as scope, decisions, or priorities change. It is based on [`docs/BLUEPRINT.md`](docs/BLUEPRINT.md) (a ChatGPT-authored concept document), but **deviates from it in several places** where I think the blueprint needs adjusting for a real, buildable, one-person project. Those deviations are called out explicitly in Section 2 so you can push back on any of them.
 
 ---
 
@@ -255,7 +255,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 | 25 | ✅ UX pass | One error envelope from the API (validation included) + `apiErrorMessage` on the client (44 call sites) with a "can't reach the server" case; expired/revoked logins → back to login with a return URL instead of failing every request; list pages show a "couldn't load — try again" block instead of a misleading empty state; duplicate toasts suppressed; every page checked at 375px; forms/placeholders audited (already complete) | **Done** — expired login, revoked token, API down and retry all exercised in the browser; no horizontal scroll on any of 18 pages |
 | 26 | ✅ Testing pass | Gaps closed: `core/dates/today.ts` (every local-date helper, DST, leap years — had no tests), recurrence edges (quarterly from the 31st, years overdue, yearly done late, anchor ahead of the completed date → fixed to count from k = 0), link canonicalisation (the duplicate-link index depends on it), a streak edge; `npm run test:tz` runs the frontend suite in six real timezones | **Done** — 74 backend + 85 frontend green, and the frontend green in all six timezones |
 | 27 | ✅ Docs | Root `README.md` (setup from zero, run, test, layout, backups, troubleshooting), `docs/ARCHITECTURE.md` (request flow, modules, data rules, cross-cutting features, procedures, API surface, adding-a-module checklist), `lifeos-web/README.md`, `CLAUDE.md` tidied and pointed at this plan as the main document; Month 1 backlog collected here (Section 7) after checking the Blueprint | **Done** — setup steps re-run from scratch against a fresh database; the backlog order awaits your confirmation |
-| 28 | Buffer | Catch-up for whatever slipped | — |
+| — | Buffer (not needed) | Catch-up for whatever slipped | Month 1 finished without slipping, so the buffer went unused; session numbers continue at 28 with Story Mode (Section 7) |
 
 ---
 
@@ -265,8 +265,8 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 
 Session estimates use the same yardstick as Month 1 (schema+scaffold session, API+core-CRUD session(s), specialized UI/logic session(s) per module, scaled to how many sub-modules the blueprint lists for each).
 
-### Backlog carried out of Month 1 (please confirm the order)
-Month 1 built the six core modules to a solid standard, not every sub-module the Blueprint lists for them, and a few platform items were deliberately deferred. Everything left over is collected here so nothing is lost; checked against `LifeOS_Complete_Life_Management_Blueprint.docx` Section 2 on 2026-10-15.
+### Backlog carried out of Month 1 (order decided 2026-10-15: Story Mode → Calendar follow-up with recurring events → Documents)
+Month 1 built the six core modules to a solid standard, not every sub-module the Blueprint lists for them, and a few platform items were deliberately deferred. Everything left over is collected here so nothing is lost; checked against [`docs/BLUEPRINT.md`](docs/BLUEPRINT.md) Section 2 on 2026-10-15.
 
 **Folded into Story Mode** (it's the natural home — Blueprint Section 7 calls this the "Life Timeline"):
 - Journal → *Personal Milestones*, *Year in Review* — the Life Story timeline and its chapters cover both.
@@ -289,6 +289,17 @@ Month 1 built the six core modules to a solid standard, not every sub-module the
 - **Data export/import and permanent deletion** (Blueprint principle 9: "data portability and permanent deletion are foundational") — Phase 2; everything is soft-deleted today.
 - **Enable/disable life areas or modules per user** (Blueprint principle 9: modularity) — Phase 2+.
 - Password reset; tags on journal entries; dismissing an insight; mood trend beyond 30 days; detail pages titled by their item ("Visit Japan | LifeOS" rather than "Goal | LifeOS").
+
+### Story Mode — session by session (Phase 2, Sessions 28–32)
+Design decisions confirmed with you 2026-10-15: **chapters follow one another** (no overlap; starting a new current chapter closes the previous one the day before); **mission kind comes from the goal type** (long-term = main, short-term = side, bucket list = collectible); the **"Mission passed" debrief has two optional prompts** ("How it went", "What I'd tell my past self"); **life areas are self-rated monthly** (1–10 + note), shown beside Session 24's activity bars. A prerequisite holds a mission back only while it's Active or Postponed (Completed or Abandoned releases it — a dropped goal mustn't lock another forever). No penalties anywhere; everything game-like is derived from real data.
+
+| # | Session | Deliverable | Done when |
+|---|---|---|---|
+| 28 | ✅ Story schema + rules | `database/schema/08_story.sql` (schema `story`): `Chapters`, `MissionPrerequisites`, `MissionDebriefs`, `LifeAreaRatings`; scaffold; pure `MissionKinds`, `MissionGraph` (blocked-by, cycle check), `ChapterRules` (no overlap, turn the page, chapter on a day, month start); goal delete cleans up its story rows; the Blueprint converted to `docs/BLUEPRINT.md` | **Done** — every constraint verified in SQL, fresh DB scaffolds identically, 98 backend tests |
+| 29 | Chapters + Life Story timeline | Chapters CRUD API + page; `story.GetLifeStory` procedure (goal starts/completions/abandons/revisions, milestones, debriefs, journal highlights by mood, habit streak records) grouped by chapter, read like a book; "Story" nav entry | The timeline reads chronologically by chapter, entries from every source in the right chapter |
+| 30 | Missions | Missions page (main / side / collectibles, objectives = milestones, locked/unlocked with what's blocking); prerequisites set from the goal page (cycle-safe); "Mission passed" screen on completing a goal with the debrief prompts; debriefs join the story | Completing a goal shows Mission passed, the debrief appears in the story, a dependent mission unlocks |
+| 31 | Life-area stats + self-rating + recap | Per-area stats derived from activity (levels from completed goals/milestones/habit days, no decay); monthly self-rating screen; ratings beside the activity bars; "Previously on…" recap card on My Day (current chapter, last beat, active main mission) | Rating a month shows beside activity; the recap reflects the latest story events |
+| 32 | Achievements + polish | Computed achievements (first mission passed, 7/30/100-day streaks, a chapter closed, every life area touched in a month…), never stored; story polish, phone width, docs | Achievements unlock from real data and appear in the story; everything verified in the browser |
 
 ### Phase 2 — Personal Administration & Growth (~Month 2, ~22 sessions ≈ 44h ≈ 3 weeks at 2h/day)
 Prioritized to match your stated interests (learning Angular, serious career goals) over the blueprint's original ordering. **Story Mode comes first** (added at your request, 2026-10-15): it builds directly on Month 1's data and Milestone 7's dashboard/insights work.
@@ -327,7 +338,7 @@ Prioritized to match your stated interests (learning Angular, serious career goa
 ### Totals
 - Phases 2–5 combined: **~56 sessions ≈ ~110 hours ≈ ~8 weeks** of actual work at 2h/day.
 - Grand total with Month 1: **~84 sessions ≈ ~165 hours**, which spread across real calendar time (accounting for missed days, the Angular learning curve flattening out, and plain life) lands at roughly **4 months to a complete 20-module LifeOS**, not 1.
-- Each module retains its full sub-module breakdown from the original blueprint (unchanged) — see `LifeOS_Complete_Life_Management_Blueprint.docx` Section 2 for the complete catalogue. Nothing there needs to change; only the build order and pacing do. Session-level breakdowns per module (like Section 6 has for Month 1) get written once we're actually starting that phase, not now — no point planning Session 47 in detail before Session 12 has taught us anything about real pace.
+- Each module retains its full sub-module breakdown from the original blueprint (unchanged) — see [`docs/BLUEPRINT.md`](docs/BLUEPRINT.md) Section 2 for the complete catalogue. Nothing there needs to change; only the build order and pacing do. Session-level breakdowns per module (like Section 6 has for Month 1) get written once we're actually starting that phase, not now — no point planning Session 47 in detail before Session 12 has taught us anything about real pace.
 
 ---
 

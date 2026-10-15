@@ -25,8 +25,8 @@ Phase 2 onwards. Start there. The rest supports it:
 - [`PROGRESS.md`](PROGRESS.md): a detailed log of every session (what shipped, how it was verified, decisions).
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): how the code is put together.
 - [`CLAUDE.md`](CLAUDE.md): the working conventions. Read it before changing code (Claude Code loads it automatically).
-- `LifeOS_Complete_Life_Management_Blueprint.docx`: the original product concept, the full 20-module catalogue that
-  the plan schedules.
+- [`docs/BLUEPRINT.md`](docs/BLUEPRINT.md): the original product concept and the full 20-module catalogue that the plan
+  schedules (converted from the Blueprint Word file, which was removed on 2026-10-15).
 - `LifeOS_Development_Plan.docx`: an early Word copy of the plan (as of Session 5). The `.md` is the maintained
   version.
 

@@ -43,6 +43,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Calendar & Reminders | `calendar` | Events, Reminders | `Calendar/` (+ proc `calendar.GetCalendarFeed`) | `calendar`, `reminders` |
 | Habits | `habits` | Habits, HabitEntries | `Habits/` | `habits` |
 | Journal | `journal` | JournalEntries, WeeklyReflections | `Journal/` | `journal` |
+| Story Mode (Phase 2, in progress) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — pure rules so far (`MissionKinds`, `MissionGraph`, `ChapterRules`) | — (Sessions 29–32) |
 | Dashboard & Insights | `dashboard` (procedures only) | — | `Dashboard/` (+ procs `dashboard.GetMyDay`, `dashboard.GetLifeBalance`) | `dashboard` (My Day) |
 
 Every module has the same server layout: `DTOs/` (request/response shapes, status constants), `ServiceContracts/`

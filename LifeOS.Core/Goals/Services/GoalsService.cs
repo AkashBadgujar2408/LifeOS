@@ -195,6 +195,13 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         await db.GoalHistories
             .Where(h => h.GoalId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(h => h.IsDeleted, true).SetProperty(h => h.DeletedAt, now));
+        // Story Mode: the goal stops unlocking (and needing) other missions, and its debrief goes with it.
+        await db.MissionPrerequisites
+            .Where(p => p.GoalId == id || p.RequiresGoalId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsDeleted, true).SetProperty(p => p.DeletedAt, now));
+        await db.MissionDebriefs
+            .Where(d => d.GoalId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(d => d.IsDeleted, true).SetProperty(d => d.DeletedAt, now));
 
         goal.IsDeleted = true;
         goal.DeletedAt = now;

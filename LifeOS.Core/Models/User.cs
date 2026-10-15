@@ -23,6 +23,8 @@ public partial class User
 
     public string Username { get; set; } = null!;
 
+    public virtual Chapter? Chapter { get; set; }
+
     public virtual ICollection<EntityLink> EntityLinks { get; set; } = new List<EntityLink>();
 
     public virtual ICollection<Event> Events { get; set; } = new List<Event>();
@@ -42,6 +44,12 @@ public partial class User
     public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();
 
     public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
+
+    public virtual ICollection<LifeAreaRating> LifeAreaRatings { get; set; } = new List<LifeAreaRating>();
+
+    public virtual ICollection<MissionDebrief> MissionDebriefs { get; set; } = new List<MissionDebrief>();
+
+    public virtual ICollection<MissionPrerequisite> MissionPrerequisites { get; set; } = new List<MissionPrerequisite>();
 
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
 
