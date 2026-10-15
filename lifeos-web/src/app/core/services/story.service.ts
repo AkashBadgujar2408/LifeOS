@@ -79,6 +79,58 @@ export interface LifeStory {
   chapterCount: number;
 }
 
+export type GoalStatus = 'Active' | 'Completed' | 'Postponed' | 'Abandoned';
+
+/** Another mission, as a prerequisite list needs it. */
+export interface MissionRef {
+  id: number;
+  title: string;
+  status: GoalStatus;
+  kind: MissionKind;
+}
+
+export interface MissionObjective {
+  id: number;
+  title: string;
+  done: boolean;
+  targetDate: string | null;
+}
+
+/** A goal seen as a mission. Locks are advisory: shown, never enforced. */
+export interface Mission {
+  id: number;
+  title: string;
+  kind: MissionKind;
+  status: GoalStatus;
+  lifeAreaName: string;
+  targetDate: string | null;
+  createdAt: string;
+  completedAt: string | null;
+  progressPercent: number;
+  objectives: MissionObjective[];
+  prerequisites: MissionRef[];
+  /** Prerequisites still in play (Active/Postponed); empty = unlocked. */
+  blockedBy: MissionRef[];
+  unlocks: MissionRef[];
+  isLocked: boolean;
+  hasDebrief: boolean;
+}
+
+export interface MissionDebrief {
+  goalId: number;
+  howItWent: string | null;
+  adviceToPastSelf: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface MissionPassed {
+  mission: Mission;
+  /** Missions that were waiting on this one and are now free. */
+  nowUnlocked: MissionRef[];
+  debrief: MissionDebrief | null;
+}
+
 /** The browser's IANA timezone ("Asia/Kolkata"), so the API puts recorded moments on the right local day. */
 export function browserTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -88,6 +140,7 @@ export function browserTimeZone(): string {
 export class StoryService {
   private readonly http = inject(HttpClient);
   private readonly chaptersUrl = '/api/Story/Chapters';
+  private readonly missionsUrl = '/api/Story/Missions';
 
   lifeStory(): Observable<LifeStory> {
     const params = new HttpParams().set('tz', browserTimeZone());
@@ -118,5 +171,46 @@ export class StoryService {
     return this.http
       .delete<ApiResponse<boolean>>(`${this.chaptersUrl}/${id}`)
       .pipe(map(() => undefined));
+  }
+
+  missions(): Observable<Mission[]> {
+    return this.http
+      .get<ApiResponse<Mission[]>>(this.missionsUrl)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  mission(goalId: number): Observable<Mission> {
+    return this.http
+      .get<ApiResponse<Mission>>(`${this.missionsUrl}/${goalId}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  addPrerequisite(goalId: number, requiresGoalId: number): Observable<Mission> {
+    return this.http
+      .post<ApiResponse<Mission>>(`${this.missionsUrl}/${goalId}/prerequisites`, { requiresGoalId })
+      .pipe(map((response) => response.data!));
+  }
+
+  removePrerequisite(goalId: number, requiresGoalId: number): Observable<Mission> {
+    return this.http
+      .delete<ApiResponse<Mission>>(`${this.missionsUrl}/${goalId}/prerequisites/${requiresGoalId}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** The "Mission passed" screen for a completed goal. */
+  passed(goalId: number): Observable<MissionPassed> {
+    return this.http
+      .get<ApiResponse<MissionPassed>>(`${this.missionsUrl}/${goalId}/passed`)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Both prompts blank removes the debrief (resolves null). */
+  saveDebrief(
+    goalId: number,
+    debrief: { howItWent: string | null; adviceToPastSelf: string | null },
+  ): Observable<MissionDebrief | null> {
+    return this.http
+      .put<ApiResponse<MissionDebrief | null>>(`${this.missionsUrl}/${goalId}/debrief`, debrief)
+      .pipe(map((response) => response.data));
   }
 }

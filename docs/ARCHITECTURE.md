@@ -43,7 +43,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Calendar & Reminders | `calendar` | Events, Reminders | `Calendar/` (+ proc `calendar.GetCalendarFeed`) | `calendar`, `reminders` |
 | Habits | `habits` | Habits, HabitEntries | `Habits/` | `habits` |
 | Journal | `journal` | JournalEntries, WeeklyReflections | `Journal/` | `journal` |
-| Story Mode (Phase 2, in progress) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — Chapters, Life Story (+ proc `story.GetLifeStory`), pure `MissionKinds`/`MissionGraph`/`ChapterRules`/`LifeStoryBuilder` | `story` (Sessions 30–32 add missions, ratings, achievements) |
+| Story Mode (Phase 2, in progress) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — Chapters, Life Story (+ proc `story.GetLifeStory`), Missions; pure `MissionKinds`/`MissionGraph`/`ChapterRules`/`LifeStoryBuilder` | `story` (`/story`, `/missions`, Mission passed dialog, goal-page Story card; Sessions 31–32 add ratings, recap, achievements) |
 | Dashboard & Insights | `dashboard` (procedures only) | — | `Dashboard/` (+ procs `dashboard.GetMyDay`, `dashboard.GetLifeBalance`) | `dashboard` (My Day) |
 
 Every module has the same server layout: `DTOs/` (request/response shapes, status constants), `ServiceContracts/`
@@ -119,6 +119,7 @@ All routes need a JWT except register, login and ping.
 | `api/Journal/Entries`, `Reflections` | entries by day (`GET`/`PUT`/`DELETE day/{date}`), `GET moods`, `POST from-inbox/{id}`; reflections `GET`/`PUT {monday}` |
 | `api/Dashboard/MyDay`, `LifeBalance` | the My Day snapshot (with insights); activity per life area |
 | `api/Story/Chapters`, `LifeStory` | Chapters CRUD (a new current chapter closes the previous); the story filed into chapters (`?tz=`) |
+| `api/Story/Missions` | goals as missions (`GET`, `GET {goalId}`), `POST {goalId}/prerequisites`, `DELETE {goalId}/prerequisites/{requiresGoalId}`, `GET {goalId}/passed`, `PUT {goalId}/debrief` |
 
 Swagger UI (`/swagger`, Development only) has the full request/response shapes.
 

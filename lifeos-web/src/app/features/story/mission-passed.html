@@ -1,0 +1,111 @@
+@if (data(); as d) {
+  <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+    <div class="mission-passed-banner">
+      <button
+        type="button"
+        class="btn-close btn-close-white mission-passed-close"
+        aria-label="Close"
+        (click)="activeModal.dismiss()"
+      ></button>
+      <div class="mission-passed-kicker">
+        <i class="bi bi-trophy-fill" aria-hidden="true"></i> Mission passed
+      </div>
+      <h2 id="mission-passed-heading" class="mission-passed-title">{{ d.mission.title }}</h2>
+      <p class="mb-0 mission-passed-meta">
+        <i class="bi {{ kindMeta[d.mission.kind].icon }}" aria-hidden="true"></i>
+        {{ kindMeta[d.mission.kind].label }} · {{ d.mission.lifeAreaName }}
+      </p>
+    </div>
+
+    <div class="modal-body d-flex flex-column gap-4">
+      <dl class="mission-passed-stats mb-0">
+        @if (took(); as took) {
+          <div>
+            <dt>Took</dt>
+            <dd>{{ took }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Objectives</dt>
+          <dd>
+            @if (d.mission.objectives.length > 0) {
+              {{ objectivesDone() }} of {{ d.mission.objectives.length }}
+            } @else {
+              None set
+            }
+          </dd>
+        </div>
+        @if (d.mission.unlocks.length > 0) {
+          <div>
+            <dt>Led to</dt>
+            <dd>
+              {{ d.mission.unlocks.length }}
+              {{ d.mission.unlocks.length === 1 ? 'mission' : 'missions' }}
+            </dd>
+          </div>
+        }
+      </dl>
+
+      @if (d.nowUnlocked.length > 0) {
+        <div class="mission-unlocked" role="status">
+          <div class="fw-semibold mb-1">
+            <i class="bi bi-unlock-fill"></i> New missions unlocked
+          </div>
+          <ul class="list-unstyled mb-0">
+            @for (m of d.nowUnlocked; track m.id) {
+              <li>
+                <a [routerLink]="['/goals', m.id]" (click)="activeModal.dismiss()">{{ m.title }}</a>
+                <span class="text-body-secondary small"> · {{ kindMeta[m.kind].label }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      <div>
+        <h3 class="h6 mb-1">Debrief</h3>
+        <p class="small text-body-secondary mb-3">
+          Two lines for your story — both optional, and you can come back to them from Missions.
+        </p>
+        <div class="mb-3">
+          <label class="form-label" for="debrief-how">How it went</label>
+          <textarea
+            id="debrief-how"
+            class="form-control"
+            rows="3"
+            [class.is-invalid]="fieldError('howItWent')"
+            formControlName="howItWent"
+            placeholder="What it took, what surprised you, the moment it came together"
+            ngbAutofocus
+          ></textarea>
+          @if (fieldError('howItWent'); as error) {
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          }
+        </div>
+        <div>
+          <label class="form-label" for="debrief-advice">What I'd tell my past self</label>
+          <textarea
+            id="debrief-advice"
+            class="form-control"
+            rows="2"
+            [class.is-invalid]="fieldError('adviceToPastSelf')"
+            formControlName="adviceToPastSelf"
+            placeholder="e.g. Start earlier, and ask for help sooner"
+          ></textarea>
+          @if (fieldError('adviceToPastSelf'); as error) {
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-secondary" (click)="activeModal.close(false)">
+        Not now
+      </button>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">Save to my story</button>
+    </div>
+  </form>
+} @else {
+  <div class="modal-body text-body-secondary">Opening the mission...</div>
+}

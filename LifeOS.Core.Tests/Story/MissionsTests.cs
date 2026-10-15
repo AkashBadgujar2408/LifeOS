@@ -71,4 +71,26 @@ public class MissionsTests
         Assert.False(MissionGraph.WouldCreateCycle(edges, 500, 200));
         Assert.True(MissionGraph.WouldCreateCycle(edges, 1, 200));
     }
+
+    [Fact]
+    public void Completing_a_prerequisite_unlocks_only_missions_with_nothing_else_left()
+    {
+        // Visit Japan (1) needs passport (2) and savings (3); Learn kanji (4) needs only the passport (odd, but fine);
+        // Old plan (5) needed the passport too but was let go.
+        (int, int)[] edges = [(1, 2), (1, 3), (4, 2), (5, 2)];
+        var status = new Dictionary<int, string>
+        {
+            [1] = GoalStatuses.Active,
+            [2] = GoalStatuses.Completed,
+            [3] = GoalStatuses.Active,
+            [4] = GoalStatuses.Postponed,
+            [5] = GoalStatuses.Abandoned,
+        };
+
+        Assert.Equal([4], MissionGraph.UnlockedBy(2, edges, status));
+
+        // Once the savings are done too, Visit Japan is announced when *that* completes.
+        status[3] = GoalStatuses.Completed;
+        Assert.Equal([1], MissionGraph.UnlockedBy(3, edges, status));
+    }
 }

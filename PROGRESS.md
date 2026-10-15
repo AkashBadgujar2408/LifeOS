@@ -1,9 +1,10 @@
 # LifeOS Progress Log
 
-> **Where things stand (2026-10-15):** Month 1 is complete — Sessions 1–27, all seven core modules plus the UX, testing
-> and docs passes. The main document is `LifeOS_Development_Plan.md` (roadmap, decisions, backlog); this file is the
-> detailed per-session log, newest at the bottom. **Next: Phase 2, starting with Story Mode** — but first confirm the
-> order of the "Backlog carried out of Month 1" in the plan's Section 7.
+> **Where things stand (2026-10-15):** Month 1 is complete (Sessions 1–27: all seven core modules plus the UX, testing
+> and docs passes). Phase 2 has started with **Story Mode: Sessions 28–30 done** (schema + rules, chapters + Life Story,
+> missions + Mission passed). **Next: Session 31** — life-area stats, the monthly self-rating and the "Previously on…"
+> recap; then Session 32 (achievements + polish). The main document is `LifeOS_Development_Plan.md`; this file is the
+> detailed per-session log, newest at the bottom.
 
 ## Last session: 2026-10-13 — Session 1 — Solution & Angular scaffold
 - Shipped:
@@ -587,3 +588,25 @@
 - Note: clicking small checkboxes by reference in the browser tool is unreliable — click the label (that's why the first editor check briefly looked like a bug).
 
 - Next up: **Session 30 — Missions** (missions page, prerequisites from the goal page, "Mission passed" debrief on completion).
+
+## Last session: 2026-10-15 — Session 30 — Story Mode 3: Missions
+- Shipped (backend):
+  - **`MissionsService`** + `api/Story/Missions`: `GET` (every goal as a mission, oldest first) and `GET {goalId}` — kind (from goal type), status, life area, target, objectives (= milestones, in order), progress (`GoalProgress`), prerequisites, **`blockedBy`** (only Active/Postponed prerequisites block), **`unlocks`**, `isLocked`, `hasDebrief`. One EF snapshot (goals, milestones, edges, debriefs — user-scoped by the global filters) + the pure helpers; nothing derived is stored.
+  - Prerequisites: `POST {goalId}/prerequisites` (`{ requiresGoalId }`) rejects unknown goals, self, duplicates and **loops** (`MissionGraph.WouldCreateCycle`, with a message naming the goal that already depends on this one); a double-click race is treated as done. `DELETE {goalId}/prerequisites/{requiresGoalId}`.
+  - **Mission passed**: `GET {goalId}/passed` (Completed goals only) → the mission, **`nowUnlocked`** (new pure `MissionGraph.UnlockedBy`: missions waiting on it that have nothing else left — let-go/passed ones aren't announced; 1 new xUnit case, 104 backend) and the debrief.
+  - **Debrief**: `PUT {goalId}/debrief` (`howItWent`, `adviceToPastSelf`; Completed only; trimmed) — **rewritten in place**, both blank removes it (`data: null`), re-writing after that adds a fresh row (the filtered unique index allows one live).
+- Shipped (frontend):
+  - `story.service.ts` mission types/methods; `features/story/missions-view.ts` (pure: `MISSION_KIND_META`, `missionFilterOf`, `inPlayByKind` — unlocked, then locked, then on hold, nearest target first; `passedMissions`; `daysTaken` in local days + label; `nextObjective`; 8 specs, 100 frontend).
+  - **`/missions`** ("Missions" in the "Your story" nav group): In play grouped into Main missions / Side missions / Collectibles (cards: title → goal page, life area + target, **Locked** badge with a dashed border and "Needs first: …" links, On hold badge, objectives progress + next objective, "Unlocks …") and **Passed** (trophy, kind, passed date, "took N days", Read/Write debrief → the Mission passed dialog). Empty states for both.
+  - **Mission passed dialog** (`mission-passed.ts`): the one celebratory screen — brand-gradient banner with the mission title and kind, "Took / Objectives / Led to" figures, "New missions unlocked" with links, then the two debrief prompts ("How it went", "What I'd tell my past self"), "Save to my story" / "Not now".
+  - **Goal page**: completing a goal now opens Mission passed (instead of the status toast); a new **Story card** (`<app-mission-links>`): mission kind, a gentle "Locked until … — you can still work on it" note, **Needs first** list with remove, an add select (excludes itself, current prerequisites and missions it unlocks), and **Unlocks**. Re-reads when the status changes.
+- Decisions (mine — say if you want them changed): **locks are advisory** (shown, never enforced — real life doesn't wait for a quest flag); a debrief can only be written for a passed mission; Missions is a read-and-link view — goals are still created/edited/completed on the Goals pages.
+- Verified:
+  - curl (dashuser1/2): "Renew my passport" as a prerequisite of "See the northern lights" → locked, blockedBy the passport; duplicate / self / loop / unknown / missing id → readable 400s; dashuser2 adding on dashuser1's goal → 404; passed + debrief before completion → 400; completing the passport → `nowUnlocked: ["See the northern lights"]`; debrief saved (trimmed), rewritten (still one row), cleared (`null`), re-written; northern lights then unlocked; prerequisite removed, removing again → 404.
+  - Browser: Missions showed the side mission "Unlocks See the northern lights" and the collectible **Locked** with "Needs first: Save for the aurora trip"; the goal page's Story card listed the unlock and left it out of the add list; **Mark completed → Mission passed** ("took the same day", 0 of 1 objectives, "New missions unlocked: See the northern lights"); debrief saved → toast; the Life Story showed both debriefs under their "Mission passed" beats; Missions then showed the collectible unlocked and Passed (3) with Read/Write debrief correctly. 375px: no horizontal scroll on /missions or the goal page. No console errors.
+  - `dotnet build` 0 warnings; `ng build`, lint, Prettier clean; tests **104 backend + 100 frontend**. No schema change this session.
+- Notes:
+  - UAT test data (dashuser1): goals "Renew my passport" (passed, debrief), "Save for the aurora trip" (passed, debrief; prerequisite of "See the northern lights"), chapters University / First job / The LifeOS year.
+  - The browser tool's ref clicks didn't register on the Passed tab or small checkboxes; real DOM clicks did — the app was fine (noted in CLAUDE.md).
+
+- Next up: **Session 31 — Life-area stats + monthly self-rating + "Previously on…" recap** (plan, Section 7). Stopped here at your request.

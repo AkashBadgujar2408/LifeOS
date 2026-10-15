@@ -47,6 +47,23 @@ public static class MissionGraph
             .ToList();
 
     /// <summary>
+    /// The missions that were waiting on <paramref name="completedGoalId"/> and, with it done, have nothing else
+    /// holding them back — what "Mission passed" announces as unlocked. Missions no longer in play (completed or let
+    /// go) aren't announced.
+    /// </summary>
+    public static IReadOnlyList<int> UnlockedBy(
+        int completedGoalId,
+        IReadOnlyCollection<(int GoalId, int RequiresGoalId)> edges,
+        IReadOnlyDictionary<int, string> statusByGoal) =>
+        edges
+            .Where(e => e.RequiresGoalId == completedGoalId)
+            .Select(e => e.GoalId)
+            .Distinct()
+            .Where(waiting => statusByGoal.TryGetValue(waiting, out var status) && Blocks(status))
+            .Where(waiting => BlockedBy(waiting, edges, statusByGoal).Count == 0)
+            .ToList();
+
+    /// <summary>
     /// Would adding "<paramref name="goalId"/> requires <paramref name="requiresGoalId"/>" close a loop? True when
     /// <paramref name="requiresGoalId"/> already (directly or through others) requires <paramref name="goalId"/> — or
     /// is the same goal.

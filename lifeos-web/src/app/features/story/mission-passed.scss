@@ -1,0 +1,64 @@
+// The one celebratory moment in the app: the brand gradient, big title, then back to calm for the debrief.
+.mission-passed-banner {
+  position: relative;
+  padding: 1.75rem 1.5rem 1.5rem;
+  background: var(--lifeos-gradient);
+  color: #fff;
+  border-top-left-radius: var(--cui-modal-inner-border-radius, 0.5rem);
+  border-top-right-radius: var(--cui-modal-inner-border-radius, 0.5rem);
+}
+
+.mission-passed-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+.mission-passed-kicker {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.mission-passed-title {
+  font-family: 'Sora', sans-serif;
+  font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.1rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0.35rem 0 0.25rem;
+}
+
+.mission-passed-meta {
+  opacity: 0.9;
+}
+
+.mission-passed-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 2.5rem;
+
+  dt {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--cui-secondary-color);
+  }
+
+  dd {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--lifeos-ink);
+  }
+}
+
+.mission-unlocked {
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--lifeos-teal);
+  background: var(--lifeos-canvas);
+  border-radius: 0 4px 4px 0;
+}

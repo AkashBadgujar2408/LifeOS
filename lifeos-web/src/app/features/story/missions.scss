@@ -1,0 +1,30 @@
+.mission-kind-icon {
+  color: var(--lifeos-teal);
+}
+
+// A locked mission stays readable — it's a "not yet", not a "no".
+.mission-card-locked {
+  border-style: dashed;
+}
+
+.mission-lock {
+  background: transparent;
+  border: 1px solid var(--lifeos-amber);
+  color: var(--lifeos-amber);
+  font-weight: 500;
+}
+
+.mission-needs {
+  color: var(--lifeos-amber);
+}
+
+.mission-trophy {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--lifeos-teal);
+  color: #fff;
+  flex-shrink: 0;
+}

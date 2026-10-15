@@ -377,6 +377,12 @@
 
         <div class="card">
           <div class="card-body">
+            <app-mission-links [goalId]="goal.id" [status]="goal.status" />
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
             <app-linked-items [entityType]="goalEntityType" [entityId]="goal.id" />
           </div>
         </div>

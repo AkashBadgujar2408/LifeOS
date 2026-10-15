@@ -26,3 +26,22 @@ public interface ILifeStoryService
     /// </summary>
     Task<OperationResult<LifeStoryDto>> GetAsync(string? timeZoneId);
 }
+
+public interface IMissionsService
+{
+    /// <summary>Every goal as a mission (all statuses), oldest first; the page groups and filters.</summary>
+    Task<List<MissionDto>> ListAsync();
+
+    Task<OperationResult<MissionDto>> GetAsync(int goalId);
+
+    /// <summary>Makes <paramref name="goalId"/> need <paramref name="requiresGoalId"/> first; rejects loops.</summary>
+    Task<OperationResult<MissionDto>> AddPrerequisiteAsync(int goalId, int requiresGoalId);
+
+    Task<OperationResult<MissionDto>> RemovePrerequisiteAsync(int goalId, int requiresGoalId);
+
+    /// <summary>The "Mission passed" screen for a completed goal: the mission, what it unlocked, its debrief.</summary>
+    Task<OperationResult<MissionPassedDto>> GetPassedAsync(int goalId);
+
+    /// <summary>Writes (or rewrites) a passed mission's debrief; both prompts blank removes it (data: null).</summary>
+    Task<OperationResult<MissionDebriefDto?>> SaveDebriefAsync(int goalId, MissionDebriefRequest request);
+}

@@ -1,0 +1,191 @@
+<div class="container py-4 py-lg-5">
+  <header class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+    <div>
+      <h1 class="h2 mb-1">Missions</h1>
+      <p class="text-body-secondary mb-0">
+        Your goals, as the story's missions. Set and edit them on
+        <a routerLink="/goals">Goals</a>.
+      </p>
+    </div>
+    <div class="btn-group" role="group" aria-label="Which missions">
+      <button
+        type="button"
+        class="btn"
+        [class.btn-primary]="view() === 'inPlay'"
+        [class.btn-outline-primary]="view() !== 'inPlay'"
+        [attr.aria-pressed]="view() === 'inPlay'"
+        (click)="view.set('inPlay')"
+      >
+        In play
+        @if (missions()) {
+          ({{ inPlayCount() }})
+        }
+      </button>
+      <button
+        type="button"
+        class="btn"
+        [class.btn-primary]="view() === 'passed'"
+        [class.btn-outline-primary]="view() !== 'passed'"
+        [attr.aria-pressed]="view() === 'passed'"
+        (click)="view.set('passed')"
+      >
+        Passed
+        @if (missions()) {
+          ({{ passed().length }})
+        }
+      </button>
+    </div>
+  </header>
+
+  @if (loadFailed() && !missions()) {
+    <app-load-error message="Couldn't load your missions." (retry)="load()" />
+  } @else if (!missions()) {
+    <div class="text-body-secondary">Loading...</div>
+  } @else if (view() === 'inPlay') {
+    @if (inPlayCount() === 0) {
+      <div class="card">
+        <div class="card-body p-4">
+          <h2 class="h5">No missions in play</h2>
+          <p class="text-body-secondary mb-3">
+            Every goal is a mission: long-term goals are main missions, short-term ones side
+            missions, bucket-list ones collectibles.
+          </p>
+          <a routerLink="/goals/new" class="btn btn-primary">Set a goal</a>
+        </div>
+      </div>
+    } @else {
+      @for (kind of kinds; track kind) {
+        @if (inPlay()[kind].length > 0) {
+          <section class="mb-4" [attr.aria-labelledby]="'kind-' + kind">
+            <div class="d-flex align-items-baseline gap-2 mb-2">
+              <h2 class="h5 mb-0" [id]="'kind-' + kind">
+                <i class="bi {{ kindMeta[kind].icon }} mission-kind-icon" aria-hidden="true"></i>
+                {{ kindMeta[kind].plural }}
+              </h2>
+              <span class="small text-body-secondary">{{ kindMeta[kind].hint }}</span>
+            </div>
+            <div class="row g-3">
+              @for (m of inPlay()[kind]; track m.id) {
+                <div class="col-md-6 col-xl-4">
+                  <article class="card h-100 mission-card" [class.mission-card-locked]="m.isLocked">
+                    <div class="card-body d-flex flex-column">
+                      <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
+                        <a
+                          [routerLink]="['/goals', m.id]"
+                          class="fw-semibold link-body-emphasis text-decoration-none min-w-0 text-break"
+                          >{{ m.title }}</a
+                        >
+                        @if (m.status === 'Postponed') {
+                          <span class="badge text-bg-light border fw-normal flex-shrink-0"
+                            >On hold</span
+                          >
+                        } @else if (m.isLocked) {
+                          <span class="badge mission-lock flex-shrink-0">
+                            <i class="bi bi-lock-fill"></i> Locked
+                          </span>
+                        }
+                      </div>
+                      <div class="small text-body-secondary mb-2">
+                        {{ m.lifeAreaName }}
+                        @if (m.targetDate) {
+                          · by {{ m.targetDate | date }}
+                        }
+                      </div>
+
+                      @if (m.isLocked) {
+                        <p class="small mb-2 mission-needs">
+                          Needs first:
+                          @for (b of m.blockedBy; track b.id; let last = $last) {
+                            <a [routerLink]="['/goals', b.id]">{{ b.title }}</a
+                            >{{ last ? '' : ', ' }}
+                          }
+                        </p>
+                      }
+
+                      <div class="mt-auto">
+                        @if (m.objectives.length > 0) {
+                          <div
+                            class="progress"
+                            style="height: 0.4rem"
+                            role="progressbar"
+                            [attr.aria-label]="m.title + ' objectives'"
+                            [attr.aria-valuenow]="m.progressPercent"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                          >
+                            <div class="progress-bar" [style.width.%]="m.progressPercent"></div>
+                          </div>
+                          <div class="d-flex justify-content-between gap-2 small mt-1">
+                            <span class="text-body-secondary text-truncate min-w-0">
+                              @if (nextObjective(m); as next) {
+                                Next: {{ next }}
+                              } @else {
+                                All objectives done
+                              }
+                            </span>
+                            <span class="fw-semibold flex-shrink-0">{{ m.progressPercent }}%</span>
+                          </div>
+                        } @else {
+                          <div class="small text-body-secondary">
+                            No objectives yet — add milestones on the goal.
+                          </div>
+                        }
+                        @if (m.unlocks.length > 0) {
+                          <div class="small text-body-secondary mt-2">
+                            <i class="bi bi-unlock"></i> Unlocks
+                            @for (u of m.unlocks; track u.id; let last = $last) {
+                              {{ u.title }}{{ last ? '' : ', ' }}
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              }
+            </div>
+          </section>
+        }
+      }
+    }
+  } @else {
+    @if (passed().length === 0) {
+      <div class="card">
+        <div class="card-body p-4">
+          <h2 class="h5">No missions passed yet</h2>
+          <p class="text-body-secondary mb-0">
+            Complete a goal and it lands here, with a debrief for your story.
+          </p>
+        </div>
+      </div>
+    } @else {
+      <ul class="list-unstyled d-flex flex-column gap-2 mb-0">
+        @for (m of passed(); track m.id) {
+          <li class="card">
+            <div class="card-body d-flex flex-wrap align-items-center gap-3">
+              <span class="mission-trophy" aria-hidden="true"
+                ><i class="bi bi-trophy-fill"></i
+              ></span>
+              <div class="flex-grow-1 min-w-0">
+                <a
+                  [routerLink]="['/goals', m.id]"
+                  class="fw-semibold link-body-emphasis text-decoration-none text-break"
+                  >{{ m.title }}</a
+                >
+                <div class="small text-body-secondary">
+                  {{ kindMeta[m.kind].label }} · passed {{ m.completedAt | date }}
+                  @if (took(m); as took) {
+                    · took {{ took }}
+                  }
+                </div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="debrief(m)">
+                {{ m.hasDebrief ? 'Read debrief' : 'Write debrief' }}
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  }
+</div>

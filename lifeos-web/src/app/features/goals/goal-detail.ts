@@ -14,7 +14,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe, formatDate } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
+import { NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ToastService } from '../../core/services/toast.service';
 import Swal from 'sweetalert2';
 import {
@@ -27,6 +27,8 @@ import {
 } from '../../core/services/goals.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
+import { MissionLinks } from '../story/mission-links';
+import { openMissionPassed } from '../story/mission-passed';
 import {
   APP_DATE_FORMAT,
   APP_DATE_TIME_FORMAT,
@@ -54,6 +56,7 @@ const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(20
     NgbInputDatepicker,
     LinkedItems,
     EntityReminders,
+    MissionLinks,
   ],
   templateUrl: './goal-detail.html',
 })
@@ -62,6 +65,7 @@ export class GoalDetail implements OnInit {
   private readonly goalsService = inject(GoalsService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly modal = inject(NgbModal);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly locale = inject(LOCALE_ID);
@@ -287,7 +291,12 @@ export class GoalDetail implements OnInit {
         next: (updated) => {
           this.goal.set(updated);
           this.changingStatus.set(false);
-          this.toast.success(`${historyTitle(updated.history[0])}.`);
+          if (updated.status === 'Completed') {
+            // Story Mode: completing a goal is passing a mission — celebrate it and offer the debrief.
+            void openMissionPassed(this.modal, updated.id);
+          } else {
+            this.toast.success(`${historyTitle(updated.history[0])}.`);
+          }
         },
         error: (err) => {
           this.changingStatus.set(false);
