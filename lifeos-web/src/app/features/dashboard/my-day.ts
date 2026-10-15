@@ -14,7 +14,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { APP_DATE_FORMAT, APP_DAY_MONTH_FORMAT } from '../../core/dates/date-format';
-import { todayIso } from '../../core/dates/today';
+import { addDaysIso, todayIso } from '../../core/dates/today';
 import { AuthService } from '../../core/services/auth.service';
 import { CalendarService } from '../../core/services/calendar.service';
 import {
@@ -44,6 +44,8 @@ import {
   laterToday,
   splitTasks,
 } from './my-day-view';
+import { InsightsList } from './insights-list';
+import { LifeBalance } from './life-balance';
 
 const KIND_LABELS: Record<InboxKind, [singular: string, plural: string]> = {
   Task: ['Task', 'Tasks'],
@@ -69,7 +71,15 @@ const GOALS_SHOWN = 4;
 @Component({
   selector: 'app-my-day',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, NgTemplateOutlet, RouterLink, ReminderRow, HabitDay],
+  imports: [
+    DatePipe,
+    NgTemplateOutlet,
+    RouterLink,
+    ReminderRow,
+    HabitDay,
+    InsightsList,
+    LifeBalance,
+  ],
   templateUrl: './my-day.html',
   styleUrl: './my-day.scss',
 })
@@ -98,6 +108,8 @@ export class MyDay {
 
   /** The user's local date; moves on if the page is still open after midnight (checked on tab focus). */
   protected readonly today = signal(todayIso());
+  /** The Life Balance window: the 30 days ending today. */
+  protected readonly balanceFrom = computed(() => addDaysIso(this.today(), -29));
   protected readonly data = signal<MyDayData | null>(null);
   protected readonly loadError = signal(false);
   protected readonly busyTaskId = signal<number | null>(null);

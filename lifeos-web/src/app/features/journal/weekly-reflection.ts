@@ -9,10 +9,11 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 import Swal from 'sweetalert2';
 import { APP_DATE_TIME_FORMAT, APP_DAY_MONTH_FORMAT } from '../../core/dates/date-format';
 import { WEEKDAY_NAMES, addDaysIso, todayIso } from '../../core/dates/today';
@@ -23,6 +24,9 @@ import {
 } from '../../core/services/journal.service';
 import { ToastService } from '../../core/services/toast.service';
 import { averageMood, moodMeta, weekStartIso } from './journal-days';
+import { InsightsList } from '../dashboard/insights-list';
+import { LifeBalance } from '../dashboard/life-balance';
+import { DashboardService } from '../../core/services/dashboard.service';
 
 const PROMPTS = [
   {
@@ -51,12 +55,13 @@ type PromptName = (typeof PROMPTS)[number]['name'];
 @Component({
   selector: 'app-weekly-reflection',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, RouterLink],
+  imports: [DatePipe, ReactiveFormsModule, RouterLink, InsightsList, LifeBalance],
   templateUrl: './weekly-reflection.html',
 })
 export class WeeklyReflection {
   private readonly fb = inject(FormBuilder);
   private readonly journalService = inject(JournalService);
+  private readonly dashboardService = inject(DashboardService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -78,6 +83,17 @@ export class WeeklyReflection {
     return monday > this.thisWeek ? this.thisWeek : monday;
   });
   protected readonly isThisWeek = computed(() => this.week() === this.thisWeek);
+  /** The life-balance window: Monday to Sunday, or to today for the current week. */
+  protected readonly weekEnd = computed(() => {
+    const sunday = addDaysIso(this.week(), 6);
+    return sunday < this.today ? sunday : this.today;
+  });
+
+  /** This week only: the same rule-based insights My Day shows (they're about now, not a past week). */
+  protected readonly insights = rxResource({
+    params: () => (this.isThisWeek() ? this.today : undefined),
+    stream: ({ params }) => this.dashboardService.getMyDay(params).pipe(map((day) => day.insights)),
+  });
 
   protected readonly review = signal<WeeklyReview | null>(null);
   protected readonly saving = signal(false);

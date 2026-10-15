@@ -22,6 +22,9 @@ public class DashboardService(AppDbContext db) : IDashboardService
     // A local day is 23-25 hours (DST); anything much longer means the client sent the wrong span.
     private static readonly TimeSpan MaxDayLength = TimeSpan.FromHours(26);
 
+    // A year is plenty for a balance view; beyond that the counts stop meaning "lately".
+    private const int MaxBalanceDays = 366;
+
     public async Task<OperationResult<MyDayDto>> GetMyDayAsync(DateOnly today, DateTime? dayStartUtc, DateTime? dayEndUtc)
     {
         var startUtc = dayStartUtc?.ToUniversalTime() ?? today.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
@@ -59,7 +62,7 @@ public class DashboardService(AppDbContext db) : IDashboardService
             .GroupBy(e => e.HabitId)
             .ToDictionary(g => g.Key, g => g.Select(e => DateOnly.FromDateTime(e.EntryDate)).ToList());
 
-        return OperationResult<MyDayDto>.Ok(new MyDayDto
+        var myDay = new MyDayDto
         {
             Today = today,
             Tasks = tasks.Select(t => new MyDayTaskDto
@@ -129,7 +132,84 @@ public class DashboardService(AppDbContext db) : IDashboardService
                 Excerpt = journal.Excerpt,
                 Mood = journal.Mood,
             },
+        };
+
+        myDay.Insights = DashboardInsights.Evaluate(new InsightInputs(
+            today,
+            DateTime.UtcNow,
+            myDay.Habits
+                .Select(h => new InsightHabit(h.Id, h.Title, h.ScheduleDays, h.StartDate, doneByHabit.GetValueOrDefault(h.Id)?.ToHashSet() ?? [], h.Streak))
+                .ToList(),
+            myDay.Goals.Select(g => new InsightGoal(g.Id, g.Title, g.LastActivityAt)).ToList(),
+            myDay.LatestJournalEntry?.EntryDate,
+            myDay.Tasks.Count(t => !t.IsDone && t.DueDate < today)));
+
+        return OperationResult<MyDayDto>.Ok(myDay);
+    }
+
+    public async Task<OperationResult<LifeBalanceDto>> GetLifeBalanceAsync(
+        DateOnly from, DateOnly to, DateTime? fromUtc, DateTime? toUtc)
+    {
+        if (to < from)
+        {
+            return OperationResult<LifeBalanceDto>.Fail("The end date must be on or after the start date.");
+        }
+
+        if (to.DayNumber - from.DayNumber + 1 > MaxBalanceDays)
+        {
+            return OperationResult<LifeBalanceDto>.Fail($"Ask for at most {MaxBalanceDays} days at a time.");
+        }
+
+        var startUtc = fromUtc?.ToUniversalTime() ?? from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var endUtc = toUtc?.ToUniversalTime() ?? to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        if (endUtc <= startUtc)
+        {
+            return OperationResult<LifeBalanceDto>.Fail("The end of the range must be after its start.");
+        }
+
+        var parameters = new DynamicParameters();
+        parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
+        parameters.Add("FromDate", from.ToDateTime(TimeOnly.MinValue), DbType.Date);
+        parameters.Add("ToDate", to.ToDateTime(TimeOnly.MinValue), DbType.Date);
+        parameters.Add("FromUtc", startUtc, DbType.DateTime2);
+        parameters.Add("ToUtc", endUtc, DbType.DateTime2);
+
+        var rows = (await db.Database.GetDbConnection().QueryAsync<LifeBalanceRow>(
+            "dashboard.GetLifeBalance", parameters, commandType: CommandType.StoredProcedure)).ToList();
+
+        var points = rows
+            .Select(r => LifeBalance.Points(r.ActiveGoals, r.GoalsCompleted, r.MilestonesCompleted, r.HabitTicks, r.JournalEntries))
+            .ToList();
+        var scores = LifeBalance.Scores(points);
+
+        return OperationResult<LifeBalanceDto>.Ok(new LifeBalanceDto
+        {
+            From = from,
+            To = to,
+            Areas = rows.Select((r, i) => new LifeBalanceAreaDto
+            {
+                LifeAreaId = r.LifeAreaId,
+                LifeAreaName = r.LifeAreaName,
+                ActiveGoals = r.ActiveGoals,
+                GoalsCompleted = r.GoalsCompleted,
+                MilestonesCompleted = r.MilestonesCompleted,
+                HabitTicks = r.HabitTicks,
+                JournalEntries = r.JournalEntries,
+                Points = points[i],
+                Score = scores[i],
+            }).ToList(),
         });
+    }
+
+    private sealed class LifeBalanceRow
+    {
+        public int LifeAreaId { get; init; }
+        public string LifeAreaName { get; init; } = string.Empty;
+        public int ActiveGoals { get; init; }
+        public int GoalsCompleted { get; init; }
+        public int MilestonesCompleted { get; init; }
+        public int HabitTicks { get; init; }
+        public int JournalEntries { get; init; }
     }
 
     // Row types take ADO.NET's shapes as they come (DATE → DateTime, DATETIME2 → Unspecified kind); the mapping above

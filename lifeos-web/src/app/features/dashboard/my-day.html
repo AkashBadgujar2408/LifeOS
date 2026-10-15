@@ -51,6 +51,15 @@
   }
 
   @if (data(); as day) {
+    @if (day.insights.length > 0) {
+      <section class="card mb-3" aria-labelledby="insights-heading">
+        <div class="card-body p-4">
+          <h2 id="insights-heading" class="h5 mb-3">Worth a look</h2>
+          <app-insights-list [insights]="day.insights" />
+        </div>
+      </section>
+    }
+
     <div class="row g-3">
       <div class="col-lg-7 d-flex flex-column gap-3">
         <!-- Tasks -->
@@ -305,8 +314,8 @@
       </div>
 
       <!-- Goals -->
-      <div class="col-12">
-        <section class="card" aria-labelledby="goals-heading">
+      <div class="col-lg-7">
+        <section class="card h-100" aria-labelledby="goals-heading">
           <div class="card-body p-4">
             <div class="d-flex align-items-center justify-content-between mb-3">
               <h2 id="goals-heading" class="h5 mb-0">Goals in motion</h2>
@@ -373,6 +382,17 @@
                 }
               </div>
             }
+          </div>
+        </section>
+      </div>
+
+      <!-- Life balance -->
+      <div class="col-lg-5">
+        <section class="card h-100" aria-labelledby="balance-heading">
+          <div class="card-body p-4">
+            <h2 id="balance-heading" class="h5 mb-1">Life balance</h2>
+            <p class="small text-body-secondary mb-3">Last 30 days, busiest area = 10</p>
+            <app-life-balance [from]="balanceFrom()" [to]="today()" />
           </div>
         </section>
       </div>

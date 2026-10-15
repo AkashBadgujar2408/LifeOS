@@ -1,9 +1,12 @@
 import { MyDay, MyDayHabit, MyDayTask } from '../../core/services/dashboard.service';
 import {
+  balanceSummary,
   daySummary,
   daysBetween,
   habitToday,
   habitsInOrder,
+  insightLink,
+  joinNames,
   laterToday,
   splitTasks,
 } from './my-day-view';
@@ -43,6 +46,7 @@ function myDay(overrides: Partial<MyDay>): MyDay {
     goals: [],
     habits: [],
     latestJournalEntry: null,
+    insights: [],
     ...overrides,
   };
 }
@@ -129,5 +133,60 @@ describe('daySummary', () => {
 
   it('is empty for a clear day', () => {
     expect(daySummary(myDay({ tasks: [task(1, TODAY, true)] }))).toEqual([]);
+  });
+});
+
+describe('insightLink', () => {
+  const base = { kind: 'GoalUntouched' as const, tone: 'Nudge' as const, message: '' };
+
+  it('points habits and goals at their page, and page-level insights at the page', () => {
+    expect(insightLink({ ...base, entityType: 'Goal', entityId: 7 })?.link).toEqual(['/goals', 7]);
+    expect(insightLink({ ...base, entityType: 'Habit', entityId: 3 })?.link).toEqual([
+      '/habits',
+      3,
+    ]);
+    expect(insightLink({ ...base, entityType: 'Journal', entityId: null })?.link).toEqual([
+      '/journal',
+    ]);
+    expect(insightLink({ ...base, entityType: 'Tasks', entityId: null })?.link).toEqual(['/tasks']);
+  });
+
+  it('has nothing to open without a target', () => {
+    expect(insightLink({ ...base, entityType: null, entityId: null })).toBeNull();
+    expect(insightLink({ ...base, entityType: 'Goal', entityId: null })).toBeNull();
+  });
+});
+
+describe('balanceSummary / joinNames', () => {
+  const area = (lifeAreaName: string, points: number) => ({
+    lifeAreaId: 0,
+    lifeAreaName,
+    activeGoals: 0,
+    goalsCompleted: 0,
+    milestonesCompleted: 0,
+    habitTicks: 0,
+    journalEntries: 0,
+    points,
+    score: 0,
+  });
+
+  it('names the busiest areas (ties included) and the ones with nothing', () => {
+    expect(
+      balanceSummary([area('Career', 0), area('Health', 7), area('Learning', 7), area('Fun', 1)]),
+    ).toEqual({ busiest: ['Health', 'Learning'], quiet: ['Career'] });
+  });
+
+  it('says nothing when nothing happened', () => {
+    expect(balanceSummary([area('Career', 0), area('Health', 0)])).toEqual({
+      busiest: [],
+      quiet: [],
+    });
+  });
+
+  it('joins names like a sentence', () => {
+    expect(joinNames([])).toBe('');
+    expect(joinNames(['Health'])).toBe('Health');
+    expect(joinNames(['Health', 'Career'])).toBe('Health and Career');
+    expect(joinNames(['Health', 'Career', 'Fun'])).toBe('Health, Career and Fun');
   });
 });

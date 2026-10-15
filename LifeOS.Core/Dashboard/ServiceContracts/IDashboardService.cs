@@ -11,4 +11,10 @@ public interface IDashboardService
     /// timezone); when omitted they default to UTC midnights.
     /// </summary>
     Task<OperationResult<MyDayDto>> GetMyDayAsync(DateOnly today, DateTime? dayStartUtc, DateTime? dayEndUtc);
+
+    /// <summary>
+    /// Activity per life area over the user's local days <paramref name="from"/>..<paramref name="to"/> (inclusive);
+    /// <paramref name="fromUtc"/>/<paramref name="toUtc"/> are the same span as UTC instants, defaulting to UTC midnights.
+    /// </summary>
+    Task<OperationResult<LifeBalanceDto>> GetLifeBalanceAsync(DateOnly from, DateOnly to, DateTime? fromUtc, DateTime? toUtc);
 }

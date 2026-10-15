@@ -486,3 +486,23 @@
   - `ng build` clean, lint + Prettier clean, tests 50 backend + 62 frontend.
 
 - Next up: **Session 24 — Rule-based Insights + Life Balance Wheel (stretch)**.
+
+## Last session: 2026-10-15 — Session 24 — Rule-based Insights + Life Balance
+- Shipped (backend):
+  - **`DashboardInsights`** (`LifeOS.Core/Dashboard/Services/`, pure): five rules over the My Day data, computed per request, never stored — **habit streak just broken** (the latest scheduled day was missed right after a done one; clears once today is ticked; older misses aren't repeated), **goal untouched 14+ days** (from `LastActivityAt`), **no journal for 5+ days** (only once there's a journal), **3+ overdue tasks**, and a **streak milestone** cheer (7/14/21/30/50/100/200/365, on the day it's reached). Nudges first, then good news. `MyDayDto.Insights`. 12 xUnit cases.
+  - **Life Balance**: `database/procedures/dashboard.GetLifeBalance.sql` (one row per life area: active goals, goals/milestones completed in the window, habit days, journal entries — each its own correlated COUNT, no fan-out) + `LifeBalance` scoring (goal done 5, milestone 3, habit day / journal entry / active goal 1; busiest area = 10, rest in proportion, all zero when nothing happened; 4 xUnit cases) → `GET api/Dashboard/LifeBalance?from&to[&fromUtc&toUtc]` (max 366 days).
+- Shipped (frontend):
+  - `<app-insights-list>` (nudge signpost in amber / cheer stars in teal, sentence, link to the habit, goal, Journal or Tasks) — a **"Worth a look"** card on My Day, and on the weekly reflection for the current week.
+  - `<app-life-balance [from] [to]>` — one horizontal bar per life area in taxonomy order, score beside each, a sentence ("Most of your effort went to Health. Nothing yet in Career and Finance."), breakdown tooltip on hover/focus. On My Day (last 30 days, beside Goals in motion) and the weekly reflection ("Where the week went", Monday to Sunday/today).
+  - Helpers `insightLink`, `balanceSummary`, `joinNames` (+5 specs).
+- Decisions (mine — say if you want them changed): **bars instead of a radar/wheel chart** — following the dataviz guidance (comparing magnitude across categories is a bar job; a radar distorts area and is hard to read); the "balance" is relative (busiest = 10), not against targets; the insight rules' thresholds are constants in `DashboardInsights`; insights can't be dismissed (they disappear once the situation changes).
+- Verified:
+  - curl (dashuser1/2, seeded to trip every rule): "Read 20 pages" broke on Wednesday, "See the northern lights" untouched 20 days (backdated in SQL), 3 overdue tasks, "7 in a row on Stretch"; dashuser2 → only the 7-day journal gap. Balance for 30 days: Health 10 (7 habit days), Learning 8.6 (goal + milestone + 2 days), Relationships/Fun 1.4, Career/Finance 0 — matches by hand; reversed / >366-day ranges → 400; dashuser2 isolated.
+  - Browser: insights card with working links; ticking "Read 20 pages" on My Day removed its nudge after reload (bug found here — the rule ignored today's tick — fixed + test); life balance on My Day; weekly reflection shows insights + this week's balance (Learning 10, Health 5.7), a past week shows its own balance and no insights; tooltip "3 habit days". No console errors.
+  - Fresh scratch DB from `00`–`07` + all three procs applies cleanly; scratch DB dropped. `dotnet build` 0 warnings; NuGet vulnerable check clean; `ng build` clean; lint + Prettier clean; tests **66 backend + 67 frontend**.
+- Notes:
+  - The local API restarted cleanly on 5217 each time this session (no stuck-port problem).
+  - UAT test data: dashuser1 (habits Stretch/Read 20 pages, overdue tasks, "See the northern lights" backdated 20 days, journal 13 + 15 Oct), dashuser2 (journal 8 Oct).
+  - **Milestone 7 complete** — Month 1's seven modules are all built.
+
+- Next up: **Session 25 — UX pass** (loading states, error toasts, form validation, responsive check across every page). After Milestone 8: Phase 2 starts with **Story Mode** (see plan, Section 7).

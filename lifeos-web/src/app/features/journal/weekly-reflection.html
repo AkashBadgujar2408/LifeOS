@@ -92,7 +92,24 @@
         </div>
       </div>
 
-      <div class="col-lg-5">
+      <div class="col-lg-5 d-flex flex-column gap-3">
+        @if (isThisWeek() && insights.value()?.length) {
+          <div class="card">
+            <div class="card-body">
+              <h2 class="h6 mb-3">Worth a look</h2>
+              <app-insights-list [insights]="insights.value()!" />
+            </div>
+          </div>
+        }
+
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h6 mb-1">Where the week went</h2>
+            <p class="small text-body-secondary mb-3">Activity per life area, busiest = 10</p>
+            <app-life-balance [from]="week()" [to]="weekEnd()" />
+          </div>
+        </div>
+
         <div class="card">
           <div class="card-body">
             <h2 class="h6 mb-1">The week in your journal</h2>

@@ -21,6 +21,8 @@ public class MyDayDto
     public List<MyDayHabitDto> Habits { get; init; } = [];
     /// <summary>The latest journal entry on or before today, if any.</summary>
     public MyDayJournalDto? LatestJournalEntry { get; init; }
+    /// <summary>Rule-based nudges and good news (DashboardInsights), nudges first.</summary>
+    public List<InsightDto> Insights { get; set; } = [];
 }
 
 public class MyDayTaskDto
@@ -94,4 +96,34 @@ public class MyDayJournalDto
     /// <summary>The first 280 characters of the entry.</summary>
     public string? Excerpt { get; init; }
     public byte? Mood { get; init; }
+}
+
+public static class InsightKinds
+{
+    public const string HabitStreakBroken = "HabitStreakBroken";
+    public const string GoalUntouched = "GoalUntouched";
+    public const string JournalGap = "JournalGap";
+    public const string OverdueTasks = "OverdueTasks";
+    public const string HabitStreakMilestone = "HabitStreakMilestone";
+}
+
+public static class InsightTones
+{
+    /// <summary>Something slipping that a small action would fix.</summary>
+    public const string Nudge = "Nudge";
+    /// <summary>Good news worth noticing.</summary>
+    public const string Cheer = "Cheer";
+}
+
+/// <summary>
+/// One rule-based observation (DashboardInsights). EntityType/EntityId say where acting on it happens: a linkable
+/// type with an id (Habit, Goal), or a whole page ("Journal", "Tasks") with no id.
+/// </summary>
+public class InsightDto
+{
+    public string Kind { get; init; } = string.Empty;
+    public string Tone { get; init; } = string.Empty;
+    public string Message { get; init; } = string.Empty;
+    public string? EntityType { get; init; }
+    public int? EntityId { get; init; }
 }

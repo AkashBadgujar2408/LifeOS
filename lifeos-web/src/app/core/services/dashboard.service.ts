@@ -73,6 +73,39 @@ export interface MyDayJournalEntry {
   mood: Mood | null;
 }
 
+export type InsightKind =
+  'HabitStreakBroken' | 'GoalUntouched' | 'JournalGap' | 'OverdueTasks' | 'HabitStreakMilestone';
+
+/** A rule-based observation (DashboardInsights on the API). Nudge = something slipping; Cheer = good news. */
+export interface Insight {
+  kind: InsightKind;
+  tone: 'Nudge' | 'Cheer';
+  message: string;
+  /** Where to act on it: Habit/Goal with an id, or a whole page (Journal, Tasks). */
+  entityType: 'Habit' | 'Goal' | 'Journal' | 'Tasks' | null;
+  entityId: number | null;
+}
+
+export interface LifeBalanceArea {
+  lifeAreaId: number;
+  lifeAreaName: string;
+  activeGoals: number;
+  goalsCompleted: number;
+  milestonesCompleted: number;
+  habitTicks: number;
+  journalEntries: number;
+  points: number;
+  /** 0-10, relative to the busiest area in the window (worked out by the API). */
+  score: number;
+}
+
+export interface LifeBalance {
+  from: string;
+  to: string;
+  /** Every life area, in the taxonomy order. */
+  areas: LifeBalanceArea[];
+}
+
 /** Mirrors MyDayDto: everything the My Day screen shows, as of the user's local `today`. */
 export interface MyDay {
   today: string;
@@ -82,6 +115,8 @@ export interface MyDay {
   goals: MyDayGoal[];
   habits: MyDayHabit[];
   latestJournalEntry: MyDayJournalEntry | null;
+  /** Nudges first, then good news. */
+  insights: Insight[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -99,6 +134,18 @@ export class DashboardService {
       .set('dayEndUtc', localMidnight(addDaysIso(today, 1)).toISOString());
     return this.http
       .get<ApiResponse<MyDay>>('/api/Dashboard/MyDay', { params })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Activity per life area over local days `from`..`to` (inclusive); the span goes along as UTC instants too. */
+  getLifeBalance(from: string, to: string): Observable<LifeBalance> {
+    const params = new HttpParams()
+      .set('from', from)
+      .set('to', to)
+      .set('fromUtc', localMidnight(from).toISOString())
+      .set('toUtc', localMidnight(addDaysIso(to, 1)).toISOString());
+    return this.http
+      .get<ApiResponse<LifeBalance>>('/api/Dashboard/LifeBalance', { params })
       .pipe(map((response) => response.data!));
   }
 }

@@ -1,5 +1,12 @@
 import { localMidnight } from '../../core/dates/today';
-import { MyDay, MyDayHabit, MyDayReminder, MyDayTask } from '../../core/services/dashboard.service';
+import {
+  Insight,
+  LifeBalanceArea,
+  MyDay,
+  MyDayHabit,
+  MyDayReminder,
+  MyDayTask,
+} from '../../core/services/dashboard.service';
 
 /** What a habit asks of you today: tick it, already ticked, or nothing (not on its schedule). */
 export type HabitToday = 'open' | 'done' | 'off';
@@ -70,4 +77,42 @@ export function daySummary(myDay: MyDay): string[] {
     parts.push(plural(habitsLeft, 'habit to tick', 'habits to tick'));
   }
   return parts;
+}
+
+/** Where acting on an insight happens: the habit or goal itself, or the Journal / Tasks page. */
+export function insightLink(insight: Insight): { link: (string | number)[]; label: string } | null {
+  switch (insight.entityType) {
+    case 'Habit':
+      return insight.entityId ? { link: ['/habits', insight.entityId], label: 'Open habit' } : null;
+    case 'Goal':
+      return insight.entityId ? { link: ['/goals', insight.entityId], label: 'Open goal' } : null;
+    case 'Journal':
+      return { link: ['/journal'], label: 'Write today' };
+    case 'Tasks':
+      return { link: ['/tasks'], label: 'Review tasks' };
+    default:
+      return null;
+  }
+}
+
+/** The wheel in one sentence: where most effort went (score 10, can tie) and which areas saw nothing at all. */
+export function balanceSummary(areas: readonly LifeBalanceArea[]): {
+  busiest: string[];
+  quiet: string[];
+} {
+  if (areas.every((a) => a.points === 0)) {
+    return { busiest: [], quiet: [] };
+  }
+  const top = Math.max(...areas.map((a) => a.points));
+  return {
+    busiest: areas.filter((a) => a.points === top).map((a) => a.lifeAreaName),
+    quiet: areas.filter((a) => a.points === 0).map((a) => a.lifeAreaName),
+  };
+}
+
+/** Joins names for a sentence: "Health", "Health and Career", "Health, Career and Finance". */
+export function joinNames(names: readonly string[]): string {
+  return names.length <= 1
+    ? (names[0] ?? '')
+    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
