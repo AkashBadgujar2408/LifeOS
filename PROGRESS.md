@@ -525,3 +525,13 @@
   - An earlier `ng serve` survived its background task being stopped (node kept port 4200); it served the current code, so the checks used it. Kill stray `node.exe` on 4200 if `ng serve` reports the port in use.
 
 - Next up: **Session 26 — Testing pass** (coverage of the logic that matters: progress, streaks, recurrence, insights, dates; fix what breaks).
+
+## Last session: 2026-10-15 — Session 26 — Testing pass
+- Shipped:
+  - **`core/dates/today.spec.ts`** (10 specs) — the local-date helpers every date in the app goes through had no tests: local date at the very start/end of a day, month/year ends, leap years, whole-day steps across the EU/US DST switch dates, `localMidnight` round-trips, `todayIso`/`isOverdue` with a faked late-evening clock.
+  - **Timezone runs: `npm run test:tz`** (`lifeos-web/scripts/test-timezones.mjs`) runs the frontend suite under New York, London, Los Angeles, UTC+14, UTC−11 and Lord Howe (30-min DST). Found along the way: `TZ=… npx ng test` from Git Bash silently runs in IST (MSYS strips `TZ`), so the script sets it from Node.
+  - Backend: 4 recurrence edge cases (an anchor still ahead of the completed date, quarterly from 31 Jan → 30 Apr → 31 Jul, a daily task years overdue → today, yearly done late → next year), a streak whose start date is an unscheduled day, and **link canonicalisation** (either direction gives one stored pair; same type orders by id; ordinal type order) — `Canonicalize` is now `internal` with `InternalsVisibleTo("LifeOS.Core.Tests")`.
+  - **Fix:** `TaskRecurrence.NextDueDate` now searches from k = 0, so an anchor that's still ahead of the completed due date is the next occurrence instead of being skipped. Not reachable through the API today (editing a due date re-anchors the series), but it's what the rule says and it's now pinned by a test.
+- Verified: 74 backend tests (8 new) + 85 frontend (10 new), and the frontend suite green in all six timezones. `dotnet build` 0 warnings, lint + Prettier clean.
+
+- Next up: **Session 27 — Docs** (README, architecture notes, CLAUDE.md tidy, Phase 2 backlog confirmed).

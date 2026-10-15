@@ -168,4 +168,13 @@ public class HabitStreaksTests
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => HabitStreaks.Calculate(scheduleDays, D(2026, 10, 1), [], D(2026, 10, 15)));
     }
+
+    [Fact]
+    public void A_start_date_on_an_unscheduled_day_waits_for_the_first_scheduled_one()
+    {
+        // Mon/Wed/Fri, started Sun 11 Oct, today Tue 13: only Mon 12 counts so far, and it was done.
+        var streak = HabitStreaks.Calculate(MonWedFri, D(2026, 10, 11), [D(2026, 10, 12)], D(2026, 10, 13));
+
+        Assert.Equal(new HabitStreak(1, 1, DoneToday: false, DueToday: false, LastMissed: null), streak);
+    }
 }

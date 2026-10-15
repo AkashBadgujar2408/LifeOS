@@ -37,7 +37,9 @@ public static class TaskRecurrence
             throw new ArgumentOutOfRangeException(nameof(interval), interval, "Interval must be at least 1.");
         }
 
-        for (var k = 1; k <= MaxSteps; k++)
+        // From k = 0, so an anchor still ahead of the completed date (an instance moved earlier without re-anchoring)
+        // is the next one rather than being skipped. Normally the anchor is the first due date and fails "> completed".
+        for (var k = 0; k <= MaxSteps; k++)
         {
             var occurrence = Occurrence(frequency, interval, anchor, k);
             if (occurrence > completedDueDate && occurrence >= today)

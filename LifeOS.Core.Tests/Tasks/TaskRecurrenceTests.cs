@@ -98,4 +98,41 @@ public class TaskRecurrenceTests
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             TaskRecurrence.NextDueDate("Fortnightly", 1, D(2026, 1, 1), D(2026, 1, 1), D(2026, 1, 1)));
     }
+
+    [Fact]
+    public void An_anchor_still_ahead_of_the_completed_date_is_the_next_occurrence()
+    {
+        // Weekly from Tue 20 Oct, but this instance was pulled forward to Thu 15 Oct and done then: next is the 20th.
+        var next = TaskRecurrence.NextDueDate(RecurrenceFrequencies.Weekly, 1, D(2026, 10, 20), D(2026, 10, 15), today: D(2026, 10, 15));
+
+        Assert.Equal(D(2026, 10, 20), next);
+    }
+
+    [Fact]
+    public void Quarterly_from_the_31st_clamps_each_quarter_from_the_anchor()
+    {
+        // Every 3 months from 31 Jan: 30 Apr (clamped), then 31 Jul (not 30 Jul — counted from the anchor).
+        var april = TaskRecurrence.NextDueDate(RecurrenceFrequencies.Monthly, 3, D(2026, 1, 31), D(2026, 1, 31), today: D(2026, 1, 31));
+        var july = TaskRecurrence.NextDueDate(RecurrenceFrequencies.Monthly, 3, D(2026, 1, 31), april, today: april);
+
+        Assert.Equal(D(2026, 4, 30), april);
+        Assert.Equal(D(2026, 7, 31), july);
+    }
+
+    [Fact]
+    public void A_daily_task_left_overdue_for_years_resolves_to_today()
+    {
+        var next = TaskRecurrence.NextDueDate(RecurrenceFrequencies.Daily, 1, D(2020, 1, 1), D(2020, 1, 1), today: D(2026, 10, 15));
+
+        Assert.Equal(D(2026, 10, 15), next);
+    }
+
+    [Fact]
+    public void A_yearly_task_done_late_moves_to_next_year_not_this_years_passed_date()
+    {
+        // Yearly on 1 Mar, the 2026 instance done on 15 Oct 2026: next is 1 Mar 2027.
+        var next = TaskRecurrence.NextDueDate(RecurrenceFrequencies.Yearly, 1, D(2025, 3, 1), D(2026, 3, 1), today: D(2026, 10, 15));
+
+        Assert.Equal(D(2027, 3, 1), next);
+    }
 }

@@ -217,7 +217,8 @@ public class EntityLinksService(AppDbContext db, IEnumerable<ILinkableEntityProv
     }
 
     // Links are undirected, so each pair has exactly one stored form: the ordinally smaller (Type, Id) is Source.
-    private static (string, int, string, int) Canonicalize(string typeA, int idA, string typeB, int idB)
+    // internal (not private) for the unit tests.
+    internal static (string, int, string, int) Canonicalize(string typeA, int idA, string typeB, int idB)
     {
         var comparison = string.CompareOrdinal(typeA, typeB);
         return comparison < 0 || (comparison == 0 && idA < idB)

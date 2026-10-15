@@ -253,7 +253,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
 | 25 | ✅ UX pass | One error envelope from the API (validation included) + `apiErrorMessage` on the client (44 call sites) with a "can't reach the server" case; expired/revoked logins → back to login with a return URL instead of failing every request; list pages show a "couldn't load — try again" block instead of a misleading empty state; duplicate toasts suppressed; every page checked at 375px; forms/placeholders audited (already complete) | **Done** — expired login, revoked token, API down and retry all exercised in the browser; no horizontal scroll on any of 18 pages |
-| 26 | Testing pass | Unit tests for progress/streak/recurrence logic (xUnit backend, Jasmine frontend); fix what breaks | Test suite green |
+| 26 | ✅ Testing pass | Gaps closed: `core/dates/today.ts` (every local-date helper, DST, leap years — had no tests), recurrence edges (quarterly from the 31st, years overdue, yearly done late, anchor ahead of the completed date → fixed to count from k = 0), link canonicalisation (the duplicate-link index depends on it), a streak edge; `npm run test:tz` runs the frontend suite in six real timezones | **Done** — 74 backend + 85 frontend green, and the frontend green in all six timezones |
 | 27 | Docs | README, `CLAUDE.md`, architecture notes updated; Phase 2 backlog confirmed | A cold reader (or a fresh Claude Code session) can onboard from the docs alone |
 | 28 | Buffer | Catch-up for whatever slipped | — |
 
