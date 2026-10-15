@@ -52,6 +52,8 @@
 
   @if (loading()) {
     <div class="text-body-secondary">Loading...</div>
+  } @else if (loadFailed()) {
+    <app-load-error message="Couldn't load your goals." (retry)="load()" />
   } @else if (visibleGoals().length === 0) {
     <div class="card">
       <div class="card-body text-center py-5">

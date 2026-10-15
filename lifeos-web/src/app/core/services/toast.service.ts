@@ -36,9 +36,12 @@ export class ToastService {
   }
 
   private show(kind: ToastKind, message: string): void {
-    // Keep the stack short: a burst of failures shouldn't bury the screen.
     this.toastsSignal.update((toasts) =>
-      [...toasts, { id: this.nextId++, kind, message }].slice(-4),
+      // The same message already showing (several requests failing for one reason, e.g. the server being down)
+      // says nothing new; and keep the stack short so a burst of failures can't bury the screen.
+      toasts.some((t) => t.kind === kind && t.message === message)
+        ? toasts
+        : [...toasts, { id: this.nextId++, kind, message }].slice(-4),
     );
   }
 }

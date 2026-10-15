@@ -27,6 +27,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 export interface TaskEditorOptions {
   /** Edit this task; omit to create one. */
@@ -218,7 +219,7 @@ export class TaskEditor {
       next: (saved) => this.activeModal.close({ kind: 'saved', task: saved } as TaskEditorResult),
       error: (err) => {
         this.saving.set(false);
-        this.toast.error(err.error?.message ?? 'Could not save the task.');
+        this.toast.error(apiErrorMessage(err, 'Could not save the task.'));
       },
     });
   }
@@ -245,7 +246,7 @@ export class TaskEditor {
 
     this.tasksService.remove(task.id).subscribe({
       next: () => this.activeModal.close({ kind: 'deleted', id: task.id } as TaskEditorResult),
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the task.'),
+      error: (err) => this.toast.error(apiErrorMessage(err, 'Could not delete the task.')),
     });
   }
 }

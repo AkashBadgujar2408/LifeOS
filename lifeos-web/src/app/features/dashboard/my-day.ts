@@ -46,6 +46,8 @@ import {
 } from './my-day-view';
 import { InsightsList } from './insights-list';
 import { LifeBalance } from './life-balance';
+import { LoadError } from '../../shared/components/load-error/load-error';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 const KIND_LABELS: Record<InboxKind, [singular: string, plural: string]> = {
   Task: ['Task', 'Tasks'],
@@ -79,6 +81,7 @@ const GOALS_SHOWN = 4;
     HabitDay,
     InsightsList,
     LifeBalance,
+    LoadError,
   ],
   templateUrl: './my-day.html',
   styleUrl: './my-day.scss',
@@ -229,9 +232,9 @@ export class MyDay {
           // Reload rather than patch: a done overdue task leaves the list, a repeat may land today.
           this.load();
         },
-        error: () => {
+        error: (err) => {
           this.busyTaskId.set(null);
-          this.toast.error('Could not update the task.');
+          this.toast.error(apiErrorMessage(err, 'Could not update the task.'));
         },
       });
   }
@@ -248,7 +251,7 @@ export class MyDay {
             this.load();
           }
         },
-        error: () => this.toast.error('Could not open the task.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the task.')),
       });
   }
 
@@ -264,7 +267,7 @@ export class MyDay {
             this.load();
           }
         },
-        error: () => this.toast.error('Could not open the event.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the event.')),
       });
   }
 
@@ -289,7 +292,7 @@ export class MyDay {
         },
         error: (err) => {
           this.busyHabitId.set(null);
-          this.toast.error(err?.error?.message ?? 'Could not update the habit.');
+          this.toast.error(apiErrorMessage(err, 'Could not update the habit.'));
         },
       });
   }

@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
 import { ToastService } from '../../../core/services/toast.service';
 import { INBOX_KINDS, InboxKind, InboxService } from '../../../core/services/inbox.service';
+import { apiErrorMessage } from '../../../core/services/api-error';
 
 const KIND_META: Record<InboxKind, { icon: string; placeholder: string }> = {
   Task: { icon: 'bi-check2-square', placeholder: 'e.g. Renew passport' },
@@ -76,7 +77,7 @@ export class QuickAddDialog {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.toast.error(err.error?.message ?? 'Could not save — try again.');
+        this.toast.error(apiErrorMessage(err, 'Could not save — try again.'));
       },
     });
   }

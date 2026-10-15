@@ -18,6 +18,7 @@ import {
 import { ToastService } from '../../core/services/toast.service';
 import { openReminderEditor } from './reminder-editor';
 import { SnoozePreset, snoozePresets } from './reminder-times';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 /**
  * One reminder with its own actions (done, snooze, restore, edit). Every change goes through RemindersService,
@@ -60,14 +61,14 @@ export class ReminderRow {
   protected setDismissed(dismissed: boolean): void {
     this.remindersService.setDismissed(this.reminder().id, dismissed).subscribe({
       next: () => this.toast.success(dismissed ? 'Reminder done.' : 'Reminder restored.'),
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not update the reminder.'),
+      error: (err) => this.toast.error(apiErrorMessage(err, 'Could not update the reminder.')),
     });
   }
 
   protected snooze(preset: SnoozePreset): void {
     this.remindersService.snooze(this.reminder().id, preset.until).subscribe({
       next: () => this.toast.success(`Snoozed: ${preset.label.toLowerCase()}.`),
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not snooze the reminder.'),
+      error: (err) => this.toast.error(apiErrorMessage(err, 'Could not snooze the reminder.')),
     });
   }
 

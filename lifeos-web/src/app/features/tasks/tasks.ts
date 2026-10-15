@@ -29,6 +29,8 @@ import {
 } from './task-views';
 import { openTaskEditor } from './task-editor';
 import { TaskRow } from './task-row';
+import { apiErrorMessage } from '../../core/services/api-error';
+import { LoadError } from '../../shared/components/load-error/load-error';
 
 const VIEW_LABELS: Record<TaskView, string> = {
   today: 'Today',
@@ -52,7 +54,7 @@ function loadSort(): TaskSort {
 @Component({
   selector: 'app-tasks',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, TaskRow],
+  imports: [LoadError, DatePipe, NgTemplateOutlet, ReactiveFormsModule, RouterLink, TaskRow],
   templateUrl: './tasks.html',
 })
 export class Tasks {
@@ -74,6 +76,8 @@ export class Tasks {
   protected readonly openTasks = signal<TaskItem[]>([]);
   protected readonly doneTasks = signal<TaskItem[] | null>(null);
   protected readonly loading = signal(true);
+  /** The last load failed: show the retry block, not the empty state (which would say "you have none"). */
+  protected readonly loadFailed = signal(false);
   /** Task currently being ticked/unticked, so a double click can't fire twice. */
   protected readonly busyId = signal<number | null>(null);
 
@@ -166,7 +170,7 @@ export class Tasks {
         },
         error: (err) => {
           this.quickAdding.set(false);
-          this.toast.error(err.error?.message ?? 'Could not add the task.');
+          this.toast.error(apiErrorMessage(err, 'Could not add the task.'));
         },
       });
   }
@@ -224,7 +228,7 @@ export class Tasks {
         },
         error: (err) => {
           this.busyId.set(null);
-          this.toast.error(err.error?.message ?? 'Could not update the task.');
+          this.toast.error(apiErrorMessage(err, 'Could not update the task.'));
         },
       });
   }
@@ -233,7 +237,8 @@ export class Tasks {
     return formatDate(isoDate, APP_DATE_FORMAT, this.locale);
   }
 
-  private loadOpen(): void {
+  protected loadOpen(): void {
+    this.loading.set(true);
     this.tasksService
       .list('Open')
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -241,10 +246,12 @@ export class Tasks {
         next: (tasks) => {
           this.openTasks.set(tasks);
           this.loading.set(false);
+          this.loadFailed.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.loading.set(false);
-          this.toast.error('Could not load your tasks.');
+          this.loadFailed.set(true);
+          this.toast.error(apiErrorMessage(err, 'Could not load your tasks.'));
         },
       });
   }
@@ -255,7 +262,7 @@ export class Tasks {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (tasks) => this.doneTasks.set(tasks),
-        error: () => this.toast.error('Could not load completed tasks.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not load completed tasks.')),
       });
   }
 }

@@ -15,12 +15,14 @@ import { ReminderTargetOpener } from './open-reminder-target';
 import { openReminderEditor } from './reminder-editor';
 import { ReminderRow } from './reminder-row';
 import { splitPending } from './reminder-times';
+import { apiErrorMessage } from '../../core/services/api-error';
+import { LoadError } from '../../shared/components/load-error/load-error';
 
 /** Reminders: due now (amber), upcoming, and the recently done ones. */
 @Component({
   selector: 'app-reminders',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReminderRow],
+  imports: [LoadError, ReminderRow],
   templateUrl: './reminders.html',
 })
 export class Reminders {
@@ -33,6 +35,8 @@ export class Reminders {
   protected readonly view = signal<ReminderStatus>('Pending');
   protected readonly reminders = signal<Reminder[]>([]);
   protected readonly loading = signal(true);
+  /** The last load failed: show the retry block, not the empty state (which would say "you have none"). */
+  protected readonly loadFailed = signal(false);
 
   /**
    * Split against the clock each time the list or the due set changes; the shell re-asks for due reminders every
@@ -58,7 +62,7 @@ export class Reminders {
     }
   }
 
-  private load(view: ReminderStatus): void {
+  protected load(view: ReminderStatus): void {
     this.loading.set(true);
     this.remindersService
       .list(view)
@@ -67,10 +71,12 @@ export class Reminders {
         next: (reminders) => {
           this.reminders.set(reminders);
           this.loading.set(false);
+          this.loadFailed.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.loading.set(false);
-          this.toast.error('Could not load reminders.');
+          this.loadFailed.set(true);
+          this.toast.error(apiErrorMessage(err, 'Could not load reminders.'));
         },
       });
   }

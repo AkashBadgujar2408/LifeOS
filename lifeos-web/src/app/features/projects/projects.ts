@@ -20,11 +20,13 @@ import {
 } from '../../core/services/projects.service';
 import { ToastService } from '../../core/services/toast.service';
 import { openProjectEditor } from './project-editor';
+import { apiErrorMessage } from '../../core/services/api-error';
+import { LoadError } from '../../shared/components/load-error/load-error';
 
 @Component({
   selector: 'app-projects',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink],
+  imports: [LoadError, DatePipe, RouterLink],
   templateUrl: './projects.html',
 })
 export class Projects implements OnInit {
@@ -39,6 +41,8 @@ export class Projects implements OnInit {
 
   protected readonly projects = signal<Project[]>([]);
   protected readonly loading = signal(true);
+  /** The last load failed: show the retry block, not the empty state (which would say "you have none"). */
+  protected readonly loadFailed = signal(false);
   protected readonly statusFilter = signal<ProjectStatus>('Active');
 
   protected readonly statusCounts = computed(() => {
@@ -54,6 +58,11 @@ export class Projects implements OnInit {
   );
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  protected load(): void {
+    this.loading.set(true);
     this.projectsService
       .list()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -61,10 +70,12 @@ export class Projects implements OnInit {
         next: (projects) => {
           this.projects.set(projects);
           this.loading.set(false);
+          this.loadFailed.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.loading.set(false);
-          this.toast.error('Could not load your projects.');
+          this.loadFailed.set(true);
+          this.toast.error(apiErrorMessage(err, 'Could not load your projects.'));
         },
       });
   }

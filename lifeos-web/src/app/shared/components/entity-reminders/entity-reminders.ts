@@ -17,6 +17,7 @@ import {
 import { ToastService } from '../../../core/services/toast.service';
 import { openReminderEditor } from '../../../features/reminders/reminder-editor';
 import { ReminderRow } from '../../../features/reminders/reminder-row';
+import { apiErrorMessage } from '../../../core/services/api-error';
 
 /**
  * The pending reminders about one entity, plus "Remind me". Drop it on a detail screen or editor:
@@ -94,9 +95,9 @@ export class EntityReminders {
           this.reminders.set(reminders);
           this.loading.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.loading.set(false);
-          this.toast.error('Could not load reminders.');
+          this.toast.error(apiErrorMessage(err, 'Could not load reminders.'));
         },
       });
   }

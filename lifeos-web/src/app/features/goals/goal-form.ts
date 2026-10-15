@@ -22,6 +22,7 @@ import {
 import { LifeArea, LifeAreasService } from '../../core/services/life-areas.service';
 import { dateFieldError } from '../../core/dates/date-format';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 const GOAL_TYPE_HINTS: Record<GoalType, string> = {
   ShortTerm: 'Weeks to a few months',
@@ -74,7 +75,7 @@ export class GoalForm implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (areas) => this.lifeAreas.set(areas),
-        error: () => this.toast.error('Could not load life areas.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not load life areas.')),
       });
 
     const id = this.id();
@@ -96,8 +97,8 @@ export class GoalForm implements OnInit {
             this.tagIds.set(goal.tags.map((t) => t.id));
             this.loading.set(false);
           },
-          error: () => {
-            this.toast.error('That goal could not be found.');
+          error: (err) => {
+            this.toast.error(apiErrorMessage(err, 'That goal could not be found.'));
             this.router.navigate(['/goals']);
           },
         });
@@ -167,7 +168,7 @@ export class GoalForm implements OnInit {
       },
       error: (err) => {
         this.saving.set(false);
-        this.toast.error(err.error?.message ?? 'Could not save the goal.');
+        this.toast.error(apiErrorMessage(err, 'Could not save the goal.'));
       },
     });
   }

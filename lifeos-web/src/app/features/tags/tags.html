@@ -35,6 +35,8 @@
 
     @if (loading()) {
       <div class="text-body-secondary">Loading...</div>
+    } @else if (loadFailed()) {
+      <app-load-error message="Couldn't load your tags." (retry)="load()" />
     } @else if (tags().length === 0) {
       <div class="card">
         <div class="card-body text-center py-5">

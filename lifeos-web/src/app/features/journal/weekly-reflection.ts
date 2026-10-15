@@ -27,6 +27,7 @@ import { averageMood, moodMeta, weekStartIso } from './journal-days';
 import { InsightsList } from '../dashboard/insights-list';
 import { LifeBalance } from '../dashboard/life-balance';
 import { DashboardService } from '../../core/services/dashboard.service';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 const PROMPTS = [
   {
@@ -180,7 +181,7 @@ export class WeeklyReflection {
         },
         error: (err) => {
           this.saving.set(false);
-          this.toast.error(err.error?.message ?? 'Could not save the reflection.');
+          this.toast.error(apiErrorMessage(err, 'Could not save the reflection.'));
         },
       });
   }
@@ -207,7 +208,7 @@ export class WeeklyReflection {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (review) => this.setReview(review),
-        error: () => this.toast.error('Could not load the week.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not load the week.')),
       });
   }
 

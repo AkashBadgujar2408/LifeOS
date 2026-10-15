@@ -1,9 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { safeReturnUrl } from '../../../core/guards/auth.guard';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthLayout } from '../../../shared/components/auth-layout/auth-layout';
+import { apiErrorMessage } from '../../../core/services/api-error';
 
 @Component({
   selector: 'app-login',
@@ -16,6 +18,7 @@ export class Login {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly submitting = signal(false);
 
@@ -47,11 +50,13 @@ export class Login {
     this.authService.login(this.form.getRawValue()).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.router.navigateByUrl('/');
+        this.router.navigateByUrl(
+          safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl')),
+        );
       },
       error: (err) => {
         this.submitting.set(false);
-        this.toast.error(err.error?.message ?? 'Login failed.');
+        this.toast.error(apiErrorMessage(err, 'Login failed.'));
       },
     });
   }

@@ -8,6 +8,7 @@ import { TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { openEventEditor } from '../calendar/event-editor';
 import { openTaskEditor } from '../tasks/task-editor';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 /**
  * Opens what a reminder is about, the same way the calendar does: tasks and events in their editor, goals,
@@ -39,7 +40,8 @@ export class ReminderTargetOpener {
         // Journal pages are addressed by day; the reminder only knows the entry's id.
         this.journalService.get(reminder.entityId!).subscribe({
           next: (entry) => void this.router.navigate(['/journal', entry.entryDate]),
-          error: () => this.toast.error('Could not open the journal entry.'),
+          error: (err) =>
+            this.toast.error(apiErrorMessage(err, 'Could not open the journal entry.')),
         });
         break;
       case 'Task':
@@ -52,7 +54,7 @@ export class ReminderTargetOpener {
               this.toast.success(result.kind === 'saved' ? 'Task saved.' : 'Task deleted.');
             }
           },
-          error: () => this.toast.error('Could not open the task.'),
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the task.')),
         });
         break;
       case 'Event':
@@ -65,7 +67,7 @@ export class ReminderTargetOpener {
               this.toast.success(result.kind === 'saved' ? 'Event saved.' : 'Event deleted.');
             }
           },
-          error: () => this.toast.error('Could not open the event.'),
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the event.')),
         });
         break;
     }

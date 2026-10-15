@@ -20,11 +20,13 @@ import {
 } from '../../core/services/goals.service';
 import { LifeArea, LifeAreasService } from '../../core/services/life-areas.service';
 import { isOverdue } from '../../core/dates/today';
+import { apiErrorMessage } from '../../core/services/api-error';
+import { LoadError } from '../../shared/components/load-error/load-error';
 
 @Component({
   selector: 'app-goals',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink],
+  imports: [LoadError, DatePipe, RouterLink],
   templateUrl: './goals.html',
 })
 export class Goals implements OnInit {
@@ -40,6 +42,8 @@ export class Goals implements OnInit {
   protected readonly goals = signal<GoalSummary[]>([]);
   protected readonly lifeAreas = signal<LifeArea[]>([]);
   protected readonly loading = signal(true);
+  /** The last load failed: show the retry block, not the empty state (which would say "you have none"). */
+  protected readonly loadFailed = signal(false);
   protected readonly statusFilter = signal<GoalStatus | null>('Active');
   protected readonly lifeAreaFilter = signal<number | null>(null);
 
@@ -68,6 +72,11 @@ export class Goals implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: (areas) => this.lifeAreas.set(areas) });
 
+    this.load();
+  }
+
+  protected load(): void {
+    this.loading.set(true);
     this.goalsService
       .list()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -75,10 +84,12 @@ export class Goals implements OnInit {
         next: (goals) => {
           this.goals.set(goals);
           this.loading.set(false);
+          this.loadFailed.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.loading.set(false);
-          this.toast.error('Could not load your goals.');
+          this.loadFailed.set(true);
+          this.toast.error(apiErrorMessage(err, 'Could not load your goals.'));
         },
       });
   }

@@ -13,6 +13,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 import { APP_DATE_TIME_FORMAT, APP_WEEKDAY_FORMAT } from '../../core/dates/date-format';
 import { addDaysIso, todayIso } from '../../core/dates/today';
@@ -29,6 +30,7 @@ import { EntityReminders } from '../../shared/components/entity-reminders/entity
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { MOODS, moodMeta } from './journal-days';
 import { MoodTrend } from './mood-trend';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 /** How far back the side panel's trend and recent list reach. */
 const RECENT_DAYS = 30;
@@ -159,7 +161,7 @@ export class Journal {
         },
         error: (err) => {
           this.saving.set(false);
-          this.toast.error(err.error?.message ?? 'Could not save the entry.');
+          this.toast.error(apiErrorMessage(err, 'Could not save the entry.'));
         },
       });
   }
@@ -186,7 +188,7 @@ export class Journal {
           this.toast.success('Entry deleted.');
           this.loadSidePanel();
         },
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the entry.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not delete the entry.')),
       });
   }
 
@@ -215,9 +217,9 @@ export class Journal {
           this.loadingEntry.set(false);
           this.setEntry(entry);
         },
-        error: () => {
+        error: (err) => {
           this.loadingEntry.set(false);
-          this.toast.error('Could not load the entry.');
+          this.toast.error(apiErrorMessage(err, 'Could not load the entry.'));
         },
       });
   }
@@ -236,13 +238,21 @@ export class Journal {
   private loadSidePanel(): void {
     const from = this.trendFrom();
     const to = this.today();
-    this.journalService
-      .list(from, to)
+    // One request pair, one outcome: the side panel is secondary, so a failure is a single toast, not two.
+    forkJoin({
+      entries: this.journalService.list(from, to),
+      points: this.journalService.moods(from, to),
+    })
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (entries) => this.recent.set(entries) });
-    this.journalService
-      .moods(from, to)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: (points) => this.moodPoints.set(points) });
+      .subscribe({
+        next: ({ entries, points }) => {
+          this.recent.set(entries);
+          this.moodPoints.set(points);
+        },
+        error: (err) =>
+          this.toast.error(
+            apiErrorMessage(err, 'Could not load recent entries and the mood trend.'),
+          ),
+      });
   }
 }

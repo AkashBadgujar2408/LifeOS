@@ -33,6 +33,7 @@ import { openTaskEditor } from '../tasks/task-editor';
 import { TaskRow } from '../tasks/task-row';
 import { sortTasks } from '../tasks/task-views';
 import { openProjectEditor } from './project-editor';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 interface StatusAction {
   status: ProjectStatus;
@@ -146,7 +147,7 @@ export class ProjectDetail implements OnInit {
         },
         error: (err) => {
           this.quickAdding.set(false);
-          this.toast.error(err.error?.message ?? 'Could not add the task.');
+          this.toast.error(apiErrorMessage(err, 'Could not add the task.'));
         },
       });
   }
@@ -186,7 +187,7 @@ export class ProjectDetail implements OnInit {
         },
         error: (err) => {
           this.busyId.set(null);
-          this.toast.error(err.error?.message ?? 'Could not update the task.');
+          this.toast.error(apiErrorMessage(err, 'Could not update the task.'));
         },
       });
   }
@@ -229,7 +230,7 @@ export class ProjectDetail implements OnInit {
         },
         error: (err) => {
           this.changingStatus.set(false);
-          this.toast.error(err.error?.message ?? 'Could not change the status.');
+          this.toast.error(apiErrorMessage(err, 'Could not change the status.'));
         },
       });
   }
@@ -259,7 +260,7 @@ export class ProjectDetail implements OnInit {
           this.toast.success('Project deleted.');
           void this.router.navigate(['/projects']);
         },
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the project.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not delete the project.')),
       });
   }
 
@@ -276,8 +277,8 @@ export class ProjectDetail implements OnInit {
           this.openTasks.set(open);
           this.doneTasks.set(done);
         },
-        error: () => {
-          this.toast.error('Project not found.');
+        error: (err) => {
+          this.toast.error(apiErrorMessage(err, 'Project not found.'));
           void this.router.navigate(['/projects']);
         },
       });

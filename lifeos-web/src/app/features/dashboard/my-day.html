@@ -19,14 +19,8 @@
   </header>
 
   @if (loadError()) {
-    <div
-      class="alert alert-warning d-flex align-items-center justify-content-between gap-3"
-      role="alert"
-    >
-      <span>Couldn't load your day.</span>
-      <button type="button" class="btn btn-sm btn-outline-primary" (click)="load()">
-        Try again
-      </button>
+    <div class="mb-3">
+      <app-load-error message="Couldn't load your day." (retry)="load()" />
     </div>
   }
 

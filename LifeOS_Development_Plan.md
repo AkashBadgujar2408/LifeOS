@@ -252,7 +252,7 @@ Everything else from the 20-module catalogue (Finance, Health, Career, Learning,
 ### Milestone 8 — Polish, Hardening, Testing, Docs
 | # | Session | Deliverable | Done when |
 |---|---|---|---|
-| 25 | UX pass | Consistent loading states, error toasts, form validation, responsive check | No silent failures; app usable on a narrower window |
+| 25 | ✅ UX pass | One error envelope from the API (validation included) + `apiErrorMessage` on the client (44 call sites) with a "can't reach the server" case; expired/revoked logins → back to login with a return URL instead of failing every request; list pages show a "couldn't load — try again" block instead of a misleading empty state; duplicate toasts suppressed; every page checked at 375px; forms/placeholders audited (already complete) | **Done** — expired login, revoked token, API down and retry all exercised in the browser; no horizontal scroll on any of 18 pages |
 | 26 | Testing pass | Unit tests for progress/streak/recurrence logic (xUnit backend, Jasmine frontend); fix what breaks | Test suite green |
 | 27 | Docs | README, `CLAUDE.md`, architecture notes updated; Phase 2 backlog confirmed | A cold reader (or a fresh Claude Code session) can onboard from the docs alone |
 | 28 | Buffer | Catch-up for whatever slipped | — |

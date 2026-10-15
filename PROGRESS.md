@@ -506,3 +506,22 @@
   - **Milestone 7 complete** — Month 1's seven modules are all built.
 
 - Next up: **Session 25 — UX pass** (loading states, error toasts, form validation, responsive check across every page). After Milestone 8: Phase 2 starts with **Story Mode** (see plan, Section 7).
+
+## Last session: 2026-10-15 — Session 25 — UX pass (no silent failures)
+- Shipped (backend):
+  - **Validation errors in the `ApiResponse` envelope** (`LifeOS.Api/Infrastructure/ValidationResponse.cs`, wired via `InvalidModelStateResponseFactory`): `{ success: false, message: "The Title field is required.", errors: [...] }` instead of ProblemDetails, so the reason reaches the user. JSON-body errors name the field ("The value for 'dueDate' isn't valid." / "The request body isn't valid.") instead of the parser's text, and come before ASP.NET's vague "The request field is required.".
+  - `GlobalExceptionHandler` shows the exception text only in Development; otherwise "Something went wrong on our side. Please try again." (the full exception is logged either way).
+- Shipped (frontend):
+  - **`apiErrorMessage(err, fallback)`** (`core/services/api-error.ts`, 7 specs) replaces the hand-written `err.error?.message ?? '…'` at all 44 call sites (+ the ~20 handlers that ignored the error): API message → first listed error → fallback; status 0 / 502–504 / a 5xx without the envelope → "Can't reach the LifeOS server. Check that it's running, then try again."
+  - **Session expiry** (real bug: the 24 h token expired but the app kept "logged in" and every page failed with vague toasts): the expiry is stored and an expired login starts logged out; a 401 on any non-auth call logs out, shows one "Your session has expired" toast and goes to `/login?returnUrl=…`; the failed calls complete quietly so pages don't add their own errors. The guard passes `returnUrl`; login returns there through `safeReturnUrl` (in-app paths only; 2 specs).
+  - **Load-failure state instead of a fake empty state** (real bug: with the API down, Goals said "No goals yet"): `<app-load-error>` (message + Try again) on Goals, Tasks, Projects, Habits, Inbox, Reminders, Tags, Calendar (above the grid) and My Day.
+  - `LifeAreasService.list()` never errors (reports once, yields `[]`) — it feeds `toSignal`s that would otherwise crash their editor. Journal's side panel loads recent entries + mood trend together with one error toast. Identical toasts already on screen aren't repeated.
+- Audited, nothing to fix: every form control that can be invalid shows its own inline error; every text input has a placeholder; every page has a loading state; detail pages with a missing id toast and go back to their list.
+- Verified:
+  - curl: empty title / bad date / malformed JSON / missing query param → readable envelope messages.
+  - Browser (dashuser1): stale expiry → straight to `/login?returnUrl=%2Fhabits`, log in → back on Habits; corrupted token on `/tasks` → one toast, `/login?returnUrl=%2Ftasks`, log in → back on Tasks; API stopped → Goals shows "Couldn't load your goals." + a single "Can't reach the LifeOS server" toast; API restarted → Try again loads the goals. **All 18 pages at 375px: no horizontal scroll.** No console errors.
+  - `dotnet build` 0 warnings; `ng build`, lint, Prettier clean; tests 66 backend + 75 frontend.
+- Notes:
+  - An earlier `ng serve` survived its background task being stopped (node kept port 4200); it served the current code, so the checks used it. Kill stray `node.exe` on 4200 if `ng serve` reports the port in use.
+
+- Next up: **Session 26 — Testing pass** (coverage of the logic that matters: progress, streaks, recurrence, insights, dates; fix what breaks).

@@ -20,6 +20,7 @@ import {
 import { ToastService } from '../../core/services/toast.service';
 import { localDateTimeToUtc, utcToLocalParts } from '../calendar/calendar-feed';
 import { defaultRemindAt } from './reminder-times';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 /** What a new reminder is about, and the title to start from (usually the target's own). */
 export interface ReminderDraft {
@@ -159,7 +160,7 @@ export class ReminderEditor {
       next: () => this.activeModal.close({ kind: 'saved' } as ReminderEditorResult),
       error: (err) => {
         this.saving.set(false);
-        this.toast.error(err.error?.message ?? 'Could not save the reminder.');
+        this.toast.error(apiErrorMessage(err, 'Could not save the reminder.'));
       },
     });
   }
@@ -183,7 +184,7 @@ export class ReminderEditor {
 
     this.remindersService.remove(existing.id).subscribe({
       next: () => this.activeModal.close({ kind: 'deleted' } as ReminderEditorResult),
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the reminder.'),
+      error: (err) => this.toast.error(apiErrorMessage(err, 'Could not delete the reminder.')),
     });
   }
 }

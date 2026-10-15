@@ -32,6 +32,8 @@ import {
   isoWeekdayIndex,
   scheduleLabel,
 } from './habit-schedule';
+import { apiErrorMessage } from '../../core/services/api-error';
+import { LoadError } from '../../shared/components/load-error/load-error';
 
 const GRID_DAYS = 7;
 
@@ -43,7 +45,7 @@ interface GridRow {
 @Component({
   selector: 'app-habits',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, HabitDay],
+  imports: [LoadError, DatePipe, RouterLink, HabitDay],
   templateUrl: './habits.html',
 })
 export class Habits implements OnInit {
@@ -58,6 +60,8 @@ export class Habits implements OnInit {
 
   protected readonly habits = signal<Habit[]>([]);
   protected readonly loading = signal(true);
+  /** The last load failed: show the retry block, not the empty state (which would say "you have none"). */
+  protected readonly loadFailed = signal(false);
   protected readonly statusFilter = signal<HabitStatus>('Active');
   protected readonly today = signal(todayIso());
   /** The last day the grid shows: today, or an earlier day when paging back through past weeks. */
@@ -141,7 +145,7 @@ export class Habits implements OnInit {
         },
         error: (err) => {
           this.busyCell.set(null);
-          this.toast.error(err.error?.message ?? 'Could not update the habit.');
+          this.toast.error(apiErrorMessage(err, 'Could not update the habit.'));
         },
       });
   }
@@ -155,7 +159,7 @@ export class Habits implements OnInit {
     }
   }
 
-  private reload(): void {
+  protected reload(): void {
     // Picks up a new day if the page was left open past midnight.
     const today = todayIso();
     if (this.windowEnd() === this.today() || this.windowEnd() > today) {
@@ -170,10 +174,12 @@ export class Habits implements OnInit {
         next: (habits) => {
           this.habits.set(habits);
           this.loading.set(false);
+          this.loadFailed.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.loading.set(false);
-          this.toast.error('Could not load your habits.');
+          this.loadFailed.set(true);
+          this.toast.error(apiErrorMessage(err, 'Could not load your habits.'));
         },
       });
   }

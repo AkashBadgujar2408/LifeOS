@@ -13,13 +13,15 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastService } from '../../core/services/toast.service';
 import Swal from 'sweetalert2';
 import { Tag, TagsService } from '../../core/services/tags.service';
+import { apiErrorMessage } from '../../core/services/api-error';
+import { LoadError } from '../../shared/components/load-error/load-error';
 
 const TAG_NAME_VALIDATORS = [Validators.required, Validators.maxLength(100)];
 
 @Component({
   selector: 'app-tags',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [LoadError, ReactiveFormsModule],
   templateUrl: './tags.html',
 })
 export class Tags implements OnInit {
@@ -31,6 +33,8 @@ export class Tags implements OnInit {
 
   protected readonly tags = signal<Tag[]>([]);
   protected readonly loading = signal(true);
+  /** The last load failed: show the retry block, not the empty state (which would say "you have none"). */
+  protected readonly loadFailed = signal(false);
   protected readonly creating = signal(false);
   protected readonly editingId = signal<number | null>(null);
 
@@ -38,6 +42,11 @@ export class Tags implements OnInit {
   protected readonly renameForm = this.fb.nonNullable.group({ name: ['', TAG_NAME_VALIDATORS] });
 
   ngOnInit(): void {
+    this.load();
+  }
+
+  protected load(): void {
+    this.loading.set(true);
     this.tagsService
       .list()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -45,10 +54,12 @@ export class Tags implements OnInit {
         next: (tags) => {
           this.tags.set(tags);
           this.loading.set(false);
+          this.loadFailed.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.loading.set(false);
-          this.toast.error('Could not load your tags.');
+          this.loadFailed.set(true);
+          this.toast.error(apiErrorMessage(err, 'Could not load your tags.'));
         },
       });
   }
@@ -90,7 +101,7 @@ export class Tags implements OnInit {
         },
         error: (err) => {
           this.creating.set(false);
-          this.toast.error(err.error?.message ?? 'Could not create the tag.');
+          this.toast.error(apiErrorMessage(err, 'Could not create the tag.'));
         },
       });
   }
@@ -129,7 +140,7 @@ export class Tags implements OnInit {
           this.editingId.set(null);
           this.toast.success(`Renamed to "${renamed.name}".`);
         },
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not rename the tag.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not rename the tag.')),
       });
   }
 
@@ -154,7 +165,7 @@ export class Tags implements OnInit {
           this.tags.update((tags) => tags.filter((t) => t.id !== tag.id));
           this.toast.success(`Deleted "${tag.name}".`);
         },
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the tag.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not delete the tag.')),
       });
   }
 

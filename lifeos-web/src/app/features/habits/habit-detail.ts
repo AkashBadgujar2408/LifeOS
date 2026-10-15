@@ -29,6 +29,7 @@ import {
   isoWeekdayIndex,
   scheduleLabel,
 } from './habit-schedule';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 /** How many weeks of history the detail page shows, Monday-aligned, ending with this week. */
 const HISTORY_WEEKS = 12;
@@ -109,7 +110,7 @@ export class HabitDetail implements OnInit {
         },
         error: (err) => {
           this.busyDay.set(null);
-          this.toast.error(err.error?.message ?? 'Could not update the habit.');
+          this.toast.error(apiErrorMessage(err, 'Could not update the habit.'));
         },
       });
   }
@@ -139,7 +140,7 @@ export class HabitDetail implements OnInit {
         },
         error: (err) => {
           this.changingStatus.set(false);
-          this.toast.error(err.error?.message ?? 'Could not change the status.');
+          this.toast.error(apiErrorMessage(err, 'Could not change the status.'));
         },
       });
   }
@@ -165,7 +166,7 @@ export class HabitDetail implements OnInit {
           this.toast.success('Habit deleted.');
           void this.router.navigate(['/habits']);
         },
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the habit.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not delete the habit.')),
       });
   }
 
@@ -176,8 +177,8 @@ export class HabitDetail implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (habit) => this.habit.set(habit),
-        error: () => {
-          this.toast.error('Habit not found.');
+        error: (err) => {
+          this.toast.error(apiErrorMessage(err, 'Habit not found.'));
           void this.router.navigate(['/habits']);
         },
       });

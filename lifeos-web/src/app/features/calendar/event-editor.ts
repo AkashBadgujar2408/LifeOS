@@ -26,6 +26,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { localDateTimeToUtc, utcToLocalParts } from './calendar-feed';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 /** Starting values for a new event, already in local terms (what the user clicked on). */
 export interface EventDraft {
@@ -232,7 +233,7 @@ export class EventEditor {
       next: () => this.activeModal.close({ kind: 'saved' } as EventEditorResult),
       error: (err) => {
         this.saving.set(false);
-        this.toast.error(err.error?.message ?? 'Could not save the event.');
+        this.toast.error(apiErrorMessage(err, 'Could not save the event.'));
       },
     });
   }
@@ -257,7 +258,7 @@ export class EventEditor {
 
     this.calendarService.deleteEvent(existing.id).subscribe({
       next: () => this.activeModal.close({ kind: 'deleted' } as EventEditorResult),
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the event.'),
+      error: (err) => this.toast.error(apiErrorMessage(err, 'Could not delete the event.')),
     });
   }
 }

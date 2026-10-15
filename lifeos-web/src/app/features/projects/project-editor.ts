@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Project, ProjectsService } from '../../core/services/projects.service';
 import { ToastService } from '../../core/services/toast.service';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 /** Opens the create/edit dialog; resolves with the saved project, or null if it was dismissed. */
 export async function openProjectEditor(
@@ -82,7 +83,7 @@ export class ProjectEditor {
       next: (saved) => this.activeModal.close(saved),
       error: (err) => {
         this.saving.set(false);
-        this.toast.error(err.error?.message ?? 'Could not save the project.');
+        this.toast.error(apiErrorMessage(err, 'Could not save the project.'));
       },
     });
   }

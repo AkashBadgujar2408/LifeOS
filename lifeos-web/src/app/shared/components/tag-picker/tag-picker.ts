@@ -11,6 +11,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../../core/services/toast.service';
 import { Tag, TagsService } from '../../../core/services/tags.service';
+import { apiErrorMessage } from '../../../core/services/api-error';
 
 @Component({
   selector: 'app-tag-picker',
@@ -39,7 +40,7 @@ export class TagPicker implements OnInit {
   ngOnInit(): void {
     this.tagsService.list().subscribe({
       next: (tags) => this.allTags.set(tags),
-      error: () => this.toast.error('Could not load tags.'),
+      error: (err) => this.toast.error(apiErrorMessage(err, 'Could not load tags.')),
     });
   }
 
@@ -70,7 +71,7 @@ export class TagPicker implements OnInit {
         this.selectTag(tag);
         this.newTagName.set('');
       },
-      error: (err) => this.toast.error(err.error?.message ?? 'Could not create tag.'),
+      error: (err) => this.toast.error(apiErrorMessage(err, 'Could not create tag.')),
     });
   }
 }

@@ -34,11 +34,13 @@ import { ToastService } from '../../core/services/toast.service';
 import { openTaskEditor } from '../tasks/task-editor';
 import { SOURCE_LABELS, SOURCE_TYPES, feedRange, toEventInput } from './calendar-feed';
 import { EventDraft, openEventEditor } from './event-editor';
+import { apiErrorMessage } from '../../core/services/api-error';
+import { LoadError } from '../../shared/components/load-error/load-error';
 
 @Component({
   selector: 'app-calendar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FullCalendarModule],
+  imports: [LoadError, FullCalendarModule],
   templateUrl: './calendar.html',
   styleUrl: './calendar.scss',
 })
@@ -55,6 +57,8 @@ export class Calendar {
 
   protected readonly items = signal<CalendarFeedItem[]>([]);
   protected readonly loading = signal(false);
+  /** The last feed load failed: an empty grid would look like a free month, so say so above it. */
+  protected readonly loadFailed = signal(false);
   protected readonly hiddenSources = signal<ReadonlySet<CalendarSourceType>>(new Set());
 
   protected readonly events = computed(() => {
@@ -146,7 +150,7 @@ export class Calendar {
                 this.toast.success(result.kind === 'saved' ? 'Event saved.' : 'Event deleted.');
               }
             },
-            error: () => this.toast.error('Could not open the event.'),
+            error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the event.')),
           });
         break;
       case 'Task':
@@ -161,7 +165,7 @@ export class Calendar {
                 this.toast.success(result.kind === 'saved' ? 'Task saved.' : 'Task deleted.');
               }
             },
-            error: () => this.toast.error('Could not open the task.'),
+            error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the task.')),
           });
         break;
       case 'Milestone':
@@ -181,7 +185,7 @@ export class Calendar {
     }
   }
 
-  private loadFeed(): void {
+  protected loadFeed(): void {
     if (!this.range) {
       return;
     }
@@ -196,10 +200,12 @@ export class Calendar {
         next: (items) => {
           this.items.set(items);
           this.loading.set(false);
+          this.loadFailed.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.loading.set(false);
-          this.toast.error('Could not load the calendar.');
+          this.loadFailed.set(true);
+          this.toast.error(apiErrorMessage(err, 'Could not load the calendar.'));
         },
       });
   }

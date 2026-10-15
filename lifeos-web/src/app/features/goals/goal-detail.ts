@@ -40,6 +40,7 @@ import {
   revisionSummary,
 } from './goal-status';
 import { isOverdue } from '../../core/dates/today';
+import { apiErrorMessage } from '../../core/services/api-error';
 
 const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(200)];
 
@@ -150,7 +151,7 @@ export class GoalDetail implements OnInit {
         },
         error: (err) => {
           this.adding.set(false);
-          this.toast.error(err.error?.message ?? 'Could not add the milestone.');
+          this.toast.error(apiErrorMessage(err, 'Could not add the milestone.'));
         },
       });
   }
@@ -164,7 +165,7 @@ export class GoalDetail implements OnInit {
         next: () => this.reload(),
         error: (err) => {
           this.busyMilestoneId.set(null);
-          this.toast.error(err.error?.message ?? 'Could not update the milestone.');
+          this.toast.error(apiErrorMessage(err, 'Could not update the milestone.'));
         },
       });
   }
@@ -201,7 +202,7 @@ export class GoalDetail implements OnInit {
           this.editingMilestoneId.set(null);
           this.reload();
         },
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not save the milestone.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not save the milestone.')),
       });
   }
 
@@ -224,7 +225,7 @@ export class GoalDetail implements OnInit {
       .subscribe({
         next: () => this.reload(),
         error: (err) => {
-          this.toast.error(err.error?.message ?? 'Could not reorder the milestones.');
+          this.toast.error(apiErrorMessage(err, 'Could not reorder the milestones.'));
           this.reload();
         },
       });
@@ -248,7 +249,7 @@ export class GoalDetail implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.reload(),
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the milestone.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not delete the milestone.')),
       });
   }
 
@@ -290,7 +291,7 @@ export class GoalDetail implements OnInit {
         },
         error: (err) => {
           this.changingStatus.set(false);
-          this.toast.error(err.error?.message ?? 'Could not change the status.');
+          this.toast.error(apiErrorMessage(err, 'Could not change the status.'));
         },
       });
   }
@@ -316,7 +317,7 @@ export class GoalDetail implements OnInit {
           this.toast.success(`Deleted "${goal.title}".`);
           this.router.navigate(['/goals']);
         },
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete the goal.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not delete the goal.')),
       });
   }
 
@@ -330,8 +331,8 @@ export class GoalDetail implements OnInit {
           this.goal.set(goal);
           this.busyMilestoneId.set(null);
         },
-        error: () => {
-          this.toast.error('That goal could not be found.');
+        error: (err) => {
+          this.toast.error(apiErrorMessage(err, 'That goal could not be found.'));
           this.router.navigate(['/goals']);
         },
       });

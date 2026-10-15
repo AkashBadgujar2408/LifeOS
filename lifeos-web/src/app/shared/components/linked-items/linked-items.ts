@@ -17,6 +17,7 @@ import {
   LinkableItem,
   LinkedItem,
 } from '../../../core/services/entity-links.service';
+import { apiErrorMessage } from '../../../core/services/api-error';
 
 /**
  * Shows everything an entity is linked to (in either direction) and lets the user add/remove links.
@@ -103,7 +104,7 @@ export class LinkedItems {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (created) => this.links.update((links) => [...links, created]),
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not create link.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not create link.')),
       });
   }
 
@@ -113,7 +114,7 @@ export class LinkedItems {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.links.update((links) => links.filter((l) => l.linkId !== link.linkId)),
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not remove link.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not remove link.')),
       });
   }
 
@@ -127,9 +128,9 @@ export class LinkedItems {
           this.links.set(links);
           this.loading.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.loading.set(false);
-          this.toast.error('Could not load linked items.');
+          this.toast.error(apiErrorMessage(err, 'Could not load linked items.'));
         },
       });
   }

@@ -10,6 +10,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthLayout } from '../../../shared/components/auth-layout/auth-layout';
+import { apiErrorMessage } from '../../../core/services/api-error';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -83,7 +84,7 @@ export class Register {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.toast.error(err.error?.message ?? 'Registration failed.');
+        this.toast.error(apiErrorMessage(err, 'Registration failed.'));
       },
     });
   }

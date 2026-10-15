@@ -37,6 +37,8 @@
 
   @if (loading() && reminders().length === 0) {
     <div class="text-body-secondary">Loading...</div>
+  } @else if (loadFailed()) {
+    <app-load-error message="Couldn't load your reminders." (retry)="load(view())" />
   } @else if (reminders().length === 0) {
     <div class="card">
       <div class="card-body text-center py-5">

@@ -35,6 +35,12 @@
     }
   </div>
 
+  @if (loadFailed()) {
+    <div class="mb-3">
+      <app-load-error message="Couldn't load the calendar for these dates." (retry)="loadFeed()" />
+    </div>
+  }
+
   <div class="card">
     <div class="card-body p-2 p-md-3">
       <full-calendar [options]="options" [events]="events()" />

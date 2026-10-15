@@ -25,6 +25,8 @@ import { APP_DATE_TIME_FORMAT } from '../../core/dates/date-format';
 import { toLocalIsoDate, todayIso } from '../../core/dates/today';
 import { JournalService } from '../../core/services/journal.service';
 import { Router } from '@angular/router';
+import { apiErrorMessage } from '../../core/services/api-error';
+import { LoadError } from '../../shared/components/load-error/load-error';
 
 const KIND_ICONS: Record<InboxKind, string> = {
   Task: 'bi-check2-square',
@@ -36,7 +38,7 @@ const KIND_ICONS: Record<InboxKind, string> = {
 @Component({
   selector: 'app-inbox',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, LinkedItems],
+  imports: [LoadError, DatePipe, LinkedItems],
   templateUrl: './inbox.html',
 })
 export class Inbox {
@@ -54,6 +56,8 @@ export class Inbox {
 
   protected readonly items = signal<InboxItem[]>([]);
   protected readonly loading = signal(true);
+  /** The last load failed: show the retry block, not the empty state (which would say "you have none"). */
+  protected readonly loadFailed = signal(false);
   protected readonly kindFilter = signal<InboxKind | null>(null);
   protected readonly showProcessed = signal(false);
   protected readonly expandedLinksId = signal<number | null>(null);
@@ -100,7 +104,7 @@ export class Inbox {
           }
           this.toast.success(processed ? 'Marked as processed.' : 'Moved back to open.');
         },
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not update item.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not update item.')),
       });
   }
 
@@ -140,7 +144,7 @@ export class Inbox {
         },
         error: (err) => {
           this.processingId.set(null);
-          this.toast.error(err.error?.message ?? 'Could not add it to the journal.');
+          this.toast.error(apiErrorMessage(err, 'Could not add it to the journal.'));
         },
       });
   }
@@ -166,11 +170,11 @@ export class Inbox {
           this.items.update((items) => items.filter((i) => i.id !== item.id));
           this.toast.success('Item deleted.');
         },
-        error: (err) => this.toast.error(err.error?.message ?? 'Could not delete item.'),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not delete item.')),
       });
   }
 
-  private load(includeProcessed: boolean): void {
+  protected load(includeProcessed: boolean): void {
     this.loading.set(true);
     this.inboxService
       .list(includeProcessed)
@@ -179,10 +183,12 @@ export class Inbox {
         next: (items) => {
           this.items.set(items);
           this.loading.set(false);
+          this.loadFailed.set(false);
         },
-        error: () => {
+        error: (err) => {
           this.loading.set(false);
-          this.toast.error('Could not load your inbox.');
+          this.loadFailed.set(true);
+          this.toast.error(apiErrorMessage(err, 'Could not load your inbox.'));
         },
       });
   }
