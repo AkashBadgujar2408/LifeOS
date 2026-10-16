@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using LifeOS.Core.Tasks.DTOs;
 
 namespace LifeOS.Core.Calendar.DTOs;
 
@@ -17,7 +18,34 @@ public class EventDto
     public DateOnly? EndDate { get; init; }
     public DateTime? StartsAt { get; init; }
     public DateTime? EndsAt { get; init; }
+    /// <summary>Null for a one-off event. For a series, the dates/times above are its first occurrence.</summary>
+    public EventRecurrenceDto? Recurrence { get; init; }
+    /// <summary>IANA zone a timed series follows; null otherwise.</summary>
+    public string? TimeZone { get; init; }
+    /// <summary>Occurrences of the series that were skipped, oldest first.</summary>
+    public List<DateOnly> SkippedDates { get; init; } = [];
     public DateTime CreatedAt { get; init; }
+}
+
+/// <summary>"Every {Interval} {Frequency}" from the first occurrence, until {Until} (inclusive) or forever.</summary>
+public class EventRecurrenceDto
+{
+    [Required]
+    [AllowedValues(RecurrenceFrequencies.Daily, RecurrenceFrequencies.Weekly, RecurrenceFrequencies.Monthly, RecurrenceFrequencies.Yearly,
+        ErrorMessage = "Repeat must be Daily, Weekly, Monthly or Yearly.")]
+    public string Frequency { get; init; } = string.Empty;
+
+    [Range(1, 999, ErrorMessage = "Repeat every 1 to 999.")]
+    public int Interval { get; init; } = 1;
+
+    /// <summary>Last day an occurrence may start on; null = no end.</summary>
+    public DateOnly? Until { get; init; }
+}
+
+/// <summary>Skip one occurrence of a series, or bring a skipped one back.</summary>
+public class EventOccurrenceSkipRequest
+{
+    public bool Skipped { get; init; }
 }
 
 public class EventRequest
@@ -45,4 +73,16 @@ public class EventRequest
 
     /// <summary>Timed only: a moment with a "Z" or an offset.</summary>
     public DateTime? EndsAt { get; init; }
+
+    /// <summary>Null = a one-off event.</summary>
+    public EventRecurrenceDto? Recurrence { get; init; }
+
+    /// <summary>The user's IANA zone (e.g. "Europe/London"); required for a timed recurring event.</summary>
+    [StringLength(64)]
+    public string? TimeZone { get; init; }
+}
+
+public static class EventErrors
+{
+    public const string NotFound = "Event not found.";
 }

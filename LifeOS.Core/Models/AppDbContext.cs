@@ -17,6 +17,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Event> Events { get; set; }
 
+    public virtual DbSet<EventException> EventExceptions { get; set; }
+
     public virtual DbSet<Goal> Goals { get; set; }
 
     public virtual DbSet<GoalHistory> GoalHistories { get; set; }
@@ -104,18 +106,43 @@ public partial class AppDbContext : DbContext
         {
             entity.ToTable("Events", "calendar");
 
+            entity.HasIndex(e => e.UserId, "IX_Events_User_Recurring").HasFilter("([IsDeleted]=(0) AND [RecurrenceFrequency] IS NOT NULL)");
+
             entity.HasIndex(e => new { e.UserId, e.StartDate }, "IX_Events_User_StartDate").HasFilter("([IsDeleted]=(0) AND [IsAllDay]=(1))");
 
             entity.HasIndex(e => new { e.UserId, e.StartsAt }, "IX_Events_User_StartsAt").HasFilter("([IsDeleted]=(0) AND [IsAllDay]=(0))");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Events_CreatedAt");
             entity.Property(e => e.Location).HasMaxLength(200);
+            entity.Property(e => e.RecurrenceFrequency).HasMaxLength(10);
+            entity.Property(e => e.TimeZone).HasMaxLength(64);
             entity.Property(e => e.Title).HasMaxLength(200);
 
             entity.HasOne(d => d.User).WithMany(p => p.Events)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Events_Users");
+        });
+
+        modelBuilder.Entity<EventException>(entity =>
+        {
+            entity.ToTable("EventExceptions", "calendar");
+
+            entity.HasIndex(e => new { e.EventId, e.OccurrenceDate }, "UX_EventExceptions_Event_Date")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_EventExceptions_CreatedAt");
+
+            entity.HasOne(d => d.Event).WithMany(p => p.EventExceptions)
+                .HasForeignKey(d => d.EventId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_EventExceptions_Events");
+
+            entity.HasOne(d => d.User).WithMany(p => p.EventExceptions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_EventExceptions_Users");
         });
 
         modelBuilder.Entity<Goal>(entity =>

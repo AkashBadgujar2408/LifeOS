@@ -16,6 +16,8 @@ GO
 --   5 Habits         active habits that have started
 --   6 HabitEntries   every day ticked for those habits (streaks are computed in C# by HabitStreaks, never stored)
 --   7 Journal        the latest journal entry on or before @Today (zero or one row)
+--   8 EventSeries    recurring events that may occur today (Session 33; set 2 holds one-off events only)
+--   9 SkippedDates   skipped occurrences of those series — DashboardService expands 8 minus 9 with EventRecurrence
 --
 -- @Today is the user's local date; @DayStartUtc/@DayEndUtc are its local midnights as UTC instants, worked out by the
 -- client (same split as calendar.GetCalendarFeed). Half-open: [@DayStartUtc, @DayEndUtc).
@@ -72,6 +74,7 @@ BEGIN
         e.Location
     FROM calendar.Events e
     WHERE e.UserId = @UserId
+      AND e.RecurrenceFrequency IS NULL
       AND e.IsDeleted = 0
       AND (
             (e.IsAllDay = 1 AND e.StartDate <= @Today AND e.EndDate >= @Today)
@@ -189,5 +192,32 @@ BEGIN
       AND je.IsDeleted = 0
       AND je.EntryDate <= @Today
     ORDER BY je.EntryDate DESC;
+
+    -- 8 Recurring event series that may have an occurrence today — same columns and rules as
+    -- calendar.GetCalendarFeed's set 2, with today as the whole range.
+    SELECT
+        e.Id, e.Title, e.IsAllDay, e.StartDate, e.EndDate, e.StartsAt, e.EndsAt, e.Location,
+        e.RecurrenceFrequency, e.RecurrenceInterval, e.RecurrenceUntil, e.TimeZone
+    FROM calendar.Events e
+    WHERE e.UserId = @UserId
+      AND e.IsDeleted = 0
+      AND e.RecurrenceFrequency IS NOT NULL
+      AND ((e.IsAllDay = 1 AND e.StartDate <= @Today) OR (e.IsAllDay = 0 AND e.StartsAt < @DayEndUtc))
+      AND (e.RecurrenceUntil IS NULL
+           OR (e.IsAllDay = 1 AND e.RecurrenceUntil >= DATEADD(DAY, -DATEDIFF(DAY, e.StartDate, e.EndDate), @Today))
+           OR (e.IsAllDay = 0 AND e.RecurrenceUntil >= DATEADD(DAY, -DATEDIFF(DAY, e.StartsAt, e.EndsAt) - 2, @Today)))
+    ORDER BY e.Id;
+
+    -- 9 Skipped occurrences of those series.
+    SELECT x.EventId, x.OccurrenceDate
+    FROM calendar.EventExceptions x
+    INNER JOIN calendar.Events e
+        ON e.Id = x.EventId
+       AND e.UserId = @UserId
+       AND e.IsDeleted = 0
+       AND e.RecurrenceFrequency IS NOT NULL
+    WHERE x.UserId = @UserId
+      AND x.IsDeleted = 0
+      AND x.OccurrenceDate <= DATEADD(DAY, 2, @Today);
 END
 GO

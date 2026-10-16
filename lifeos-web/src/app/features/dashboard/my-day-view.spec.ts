@@ -123,6 +123,8 @@ describe('daySummary', () => {
             startsAt: '2026-10-15T04:00:00Z',
             endsAt: '2026-10-15T04:15:00Z',
             location: null,
+            isRecurring: false,
+            occurrenceDate: null,
           },
         ],
         habits: [habit(1, false, true), habit(2, true, true)],

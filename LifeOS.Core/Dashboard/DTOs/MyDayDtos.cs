@@ -48,6 +48,10 @@ public class MyDayEventDto
     public DateTime? StartsAt { get; init; }
     public DateTime? EndsAt { get; init; }
     public string? Location { get; init; }
+    /// <summary>Today's occurrence of a recurring series (Id is the series).</summary>
+    public bool IsRecurring { get; init; }
+    /// <summary>Recurring only: the day this occurrence starts, which identifies it within the series.</summary>
+    public DateOnly? OccurrenceDate { get; init; }
 }
 
 public class MyDayReminderDto

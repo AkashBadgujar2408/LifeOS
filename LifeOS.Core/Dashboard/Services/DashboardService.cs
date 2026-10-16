@@ -1,5 +1,6 @@
 using System.Data;
 using Dapper;
+using LifeOS.Core.Calendar.Services;
 using LifeOS.Core.Dashboard.DTOs;
 using LifeOS.Core.Dashboard.ServiceContracts;
 using LifeOS.Core.Goals.DTOs;
@@ -57,6 +58,8 @@ public class DashboardService(AppDbContext db) : IDashboardService
         var habits = (await reader.ReadAsync<HabitRow>()).ToList();
         var entries = (await reader.ReadAsync<HabitEntryRow>()).ToList();
         var journal = (await reader.ReadAsync<JournalRow>()).FirstOrDefault();
+        var eventSeries = (await reader.ReadAsync<EventSeriesRow>()).ToList();
+        var skippedDates = (await reader.ReadAsync<SkippedDateRow>()).ToList();
 
         var doneByHabit = entries
             .GroupBy(e => e.HabitId)
@@ -86,7 +89,26 @@ public class DashboardService(AppDbContext db) : IDashboardService
                 StartsAt = AsUtc(e.StartsAt),
                 EndsAt = AsUtc(e.EndsAt),
                 Location = e.Location,
-            }).ToList(),
+            })
+            .Concat(RecurringEvents.Expand(eventSeries, skippedDates, today, today, startUtc, endUtc).Select(o => new MyDayEventDto
+            {
+                Id = o.Series.Id,
+                Title = o.Series.Title,
+                IsAllDay = o.Series.IsAllDay,
+                StartDate = o.Occurrence.StartDate,
+                EndDate = o.Occurrence.EndDate,
+                StartsAt = o.Occurrence.StartsAt,
+                EndsAt = o.Occurrence.EndsAt,
+                Location = o.Series.Location,
+                IsRecurring = true,
+                OccurrenceDate = o.Occurrence.OccurrenceDate,
+            }))
+            // The procedure's order (all-day first, then timed by start), with occurrences mixed in.
+            .OrderByDescending(e => e.IsAllDay)
+            .ThenBy(e => e.StartsAt)
+            .ThenBy(e => e.Title, StringComparer.Ordinal)
+            .ThenBy(e => e.Id)
+            .ToList(),
             Reminders = reminders.Select(r => new MyDayReminderDto
             {
                 Id = r.Id,

@@ -29,14 +29,19 @@ export function feedRange(start: Date, end: Date): FeedRange {
   };
 }
 
-/** Feed item → FullCalendar event. IDs are prefixed by source, since a task and an event can share a number. */
+/**
+ * Feed item → FullCalendar event. IDs are prefixed by source, since a task and an event can share a number, and an
+ * occurrence of a recurring event adds its day, since every occurrence shares the series' id.
+ */
 export function toEventInput(item: CalendarFeedItem): EventInput {
   const source = item.sourceType.toLowerCase();
   // FullCalendar v7 takes a single space-separated class string, not an array.
   const className = item.isDone ? `lifeos-cal-${source} lifeos-cal-done` : `lifeos-cal-${source}`;
 
   return {
-    id: `${item.sourceType}-${item.sourceId}`,
+    id: item.occurrenceDate
+      ? `${item.sourceType}-${item.sourceId}-${item.occurrenceDate}`
+      : `${item.sourceType}-${item.sourceId}`,
     title: item.title,
     allDay: item.isAllDay,
     // All-day: FullCalendar's end is exclusive, the API's is inclusive. Timed: UTC instants, shown in local time.

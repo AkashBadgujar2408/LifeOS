@@ -8,8 +8,8 @@ GO
 -- The unified calendar feed: everything with a date that falls in a range, from every module, as one row shape.
 -- Called via Dapper from CalendarFeedService. Depends on 02_goals.sql, 03_tasks.sql, 04_calendar.sql.
 --
--- Sources (SourceType):
---   Event      calendar.Events — all-day (date range) or timed (UTC moments)
+-- Sources (SourceType) in result set 1:
+--   Event      one-off calendar.Events — all-day (date range) or timed (UTC moments); recurring ones are sets 2-3
 --   Task       tasks.TaskItems with a DueDate (open and done; IsDone tells them apart)
 --   Milestone  goals.GoalMilestones with a TargetDate
 --   Goal       goals.Goals with a TargetDate
@@ -54,6 +54,7 @@ BEGIN
     WHERE e.UserId = @UserId
       AND e.IsDeleted = 0
       AND e.IsAllDay = 1
+      AND e.RecurrenceFrequency IS NULL
       AND e.StartDate <= @ToDate
       AND e.EndDate >= @FromDate
 
@@ -69,6 +70,7 @@ BEGIN
     WHERE e.UserId = @UserId
       AND e.IsDeleted = 0
       AND e.IsAllDay = 0
+      AND e.RecurrenceFrequency IS NULL
       AND e.StartsAt < @ToUtc
       AND e.EndsAt >= @FromUtc
 
@@ -125,5 +127,35 @@ BEGIN
     -- its local day (only it can turn StartsAt into a local date); this just keeps ties deterministic.
     -- A UNION's ORDER BY may only use the column names of its first SELECT.
     ORDER BY IsAllDay DESC, StartDate, StartsAt, SourceType, Title, SourceId;
+
+    -- Result set 2: recurring event series that may have an occurrence in the range (Session 33). Occurrences aren't
+    -- stored, so this can't be an overlap test on the row's own dates — those are only the first occurrence.
+    -- CalendarFeedService expands each series (EventRecurrence) and keeps what really overlaps; here it's enough to
+    -- drop series that start after the range or ended well before it. RecurrenceUntil is the last day an occurrence
+    -- may start, so allow for the occurrence's own length (plus two days of timezone slack for timed series).
+    SELECT
+        e.Id, e.Title, e.IsAllDay, e.StartDate, e.EndDate, e.StartsAt, e.EndsAt, e.Location,
+        e.RecurrenceFrequency, e.RecurrenceInterval, e.RecurrenceUntil, e.TimeZone
+    FROM calendar.Events e
+    WHERE e.UserId = @UserId
+      AND e.IsDeleted = 0
+      AND e.RecurrenceFrequency IS NOT NULL
+      AND ((e.IsAllDay = 1 AND e.StartDate <= @ToDate) OR (e.IsAllDay = 0 AND e.StartsAt < @ToUtc))
+      AND (e.RecurrenceUntil IS NULL
+           OR (e.IsAllDay = 1 AND e.RecurrenceUntil >= DATEADD(DAY, -DATEDIFF(DAY, e.StartDate, e.EndDate), @FromDate))
+           OR (e.IsAllDay = 0 AND e.RecurrenceUntil >= DATEADD(DAY, -DATEDIFF(DAY, e.StartsAt, e.EndsAt) - 2, @FromDate)))
+    ORDER BY e.Id;
+
+    -- Result set 3: skipped occurrences of those series (joined so a deleted series' skips stay out).
+    SELECT x.EventId, x.OccurrenceDate
+    FROM calendar.EventExceptions x
+    INNER JOIN calendar.Events e
+        ON e.Id = x.EventId
+       AND e.UserId = @UserId
+       AND e.IsDeleted = 0
+       AND e.RecurrenceFrequency IS NOT NULL
+    WHERE x.UserId = @UserId
+      AND x.IsDeleted = 0
+      AND x.OccurrenceDate <= DATEADD(DAY, 2, @ToDate);
 END
 GO

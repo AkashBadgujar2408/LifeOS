@@ -30,6 +30,9 @@ export interface MyDayEvent {
   startsAt: string | null;
   endsAt: string | null;
   location: string | null;
+  /** Today's occurrence of a recurring series (id is the series). */
+  isRecurring: boolean;
+  occurrenceDate: string | null;
 }
 
 export interface MyDayReminder {

@@ -33,5 +33,15 @@ public partial class Event
 
     public DateTime? DeletedAt { get; set; }
 
+    public string? RecurrenceFrequency { get; set; }
+
+    public int? RecurrenceInterval { get; set; }
+
+    public DateOnly? RecurrenceUntil { get; set; }
+
+    public string? TimeZone { get; set; }
+
+    public virtual ICollection<EventException> EventExceptions { get; set; } = new List<EventException>();
+
     public virtual User User { get; set; } = null!;
 }

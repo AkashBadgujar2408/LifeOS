@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { ApiResponse } from './api-response';
 import { Mood } from './journal.service';
+import { browserTimeZone } from '../dates/today';
 
 /** Matches MissionKinds on the API: derived from the goal type (long-term / short-term / bucket list). */
 export type MissionKind = 'Main' | 'Side' | 'Collectible';
@@ -186,11 +187,6 @@ export interface StoryRecap {
   /** Newest first. */
   recentBeats: StoryBeat[];
   currentMission: Mission | null;
-}
-
-/** The browser's IANA timezone ("Asia/Kolkata"), so the API puts recorded moments on the right local day. */
-export function browserTimeZone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
 @Injectable({ providedIn: 'root' })

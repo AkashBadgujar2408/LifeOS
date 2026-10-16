@@ -10,7 +10,7 @@ namespace LifeOS.Core.Calendar.Services;
 
 /// <summary>
 /// The calendar feed comes from a stored procedure (database/procedures/calendar.GetCalendarFeed.sql) through Dapper,
-/// not EF: it's a five-way UNION across three schemas. The procedure does its own user/soft-delete filtering, since
+/// not EF: a five-way UNION across three schemas, plus recurring series that are expanded here (EventRecurrence). The procedure does its own user/soft-delete filtering, since
 /// EF's global query filters don't apply outside EF.
 /// </summary>
 public class CalendarFeedService(AppDbContext db) : ICalendarFeedService
@@ -47,12 +47,41 @@ public class CalendarFeedService(AppDbContext db) : ICalendarFeedService
         parameters.Add("ToUtc", endUtc, DbType.DateTime2);
 
         // Dapper uses (and opens/closes) the context's own connection, so there's one connection string and one
-        // connection per request whichever path a query takes.
-        var rows = await db.Database.GetDbConnection().QueryAsync<FeedRow>(
+        // connection per request whichever path a query takes. Three result sets, read in the procedure's order.
+        await using var reader = await db.Database.GetDbConnection().QueryMultipleAsync(
             "calendar.GetCalendarFeed", parameters, commandType: CommandType.StoredProcedure);
+        var rows = (await reader.ReadAsync<FeedRow>()).ToList();
+        var series = (await reader.ReadAsync<EventSeriesRow>()).ToList();
+        var skipped = (await reader.ReadAsync<SkippedDateRow>()).ToList();
 
-        return OperationResult<List<CalendarFeedItemDto>>.Ok(rows.Select(ToDto).ToList());
+        var items = rows.Select(ToDto)
+            .Concat(RecurringEvents.Expand(series, skipped, from, to, startUtc, endUtc).Select(o => ToDto(o.Series, o.Occurrence)))
+            // The procedure's order, now with occurrences among the one-offs: date-based by date, then timed by start.
+            .OrderByDescending(i => i.IsAllDay)
+            .ThenBy(i => i.StartDate)
+            .ThenBy(i => i.StartsAt)
+            .ThenBy(i => i.SourceType, StringComparer.Ordinal)
+            .ThenBy(i => i.Title, StringComparer.Ordinal)
+            .ThenBy(i => i.SourceId)
+            .ToList();
+
+        return OperationResult<List<CalendarFeedItemDto>>.Ok(items);
     }
+
+    private static CalendarFeedItemDto ToDto(EventSeriesRow series, EventOccurrence occurrence) => new()
+    {
+        SourceType = CalendarSourceTypes.Event,
+        SourceId = series.Id,
+        Title = series.Title,
+        IsAllDay = series.IsAllDay,
+        StartDate = occurrence.StartDate,
+        EndDate = occurrence.EndDate,
+        StartsAt = occurrence.StartsAt,
+        EndsAt = occurrence.EndsAt,
+        Location = series.Location,
+        IsRecurring = true,
+        OccurrenceDate = occurrence.OccurrenceDate,
+    };
 
     // ADO.NET hands DATE back as DateTime and DATETIME2 as DateTimeKind.Unspecified; the row type takes them as they
     // come and ToDto gives them their real meaning (calendar date / UTC instant) — the job EF's value converter in

@@ -59,4 +59,31 @@ public class EventsController(IEventsService eventsService) : ControllerBase
 
         return Ok(ApiResponse<bool>.Ok(true));
     }
+
+    /// <summary>PUT api/Calendar/Events/5/occurrences/2026-10-20/skipped { "skipped": true } — returns the series.</summary>
+    [HttpPut("{id:int}/occurrences/{date}/skipped")]
+    public async Task<IActionResult> SetSkipped(int id, DateOnly date, EventOccurrenceSkipRequest request) =>
+        Respond(await eventsService.SetSkippedAsync(id, date, request.Skipped));
+
+    /// <summary>POST api/Calendar/Events/5/occurrences/2026-10-20/detach { one-off event } — returns the new event.</summary>
+    [HttpPost("{id:int}/occurrences/{date}/detach")]
+    public async Task<IActionResult> Detach(int id, DateOnly date, EventRequest request) =>
+        Respond(await eventsService.DetachOccurrenceAsync(id, date, request));
+
+    /// <summary>POST api/Calendar/Events/5/occurrences/2026-10-20/end — "delete this and following"; data = series deleted.</summary>
+    [HttpPost("{id:int}/occurrences/{date}/end")]
+    public async Task<IActionResult> EndSeries(int id, DateOnly date) =>
+        Respond(await eventsService.EndSeriesAsync(id, date));
+
+    private IActionResult Respond<T>(OperationResult<T> result)
+    {
+        if (result.Success)
+        {
+            return Ok(ApiResponse<T>.Ok(result.Data));
+        }
+
+        return result.Error == EventErrors.NotFound
+            ? NotFound(ApiResponse<T>.Fail(result.Error))
+            : BadRequest(ApiResponse<T>.Fail(result.Error!));
+    }
 }

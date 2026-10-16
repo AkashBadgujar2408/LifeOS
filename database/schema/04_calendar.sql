@@ -89,3 +89,68 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('calendar.Reminders') AND name = 'IX_Reminders_Entity')
     CREATE INDEX IX_Reminders_Entity ON calendar.Reminders(EntityType, EntityId) WHERE IsDeleted = 0 AND EntityType IS NOT NULL;
 GO
+
+-- Recurring events (Session 33). Added with ALTER rather than inside the CREATE above, so a fresh database and one
+-- upgraded from Month 1 end up with the same column order (and so scaffold identically).
+--
+-- A recurring event is one row — the series — whose own dates/times are its first occurrence. Occurrences are never
+-- stored: EventRecurrence (C#) expands the series into a range on every read, like streaks. The rule mirrors
+-- tasks.TaskItems: "every RecurrenceInterval RecurrenceFrequency" counted from the first occurrence, so a monthly
+-- series from the 31st clamps to 30 Apr / 28 Feb instead of drifting. RecurrenceUntil is the last day an occurrence
+-- may *start* (inclusive), NULL = no end.
+--
+-- TimeZone (IANA, e.g. 'Europe/London') is required for a timed series: "every Monday 09:00" means 09:00 on the wall
+-- clock where the user lives, so each occurrence is placed in that zone and converted to UTC — a fixed UTC time would
+-- slide by an hour at every DST change. All-day series are DATEs and need no zone.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('calendar.Events') AND name = 'RecurrenceFrequency')
+    ALTER TABLE calendar.Events ADD
+        RecurrenceFrequency NVARCHAR(10)  NULL,
+        RecurrenceInterval  INT           NULL,
+        RecurrenceUntil     DATE          NULL,
+        TimeZone            NVARCHAR(64)  NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Events_RecurrenceFrequency')
+    ALTER TABLE calendar.Events ADD CONSTRAINT CK_Events_RecurrenceFrequency
+        CHECK (RecurrenceFrequency IN ('Daily', 'Weekly', 'Monthly', 'Yearly'));
+GO
+
+-- All three recurrence columns or none; a timed series needs its zone; an all-day series can't end before it begins.
+-- (A timed series' end-vs-start check needs the zone, so EventsService does that one.)
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Events_Recurrence')
+    ALTER TABLE calendar.Events ADD CONSTRAINT CK_Events_Recurrence CHECK (
+        (RecurrenceFrequency IS NULL AND RecurrenceInterval IS NULL AND RecurrenceUntil IS NULL)
+        OR (RecurrenceFrequency IS NOT NULL AND RecurrenceInterval BETWEEN 1 AND 999
+            AND (IsAllDay = 1 OR TimeZone IS NOT NULL)
+            AND (IsAllDay = 0 OR RecurrenceUntil IS NULL OR RecurrenceUntil >= StartDate)));
+GO
+
+-- A skipped occurrence of a series ("no yoga this Tuesday"). OccurrenceDate is the day the occurrence would have
+-- started — in the series' TimeZone for a timed series — which is also how the feed identifies an occurrence.
+-- Un-skipping soft-deletes the row, so the unique index is filtered (skip, restore, skip again works).
+-- "Change just this one" is a skip plus a new one-off event, so it needs nothing more here.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('calendar.EventExceptions'))
+BEGIN
+    CREATE TABLE calendar.EventExceptions
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_EventExceptions PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_EventExceptions_Users REFERENCES shared.Users(Id),
+        EventId         INT               NOT NULL CONSTRAINT FK_EventExceptions_Events REFERENCES calendar.Events(Id),
+        OccurrenceDate  DATE              NOT NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_EventExceptions_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_EventExceptions_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('calendar.EventExceptions') AND name = 'UX_EventExceptions_Event_Date')
+    CREATE UNIQUE INDEX UX_EventExceptions_Event_Date ON calendar.EventExceptions(EventId, OccurrenceDate) WHERE IsDeleted = 0;
+GO
+
+-- The feed looks up recurring series separately from one-off events (no date-range seek is possible for a series
+-- that started years ago), so give them their own small index.
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('calendar.Events') AND name = 'IX_Events_User_Recurring')
+    CREATE INDEX IX_Events_User_Recurring ON calendar.Events(UserId) INCLUDE (RecurrenceUntil) WHERE IsDeleted = 0 AND RecurrenceFrequency IS NOT NULL;
+GO

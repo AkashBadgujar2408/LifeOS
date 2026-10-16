@@ -29,3 +29,8 @@ export function localMidnight(isoDate: string): Date {
   const [year, month, day] = isoDate.split('-').map(Number);
   return new Date(year, month - 1, day);
 }
+
+/** The browser's IANA timezone ("Asia/Kolkata"), for the API calls that need the user's wall clock. */
+export function browserTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}

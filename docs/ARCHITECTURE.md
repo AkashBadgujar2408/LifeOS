@@ -40,7 +40,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Shared platform | `shared` | Users, LifeAreas (seeded, global), Tags, EntityLinks, InboxItems | `Shared/` — Auth, JWT, current user, Tags, EntityLinks, Inbox, LifeAreas | `auth`, `inbox`, `tags` |
 | Goals & Milestones | `goals` | Goals, GoalMilestones, GoalTags, GoalHistory | `Goals/` | `goals` |
 | Tasks & Projects | `tasks` | TaskItems, Projects, TaskTags | `Tasks/` | `tasks`, `projects` |
-| Calendar & Reminders | `calendar` | Events, Reminders | `Calendar/` (+ proc `calendar.GetCalendarFeed`) | `calendar`, `reminders` |
+| Calendar & Reminders | `calendar` | Events (one-off or recurring series), EventExceptions (skipped occurrences), Reminders | `Calendar/` (+ proc `calendar.GetCalendarFeed`) | `calendar`, `reminders` |
 | Habits | `habits` | Habits, HabitEntries | `Habits/` | `habits` |
 | Journal | `journal` | JournalEntries, WeeklyReflections | `Journal/` | `journal` |
 | Story Mode (Phase 2) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — Chapters, Life Story (+ proc `story.GetLifeStory`, recap), Missions, life-area levels + monthly ratings (+ proc `story.GetLifeAreaStats`), achievements (+ proc `story.GetAchievementFacts`); pure `MissionKinds`/`MissionGraph`/`ChapterRules`/`LifeStoryBuilder`/`LifeAreaLevels`/`StoryRecap`/`Achievements` | `story` (`/story`, `/missions`, `/life-areas`, Mission passed dialog, goal-page Story card, `/achievements`, "Previously on…" card on My Day) |
@@ -67,8 +67,13 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
 - **Business failures are values, not exceptions.** Services return `OperationResult<T>` (`Ok`/`Fail(message)`);
   exceptions are for the unexpected. Unique constraints are checked up front *and* backed by catching SQL errors
   2627/2601, since two requests can race.
+- **Recurring events** (Session 33): a series is one `calendar.Events` row whose own dates are its first occurrence,
+  plus `RecurrenceFrequency`/`RecurrenceInterval`/`RecurrenceUntil` and, for timed series, the IANA `TimeZone` whose
+  wall clock it follows (09:00 stays 09:00 across DST). Occurrences are named by the day they start (in that zone) —
+  that's the key of a skipped day in `calendar.EventExceptions`, and "change just this one" is a skip plus a new
+  one-off event. Reminders and links attach to the series.
 - **Computed, never stored:** goal progress (`GoalProgress`), habit streaks (`HabitStreaks`), the next occurrence of
-  a repeating task (`TaskRecurrence`), insights (`DashboardInsights`), life balance (`LifeBalance`). Each is a pure
+  a repeating task (`TaskRecurrence`), the occurrences of a recurring event (`EventRecurrence`), insights (`DashboardInsights`), life balance (`LifeBalance`). Each is a pure
   static class with xUnit tests, so it can't drift from the data it summarises.
 
 ## Cross-cutting features
@@ -95,8 +100,8 @@ EF Core handles single-entity CRUD. Queries that join across schemas or aggregat
 
 | Procedure | Used by | Returns |
 |---|---|---|
-| `calendar.GetCalendarFeed` | `GET api/Calendar/Feed` | events + task due dates + milestone and goal targets in a range, one row shape |
-| `dashboard.GetMyDay` | `GET api/Dashboard/MyDay` | seven result sets (`QueryMultiple`): tasks, events, reminders, goals, habits, habit entries, latest journal |
+| `calendar.GetCalendarFeed` | `GET api/Calendar/Feed` | set 1: one-off events + task due dates + milestone and goal targets in a range, one row shape; set 2: recurring event series that may fall in the range; set 3: their skipped days — the service expands 2 minus 3 with `EventRecurrence` and merges |
+| `dashboard.GetMyDay` | `GET api/Dashboard/MyDay` | nine result sets (`QueryMultiple`): tasks, one-off events, reminders, goals, habits, habit entries, latest journal, recurring event series, their skipped days (expanded for today like the feed) |
 | `dashboard.GetLifeBalance` | `GET api/Dashboard/LifeBalance` | per life area: active goals, completions, habit days, journal entries |
 | `story.GetAchievementFacts` | `GET api/Story/Achievements` (and the Life Story) | nine result sets of raw facts (goals passed, objectives, habits + days, journal days, chapters, debriefs, ratings, life-area count) → `Achievements.Evaluate` in C# decides unlocks and their local days |
 | `story.GetLifeAreaStats` | `GET api/Story/LifeAreas/stats` | all-time counts per life area (goals passed, objectives, habit days, journal entries) → `LifeAreaLevels` XP and level in C# |
@@ -116,7 +121,7 @@ All routes need a JWT except register, login and ping.
 | `api/Goals/Goals` | CRUD, `PUT {id}/status`; milestones under `Goals/{goalId}/Milestones` (CRUD, `PUT {id}/completed`, `PUT order`) |
 | `api/Tasks/Tasks` | CRUD, `PUT {id}/completed`, `POST from-inbox/{id}` |
 | `api/Tasks/Projects` | CRUD, `PUT {id}/status` |
-| `api/Calendar/Events`, `Feed`, `Reminders` | Events CRUD; `GET Feed?from&to&fromUtc&toUtc`; Reminders CRUD, `GET due`, `PUT {id}/dismissed`, `PUT {id}/snooze` |
+| `api/Calendar/Events`, `Feed`, `Reminders` | Events CRUD (a series is one event with `recurrence` + `timeZone`); occurrences: `PUT Events/{id}/occurrences/{date}/skipped`, `POST …/{date}/detach` (change just this one), `POST …/{date}/end` (this and following); `GET Feed?from&to&fromUtc&toUtc` (occurrences carry `isRecurring` + `occurrenceDate`); Reminders CRUD, `GET due`, `PUT {id}/dismissed`, `PUT {id}/snooze` |
 | `api/Habits/Habits` | CRUD, `PUT {id}/status`, `PUT {id}/entries/{date}` (tick/untick, returns the new streak) |
 | `api/Journal/Entries`, `Reflections` | entries by day (`GET`/`PUT`/`DELETE day/{date}`), `GET moods`, `POST from-inbox/{id}`; reflections `GET`/`PUT {monday}` |
 | `api/Dashboard/MyDay`, `LifeBalance` | the My Day snapshot (with insights); activity per life area |

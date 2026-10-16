@@ -17,6 +17,8 @@ const item = (overrides: Partial<CalendarFeedItem>): CalendarFeedItem => ({
   parentId: null,
   parentTitle: null,
   location: null,
+  isRecurring: false,
+  occurrenceDate: null,
   ...overrides,
 });
 
@@ -67,6 +69,10 @@ describe('toEventInput', () => {
     expect(task.className).toBe('lifeos-cal-task lifeos-cal-done');
     expect(task.color).toBe('var(--lifeos-cal-task)');
     expect(toEventInput(item({ sourceId: 7 })).id).toBe('Event-7');
+    // Every occurrence of a series shares its id, so the day keeps them apart.
+    expect(
+      toEventInput(item({ sourceId: 7, isRecurring: true, occurrenceDate: '2026-10-20' })).id,
+    ).toBe('Event-7-2026-10-20');
   });
 });
 

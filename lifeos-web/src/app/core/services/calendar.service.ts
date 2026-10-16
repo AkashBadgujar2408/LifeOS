@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map, tap } from 'rxjs';
 import { ApiResponse } from './api-response';
 import { RemindersService } from './reminders.service';
+import { RecurrenceFrequency } from './tasks.service';
 
 /** Matches EventLinkableProvider.Type on the API. */
 export const EVENT_ENTITY_TYPE = 'Event';
@@ -28,6 +29,10 @@ export interface CalendarFeedItem {
   parentId: number | null;
   parentTitle: string | null;
   location: string | null;
+  /** Events only: one occurrence of a recurring series (sourceId is the series). */
+  isRecurring: boolean;
+  /** Recurring events only: the day this occurrence starts — how the series names it. */
+  occurrenceDate: string | null;
 }
 
 /** The feed's range: the user's local days, plus the same span as UTC instants (see calendar-feed.ts). */
@@ -48,7 +53,20 @@ export interface CalendarEvent {
   endDate: string | null;
   startsAt: string | null;
   endsAt: string | null;
+  /** Null for a one-off event; for a series the dates above are its first occurrence. */
+  recurrence: EventRecurrence | null;
+  /** IANA zone a timed series follows. */
+  timeZone: string | null;
+  /** Skipped occurrences of the series ("yyyy-MM-dd"), oldest first. */
+  skippedDates: string[];
   createdAt: string;
+}
+
+/** "Every {interval} {frequency}" from the first occurrence, until {until} (inclusive) or forever. */
+export interface EventRecurrence {
+  frequency: RecurrenceFrequency;
+  interval: number;
+  until: string | null;
 }
 
 export interface CalendarEventPayload {
@@ -61,6 +79,9 @@ export interface CalendarEventPayload {
   /** UTC ISO string with "Z" — the API rejects times without a timezone. */
   startsAt: string | null;
   endsAt: string | null;
+  recurrence: EventRecurrence | null;
+  /** The browser's IANA zone — the API needs it for a repeating timed event. */
+  timeZone: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -99,5 +120,44 @@ export class CalendarService {
       // Reminders about it are deleted with it.
       tap(() => this.remindersService.notifyChanged()),
     );
+  }
+
+  /** Skip one occurrence of a series, or restore it. Returns the series. */
+  setSkipped(id: number, occurrenceDate: string, skipped: boolean): Observable<CalendarEvent> {
+    return this.http
+      .put<ApiResponse<CalendarEvent>>(`${this.occurrenceUrl(id, occurrenceDate)}/skipped`, {
+        skipped,
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** "Change just this one": the occurrence becomes the given one-off event; the series skips that day. */
+  detachOccurrence(
+    id: number,
+    occurrenceDate: string,
+    payload: CalendarEventPayload,
+  ): Observable<CalendarEvent> {
+    return this.http
+      .post<ApiResponse<CalendarEvent>>(`${this.occurrenceUrl(id, occurrenceDate)}/detach`, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** "Delete this and following". Emits true when that removed the whole series. */
+  endSeries(id: number, occurrenceDate: string): Observable<boolean> {
+    return this.http
+      .post<ApiResponse<boolean>>(`${this.occurrenceUrl(id, occurrenceDate)}/end`, {})
+      .pipe(
+        map((response) => response.data!),
+        // A removed series takes its reminders with it.
+        tap((deleted) => {
+          if (deleted) {
+            this.remindersService.notifyChanged();
+          }
+        }),
+      );
+  }
+
+  private occurrenceUrl(id: number, occurrenceDate: string): string {
+    return `/api/Calendar/Events/${id}/occurrences/${occurrenceDate}`;
   }
 }

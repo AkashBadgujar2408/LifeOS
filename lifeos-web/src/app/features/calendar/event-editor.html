@@ -1,7 +1,13 @@
 <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
   <div class="modal-header">
     <h2 id="event-editor-heading" class="modal-title h5">
-      {{ event() ? 'Edit event' : 'New event' }}
+      @if (mode() === 'occurrence') {
+        Change one occurrence
+      } @else if (isSeries()) {
+        Edit repeating event
+      } @else {
+        {{ event() ? 'Edit event' : 'New event' }}
+      }
     </h2>
     <button
       type="button"
@@ -12,6 +18,41 @@
   </div>
 
   <div class="modal-body d-flex flex-column gap-3">
+    @if (occurrence(); as occ) {
+      @if (mode() === 'series') {
+        <div class="rounded border p-3 d-flex flex-column gap-2">
+          <div>
+            <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>
+            <strong>{{ savedSummary() }}</strong>
+          </div>
+          <div class="small text-body-secondary">
+            You opened the one on {{ weekdayName(occ.occurrenceDate) }}
+            {{ formatIsoDate(occ.occurrenceDate) }}. Saving below changes every occurrence.
+          </div>
+          <div class="d-flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-primary"
+              (click)="editJustThisOne()"
+            >
+              <i class="bi bi-pencil"></i> Change just this one
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="skipThisOne()">
+              <i class="bi bi-skip-forward"></i> Skip this one
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger" (click)="endFromHere()">
+              <i class="bi bi-scissors"></i> Delete this and following
+            </button>
+          </div>
+        </div>
+      } @else {
+        <div class="rounded border p-3 small">
+          Only the {{ formatIsoDate(occ.occurrenceDate) }} occurrence changes — it becomes a
+          separate event. The rest of the series stays as it is.
+        </div>
+      }
+    }
+
     <div>
       <label class="form-label" for="event-title">Title</label>
       <input
@@ -125,6 +166,82 @@
       <div class="invalid-feedback d-block mt-n2">{{ error }}</div>
     }
 
+    @if (mode() === 'series') {
+      <div>
+        <label class="form-label" for="event-repeat">Repeats</label>
+        <div class="d-flex flex-wrap align-items-start gap-2">
+          <select id="event-repeat" class="form-select w-auto" formControlName="repeat">
+            <option value="None">Doesn't repeat</option>
+            @for (frequency of frequencies; track frequency) {
+              <option [value]="frequency">{{ frequency }}</option>
+            }
+          </select>
+          @if (form.controls.repeat.value !== 'None') {
+            <div class="d-flex align-items-center gap-2">
+              <label class="text-body-secondary small mb-0" for="event-interval">every</label>
+              <input
+                id="event-interval"
+                type="number"
+                min="1"
+                max="999"
+                class="form-control"
+                style="width: 5.5rem"
+                [class.is-invalid]="fieldError('interval')"
+                formControlName="interval"
+                placeholder="1"
+              />
+              <span class="text-body-secondary small">{{ intervalUnit() }}</span>
+            </div>
+          }
+        </div>
+        @if (fieldError('interval'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+        @if (fieldError('repeat'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+        @if (form.controls.repeat.value !== 'None') {
+          <div class="row g-2 align-items-start mt-1">
+            <div class="col-sm-6">
+              <label class="form-label small mb-1" for="event-until">
+                Ends on <span class="text-body-secondary">(optional)</span>
+              </label>
+              <div class="input-group">
+                <input
+                  id="event-until"
+                  type="text"
+                  class="form-control"
+                  [class.is-invalid]="fieldError('until')"
+                  formControlName="until"
+                  placeholder="Leave empty to keep going"
+                  autocomplete="off"
+                  ngbDatepicker
+                  #untilPicker="ngbDatepicker"
+                  container="body"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  aria-label="Pick the last day it repeats"
+                  (click)="untilPicker.toggle()"
+                >
+                  <i class="bi bi-calendar3"></i>
+                </button>
+              </div>
+              @if (fieldError('until'); as error) {
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              }
+            </div>
+          </div>
+          @if (draftSummary(); as summary) {
+            <div class="form-text">
+              <i class="bi bi-arrow-repeat" aria-hidden="true"></i> {{ summary }}
+            </div>
+          }
+        }
+      </div>
+    }
+
     <div>
       <label class="form-label" for="event-location">
         Location <span class="text-body-secondary small">(optional)</span>
@@ -160,7 +277,28 @@
       }
     </div>
 
-    @if (event(); as event) {
+    @if (mode() === 'series' && event()?.skippedDates?.length) {
+      <div>
+        <div class="form-label mb-1">Skipped or changed separately</div>
+        <ul class="list-unstyled d-flex flex-wrap gap-2 mb-0">
+          @for (date of event()!.skippedDates; track date) {
+            <li class="d-flex align-items-center gap-1 border rounded px-2 py-1 small">
+              {{ formatIsoDate(date) }}
+              <button
+                type="button"
+                class="btn btn-link btn-sm p-0 ms-1"
+                [attr.aria-label]="'Restore ' + formatIsoDate(date)"
+                (click)="restore(date)"
+              >
+                Restore
+              </button>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    @if (mode() === 'series' && event(); as event) {
       <div class="border-top pt-3">
         <app-linked-items [entityType]="eventEntityType" [entityId]="event.id" />
       </div>
@@ -175,16 +313,16 @@
   </div>
 
   <div class="modal-footer">
-    @if (event()) {
+    @if (event() && mode() === 'series') {
       <button type="button" class="btn btn-outline-danger me-auto" (click)="remove()">
-        <i class="bi bi-trash"></i> Delete
+        <i class="bi bi-trash"></i> {{ isSeries() ? 'Delete series' : 'Delete' }}
       </button>
     }
     <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
       Cancel
     </button>
     <button type="submit" class="btn btn-primary" [disabled]="saving()">
-      {{ event() ? 'Save' : 'Add event' }}
+      {{ mode() === 'occurrence' ? 'Save this one' : event() ? 'Save' : 'Add event' }}
     </button>
   </div>
 </form>

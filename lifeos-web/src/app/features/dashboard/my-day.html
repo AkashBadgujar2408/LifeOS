@@ -176,7 +176,7 @@
 
             @if (day.events.length > 0) {
               <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
-                @for (event of day.events; track event.id) {
+                @for (event of day.events; track $index) {
                   <li>
                     <button
                       type="button"
@@ -193,7 +193,16 @@
                         }
                       </span>
                       <span class="min-w-0">
-                        <span class="d-block text-break">{{ event.title }}</span>
+                        <span class="d-block text-break">
+                          {{ event.title }}
+                          @if (event.isRecurring) {
+                            <i
+                              class="bi bi-arrow-repeat text-body-secondary small"
+                              title="Repeats"
+                              aria-label="Repeats"
+                            ></i>
+                          }
+                        </span>
                         @if (spansDays(event) || event.location) {
                           <span class="d-block small text-body-secondary">
                             @if (spansDays(event)) {

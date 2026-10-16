@@ -30,7 +30,7 @@ import { QuickAddService } from '../../core/services/quick-add.service';
 import { REMINDER_TARGET_LABELS, RemindersService } from '../../core/services/reminders.service';
 import { TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
-import { openEventEditor } from '../calendar/event-editor';
+import { eventResultMessage, openEventEditor } from '../calendar/event-editor';
 import { HabitDay } from '../habits/habit-day';
 import { moodMeta } from '../journal/journal-days';
 import { ReminderTargetOpener } from '../reminders/open-reminder-target';
@@ -263,9 +263,18 @@ export class MyDay {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: async (full) => {
-          const result = await openEventEditor(this.modal, { event: full });
+          const occurrence = event.occurrenceDate
+            ? {
+                occurrenceDate: event.occurrenceDate,
+                startDate: event.startDate,
+                endDate: event.endDate,
+                startsAt: event.startsAt,
+                endsAt: event.endsAt,
+              }
+            : undefined;
+          const result = await openEventEditor(this.modal, { event: full, occurrence });
           if (result) {
-            this.toast.success(result.kind === 'saved' ? 'Event saved.' : 'Event deleted.');
+            this.toast.success(eventResultMessage(result));
             this.load();
           }
         },

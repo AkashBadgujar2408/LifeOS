@@ -27,6 +27,8 @@ public partial class User
 
     public virtual ICollection<EntityLink> EntityLinks { get; set; } = new List<EntityLink>();
 
+    public virtual ICollection<EventException> EventExceptions { get; set; } = new List<EventException>();
+
     public virtual ICollection<Event> Events { get; set; } = new List<Event>();
 
     public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();

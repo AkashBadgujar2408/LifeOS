@@ -33,7 +33,7 @@ import { TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { openTaskEditor } from '../tasks/task-editor';
 import { SOURCE_LABELS, SOURCE_TYPES, feedRange, toEventInput } from './calendar-feed';
-import { EventDraft, openEventEditor } from './event-editor';
+import { EventDraft, eventResultMessage, openEventEditor } from './event-editor';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { LoadError } from '../../shared/components/load-error/load-error';
 
@@ -143,11 +143,20 @@ export class Calendar {
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
             next: async (event) => {
-              const result = await openEventEditor(this.modal, { event });
+              const occurrence = item.occurrenceDate
+                ? {
+                    occurrenceDate: item.occurrenceDate,
+                    startDate: item.startDate,
+                    endDate: item.endDate,
+                    startsAt: item.startsAt,
+                    endsAt: item.endsAt,
+                  }
+                : undefined;
+              const result = await openEventEditor(this.modal, { event, occurrence });
               // Reload even on dismiss: links added in the editor apply immediately.
               this.loadFeed();
               if (result) {
-                this.toast.success(result.kind === 'saved' ? 'Event saved.' : 'Event deleted.');
+                this.toast.success(eventResultMessage(result));
               }
             },
             error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the event.')),
