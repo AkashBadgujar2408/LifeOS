@@ -13,26 +13,16 @@ namespace LifeOS.Core.Story.Services;
 /// each placed on the user's local day using their real timezone (IANA id from the browser; exact across DST, unlike
 /// an offset), then filed into chapters by LifeStoryBuilder.
 /// </summary>
-public class LifeStoryService(AppDbContext db, IChaptersService chaptersService) : ILifeStoryService
+public class LifeStoryService(AppDbContext db, IChaptersService chaptersService, IMissionsService missionsService) : ILifeStoryService
 {
     public async Task<OperationResult<LifeStoryDto>> GetAsync(string? timeZoneId)
     {
-        TimeZoneInfo zone;
-        try
+        if (!TryFindZone(timeZoneId, out var zone))
         {
-            zone = string.IsNullOrWhiteSpace(timeZoneId) ? TimeZoneInfo.Utc : TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return OperationResult<LifeStoryDto>.Fail($"Unknown time zone '{timeZoneId}'.");
+            return OperationResult<LifeStoryDto>.Fail(UnknownZone(timeZoneId));
         }
 
-        var parameters = new DynamicParameters();
-        parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
-        var rows = await db.Database.GetDbConnection().QueryAsync<BeatRow>(
-            "story.GetLifeStory", parameters, commandType: CommandType.StoredProcedure);
-
-        var beats = rows.Select(r => ToBeat(r, zone)).ToList();
+        var beats = await LoadBeatsAsync(zone);
         var chapters = await chaptersService.ListAsync();
 
         return OperationResult<LifeStoryDto>.Ok(new LifeStoryDto
@@ -43,6 +33,53 @@ public class LifeStoryService(AppDbContext db, IChaptersService chaptersService)
             ChapterCount = chapters.Count,
         });
     }
+
+    public async Task<OperationResult<StoryRecapDto>> GetRecapAsync(string? timeZoneId)
+    {
+        if (!TryFindZone(timeZoneId, out var zone))
+        {
+            return OperationResult<StoryRecapDto>.Fail(UnknownZone(timeZoneId));
+        }
+
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, zone));
+        var beats = await LoadBeatsAsync(zone);
+        var chapters = await chaptersService.ListAsync();
+        var currentIndex = chapters.FindIndex(c => c.IsCurrent);
+
+        return OperationResult<StoryRecapDto>.Ok(new StoryRecapDto
+        {
+            Chapter = currentIndex < 0 ? null : chapters[currentIndex],
+            ChapterNumber = currentIndex < 0 ? null : currentIndex + 1,
+            RecentBeats = StoryRecap.Recent(beats, today),
+            CurrentMission = StoryRecap.CurrentMission(await missionsService.ListAsync()),
+        });
+    }
+
+    private async Task<List<StoryBeatDto>> LoadBeatsAsync(TimeZoneInfo zone)
+    {
+        var parameters = new DynamicParameters();
+        parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
+        var rows = await db.Database.GetDbConnection().QueryAsync<BeatRow>(
+            "story.GetLifeStory", parameters, commandType: CommandType.StoredProcedure);
+        return rows.Select(r => ToBeat(r, zone)).ToList();
+    }
+
+    /// <summary>An IANA id from the browser ("Asia/Kolkata"); empty means UTC.</summary>
+    internal static bool TryFindZone(string? timeZoneId, out TimeZoneInfo zone)
+    {
+        try
+        {
+            zone = string.IsNullOrWhiteSpace(timeZoneId) ? TimeZoneInfo.Utc : TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            return true;
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            zone = TimeZoneInfo.Utc;
+            return false;
+        }
+    }
+
+    internal static string UnknownZone(string? timeZoneId) => $"Unknown time zone '{timeZoneId}'.";
 
     private static StoryBeatDto ToBeat(BeatRow row, TimeZoneInfo zone)
     {

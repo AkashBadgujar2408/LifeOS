@@ -134,6 +134,11 @@ export const routes: Routes = [
         title: 'Missions | LifeOS',
         loadComponent: () => import('./features/story/missions').then((m) => m.Missions),
       },
+      {
+        path: 'life-areas',
+        title: 'Life areas | LifeOS',
+        loadComponent: () => import('./features/story/life-areas').then((m) => m.LifeAreas),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

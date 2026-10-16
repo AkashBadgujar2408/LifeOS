@@ -25,6 +25,24 @@ public interface ILifeStoryService
     /// used to put each recorded moment on the right local day; null means UTC.
     /// </summary>
     Task<OperationResult<LifeStoryDto>> GetAsync(string? timeZoneId);
+
+    /// <summary>
+    /// The "Previously on…" recap: the current chapter, the latest beats up to today in that zone, and the mission to
+    /// keep going with.
+    /// </summary>
+    Task<OperationResult<StoryRecapDto>> GetRecapAsync(string? timeZoneId);
+}
+
+public interface ILifeAreasStoryService
+{
+    /// <summary>Every life area with its all-time XP and level (computed, never stored).</summary>
+    Task<List<LifeAreaStatsDto>> GetStatsAsync();
+
+    /// <summary>Self-ratings for the months <paramref name="fromMonth"/>..<paramref name="toMonth"/> (first days, inclusive).</summary>
+    Task<OperationResult<List<LifeAreaRatingDto>>> GetRatingsAsync(DateOnly fromMonth, DateOnly toMonth);
+
+    /// <summary>Saves a month's ratings (a null rating clears that area); returns the month's ratings.</summary>
+    Task<OperationResult<List<LifeAreaRatingDto>>> SaveRatingsAsync(DateOnly month, LifeAreaRatingsRequest request);
 }
 
 public interface IMissionsService

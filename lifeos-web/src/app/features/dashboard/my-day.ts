@@ -46,6 +46,7 @@ import {
 } from './my-day-view';
 import { InsightsList } from './insights-list';
 import { LifeBalance } from './life-balance';
+import { StoryRecap } from '../story/story-recap';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { apiErrorMessage } from '../../core/services/api-error';
 
@@ -81,6 +82,7 @@ const GOALS_SHOWN = 4;
     HabitDay,
     InsightsList,
     LifeBalance,
+    StoryRecap,
     LoadError,
   ],
   templateUrl: './my-day.html',

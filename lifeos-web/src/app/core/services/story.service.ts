@@ -131,6 +131,46 @@ export interface MissionPassed {
   debrief: MissionDebrief | null;
 }
 
+/** A life area's all-time stats: everything finished in it, as XP and a level (computed by the API, never stored). */
+export interface LifeAreaStats {
+  lifeAreaId: number;
+  lifeAreaName: string;
+  goalsCompleted: number;
+  milestonesCompleted: number;
+  habitDays: number;
+  journalEntries: number;
+  lastActivityOn: string | null;
+  xp: number;
+  level: number;
+  xpIntoLevel: number;
+  xpForNextLevel: number;
+}
+
+/** A month's self-rating of one life area, 1–10. */
+export interface LifeAreaRating {
+  lifeAreaId: number;
+  /** The month's first day, "yyyy-MM-01". */
+  month: string;
+  rating: number;
+  note: string | null;
+}
+
+/** One area's rating in a save; rating null clears it. */
+export interface LifeAreaRatingInput {
+  lifeAreaId: number;
+  rating: number | null;
+  note: string | null;
+}
+
+/** The "Previously on…" card on My Day. */
+export interface StoryRecap {
+  chapter: Chapter | null;
+  chapterNumber: number | null;
+  /** Newest first. */
+  recentBeats: StoryBeat[];
+  currentMission: Mission | null;
+}
+
 /** The browser's IANA timezone ("Asia/Kolkata"), so the API puts recorded moments on the right local day. */
 export function browserTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -141,12 +181,48 @@ export class StoryService {
   private readonly http = inject(HttpClient);
   private readonly chaptersUrl = '/api/Story/Chapters';
   private readonly missionsUrl = '/api/Story/Missions';
+  private readonly lifeAreasUrl = '/api/Story/LifeAreas';
 
   lifeStory(): Observable<LifeStory> {
     const params = new HttpParams().set('tz', browserTimeZone());
     return this.http
       .get<ApiResponse<LifeStory>>('/api/Story/LifeStory', { params })
       .pipe(map((response) => response.data!));
+  }
+
+  recap(): Observable<StoryRecap> {
+    const params = new HttpParams().set('tz', browserTimeZone());
+    return this.http
+      .get<ApiResponse<StoryRecap>>('/api/Story/LifeStory/recap', { params })
+      .pipe(map((response) => response.data!));
+  }
+
+  lifeAreaStats(): Observable<LifeAreaStats[]> {
+    return this.http
+      .get<ApiResponse<LifeAreaStats[]>>(`${this.lifeAreasUrl}/stats`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  /** Ratings for the months `fromMonth`..`toMonth` (first days, inclusive). */
+  ratings(fromMonth: string, toMonth: string): Observable<LifeAreaRating[]> {
+    const params = new HttpParams().set('from', fromMonth).set('to', toMonth);
+    return this.http
+      .get<ApiResponse<LifeAreaRating[]>>(`${this.lifeAreasUrl}/ratings`, { params })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  /** Saves a month's ratings; resolves the month's ratings as stored. */
+  saveRatings(
+    month: string,
+    today: string,
+    ratings: LifeAreaRatingInput[],
+  ): Observable<LifeAreaRating[]> {
+    return this.http
+      .put<ApiResponse<LifeAreaRating[]>>(`${this.lifeAreasUrl}/ratings/${month}`, {
+        today,
+        ratings,
+      })
+      .pipe(map((response) => response.data ?? []));
   }
 
   chapters(): Observable<Chapter[]> {

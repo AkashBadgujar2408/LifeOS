@@ -44,6 +44,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Story', route: '/story', icon: 'bi-book' },
       { label: 'Missions', route: '/missions', icon: 'bi-compass' },
+      { label: 'Life areas', route: '/life-areas', icon: 'bi-bar-chart-steps' },
     ],
   },
   {

@@ -610,3 +610,21 @@
   - The browser tool's ref clicks didn't register on the Passed tab or small checkboxes; real DOM clicks did — the app was fine (noted in CLAUDE.md).
 
 - Next up: **Session 31 — Life-area stats + monthly self-rating + "Previously on…" recap** (plan, Section 7). Stopped here at your request.
+
+## Last session: 2026-10-16 — Session 31 — Story Mode 4: life-area levels, monthly self-rating, recap
+- Shipped (backend):
+  - **`database/procedures/story.GetLifeAreaStats.sql`** — all-time counts per life area (goals passed, objectives, habit days, journal entries, last activity), one `OUTER APPLY` per measure so nothing fans out.
+  - **`LifeAreaLevels`** (pure, xUnit): XP = mission passed 50, objective 30, habit day / journal entry 10 (Life Balance's proportions × 10); level n needs 100 × n(n−1)/2 (100, 300, 600, 1000…). Computed per request, never stored, no decay; active goals earn nothing.
+  - **`LifeAreasStoryService`** + `api/Story/LifeAreas`: `GET stats`, `GET ratings?from&to` (months by first day, max 36), `PUT ratings/{month}` (`{ today, ratings }`): one live row per area per month rewritten in place, null rating clears (soft delete), no future or mid-month keys, unknown/duplicate areas rejected, unique-index race → readable message.
+  - **Recap**: `GET api/Story/LifeStory/recap?tz=` — current chapter + its number, the last 3 beats up to today in the user's zone (`StoryRecap.Recent`, future-dated beats skipped), and the current mission (`StoryRecap.CurrentMission`: active + unlocked, main → side → collectible, nearest target). `LifeStoryService` now shares beat loading and zone parsing between story and recap. **13 new tests (117 backend).**
+- Shipped (frontend):
+  - `/life-areas` ("Life areas" in the Your story nav): **How's each area going?** — month paging (no future), per area the month's activity bar (busiest = 10, so far for the current month) beside a 1–10 rating scale (radio buttons, ten equal buttons that fit a phone), "7/10 · up 2 from last month", Clear, optional note (inline 500-char error); saves only the changed areas; unsaved changes confirm before paging. **Levels** — a card per area: level, XP bar to the next level, what earned it, last moved.
+  - `features/story/life-areas-view.ts` (month arithmetic on year/month numbers, never `Date`; activity window; rating change wording; level percent; stats line — 7 specs, 107 frontend).
+  - **"Previously on your story"** card on My Day (`<app-story-recap>`, fetches itself): Chapter / Lately / Up next with progress and next objective; an invitation when there's nothing yet. "Rate this month" link on the Life balance card.
+- Verified:
+  - curl (dashuser1/2): stats match the counts by hand; ratings saved (note trimmed), rewritten (still one row — checked in SQL), cleared (row soft-deleted), September saved separately, range read; 11 → 400, 0 → 400, unknown area, duplicate area, missing `today`, November ("hasn't begun"), mid-month key, reversed range, 7-year range → readable 400s; dashuser2 sees no ratings; bad zone → 400; anonymous 401.
+  - Browser (new local test user `storyuser1`, seeded via a scratch script — password not committed): My Day recap shows "2. Learning to build", the three latest beats and "Become a Technical Lead" (main, 1/3 objectives, next "Mentor a junior"); Life areas: rated Career 7 with a note and Health 8 → toast, persisted across reload; Career level card 40 XP (objective 30 + journal 10); September paging works. 375px (iframe check): no horizontal scroll on /life-areas or My Day. No console errors.
+  - `dotnet build` 0 warnings; `ng build`, lint clean; Prettier clean except `src/index.html`, which has failed the check since Session 5 (left alone, say if you want it formatted); `npm run test:tz` green in all six zones.
+- Note: activity bars for a past month still count goals that are active *now* (Life Balance's rule from Session 24), so an otherwise empty month can show one area at 10.
+
+- Next up: **Session 32 — Achievements + polish**.

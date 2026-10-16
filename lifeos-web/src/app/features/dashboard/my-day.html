@@ -54,6 +54,12 @@
       </section>
     }
 
+    <section class="card mb-3" aria-labelledby="recap-heading">
+      <div class="card-body p-4">
+        <app-story-recap />
+      </div>
+    </section>
+
     <div class="row g-3">
       <div class="col-lg-7 d-flex flex-column gap-3">
         <!-- Tasks -->
@@ -384,7 +390,10 @@
       <div class="col-lg-5">
         <section class="card h-100" aria-labelledby="balance-heading">
           <div class="card-body p-4">
-            <h2 id="balance-heading" class="h5 mb-1">Life balance</h2>
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <h2 id="balance-heading" class="h5 mb-0">Life balance</h2>
+              <a routerLink="/life-areas" class="small">Rate this month</a>
+            </div>
             <p class="small text-body-secondary mb-3">Last 30 days, busiest area = 10</p>
             <app-life-balance [from]="balanceFrom()" [to]="today()" />
           </div>

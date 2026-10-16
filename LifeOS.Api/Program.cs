@@ -72,6 +72,7 @@ try
     builder.Services.AddScoped<IChaptersService, ChaptersService>();
     builder.Services.AddScoped<ILifeStoryService, LifeStoryService>();
     builder.Services.AddScoped<IMissionsService, MissionsService>();
+    builder.Services.AddScoped<ILifeAreasStoryService, LifeAreasStoryService>();
 
     // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
     builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();

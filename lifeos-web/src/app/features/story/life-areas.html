@@ -1,0 +1,197 @@
+<div class="container py-4 py-lg-5">
+  <header class="mb-4">
+    <h1 class="h2 mb-1">Life areas</h1>
+    <p class="text-body-secondary mb-0">
+      What you did in each area, and how it feels to you. Neither is a score to chase.
+    </p>
+  </header>
+
+  @if (loadFailed() && !stats()) {
+    <app-load-error message="Couldn't load your life areas." (retry)="load()" />
+  } @else if (!stats()) {
+    <p class="text-body-secondary">Adding it up...</p>
+  } @else {
+    <!-- Monthly self-rating beside the month's activity -->
+    <section class="card mb-4" aria-labelledby="rating-heading">
+      <div class="card-body p-4">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-1">
+          <h2 id="rating-heading" class="h5 mb-0">How's each area going?</h2>
+          <div class="d-flex align-items-center gap-1" role="group" aria-label="Month">
+            <button
+              type="button"
+              class="btn btn-sm btn-link text-body-secondary"
+              aria-label="Previous month"
+              (click)="moveMonth(-1)"
+            >
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="fw-semibold rating-month text-center">{{
+              month() | date: 'MMMM yyyy'
+            }}</span>
+            <button
+              type="button"
+              class="btn btn-sm btn-link text-body-secondary"
+              aria-label="Next month"
+              [disabled]="month() >= thisMonth"
+              (click)="moveMonth(1)"
+            >
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        <p class="small text-body-secondary mb-4">
+          Rate how satisfied you are with each area this month, 1 to 10. Activity is what you logged
+          there{{ month() === thisMonth ? ' so far' : '' }} — your busiest area is 10.
+        </p>
+
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+          <ul class="list-unstyled mb-4 d-flex flex-column gap-4" formArrayName="areas">
+            @for (area of stats()!; track area.lifeAreaId; let i = $index) {
+              @let group = areaControls.at(i);
+              @let rating = group.controls.rating.value;
+              @let before = previous().get(area.lifeAreaId) ?? null;
+              <li class="rating-row" [formGroupName]="i">
+                <div class="rating-head">
+                  <span class="fw-semibold" [id]="'area-' + area.lifeAreaId">{{
+                    area.lifeAreaName
+                  }}</span>
+                  <span class="rating-activity small text-body-secondary">
+                    <span>Activity</span>
+                    <span class="rating-track" aria-hidden="true">
+                      @if ((activity()?.get(area.lifeAreaId) ?? 0) > 0) {
+                        <span
+                          class="rating-bar"
+                          [style.width.%]="(activity()?.get(area.lifeAreaId) ?? 0) * 10"
+                        ></span>
+                      }
+                    </span>
+                    <span class="rating-activity-score">
+                      {{ activity() ? activity()!.get(area.lifeAreaId) : '…' }}
+                    </span>
+                  </span>
+                </div>
+
+                <div
+                  class="btn-group btn-group-sm w-100 rating-scale"
+                  role="radiogroup"
+                  [attr.aria-labelledby]="'area-' + area.lifeAreaId"
+                >
+                  @for (n of scale; track n) {
+                    <input
+                      type="radio"
+                      class="btn-check"
+                      formControlName="rating"
+                      [value]="n"
+                      [id]="'rate-' + area.lifeAreaId + '-' + n"
+                    />
+                    <label
+                      class="btn btn-outline-primary"
+                      [for]="'rate-' + area.lifeAreaId + '-' + n"
+                    >
+                      {{ n }}
+                    </label>
+                  }
+                </div>
+
+                <div
+                  class="d-flex flex-wrap align-items-center justify-content-between gap-2 small"
+                >
+                  <span class="text-body-secondary">
+                    @if (rating === null) {
+                      Not rated{{ before !== null ? ' · last month ' + before : '' }}
+                    } @else if (ratingChange(rating, before); as change) {
+                      {{ rating }}/10 · {{ change }}
+                    } @else {
+                      {{ rating }}/10
+                    }
+                  </span>
+                  @if (rating !== null) {
+                    <button type="button" class="btn btn-link btn-sm p-0" (click)="clear(i)">
+                      Clear
+                    </button>
+                  }
+                </div>
+
+                @if (rating !== null) {
+                  <div>
+                    <label class="visually-hidden" [for]="'note-' + area.lifeAreaId">
+                      Note for {{ area.lifeAreaName }}
+                    </label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      formControlName="note"
+                      maxlength="500"
+                      [id]="'note-' + area.lifeAreaId"
+                      [class.is-invalid]="fieldError(i)"
+                      placeholder="What's behind that number? (optional)"
+                    />
+                    @if (fieldError(i); as error) {
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    }
+                  </div>
+                }
+              </li>
+            }
+          </ul>
+
+          <button type="submit" class="btn btn-primary" [disabled]="saving() || !form.dirty">
+            {{ saving() ? 'Saving...' : 'Save ' + (month() | date: 'MMMM') + "'s ratings" }}
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Levels -->
+    <section aria-labelledby="levels-heading">
+      <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-3">
+        <h2 id="levels-heading" class="h5 mb-0">Levels</h2>
+        <span class="small text-body-secondary">
+          From everything you've finished, all time. Nothing fades.
+        </span>
+      </div>
+      <div class="row g-3">
+        @for (area of stats()!; track area.lifeAreaId) {
+          <div class="col-md-6 col-xl-4">
+            <article class="card h-100">
+              <div class="card-body p-4">
+                <div class="d-flex align-items-baseline justify-content-between gap-2">
+                  <h3 class="h6 mb-0 text-truncate">{{ area.lifeAreaName }}</h3>
+                  <span class="level-badge flex-shrink-0">Level {{ area.level }}</span>
+                </div>
+                <div
+                  class="progress mt-3"
+                  style="height: 0.4rem"
+                  role="progressbar"
+                  [attr.aria-label]="area.lifeAreaName + ' progress to level ' + (area.level + 1)"
+                  [attr.aria-valuenow]="levelPercent(area)"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  <div class="progress-bar" [style.width.%]="levelPercent(area)"></div>
+                </div>
+                <div class="d-flex justify-content-between gap-2 small text-body-secondary mt-1">
+                  <span>{{ area.xp }} XP</span>
+                  <span
+                    >{{ area.xpForNextLevel - area.xpIntoLevel }} to level
+                    {{ area.level + 1 }}</span
+                  >
+                </div>
+                <p class="small mb-0 mt-3">{{ statsLine(area) }}</p>
+                @if (area.lastActivityOn) {
+                  <p class="small text-body-secondary mb-0">
+                    Last moved {{ area.lastActivityOn | date }}
+                  </p>
+                }
+              </div>
+            </article>
+          </div>
+        }
+      </div>
+      <p class="small text-body-secondary mt-3 mb-0">
+        A mission passed is 50 XP, an objective 30, a habit day or journal entry 10 — filed under
+        the area of its goal, habit or entry. Tasks have no life area, so they don't count here.
+      </p>
+    </section>
+  }
+</div>

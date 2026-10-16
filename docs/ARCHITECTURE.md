@@ -43,7 +43,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Calendar & Reminders | `calendar` | Events, Reminders | `Calendar/` (+ proc `calendar.GetCalendarFeed`) | `calendar`, `reminders` |
 | Habits | `habits` | Habits, HabitEntries | `Habits/` | `habits` |
 | Journal | `journal` | JournalEntries, WeeklyReflections | `Journal/` | `journal` |
-| Story Mode (Phase 2, in progress) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — Chapters, Life Story (+ proc `story.GetLifeStory`), Missions; pure `MissionKinds`/`MissionGraph`/`ChapterRules`/`LifeStoryBuilder` | `story` (`/story`, `/missions`, Mission passed dialog, goal-page Story card; Sessions 31–32 add ratings, recap, achievements) |
+| Story Mode (Phase 2, in progress) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — Chapters, Life Story (+ proc `story.GetLifeStory`, recap), Missions, life-area levels + monthly ratings (+ proc `story.GetLifeAreaStats`); pure `MissionKinds`/`MissionGraph`/`ChapterRules`/`LifeStoryBuilder`/`LifeAreaLevels`/`StoryRecap` | `story` (`/story`, `/missions`, `/life-areas`, Mission passed dialog, goal-page Story card, "Previously on…" card on My Day; Session 32 adds achievements) |
 | Dashboard & Insights | `dashboard` (procedures only) | — | `Dashboard/` (+ procs `dashboard.GetMyDay`, `dashboard.GetLifeBalance`) | `dashboard` (My Day) |
 
 Every module has the same server layout: `DTOs/` (request/response shapes, status constants), `ServiceContracts/`
@@ -98,6 +98,7 @@ EF Core handles single-entity CRUD. Queries that join across schemas or aggregat
 | `calendar.GetCalendarFeed` | `GET api/Calendar/Feed` | events + task due dates + milestone and goal targets in a range, one row shape |
 | `dashboard.GetMyDay` | `GET api/Dashboard/MyDay` | seven result sets (`QueryMultiple`): tasks, events, reminders, goals, habits, habit entries, latest journal |
 | `dashboard.GetLifeBalance` | `GET api/Dashboard/LifeBalance` | per life area: active goals, completions, habit days, journal entries |
+| `story.GetLifeAreaStats` | `GET api/Story/LifeAreas/stats` | all-time counts per life area (goals passed, objectives, habit days, journal entries) → `LifeAreaLevels` XP and level in C# |
 | `story.GetLifeStory` | `GET api/Story/LifeStory` | every story beat (goal events, objectives, habits begun, great/hard days); the service maps moments to local days with the user's IANA timezone |
 
 Rows come back as DATE → `DateTime` and DATETIME2 → unspecified kind; the service converts them to `DateOnly` and UTC
@@ -118,7 +119,8 @@ All routes need a JWT except register, login and ping.
 | `api/Habits/Habits` | CRUD, `PUT {id}/status`, `PUT {id}/entries/{date}` (tick/untick, returns the new streak) |
 | `api/Journal/Entries`, `Reflections` | entries by day (`GET`/`PUT`/`DELETE day/{date}`), `GET moods`, `POST from-inbox/{id}`; reflections `GET`/`PUT {monday}` |
 | `api/Dashboard/MyDay`, `LifeBalance` | the My Day snapshot (with insights); activity per life area |
-| `api/Story/Chapters`, `LifeStory` | Chapters CRUD (a new current chapter closes the previous); the story filed into chapters (`?tz=`) |
+| `api/Story/Chapters`, `LifeStory` | Chapters CRUD (a new current chapter closes the previous); the story filed into chapters (`?tz=`); `GET LifeStory/recap?tz=` (current chapter, last 3 beats up to today, current mission) |
+| `api/Story/LifeAreas` | `GET stats` (XP + level per area), `GET ratings?from&to` (months by first day), `PUT ratings/{month}` (`{ today, ratings: [{ lifeAreaId, rating 1–10 | null, note }] }`, null clears; rewritten in place) |
 | `api/Story/Missions` | goals as missions (`GET`, `GET {goalId}`), `POST {goalId}/prerequisites`, `DELETE {goalId}/prerequisites/{requiresGoalId}`, `GET {goalId}/passed`, `PUT {goalId}/debrief` |
 
 Swagger UI (`/swagger`, Development only) has the full request/response shapes.

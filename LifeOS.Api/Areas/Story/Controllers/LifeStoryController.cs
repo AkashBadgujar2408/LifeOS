@@ -21,4 +21,14 @@ public class LifeStoryController(ILifeStoryService lifeStoryService) : Controlle
             ? Ok(ApiResponse<LifeStoryDto>.Ok(result.Data))
             : BadRequest(ApiResponse<LifeStoryDto>.Fail(result.Error!));
     }
+
+    /// <summary>GET api/Story/LifeStory/recap?tz=Asia/Kolkata — the "Previously on…" card on My Day.</summary>
+    [HttpGet("recap")]
+    public async Task<IActionResult> Recap([FromQuery] string? tz)
+    {
+        var result = await lifeStoryService.GetRecapAsync(tz);
+        return result.Success
+            ? Ok(ApiResponse<StoryRecapDto>.Ok(result.Data))
+            : BadRequest(ApiResponse<StoryRecapDto>.Fail(result.Error!));
+    }
 }
