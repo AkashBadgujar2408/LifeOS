@@ -40,7 +40,8 @@ export type StoryBeatKind =
   | 'GoalRescheduled'
   | 'MilestoneDone'
   | 'HabitStarted'
-  | 'JournalHighlight';
+  | 'JournalHighlight'
+  | 'AchievementUnlocked';
 
 /** One thing that happened, on the user's local day (the API used their timezone). */
 export interface StoryBeat {
@@ -48,7 +49,7 @@ export interface StoryBeat {
   day: string;
   at: string | null;
   title: string | null;
-  /** Debrief "How it went", or the journal excerpt. */
+  /** Debrief "How it went", the journal excerpt, or what earned an achievement. */
   detail: string | null;
   note: string | null;
   /** Debrief "What I'd tell my past self". */
@@ -77,6 +78,7 @@ export interface LifeStory {
   missionsPassed: number;
   milestonesDone: number;
   chapterCount: number;
+  achievementsUnlocked: number;
 }
 
 export type GoalStatus = 'Active' | 'Completed' | 'Postponed' | 'Abandoned';
@@ -162,6 +164,21 @@ export interface LifeAreaRatingInput {
   note: string | null;
 }
 
+/** An achievement: computed from real data by the API, never stored. */
+export interface Achievement {
+  /** Stable identifier ("streak-7"). */
+  key: string;
+  title: string;
+  description: string;
+  /** A Bootstrap Icons class. */
+  icon: string;
+  progress: number;
+  target: number;
+  /** The local day it was earned; null while locked. */
+  unlockedOn: string | null;
+  unlocked: boolean;
+}
+
 /** The "Previously on…" card on My Day. */
 export interface StoryRecap {
   chapter: Chapter | null;
@@ -195,6 +212,13 @@ export class StoryService {
     return this.http
       .get<ApiResponse<StoryRecap>>('/api/Story/LifeStory/recap', { params })
       .pipe(map((response) => response.data!));
+  }
+
+  achievements(): Observable<Achievement[]> {
+    const params = new HttpParams().set('tz', browserTimeZone());
+    return this.http
+      .get<ApiResponse<Achievement[]>>('/api/Story/Achievements', { params })
+      .pipe(map((response) => response.data ?? []));
   }
 
   lifeAreaStats(): Observable<LifeAreaStats[]> {

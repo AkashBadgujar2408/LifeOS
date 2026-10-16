@@ -1,0 +1,83 @@
+<div class="container py-4 py-lg-5">
+  <header class="mb-4">
+    <h1 class="h2 mb-1">Achievements</h1>
+    <p class="text-body-secondary mb-0">
+      @if (achievements(); as all) {
+        {{ split().unlocked.length }} of {{ all.length }} unlocked ·
+      }
+      Earned from what you actually did. Nothing to lose, no deadlines.
+    </p>
+  </header>
+
+  @if (loadFailed() && !achievements()) {
+    <app-load-error message="Couldn't load your achievements." (retry)="load()" />
+  } @else if (!achievements()) {
+    <p class="text-body-secondary">Checking your story...</p>
+  } @else {
+    <section class="mb-5" aria-labelledby="unlocked-heading">
+      <h2 id="unlocked-heading" class="h5 mb-3">Unlocked</h2>
+      @if (split().unlocked.length === 0) {
+        <p class="text-body-secondary">
+          None yet. Pass a mission, keep a habit for a week, or
+          <a routerLink="/story">name a chapter of your life</a> — the first ones come quickly.
+        </p>
+      } @else {
+        <div class="row g-3">
+          @for (a of split().unlocked; track a.key) {
+            <div class="col-sm-6 col-xl-4">
+              <article class="card h-100">
+                <div class="card-body p-4 d-flex gap-3">
+                  <span class="achievement-badge" aria-hidden="true">
+                    <i class="bi {{ a.icon }}"></i>
+                  </span>
+                  <div class="min-w-0">
+                    <h3 class="h6 mb-1">{{ a.title }}</h3>
+                    <p class="small text-body-secondary mb-1">{{ a.description }}</p>
+                    <p class="small mb-0">Earned {{ a.unlockedOn | date }}</p>
+                  </div>
+                </div>
+              </article>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    @if (split().locked.length > 0) {
+      <section aria-labelledby="locked-heading">
+        <h2 id="locked-heading" class="h5 mb-3">Still ahead</h2>
+        <div class="row g-3">
+          @for (a of split().locked; track a.key) {
+            <div class="col-sm-6 col-xl-4">
+              <article class="card h-100 achievement-locked">
+                <div class="card-body p-4 d-flex gap-3">
+                  <span class="achievement-badge achievement-badge-locked" aria-hidden="true">
+                    <i class="bi {{ a.icon }}"></i>
+                  </span>
+                  <div class="min-w-0 flex-grow-1">
+                    <h3 class="h6 mb-1">{{ a.title }}</h3>
+                    <p class="small text-body-secondary mb-2">{{ a.description }}</p>
+                    <div
+                      class="progress"
+                      style="height: 0.35rem"
+                      role="progressbar"
+                      [attr.aria-label]="a.title + ' progress'"
+                      [attr.aria-valuenow]="a.progress"
+                      aria-valuemin="0"
+                      [attr.aria-valuemax]="a.target"
+                    >
+                      <div class="progress-bar" [style.width.%]="progressPercent(a)"></div>
+                    </div>
+                    <p class="small text-body-secondary mb-0 mt-1">
+                      {{ a.progress }} of {{ a.target }}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

@@ -139,6 +139,11 @@ export const routes: Routes = [
         title: 'Life areas | LifeOS',
         loadComponent: () => import('./features/story/life-areas').then((m) => m.LifeAreas),
       },
+      {
+        path: 'achievements',
+        title: 'Achievements | LifeOS',
+        loadComponent: () => import('./features/story/achievements').then((m) => m.Achievements),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

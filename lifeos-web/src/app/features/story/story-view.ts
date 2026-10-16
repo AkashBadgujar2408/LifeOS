@@ -39,6 +39,8 @@ export function beatText(beat: StoryBeat): BeatText {
       };
     case 'HabitStarted':
       return { icon: 'bi-arrow-repeat', tone: 'step', headline: `Started a habit: ${title}` };
+    case 'AchievementUnlocked':
+      return { icon: 'bi-award', tone: 'win', headline: `Achievement unlocked: ${title}` };
     case 'JournalHighlight':
       return beat.mood === 1
         ? {
@@ -56,6 +58,9 @@ export function beatText(beat: StoryBeat): BeatText {
 
 /** Where a beat's "open" link goes. */
 export function beatLink(beat: StoryBeat): (string | number)[] | null {
+  if (beat.kind === 'AchievementUnlocked') {
+    return ['/achievements'];
+  }
   if (beat.entityId === null) {
     return null;
   }

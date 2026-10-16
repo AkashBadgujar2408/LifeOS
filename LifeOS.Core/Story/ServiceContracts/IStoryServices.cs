@@ -33,6 +33,15 @@ public interface ILifeStoryService
     Task<OperationResult<StoryRecapDto>> GetRecapAsync(string? timeZoneId);
 }
 
+public interface IAchievementsService
+{
+    /// <summary>Every achievement, unlocked (with the local day, in <paramref name="timeZoneId"/>) or locked with progress.</summary>
+    Task<OperationResult<List<AchievementDto>>> GetAsync(string? timeZoneId);
+
+    /// <summary>The same, as the pure evaluator returns it — for the Life Story, which files unlocks as beats.</summary>
+    Task<IReadOnlyList<Services.Achievement>> EvaluateAsync(TimeZoneInfo zone);
+}
+
 public interface ILifeAreasStoryService
 {
     /// <summary>Every life area with its all-time XP and level (computed, never stored).</summary>

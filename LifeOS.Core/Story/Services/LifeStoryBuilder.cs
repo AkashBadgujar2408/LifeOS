@@ -17,6 +17,8 @@ public static class LifeStoryBuilder
         var ordered = chapters.OrderBy(c => c.StartDate).ToList();
         var sorted = beats
             .OrderBy(b => b.Day)
+            // An achievement closes its day: it follows whatever earned it.
+            .ThenBy(b => b.Kind == StoryBeatKinds.AchievementUnlocked)
             .ThenBy(b => b.At ?? DateTime.MinValue)
             .ThenBy(b => b.Kind, StringComparer.Ordinal)
             .ToList();

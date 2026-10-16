@@ -1,0 +1,22 @@
+// An earned badge is filled with the brand teal; one still ahead is a dashed outline — "not yet", never a failure.
+.achievement-badge {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--lifeos-teal);
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.achievement-badge-locked {
+  background: transparent;
+  border: 1px dashed var(--lifeos-border);
+  color: var(--cui-secondary-color);
+}
+
+.achievement-locked {
+  border-style: dashed;
+}

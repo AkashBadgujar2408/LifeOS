@@ -54,6 +54,8 @@ public static class StoryBeatKinds
     public const string MilestoneDone = "MilestoneDone";
     public const string HabitStarted = "HabitStarted";
     public const string JournalHighlight = "JournalHighlight";
+    /// <summary>Not from the procedure: an achievement, on the day it was earned (Achievements.Evaluate).</summary>
+    public const string AchievementUnlocked = "AchievementUnlocked";
 }
 
 /// <summary>
@@ -66,7 +68,7 @@ public class StoryBeatDto
     public DateOnly Day { get; init; }
     public DateTime? At { get; init; }
     public string? Title { get; init; }
-    /// <summary>Debrief "How it went" (MissionPassed) or the journal excerpt (JournalHighlight).</summary>
+    /// <summary>Debrief "How it went" (MissionPassed), the journal excerpt (JournalHighlight) or what earned an achievement.</summary>
     public string? Detail { get; init; }
     /// <summary>The note written with a status change or revision.</summary>
     public string? Note { get; init; }
@@ -102,4 +104,5 @@ public class LifeStoryDto
     public int MissionsPassed { get; init; }
     public int MilestonesDone { get; init; }
     public int ChapterCount { get; init; }
+    public int AchievementsUnlocked { get; init; }
 }

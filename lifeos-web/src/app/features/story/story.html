@@ -6,7 +6,11 @@
         <p class="text-body-secondary mb-0">
           {{ s.chapterCount }} {{ s.chapterCount === 1 ? 'chapter' : 'chapters' }} ·
           {{ s.missionsPassed }} {{ s.missionsPassed === 1 ? 'mission' : 'missions' }} passed ·
-          {{ s.milestonesDone }} {{ s.milestonesDone === 1 ? 'objective' : 'objectives' }} done
+          {{ s.milestonesDone }} {{ s.milestonesDone === 1 ? 'objective' : 'objectives' }} done ·
+          <a routerLink="/achievements" class="link-secondary"
+            >{{ s.achievementsUnlocked }}
+            {{ s.achievementsUnlocked === 1 ? 'achievement' : 'achievements' }}</a
+          >
         </p>
       } @else {
         <p class="text-body-secondary mb-0">Your life, told by what you actually did.</p>
@@ -136,6 +140,9 @@
                       @if (beat.lifeAreaName) {
                         <div class="small text-body-secondary">{{ beat.lifeAreaName }}</div>
                       }
+                    }
+                    @case ('AchievementUnlocked') {
+                      <div class="small text-body-secondary">{{ beat.detail }}</div>
                     }
                     @case ('JournalHighlight') {
                       @if (beat.detail) {

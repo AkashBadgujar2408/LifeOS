@@ -628,3 +628,18 @@
 - Note: activity bars for a past month still count goals that are active *now* (Life Balance's rule from Session 24), so an otherwise empty month can show one area at 10.
 
 - Next up: **Session 32 — Achievements + polish**.
+
+## Last session: 2026-10-16 — Session 32 — Story Mode 5: achievements + polish
+- Shipped (backend):
+  - **`database/procedures/story.GetAchievementFacts.sql`** — nine result sets of raw facts (goals passed, objectives, habits, habit days, journal days, chapters, debriefs on still-passed goals, ratings, life-area count), every set user/soft-delete filtered.
+  - **`Achievements.Evaluate`** (pure, xUnit) — 17 achievements with stable keys: first / 5 / 25 missions passed, a main mission, a collectible, 10 / 50 objectives, 7 / 30 / 100-day habit streaks (scheduled days in a row, `HabitStreaks`' rules), 10 / 100 journal days, first debrief, a chapter named, a chapter closed (on its end day, never ahead of time), well-rounded month (every life area touched in one calendar month), an honest look (every area rated for a month). Each unlock has the local day it was earned; locked ones carry progress/target. Never stored.
+  - **`AchievementsService`** + `GET api/Story/Achievements?tz=` (moments → local days with the IANA zone; bad zone → 400). The Life Story adds `AchievementUnlocked` beats (last in their day, after what earned them) and an `achievementsUnlocked` count; the recap leads with the latest achievement but shows at most one, so real events aren't pushed out. **11 new tests (128 backend)** — they caught a real bug (a missing streak threshold came back as 01/01/0001 instead of null).
+- Shipped (frontend): `/achievements` ("Achievements" in the Your story nav) — "N of 17 unlocked", Unlocked (teal badge, earned date, newest first) and Still ahead (dashed outline, progress bar, closest to done first); achievement beats in the story ("Achievement unlocked: …" with what earned it, linking to the page) and in the My Day recap; the story header counts achievements. `achievements-view.ts` + a `beatText`/`beatLink` case (3 new specs, 110 frontend).
+- Verified:
+  - curl (`storyuser1`): unlocks as worked out by hand — habit ticked 8–15 Oct → "A week strong" on 14 Oct (8 of 30 toward a month), College closed → "Turned the page" on 30/Jun/2023, first mission passed and a chapter named today; the same completion (02:37Z) lands on 15 Oct in Los Angeles; writing a debrief unlocked "Lessons learned"; **reopening the goal removed "First mission passed" and "Lessons learned"**, completing it again brought both back; anonymous 401.
+  - Browser: Achievements page (4 → 5 unlocked, progress on the rest), story shows each unlock in its chapter on the right day, recap shows "Achievement unlocked: First mission passed" then the mission and the resume. 375px (iframe): no horizontal scroll on /achievements, /story, My Day. No console errors.
+  - `dotnet build` (unsandboxed, NuGet audit ran) 0 warnings; `ng build`, lint clean; Prettier clean apart from the old `src/index.html`; tests 128 backend + 110 frontend. No frontend date logic changed this session, so `test:tz` wasn't re-run (it was green in Session 31).
+- **Story Mode (Sessions 28–32) is complete.**
+- UAT test data: `storyuser1` (local test account; password only in this session's scratch seed script) with chapters College / Learning to build, goals "Become a Technical Lead" (1/3) and "Finish the Angular course" (passed, debrief), habit "Morning run", a great journal day, Oct ratings for Career/Health.
+
+- Next up: **Session 33 — Calendar follow-up: recurring events** (backlog order, plan Section 7: recurrence on events expanded into the feed, plus probably "skip this occurrence"; recurring reminders may follow). Stopped here at your request.

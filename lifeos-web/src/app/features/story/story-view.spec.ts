@@ -56,6 +56,21 @@ describe('beatLink', () => {
     ]);
     expect(beatLink(beat({ entityId: null }))).toBeNull();
   });
+
+  it('sends an achievement to the achievements page', () => {
+    const unlocked = beat({
+      kind: 'AchievementUnlocked',
+      title: 'A week strong',
+      entityType: null,
+      entityId: null,
+    });
+    expect(beatLink(unlocked)).toEqual(['/achievements']);
+    expect(beatText(unlocked)).toEqual({
+      icon: 'bi-award',
+      tone: 'win',
+      headline: 'Achievement unlocked: A week strong',
+    });
+  });
 });
 
 describe('chapterLength', () => {

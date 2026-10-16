@@ -63,3 +63,18 @@ public class StoryRecapDto
     /// <summary>The active, unlocked mission to keep going with (StoryRecap.CurrentMission).</summary>
     public MissionDto? CurrentMission { get; init; }
 }
+
+/// <summary>One achievement (computed, never stored): unlocked on a local day, or locked with its progress.</summary>
+public class AchievementDto
+{
+    /// <summary>Stable identifier ("streak-7").</summary>
+    public string Key { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    /// <summary>A Bootstrap Icons class ("bi-fire").</summary>
+    public string Icon { get; init; } = string.Empty;
+    public int Progress { get; init; }
+    public int Target { get; init; }
+    public DateOnly? UnlockedOn { get; init; }
+    public bool Unlocked => UnlockedOn is not null;
+}

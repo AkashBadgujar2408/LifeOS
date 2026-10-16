@@ -13,16 +13,33 @@ public static class StoryRecap
 
     /// <summary>
     /// The latest beats up to <paramref name="today"/>, newest first. Future-dated beats (a habit set to start next
-    /// week) haven't happened yet. Within a day, recorded moments come before day-only beats, latest moment first.
+    /// week) haven't happened yet. Within a day: achievements first (they follow what earned them), then recorded
+    /// moments, latest first, then day-only beats. At most one achievement, so a burst of unlocks doesn't push out
+    /// what actually happened.
     /// </summary>
-    public static List<StoryBeatDto> Recent(IEnumerable<StoryBeatDto> beats, DateOnly today, int count = RecentBeatCount) =>
-        beats
+    public static List<StoryBeatDto> Recent(IEnumerable<StoryBeatDto> beats, DateOnly today, int count = RecentBeatCount)
+    {
+        var latestAchievement = true;
+        return beats
             .Where(b => b.Day <= today)
             .OrderByDescending(b => b.Day)
+            .ThenByDescending(b => b.Kind == StoryBeatKinds.AchievementUnlocked)
             .ThenByDescending(b => b.At.HasValue)
             .ThenByDescending(b => b.At)
+            .Where(b =>
+            {
+                if (b.Kind != StoryBeatKinds.AchievementUnlocked)
+                {
+                    return true;
+                }
+
+                var keep = latestAchievement;
+                latestAchievement = false;
+                return keep;
+            })
             .Take(count)
             .ToList();
+    }
 
     /// <summary>
     /// The mission to show as current: an active, unlocked one — a main mission if there is one, else a side mission,

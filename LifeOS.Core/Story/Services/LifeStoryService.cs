@@ -13,7 +13,7 @@ namespace LifeOS.Core.Story.Services;
 /// each placed on the user's local day using their real timezone (IANA id from the browser; exact across DST, unlike
 /// an offset), then filed into chapters by LifeStoryBuilder.
 /// </summary>
-public class LifeStoryService(AppDbContext db, IChaptersService chaptersService, IMissionsService missionsService) : ILifeStoryService
+public class LifeStoryService(AppDbContext db, IChaptersService chaptersService, IMissionsService missionsService, IAchievementsService achievementsService) : ILifeStoryService
 {
     public async Task<OperationResult<LifeStoryDto>> GetAsync(string? timeZoneId)
     {
@@ -31,6 +31,7 @@ public class LifeStoryService(AppDbContext db, IChaptersService chaptersService,
             MissionsPassed = beats.Count(b => b.Kind == StoryBeatKinds.MissionPassed),
             MilestonesDone = beats.Count(b => b.Kind == StoryBeatKinds.MilestoneDone),
             ChapterCount = chapters.Count,
+            AchievementsUnlocked = beats.Count(b => b.Kind == StoryBeatKinds.AchievementUnlocked),
         });
     }
 
@@ -61,7 +62,19 @@ public class LifeStoryService(AppDbContext db, IChaptersService chaptersService,
         parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
         var rows = await db.Database.GetDbConnection().QueryAsync<BeatRow>(
             "story.GetLifeStory", parameters, commandType: CommandType.StoredProcedure);
-        return rows.Select(r => ToBeat(r, zone)).ToList();
+        var beats = rows.Select(r => ToBeat(r, zone)).ToList();
+
+        // Achievements join the story on the day they were earned.
+        beats.AddRange((await achievementsService.EvaluateAsync(zone))
+            .Where(a => a.UnlockedOn is not null)
+            .Select(a => new StoryBeatDto
+            {
+                Kind = StoryBeatKinds.AchievementUnlocked,
+                Day = a.UnlockedOn!.Value,
+                Title = a.Title,
+                Detail = a.Description,
+            }));
+        return beats;
     }
 
     /// <summary>An IANA id from the browser ("Asia/Kolkata"); empty means UTC.</summary>
