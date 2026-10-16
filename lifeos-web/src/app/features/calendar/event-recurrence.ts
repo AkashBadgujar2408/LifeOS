@@ -77,6 +77,18 @@ export function recurrenceSummary(recurrence: EventRecurrence, firstDate: string
   return `${every}${on}${until ? `, until ${formatIsoDate(until)}` : ''}`;
 }
 
+/** "Remind me before each" choices for a timed repeating event (minutes; null = no reminder). */
+export const REMIND_BEFORE_OPTIONS: { minutes: number | null; label: string }[] = [
+  { minutes: null, label: "Don't remind me" },
+  { minutes: 0, label: 'When it starts' },
+  { minutes: 5, label: '5 minutes before' },
+  { minutes: 10, label: '10 minutes before' },
+  { minutes: 15, label: '15 minutes before' },
+  { minutes: 30, label: '30 minutes before' },
+  { minutes: 60, label: '1 hour before' },
+  { minutes: 1440, label: '1 day before' },
+];
+
 /** Mirrors EventRecurrence.LengthError on the API: an occurrence may not outlast the gap to the next. */
 export function longerThanGap(
   frequency: RecurrenceFrequency,

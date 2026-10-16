@@ -3,6 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map, tap } from 'rxjs';
 import { ApiResponse } from './api-response';
 import { ToastService } from './toast.service';
+// Type-only: calendar.service imports this service, so a value import would be circular.
+import type { EventRecurrence } from './calendar.service';
 
 export type ReminderStatus = 'Pending' | 'Dismissed';
 
@@ -30,6 +32,12 @@ export interface Reminder {
   entityId: number | null;
   /** The target's current title. */
   entityTitle: string | null;
+  /** Null = fires once. A repeating reminder's remindAt is its next time; "done" moves it on. */
+  recurrence: EventRecurrence | null;
+  /** IANA zone a repeating reminder follows. */
+  timeZone: string | null;
+  /** Written for one occurrence of a recurring event ("15 minutes before each"): that occurrence's day. */
+  occurrenceDate: string | null;
   createdAt: string;
 }
 
@@ -38,6 +46,9 @@ export interface ReminderPayload {
   notes: string | null;
   /** UTC ISO string with "Z" — the API rejects times without a timezone. */
   remindAt: string;
+  recurrence: EventRecurrence | null;
+  /** The browser's IANA zone — required for a repeating reminder. */
+  timeZone: string | null;
   /** Only read on create: a reminder keeps its target. */
   entityType?: ReminderTargetType | null;
   entityId?: number | null;

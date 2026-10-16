@@ -8,6 +8,15 @@ public class CalendarProfile : Profile
 {
     public CalendarProfile()
     {
-        CreateMap<Reminder, ReminderDto>().ForMember(d => d.EntityTitle, o => o.Ignore());
+        CreateMap<Reminder, ReminderDto>()
+            .ForMember(d => d.EntityTitle, o => o.Ignore())
+            .ForMember(d => d.Recurrence, o => o.MapFrom(r => r.RecurrenceFrequency == null
+                ? null
+                : new EventRecurrenceDto
+                {
+                    Frequency = r.RecurrenceFrequency,
+                    Interval = r.RecurrenceInterval!.Value,
+                    Until = r.RecurrenceUntil,
+                }));
     }
 }

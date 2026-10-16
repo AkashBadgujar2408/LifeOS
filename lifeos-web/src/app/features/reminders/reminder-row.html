@@ -27,6 +27,11 @@
         · done {{ r.dismissedAt | date: dateTimeFormat }}
       }
     </div>
+    @if (repeatSummary(); as summary) {
+      <div class="small text-body-secondary">
+        <i class="bi bi-arrow-repeat" aria-hidden="true"></i> {{ summary }}
+      </div>
+    }
     @if (r.notes) {
       <div class="small text-body-secondary text-break" style="white-space: pre-line">
         {{ r.notes }}

@@ -57,6 +57,8 @@ export interface CalendarEvent {
   recurrence: EventRecurrence | null;
   /** IANA zone a timed series follows. */
   timeZone: string | null;
+  /** Timed series: remind this many minutes before each occurrence (0 = as it starts); null = no. */
+  reminderMinutesBefore: number | null;
   /** Skipped occurrences of the series ("yyyy-MM-dd"), oldest first. */
   skippedDates: string[];
   createdAt: string;
@@ -82,6 +84,8 @@ export interface CalendarEventPayload {
   recurrence: EventRecurrence | null;
   /** The browser's IANA zone — the API needs it for a repeating timed event. */
   timeZone: string | null;
+  /** Timed repeating events only. */
+  reminderMinutesBefore: number | null;
 }
 
 @Injectable({ providedIn: 'root' })

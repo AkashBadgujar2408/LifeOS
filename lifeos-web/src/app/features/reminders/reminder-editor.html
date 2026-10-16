@@ -78,6 +78,76 @@
       </div>
     </div>
 
+    @if (canRepeat()) {
+      <div>
+        <label class="form-label" for="reminder-repeat">Repeats</label>
+        <div class="d-flex flex-wrap align-items-start gap-2">
+          <select id="reminder-repeat" class="form-select w-auto" formControlName="repeat">
+            <option value="None">Doesn't repeat</option>
+            @for (frequency of frequencies; track frequency) {
+              <option [value]="frequency">{{ frequency }}</option>
+            }
+          </select>
+          @if (form.controls.repeat.value !== 'None') {
+            <div class="d-flex align-items-center gap-2">
+              <label class="text-body-secondary small mb-0" for="reminder-interval">every</label>
+              <input
+                id="reminder-interval"
+                type="number"
+                min="1"
+                max="999"
+                class="form-control"
+                style="width: 5.5rem"
+                [class.is-invalid]="fieldError('interval')"
+                formControlName="interval"
+                placeholder="1"
+              />
+              <span class="text-body-secondary small">{{ intervalUnit() }}</span>
+            </div>
+          }
+        </div>
+        @if (fieldError('interval'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+        @if (form.controls.repeat.value !== 'None') {
+          <label class="form-label small mb-1 mt-2" for="reminder-until">
+            Ends on <span class="text-body-secondary">(optional)</span>
+          </label>
+          <div class="input-group">
+            <input
+              id="reminder-until"
+              type="text"
+              class="form-control"
+              [class.is-invalid]="fieldError('until')"
+              formControlName="until"
+              placeholder="Leave empty to keep going"
+              autocomplete="off"
+              ngbDatepicker
+              #untilPicker="ngbDatepicker"
+              container="body"
+            />
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              aria-label="Pick the last day it repeats"
+              (click)="untilPicker.toggle()"
+            >
+              <i class="bi bi-calendar3"></i>
+            </button>
+          </div>
+          @if (fieldError('until'); as error) {
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          }
+          @if (summary(); as summary) {
+            <div class="form-text">
+              <i class="bi bi-arrow-repeat" aria-hidden="true"></i> {{ summary }}. Marking it done
+              moves it to the next one.
+            </div>
+          }
+        }
+      </div>
+    }
+
     <div>
       <label class="form-label" for="reminder-notes">
         Notes <span class="text-body-secondary small">(optional)</span>

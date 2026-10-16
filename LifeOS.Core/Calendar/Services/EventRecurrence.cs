@@ -40,6 +40,9 @@ public static class EventRecurrence
     // Slack for comparing a series' local days with the viewer's local days: zones are at most 26 hours apart.
     private const int ZoneSlackDays = 2;
 
+    // Walking forward from FirstStepNear is short; this only guards against a malformed series.
+    private const int MaxSteps = 100_000;
+
     /// <summary>Occurrences that overlap the range (same overlap rules as one-off events in the feed), oldest first.</summary>
     public static List<EventOccurrence> Expand(
         EventSeries series, IReadOnlySet<DateOnly> skipped, DateOnly from, DateOnly to, DateTime fromUtc, DateTime toUtc)
@@ -101,6 +104,37 @@ public static class EventRecurrence
                 return null;
             }
         }
+    }
+
+    /// <summary>
+    /// The first occurrence of a timed series that starts strictly after <paramref name="afterUtc"/>, or null once the
+    /// series has run out (Until). Skipped days aren't considered — callers that care pass them separately.
+    /// </summary>
+    public static EventOccurrence? FirstStartingAfter(EventSeries series, DateTime afterUtc)
+    {
+        if (series.IsAllDay)
+        {
+            throw new ArgumentException("Only timed series have a start moment.", nameof(series));
+        }
+
+        var shape = Shape.Of(series);
+        var near = DateOnly.FromDateTime(afterUtc).AddDays(-ZoneSlackDays);
+        for (var k = FirstStepNear(series.Frequency, series.Interval, shape.FirstDate, near); k <= MaxSteps; k++)
+        {
+            var date = TaskRecurrence.Occurrence(series.Frequency, series.Interval, shape.FirstDate, k);
+            if (series.Until is { } until && date > until)
+            {
+                return null;
+            }
+
+            var occurrence = shape.On(date);
+            if (occurrence.StartsAt > afterUtc)
+            {
+                return occurrence;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>The day the first occurrence starts — for a timed series, in its own zone.</summary>

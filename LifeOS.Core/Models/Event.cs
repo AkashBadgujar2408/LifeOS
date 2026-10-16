@@ -41,6 +41,8 @@ public partial class Event
 
     public string? TimeZone { get; set; }
 
+    public int? ReminderMinutesBefore { get; set; }
+
     public virtual ICollection<EventException> EventExceptions { get; set; } = new List<EventException>();
 
     public virtual User User { get; set; } = null!;

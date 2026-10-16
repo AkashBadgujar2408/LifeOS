@@ -154,3 +154,55 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('calendar.Events') AND name = 'IX_Events_User_Recurring')
     CREATE INDEX IX_Events_User_Recurring ON calendar.Events(UserId) INCLUDE (RecurrenceUntil) WHERE IsDeleted = 0 AND RecurrenceFrequency IS NOT NULL;
 GO
+
+-- Repeating reminders (Session 34). Same rule shape as recurring events: "every RecurrenceInterval
+-- RecurrenceFrequency" counted from RecurrenceAnchorAt (the first time, UTC), on the wall clock of TimeZone (IANA),
+-- until RecurrenceUntil (last day it may fire, inclusive, in that zone). RemindAt is the *next* time: dismissing a
+-- repeating reminder moves RemindAt to the first occurrence after max(now, RemindAt) instead of setting DismissedAt
+-- (worked out by ReminderRecurrence in C#), and only once the series has run out is it dismissed for good.
+--
+-- OccurrenceDate marks a reminder written for one occurrence of a recurring event ("15 minutes before each
+-- standup", Events.ReminderMinutesBefore). Those are never generated ahead: when an occurrence's reminder moment
+-- has come, RemindersService writes it as an ordinary reminder about the event (so done/snooze/history work as for
+-- any other), keyed by the occurrence's day — the filtered unique index stops it being written twice.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('calendar.Reminders') AND name = 'RecurrenceFrequency')
+    ALTER TABLE calendar.Reminders ADD
+        RecurrenceFrequency NVARCHAR(10)  NULL,
+        RecurrenceInterval  INT           NULL,
+        RecurrenceUntil     DATE          NULL,
+        RecurrenceAnchorAt  DATETIME2     NULL,
+        TimeZone            NVARCHAR(64)  NULL,
+        OccurrenceDate      DATE          NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Reminders_RecurrenceFrequency')
+    ALTER TABLE calendar.Reminders ADD CONSTRAINT CK_Reminders_RecurrenceFrequency
+        CHECK (RecurrenceFrequency IN ('Daily', 'Weekly', 'Monthly', 'Yearly'));
+GO
+
+-- A repeating reminder has its whole rule (Until optional); an occurrence reminder is about an event and never repeats.
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Reminders_Recurrence')
+    ALTER TABLE calendar.Reminders ADD CONSTRAINT CK_Reminders_Recurrence CHECK (
+        ((RecurrenceFrequency IS NULL AND RecurrenceInterval IS NULL AND RecurrenceUntil IS NULL
+            AND RecurrenceAnchorAt IS NULL AND TimeZone IS NULL)
+         OR (RecurrenceFrequency IS NOT NULL AND RecurrenceInterval BETWEEN 1 AND 999
+            AND RecurrenceAnchorAt IS NOT NULL AND TimeZone IS NOT NULL AND OccurrenceDate IS NULL))
+        AND (OccurrenceDate IS NULL OR (EntityType = N'Event' AND EntityId IS NOT NULL)));
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('calendar.Reminders') AND name = 'UX_Reminders_EventOccurrence')
+    CREATE UNIQUE INDEX UX_Reminders_EventOccurrence ON calendar.Reminders(EntityId, OccurrenceDate)
+        WHERE IsDeleted = 0 AND OccurrenceDate IS NOT NULL;
+GO
+
+-- "Remind me N minutes before each occurrence" (0 = when it starts, up to a week). Timed recurring series only —
+-- a one-off event uses an ordinary reminder, and an all-day event has no start time to count back from.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('calendar.Events') AND name = 'ReminderMinutesBefore')
+    ALTER TABLE calendar.Events ADD ReminderMinutesBefore INT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Events_ReminderMinutesBefore')
+    ALTER TABLE calendar.Events ADD CONSTRAINT CK_Events_ReminderMinutesBefore CHECK (
+        ReminderMinutesBefore IS NULL
+        OR (ReminderMinutesBefore BETWEEN 0 AND 10080 AND IsAllDay = 0 AND RecurrenceFrequency IS NOT NULL));
+GO

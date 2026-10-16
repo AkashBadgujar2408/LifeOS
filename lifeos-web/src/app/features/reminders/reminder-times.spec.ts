@@ -12,6 +12,9 @@ const reminder = (id: number, remindAt: Date): Reminder => ({
   entityType: null,
   entityId: null,
   entityTitle: null,
+  recurrence: null,
+  timeZone: null,
+  occurrenceDate: null,
   createdAt: remindAt.toISOString(),
 });
 

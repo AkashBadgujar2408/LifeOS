@@ -6,6 +6,8 @@ using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
 using LifeOS.Core.Shared.Services;
+using LifeOS.Core.Story.Services;
+using LifeOS.Core.Tasks.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace LifeOS.Core.Calendar.Services;
@@ -15,6 +17,9 @@ public class RemindersService(AppDbContext db, IMapper mapper, IEnumerable<ILink
 {
     private const string NotFound = "Reminder not found.";
     private const int DismissedLimit = 50;
+
+    private static readonly HashSet<string> Frequencies =
+        [RecurrenceFrequencies.Daily, RecurrenceFrequencies.Weekly, RecurrenceFrequencies.Monthly, RecurrenceFrequencies.Yearly];
 
     // Anything linkable can be a reminder's target, except an inbox item: it's a capture waiting to become something
     // real, and processing it would otherwise have to carry its reminders across too.
@@ -27,6 +32,11 @@ public class RemindersService(AppDbContext db, IMapper mapper, IEnumerable<ILink
         if ((entityType is null) != (entityId is null))
         {
             return OperationResult<List<ReminderDto>>.Fail("Filter by entity with both entityType and entityId.");
+        }
+
+        if (status != ReminderStatuses.Dismissed)
+        {
+            await WriteDueOccurrenceRemindersAsync();
         }
 
         var query = db.Reminders.AsQueryable();
@@ -44,6 +54,7 @@ public class RemindersService(AppDbContext db, IMapper mapper, IEnumerable<ILink
 
     public async Task<List<ReminderDto>> GetDueAsync()
     {
+        await WriteDueOccurrenceRemindersAsync();
         var now = DateTime.UtcNow;
         return await ToDtosAsync(db.Reminders
             .Where(r => r.DismissedAt == null && r.RemindAt <= now)
@@ -104,6 +115,12 @@ public class RemindersService(AppDbContext db, IMapper mapper, IEnumerable<ILink
             return OperationResult<ReminderDto>.Fail(NotFound);
         }
 
+        if (reminder.OccurrenceDate is not null && request.Recurrence is not null)
+        {
+            return OperationResult<ReminderDto>.Fail(
+                "This reminder belongs to one occurrence of a repeating event, so it can't repeat itself.");
+        }
+
         var error = Apply(reminder, request);
         if (error is not null)
         {
@@ -127,7 +144,21 @@ public class RemindersService(AppDbContext db, IMapper mapper, IEnumerable<ILink
         if (dismissed != (reminder.DismissedAt is not null))
         {
             var now = DateTime.UtcNow;
-            reminder.DismissedAt = dismissed ? now : null;
+            // A repeating reminder that's done moves on to its next time and stays pending; only once the series
+            // has run out is it dismissed for good.
+            var next = dismissed && reminder.RecurrenceFrequency is not null
+                ? ReminderRecurrence.NextAfter(reminder.RecurrenceAnchorAt!.Value, reminder.RecurrenceFrequency,
+                    reminder.RecurrenceInterval!.Value, reminder.RecurrenceUntil, reminder.TimeZone!, reminder.RemindAt, now)
+                : null;
+            if (next is not null)
+            {
+                reminder.RemindAt = next.Value;
+            }
+            else
+            {
+                reminder.DismissedAt = dismissed ? now : null;
+            }
+
             reminder.UpdatedAt = now;
             await db.SaveChangesAsync();
         }
@@ -170,8 +201,15 @@ public class RemindersService(AppDbContext db, IMapper mapper, IEnumerable<ILink
             return OperationResult<bool>.Fail(NotFound);
         }
 
+        var now = DateTime.UtcNow;
         reminder.IsDeleted = true;
-        reminder.DeletedAt = DateTime.UtcNow;
+        reminder.DeletedAt = now;
+        // A deleted occurrence reminder counts as dealt with, or the next refresh would write it again.
+        if (reminder.OccurrenceDate is not null)
+        {
+            reminder.DismissedAt ??= now;
+        }
+
         await db.SaveChangesAsync();
         return OperationResult<bool>.Ok(true);
     }
@@ -204,10 +242,146 @@ public class RemindersService(AppDbContext db, IMapper mapper, IEnumerable<ILink
             return "The reminder time must include a timezone (send it as UTC).";
         }
 
+        var remindAt = request.RemindAt.Value.ToUniversalTime();
+        var recurrence = request.Recurrence;
+        if (recurrence is not null)
+        {
+            if (!Frequencies.Contains(recurrence.Frequency))
+            {
+                return "Repeat must be Daily, Weekly, Monthly or Yearly.";
+            }
+
+            if (recurrence.Interval is < 1 or > 999)
+            {
+                return "Repeat every 1 to 999.";
+            }
+
+            // Repeats follow a wall clock ("every Monday 09:00"), so the server has to know whose.
+            if (string.IsNullOrWhiteSpace(request.TimeZone) || !LifeStoryService.TryFindZone(request.TimeZone, out var zone))
+            {
+                return "A repeating reminder needs your timezone (an IANA name such as Europe/London).";
+            }
+
+            if (recurrence.Until is { } until
+                && until < DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(remindAt, zone)))
+            {
+                return "The repeats can't end before the reminder first fires.";
+            }
+
+            reminder.RecurrenceFrequency = recurrence.Frequency;
+            reminder.RecurrenceInterval = recurrence.Interval;
+            reminder.RecurrenceUntil = recurrence.Until;
+            reminder.RecurrenceAnchorAt = remindAt;
+            reminder.TimeZone = request.TimeZone.Trim();
+        }
+        else
+        {
+            reminder.RecurrenceFrequency = null;
+            reminder.RecurrenceInterval = null;
+            reminder.RecurrenceUntil = null;
+            reminder.RecurrenceAnchorAt = null;
+            reminder.TimeZone = null;
+        }
+
         reminder.Title = title;
         reminder.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
-        reminder.RemindAt = request.RemindAt.Value.ToUniversalTime();
+        reminder.RemindAt = remindAt;
         return null;
+    }
+
+    public async Task RemovePendingOccurrenceRemindersAsync(int eventId, DateOnly? fromDate = null, DateOnly? toDate = null)
+    {
+        var now = DateTime.UtcNow;
+        await db.Reminders
+            .Where(r => r.EntityType == EventLinkableProvider.Type && r.EntityId == eventId
+                && r.OccurrenceDate != null && r.DismissedAt == null
+                && (fromDate == null || r.OccurrenceDate >= fromDate)
+                && (toDate == null || r.OccurrenceDate <= toDate))
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsDeleted, true).SetProperty(r => r.DeletedAt, now));
+    }
+
+    /// <summary>
+    /// "N minutes before each occurrence": for every recurring event that asks for it, writes the reminder of the
+    /// occurrence that's due now (ReminderRecurrence.DueOccurrence) as an ordinary reminder about the event, unless
+    /// that occurrence already has one — pending, done, or deleted after being dealt with. Future occurrences are
+    /// never written ahead. Runs whenever due or pending reminders are read.
+    /// </summary>
+    private async Task WriteDueOccurrenceRemindersAsync()
+    {
+        var series = await db.Events
+            .AsNoTracking()
+            .Where(e => e.ReminderMinutesBefore != null && e.RecurrenceFrequency != null)
+            .ToListAsync();
+        if (series.Count == 0)
+        {
+            return;
+        }
+
+        var ids = series.Select(e => e.Id).ToList();
+        var skippedByEvent = (await db.EventExceptions
+                .Where(x => ids.Contains(x.EventId))
+                .Select(x => new { x.EventId, x.OccurrenceDate })
+                .ToListAsync())
+            .GroupBy(x => x.EventId)
+            .ToDictionary(g => g.Key, g => (IReadOnlySet<DateOnly>)g.Select(x => x.OccurrenceDate).ToHashSet());
+
+        var now = DateTime.UtcNow;
+        var userId = db.CurrentUserId!.Value;
+        var added = false;
+        foreach (var calendarEvent in series)
+        {
+            var minutesBefore = calendarEvent.ReminderMinutesBefore!.Value;
+            var occurrence = ReminderRecurrence.DueOccurrence(
+                EventsService.SeriesOf(calendarEvent)!,
+                minutesBefore,
+                skippedByEvent.GetValueOrDefault(calendarEvent.Id, new HashSet<DateOnly>()),
+                now);
+            if (occurrence is null)
+            {
+                continue;
+            }
+
+            // Deleted rows count too when they'd been dealt with (DeleteAsync marks them dismissed); rows removed
+            // because the event changed (still undismissed) don't, so the new time gets written.
+            var exists = await db.Reminders
+                .IgnoreQueryFilters()
+                .AnyAsync(r => r.UserId == userId && r.EntityType == EventLinkableProvider.Type
+                    && r.EntityId == calendarEvent.Id && r.OccurrenceDate == occurrence.OccurrenceDate
+                    && (!r.IsDeleted || r.DismissedAt != null));
+            if (exists)
+            {
+                continue;
+            }
+
+            var zone = TimeZoneInfo.FindSystemTimeZoneById(calendarEvent.TimeZone!);
+            var startsAt = occurrence.StartsAt!.Value;
+            var localStart = TimeZoneInfo.ConvertTimeFromUtc(startsAt, zone);
+            db.Reminders.Add(new Reminder
+            {
+                UserId = userId,
+                Title = $"{calendarEvent.Title} — starts {localStart:HH:mm}",
+                RemindAt = startsAt.AddMinutes(-minutesBefore),
+                EntityType = EventLinkableProvider.Type,
+                EntityId = calendarEvent.Id,
+                OccurrenceDate = occurrence.OccurrenceDate,
+            });
+            added = true;
+        }
+
+        if (!added)
+        {
+            return;
+        }
+
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        {
+            // Two refreshes at once (two tabs): the other one wrote it.
+            db.ChangeTracker.Clear();
+        }
     }
 
     /// <summary>Runs the query and fills in each target's current title (one lookup per target type).</summary>

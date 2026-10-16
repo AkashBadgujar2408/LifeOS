@@ -34,6 +34,7 @@ import {
   longerThanGap,
   recurrenceSummary,
   weekdayName,
+  REMIND_BEFORE_OPTIONS,
 } from './event-recurrence';
 import { apiErrorMessage } from '../../core/services/api-error';
 
@@ -175,6 +176,7 @@ export class EventEditor {
   protected readonly frequencies = RECURRENCE_FREQUENCIES;
   protected readonly formatIsoDate = formatIsoDate;
   protected readonly weekdayName = weekdayName;
+  protected readonly remindBeforeOptions = REMIND_BEFORE_OPTIONS;
 
   protected readonly event = signal<CalendarEvent | null>(null);
   /** The occurrence that was clicked, when the event is a series. */
@@ -210,6 +212,7 @@ export class EventEditor {
         Validators.max(999),
       ]),
       until: this.fb.control<string | null>(null),
+      remindBefore: this.fb.control<number | null>(null),
       location: this.fb.nonNullable.control('', Validators.maxLength(200)),
       notes: this.fb.nonNullable.control('', Validators.maxLength(4000)),
     },
@@ -247,6 +250,7 @@ export class EventEditor {
         repeat: e.recurrence?.frequency ?? 'None',
         interval: e.recurrence?.interval ?? 1,
         until: e.recurrence?.until ?? null,
+        remindBefore: e.reminderMinutesBefore,
         location: e.location ?? '',
         notes: e.notes ?? '',
       });
@@ -262,6 +266,7 @@ export class EventEditor {
         repeat: 'None',
         interval: 1,
         until: null,
+        remindBefore: null,
         location: '',
         notes: '',
       });
@@ -379,6 +384,8 @@ export class EventEditor {
         ? { frequency: v.repeat as RecurrenceFrequency, interval: v.interval, until: v.until }
         : null,
       timeZone: repeats && !v.isAllDay ? browserTimeZone() : null,
+      // Only a timed series can remind before each occurrence; anything else leaves it off.
+      reminderMinutesBefore: repeats && !v.isAllDay ? v.remindBefore : null,
     };
 
     const existing = this.event();

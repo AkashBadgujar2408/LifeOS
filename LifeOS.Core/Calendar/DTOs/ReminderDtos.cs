@@ -23,6 +23,12 @@ public class ReminderDto
     public string? EntityType { get; init; }
     public int? EntityId { get; init; }
     public string? EntityTitle { get; set; }
+    /// <summary>Null for a one-time reminder. A repeating one's RemindAt is its next time.</summary>
+    public EventRecurrenceDto? Recurrence { get; init; }
+    /// <summary>IANA zone a repeating reminder follows.</summary>
+    public string? TimeZone { get; init; }
+    /// <summary>Set on a reminder written for one occurrence of a recurring event (EntityType Event): that occurrence's day.</summary>
+    public DateOnly? OccurrenceDate { get; init; }
     public DateTime CreatedAt { get; init; }
 }
 
@@ -44,6 +50,13 @@ public class ReminderRequest
     public string? EntityType { get; init; }
 
     public int? EntityId { get; init; }
+
+    /// <summary>Null = fires once. Counted from RemindAt, on the wall clock of TimeZone.</summary>
+    public EventRecurrenceDto? Recurrence { get; init; }
+
+    /// <summary>The user's IANA zone; required for a repeating reminder.</summary>
+    [StringLength(64)]
+    public string? TimeZone { get; init; }
 }
 
 public class SetReminderDismissedRequest

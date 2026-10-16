@@ -1,5 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import {
   NgbActiveModal,
   NgbInputDatepicker,
@@ -9,7 +16,9 @@ import {
 } from '@ng-bootstrap/ng-bootstrap';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
-import { toLocalIsoDate } from '../../core/dates/today';
+import { browserTimeZone, toLocalIsoDate } from '../../core/dates/today';
+import { RECURRENCE_FREQUENCIES, RecurrenceFrequency } from '../../core/services/tasks.service';
+import { intervalUnit, recurrenceSummary } from '../calendar/event-recurrence';
 import {
   Reminder,
   REMINDER_TARGET_LABELS,
@@ -44,6 +53,16 @@ export async function openReminderEditor(
   }
 }
 
+// Mirrors the API: a repeating reminder's last day can't come before its first.
+function untilNotBeforeDay(group: AbstractControl): ValidationErrors | null {
+  const { repeat, date, until } = group.value as {
+    repeat: string;
+    date: string | null;
+    until: string | null;
+  };
+  return repeat !== 'None' && date && until && until < date ? { untilBeforeDay: true } : null;
+}
+
 @Component({
   selector: 'app-reminder-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,11 +79,38 @@ export class ReminderEditor {
   protected readonly draftTarget = signal<ReminderDraft['target'] | null>(null);
   protected readonly saving = signal(false);
 
-  protected readonly form = this.fb.group({
-    title: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(200)]),
-    date: this.fb.control<string | null>(null, Validators.required),
-    time: this.fb.control<NgbTimeStruct | null>(null, Validators.required),
-    notes: this.fb.nonNullable.control('', Validators.maxLength(4000)),
+  protected readonly frequencies = RECURRENCE_FREQUENCIES;
+
+  protected readonly form = this.fb.group(
+    {
+      title: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(200)]),
+      date: this.fb.control<string | null>(null, Validators.required),
+      time: this.fb.control<NgbTimeStruct | null>(null, Validators.required),
+      repeat: this.fb.nonNullable.control<RecurrenceFrequency | 'None'>('None'),
+      interval: this.fb.nonNullable.control(1, [
+        Validators.required,
+        Validators.min(1),
+        Validators.max(999),
+      ]),
+      until: this.fb.control<string | null>(null),
+      notes: this.fb.nonNullable.control('', Validators.maxLength(4000)),
+    },
+    { validators: untilNotBeforeDay },
+  );
+
+  private readonly formValue = toSignal(this.form.valueChanges, {
+    initialValue: this.form.getRawValue(),
+  });
+
+  /** A reminder written for one occurrence of a recurring event can't repeat on its own. */
+  protected readonly canRepeat = computed(() => !this.reminder()?.occurrenceDate);
+
+  /** "Every week on Monday" for what's being edited, anchored on the chosen day. */
+  protected readonly summary = computed(() => {
+    const { repeat, interval, until, date } = this.formValue();
+    return repeat && repeat !== 'None' && date && interval && interval >= 1 && interval <= 999
+      ? recurrenceSummary({ frequency: repeat, interval, until: until ?? null }, date)
+      : null;
   });
 
   configure(target: { reminder: Reminder } | { draft: ReminderDraft }): void {
@@ -76,6 +122,9 @@ export class ReminderEditor {
         title: r.title,
         date: at.date,
         time: { hour: at.hour, minute: at.minute, second: 0 },
+        repeat: r.recurrence?.frequency ?? 'None',
+        interval: r.recurrence?.interval ?? 1,
+        until: r.recurrence?.until ?? null,
         notes: r.notes ?? '',
       });
     } else {
@@ -85,9 +134,17 @@ export class ReminderEditor {
         title: target.draft.title ?? '',
         date: toLocalIsoDate(at),
         time: { hour: at.getHours(), minute: at.getMinutes(), second: 0 },
+        repeat: 'None',
+        interval: 1,
+        until: null,
         notes: '',
       });
     }
+  }
+
+  protected intervalUnit(): string {
+    const { repeat, interval } = this.form.getRawValue();
+    return repeat === 'None' ? '' : intervalUnit(repeat, interval);
   }
 
   /** The target line shown under the title: the saved reminder's target, or the draft's. */
@@ -102,10 +159,25 @@ export class ReminderEditor {
     return t ? `${REMINDER_TARGET_LABELS[t.entityType]}: ${t.title}` : null;
   }
 
-  protected fieldError(name: 'title' | 'date' | 'time' | 'notes'): string | null {
+  protected fieldError(
+    name: 'title' | 'date' | 'time' | 'interval' | 'until' | 'notes',
+  ): string | null {
     const control = this.form.controls[name];
     if (!control.touched) {
       return null;
+    }
+
+    if (name === 'interval') {
+      return control.errors ? 'Repeat every 1 to 999.' : null;
+    }
+
+    if (name === 'until') {
+      return (
+        dateFieldError(control.errors) ??
+        (this.form.errors?.['untilBeforeDay']
+          ? "The repeats can't end before the reminder first fires."
+          : null)
+      );
     }
 
     if (name === 'date') {
@@ -143,6 +215,11 @@ export class ReminderEditor {
       title: v.title,
       notes: v.notes.trim() || null,
       remindAt: localDateTimeToUtc(v.date!, v.time!.hour, v.time!.minute),
+      recurrence:
+        v.repeat !== 'None' && this.canRepeat()
+          ? { frequency: v.repeat, interval: v.interval, until: v.until }
+          : null,
+      timeZone: v.repeat !== 'None' && this.canRepeat() ? browserTimeZone() : null,
     };
 
     const existing = this.reminder();

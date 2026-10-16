@@ -40,7 +40,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Shared platform | `shared` | Users, LifeAreas (seeded, global), Tags, EntityLinks, InboxItems | `Shared/` — Auth, JWT, current user, Tags, EntityLinks, Inbox, LifeAreas | `auth`, `inbox`, `tags` |
 | Goals & Milestones | `goals` | Goals, GoalMilestones, GoalTags, GoalHistory | `Goals/` | `goals` |
 | Tasks & Projects | `tasks` | TaskItems, Projects, TaskTags | `Tasks/` | `tasks`, `projects` |
-| Calendar & Reminders | `calendar` | Events (one-off or recurring series), EventExceptions (skipped occurrences), Reminders | `Calendar/` (+ proc `calendar.GetCalendarFeed`) | `calendar`, `reminders` |
+| Calendar & Reminders | `calendar` | Events (one-off or recurring series), EventExceptions (skipped occurrences), Reminders (one-time or repeating; occurrence reminders of events) | `Calendar/` (+ proc `calendar.GetCalendarFeed`) | `calendar`, `reminders` |
 | Habits | `habits` | Habits, HabitEntries | `Habits/` | `habits` |
 | Journal | `journal` | JournalEntries, WeeklyReflections | `Journal/` | `journal` |
 | Story Mode (Phase 2) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — Chapters, Life Story (+ proc `story.GetLifeStory`, recap), Missions, life-area levels + monthly ratings (+ proc `story.GetLifeAreaStats`), achievements (+ proc `story.GetAchievementFacts`); pure `MissionKinds`/`MissionGraph`/`ChapterRules`/`LifeStoryBuilder`/`LifeAreaLevels`/`StoryRecap`/`Achievements` | `story` (`/story`, `/missions`, `/life-areas`, Mission passed dialog, goal-page Story card, `/achievements`, "Previously on…" card on My Day) |
@@ -72,6 +72,11 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   wall clock it follows (09:00 stays 09:00 across DST). Occurrences are named by the day they start (in that zone) —
   that's the key of a skipped day in `calendar.EventExceptions`, and "change just this one" is a skip plus a new
   one-off event. Reminders and links attach to the series.
+- **Repeating reminders** (Session 34): a reminder can carry the same rule (plus its zone and anchor); its `RemindAt`
+  is always the next time, and "done" moves it on (`ReminderRecurrence.NextAfter`) until the rule runs out. A timed
+  repeating event can "remind me N minutes before each": nothing is generated ahead — when an occurrence's reminder
+  moment comes, reading due reminders writes it as an ordinary reminder about the event (`OccurrenceDate` set,
+  unique per occurrence), so done/snooze/history need no special cases.
 - **Computed, never stored:** goal progress (`GoalProgress`), habit streaks (`HabitStreaks`), the next occurrence of
   a repeating task (`TaskRecurrence`), the occurrences of a recurring event (`EventRecurrence`), insights (`DashboardInsights`), life balance (`LifeBalance`). Each is a pure
   static class with xUnit tests, so it can't drift from the data it summarises.
@@ -121,7 +126,7 @@ All routes need a JWT except register, login and ping.
 | `api/Goals/Goals` | CRUD, `PUT {id}/status`; milestones under `Goals/{goalId}/Milestones` (CRUD, `PUT {id}/completed`, `PUT order`) |
 | `api/Tasks/Tasks` | CRUD, `PUT {id}/completed`, `POST from-inbox/{id}` |
 | `api/Tasks/Projects` | CRUD, `PUT {id}/status` |
-| `api/Calendar/Events`, `Feed`, `Reminders` | Events CRUD (a series is one event with `recurrence` + `timeZone`); occurrences: `PUT Events/{id}/occurrences/{date}/skipped`, `POST …/{date}/detach` (change just this one), `POST …/{date}/end` (this and following); `GET Feed?from&to&fromUtc&toUtc` (occurrences carry `isRecurring` + `occurrenceDate`); Reminders CRUD, `GET due`, `PUT {id}/dismissed`, `PUT {id}/snooze` |
+| `api/Calendar/Events`, `Feed`, `Reminders` | Events CRUD (a series is one event with `recurrence` + `timeZone`); occurrences: `PUT Events/{id}/occurrences/{date}/skipped`, `POST …/{date}/detach` (change just this one), `POST …/{date}/end` (this and following); `GET Feed?from&to&fromUtc&toUtc` (occurrences carry `isRecurring` + `occurrenceDate`); events take `reminderMinutesBefore` (timed series); Reminders CRUD (optional `recurrence` + `timeZone`), `GET due` (writes due occurrence reminders first), `PUT {id}/dismissed` (a repeating one moves to its next time), `PUT {id}/snooze` |
 | `api/Habits/Habits` | CRUD, `PUT {id}/status`, `PUT {id}/entries/{date}` (tick/untick, returns the new streak) |
 | `api/Journal/Entries`, `Reflections` | entries by day (`GET`/`PUT`/`DELETE day/{date}`), `GET moods`, `POST from-inbox/{id}`; reflections `GET`/`PUT {monday}` |
 | `api/Dashboard/MyDay`, `LifeBalance` | the My Day snapshot (with insights); activity per life area |

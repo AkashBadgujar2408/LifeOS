@@ -22,6 +22,8 @@ public class EventDto
     public EventRecurrenceDto? Recurrence { get; init; }
     /// <summary>IANA zone a timed series follows; null otherwise.</summary>
     public string? TimeZone { get; init; }
+    /// <summary>Timed series only: remind this many minutes before each occurrence (0 = as it starts); null = no.</summary>
+    public int? ReminderMinutesBefore { get; init; }
     /// <summary>Occurrences of the series that were skipped, oldest first.</summary>
     public List<DateOnly> SkippedDates { get; init; } = [];
     public DateTime CreatedAt { get; init; }
@@ -80,6 +82,10 @@ public class EventRequest
     /// <summary>The user's IANA zone (e.g. "Europe/London"); required for a timed recurring event.</summary>
     [StringLength(64)]
     public string? TimeZone { get; init; }
+
+    /// <summary>Timed recurring events only: remind N minutes before each occurrence (0–10080); null = no.</summary>
+    [Range(0, 10080, ErrorMessage = "Remind between 0 minutes and a week before.")]
+    public int? ReminderMinutesBefore { get; init; }
 }
 
 public static class EventErrors

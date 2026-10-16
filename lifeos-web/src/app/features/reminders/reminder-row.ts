@@ -4,10 +4,11 @@ import {
   computed,
   inject,
   input,
+  LOCALE_ID,
   output,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, formatDate } from '@angular/common';
 import { NgbDropdownModule, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { APP_DATE_TIME_FORMAT } from '../../core/dates/date-format';
 import {
@@ -16,6 +17,8 @@ import {
   RemindersService,
 } from '../../core/services/reminders.service';
 import { ToastService } from '../../core/services/toast.service';
+import { utcToLocalParts } from '../calendar/calendar-feed';
+import { recurrenceSummary } from '../calendar/event-recurrence';
 import { openReminderEditor } from './reminder-editor';
 import { SnoozePreset, snoozePresets } from './reminder-times';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -35,6 +38,7 @@ export class ReminderRow {
   private readonly remindersService = inject(RemindersService);
   private readonly toast = inject(ToastService);
   private readonly modal = inject(NgbModal);
+  private readonly locale = inject(LOCALE_ID);
 
   readonly reminder = input.required<Reminder>();
   /** Off inside the target's own screen, where "Task: this task" would just point back at itself. */
@@ -58,9 +62,23 @@ export class ReminderRow {
     }
   }
 
+  /** "Every week on Monday" for a repeating reminder, anchored on its next time's local day. */
+  protected readonly repeatSummary = computed(() => {
+    const r = this.reminder();
+    return r.recurrence ? recurrenceSummary(r.recurrence, utcToLocalParts(r.remindAt).date) : null;
+  });
+
   protected setDismissed(dismissed: boolean): void {
     this.remindersService.setDismissed(this.reminder().id, dismissed).subscribe({
-      next: () => this.toast.success(dismissed ? 'Reminder done.' : 'Reminder restored.'),
+      next: (updated) => {
+        // A repeating reminder that's done moves on rather than going away; say where to.
+        if (dismissed && updated.recurrence && !updated.dismissedAt) {
+          const next = formatDate(updated.remindAt, APP_DATE_TIME_FORMAT, this.locale);
+          this.toast.success(`Done. Next one: ${next}.`);
+          return;
+        }
+        this.toast.success(dismissed ? 'Reminder done.' : 'Reminder restored.');
+      },
       error: (err) => this.toast.error(apiErrorMessage(err, 'Could not update the reminder.')),
     });
   }

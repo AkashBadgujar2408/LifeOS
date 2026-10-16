@@ -232,6 +232,18 @@
                 <div class="invalid-feedback d-block">{{ error }}</div>
               }
             </div>
+            @if (!form.controls.isAllDay.value) {
+              <div class="col-sm-6">
+                <label class="form-label small mb-1" for="event-remind-before">
+                  Remind me before each
+                </label>
+                <select id="event-remind-before" class="form-select" formControlName="remindBefore">
+                  @for (option of remindBeforeOptions; track option.label) {
+                    <option [ngValue]="option.minutes">{{ option.label }}</option>
+                  }
+                </select>
+              </div>
+            }
           </div>
           @if (draftSummary(); as summary) {
             <div class="form-text">

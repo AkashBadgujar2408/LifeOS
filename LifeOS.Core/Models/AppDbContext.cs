@@ -445,8 +445,14 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.UserId, e.RemindAt }, "IX_Reminders_User_Due").HasFilter("([IsDeleted]=(0) AND [DismissedAt] IS NULL)");
 
+            entity.HasIndex(e => new { e.EntityId, e.OccurrenceDate }, "UX_Reminders_EventOccurrence")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [OccurrenceDate] IS NOT NULL)");
+
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Reminders_CreatedAt");
             entity.Property(e => e.EntityType).HasMaxLength(50);
+            entity.Property(e => e.RecurrenceFrequency).HasMaxLength(10);
+            entity.Property(e => e.TimeZone).HasMaxLength(64);
             entity.Property(e => e.Title).HasMaxLength(200);
 
             entity.HasOne(d => d.User).WithMany(p => p.Reminders)

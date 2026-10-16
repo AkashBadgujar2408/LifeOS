@@ -78,6 +78,9 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
         }
 
         await db.SaveChangesAsync();
+        // An occurrence reminder already written but not dealt with may now have the wrong time or title; it's
+        // written again from the new settings on the next refresh.
+        await remindersService.RemovePendingOccurrenceRemindersAsync(id);
         return await GetAsync(id);
     }
 
@@ -136,6 +139,9 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
                 // Skipped by a concurrent request (a double click): skipped either way.
                 db.ChangeTracker.Clear();
             }
+
+            // A skipped occurrence doesn't happen, so its reminder (if already written) goes too.
+            await remindersService.RemovePendingOccurrenceRemindersAsync(id, occurrenceDate, occurrenceDate);
         }
         else if (!skipped && existing is not null)
         {
@@ -194,6 +200,7 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
             return OperationResult<EventDto>.Fail("That occurrence was just changed or skipped elsewhere. Reload and try again.");
         }
 
+        await remindersService.RemovePendingOccurrenceRemindersAsync(id, occurrenceDate, occurrenceDate);
         await transaction.CommitAsync();
         return await GetAsync(oneOff.Id);
     }
@@ -235,6 +242,7 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
         }
 
         await db.SaveChangesAsync();
+        await remindersService.RemovePendingOccurrenceRemindersAsync(id, occurrenceDate);
         return OperationResult<bool>.Ok(false);
     }
 
@@ -272,6 +280,7 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
             ? null
             : new EventRecurrenceDto { Frequency = e.RecurrenceFrequency, Interval = e.RecurrenceInterval!.Value, Until = e.RecurrenceUntil },
         TimeZone = e.TimeZone,
+        ReminderMinutesBefore = e.ReminderMinutesBefore,
         SkippedDates = skipped,
         CreatedAt = e.CreatedAt,
     };
@@ -353,6 +362,12 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
         var recurrence = request.Recurrence;
         if (recurrence is null)
         {
+            if (request.ReminderMinutesBefore is not null)
+            {
+                return "\"Remind me before each\" is for repeating events — give a one-off event its own reminder.";
+            }
+
+            calendarEvent.ReminderMinutesBefore = null;
             calendarEvent.RecurrenceFrequency = null;
             calendarEvent.RecurrenceInterval = null;
             calendarEvent.RecurrenceUntil = null;
@@ -395,10 +410,16 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
             return "The repeats can't end before the event first happens.";
         }
 
+        if (request.ReminderMinutesBefore is not null && request.IsAllDay)
+        {
+            return "\"Remind me before each\" needs a start time; give an all-day event a reminder from its Reminders section.";
+        }
+
         calendarEvent.RecurrenceFrequency = recurrence.Frequency;
         calendarEvent.RecurrenceInterval = recurrence.Interval;
         calendarEvent.RecurrenceUntil = recurrence.Until;
         calendarEvent.TimeZone = timeZone;
+        calendarEvent.ReminderMinutesBefore = request.ReminderMinutesBefore;
         return null;
     }
 }
