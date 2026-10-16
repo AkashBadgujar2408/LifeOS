@@ -638,7 +638,7 @@
 - Verified:
   - curl (`storyuser1`): unlocks as worked out by hand — habit ticked 8–15 Oct → "A week strong" on 14 Oct (8 of 30 toward a month), College closed → "Turned the page" on 30/Jun/2023, first mission passed and a chapter named today; the same completion (02:37Z) lands on 15 Oct in Los Angeles; writing a debrief unlocked "Lessons learned"; **reopening the goal removed "First mission passed" and "Lessons learned"**, completing it again brought both back; anonymous 401.
   - Browser: Achievements page (4 → 5 unlocked, progress on the rest), story shows each unlock in its chapter on the right day, recap shows "Achievement unlocked: First mission passed" then the mission and the resume. 375px (iframe): no horizontal scroll on /achievements, /story, My Day. No console errors.
-  - `dotnet build` (unsandboxed, NuGet audit ran) 0 warnings; `ng build`, lint clean; Prettier clean apart from the old `src/index.html`; tests 128 backend + 110 frontend. No frontend date logic changed this session, so `test:tz` wasn't re-run (it was green in Session 31).
+  - `dotnet build` (unsandboxed, NuGet audit ran) 0 warnings; `ng build`, lint clean; Prettier clean (the old `src/index.html` formatted afterwards, same day); tests 128 backend + 110 frontend. No frontend date logic changed this session, so `test:tz` wasn't re-run (it was green in Session 31).
 - **Story Mode (Sessions 28–32) is complete.**
 - UAT test data: `storyuser1` (local test account; password only in this session's scratch seed script) with chapters College / Learning to build, goals "Become a Technical Lead" (1/3) and "Finish the Angular course" (passed, debrief), habit "Morning run", a great journal day, Oct ratings for Career/Health.
 
