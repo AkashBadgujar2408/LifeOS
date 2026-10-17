@@ -13,6 +13,7 @@ using LifeOS.Core.Journal.Services;
 using LifeOS.Core.Models;
 using LifeOS.Core.Tasks.ServiceContracts;
 using LifeOS.Core.Tasks.Services;
+using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
 using LifeOS.Core.Shared.Services;
 using LifeOS.Core.Story.ServiceContracts;
@@ -77,6 +78,11 @@ try
     builder.Services.AddScoped<ISearchService, SearchService>();
     builder.Services.AddScoped<ISettingsService, SettingsService>();
     builder.Services.AddRecoveryRateLimit();
+
+    // Files (documents, later attachments) live on disk outside any web root, one folder per user (IFileStore).
+    var fileStorage = builder.Configuration.GetSection(FileStorageOptions.Section).Get<FileStorageOptions>() ?? new FileStorageOptions();
+    builder.Services.AddSingleton<IFileStore>(new DiskFileStore(
+        DiskFileStore.ResolveRoot(fileStorage.RootPath, builder.Environment.WebRootPath), fileStorage.MaxFileBytes));
 
     // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
     builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();

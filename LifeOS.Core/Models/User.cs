@@ -29,6 +29,12 @@ public partial class User
 
     public virtual Chapter? Chapter { get; set; }
 
+    public virtual ICollection<DocumentFile> DocumentFiles { get; set; } = new List<DocumentFile>();
+
+    public virtual ICollection<DocumentTag> DocumentTags { get; set; } = new List<DocumentTag>();
+
+    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
+
     public virtual ICollection<EntityLink> EntityLinks { get; set; } = new List<EntityLink>();
 
     public virtual ICollection<EventException> EventExceptions { get; set; } = new List<EventException>();

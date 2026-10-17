@@ -73,6 +73,14 @@ in Development. For anything beyond your own machine, set a long random key outs
 `dotnet user-secrets set "Jwt:Key" "<64+ random characters>" --project LifeOS.Api`. A non-Development environment
 has no key configured and won't start without one.
 
+### 4. File storage (documents, attachments)
+
+Uploaded files are kept on disk, one folder per user, outside the repo and any web root — by default
+`%LOCALAPPDATA%\LifeOS\files`. To put them elsewhere, set `FileStorage:RootPath` (e.g.
+`dotnet user-secrets set "FileStorage:RootPath" "D:\LifeOS-files\UAT" --project LifeOS.Api`); give UAT and Live
+different folders, as they have different databases. `FileStorage:MaxFileBytes` (default 20 MB) caps a single file.
+Back this folder up together with the database — SQL holds only the files' names and hashes.
+
 ## Running it
 
 Two terminals:

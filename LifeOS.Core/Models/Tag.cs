@@ -19,6 +19,8 @@ public partial class Tag
 
     public DateTime? DeletedAt { get; set; }
 
+    public virtual ICollection<DocumentTag> DocumentTags { get; set; } = new List<DocumentTag>();
+
     public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
 
     public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();

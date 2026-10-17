@@ -54,3 +54,9 @@ public partial class UserHiddenLifeArea : ISoftDeletable, IUserOwned;
 
 // Password reset runs before anyone is logged in, so it reads these with IgnoreQueryFilters() and filters itself.
 public partial class RecoveryCode : ISoftDeletable, IUserOwned;
+
+public partial class Document : ISoftDeletable, IUserOwned;
+
+public partial class DocumentFile : ISoftDeletable, IUserOwned;
+
+public partial class DocumentTag : ISoftDeletable, IUserOwned;

@@ -44,6 +44,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Habits | `habits` | Habits, HabitEntries | `Habits/` | `habits` |
 | Journal | `journal` | JournalEntries, WeeklyReflections | `Journal/` | `journal` |
 | Story Mode (Phase 2) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — Chapters, Life Story (+ proc `story.GetLifeStory`, recap), Missions, life-area levels + monthly ratings (+ proc `story.GetLifeAreaStats`), achievements (+ proc `story.GetAchievementFacts`); pure `MissionKinds`/`MissionGraph`/`ChapterRules`/`LifeStoryBuilder`/`LifeAreaLevels`/`StoryRecap`/`Achievements` | `story` (`/story`, `/missions`, `/life-areas`, Mission passed dialog, goal-page Story card, `/achievements`, "Previously on…" card on My Day) |
+| Documents (Phase 2) | `documents` | Documents (kind, issuer, last 4 of the number, issued/expiry, vault flag), DocumentFiles (stored name, original name, type, size, SHA-256), DocumentTags | `Shared/` — `IFileStore`/`DiskFileStore` + pure `FileRules` (Session 38); `Documents/` from Session 39 | `documents` (Session 40) |
 | Dashboard & Insights | `dashboard` (procedures only) | — | `Dashboard/` (+ procs `dashboard.GetMyDay`, `dashboard.GetLifeBalance`) | `dashboard` (My Day) |
 
 Every module has the same server layout: `DTOs/` (request/response shapes, status constants), `ServiceContracts/`
@@ -93,6 +94,11 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   module is searchable with no change here. UI: the lazy-loaded palette (`features/search/search-palette`) opened by
   Ctrl/Cmd+K, `/` (outside fields), the sidebar Search button or the phone top bar, via `SearchPaletteService.open()`;
   results open through `EntityOpener` (shared with reminder targets).
+- **Files** (Session 38): `IFileStore` (`DiskFileStore`, singleton) writes uploads to `<FileStorage:RootPath>/<userId>/`
+  under a random stored name (32 hex + extension), streaming to a `.part` file while counting size and SHA-256, then
+  checking the type twice — the extension must be on `FileRules`' list (no SVG/HTML/executables) and the first bytes
+  must match it — before renaming into place. Callers keep the returned `StoredFile` in SQL and only ever pass a
+  stored name back; anything else (slashes, `..`, a drive) is refused. Files are served only through the API.
 - **Settings + account** (Session 37): preferences on `shared.Users` (`TimeZone` = the zone new repeating events and
   reminders follow, `BaseCurrency`), switched-off modules and life areas in `shared.UserHiddenModules` /
   `UserHiddenLifeAreas` (soft-deleted to switch back on). The shell loads them once into `SettingsService`; the nav

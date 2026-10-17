@@ -13,6 +13,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Chapter> Chapters { get; set; }
 
+    public virtual DbSet<Document> Documents { get; set; }
+
+    public virtual DbSet<DocumentFile> DocumentFiles { get; set; }
+
+    public virtual DbSet<DocumentTag> DocumentTags { get; set; }
+
     public virtual DbSet<EntityLink> EntityLinks { get; set; }
 
     public virtual DbSet<Event> Events { get; set; }
@@ -84,6 +90,82 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey<Chapter>(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Chapters_Users");
+        });
+
+        modelBuilder.Entity<Document>(entity =>
+        {
+            entity.ToTable("Documents", "documents");
+
+            entity.HasIndex(e => new { e.UserId, e.ExpiresOn }, "IX_Documents_User_ExpiresOn").HasFilter("([IsDeleted]=(0) AND [ExpiresOn] IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.UserId, e.Kind }, "IX_Documents_User_Kind").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Documents_CreatedAt");
+            entity.Property(e => e.Issuer).HasMaxLength(200);
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.NumberLast4).HasMaxLength(4);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.User).WithMany(p => p.Documents)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Documents_Users");
+        });
+
+        modelBuilder.Entity<DocumentFile>(entity =>
+        {
+            entity.ToTable("DocumentFiles", "documents");
+
+            entity.HasIndex(e => e.DocumentId, "IX_DocumentFiles_Document").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.StoredName, "UX_DocumentFiles_StoredName").IsUnique();
+
+            entity.Property(e => e.ContentType).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_DocumentFiles_CreatedAt");
+            entity.Property(e => e.OriginalName).HasMaxLength(255);
+            entity.Property(e => e.Sha256)
+                .HasMaxLength(64)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.StoredName).HasMaxLength(50);
+
+            entity.HasOne(d => d.Document).WithMany(p => p.DocumentFiles)
+                .HasForeignKey(d => d.DocumentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DocumentFiles_Documents");
+
+            entity.HasOne(d => d.User).WithMany(p => p.DocumentFiles)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DocumentFiles_Users");
+        });
+
+        modelBuilder.Entity<DocumentTag>(entity =>
+        {
+            entity.ToTable("DocumentTags", "documents");
+
+            entity.HasIndex(e => e.TagId, "IX_DocumentTags_Tag").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.DocumentId, e.TagId }, "UX_DocumentTags_Document_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_DocumentTags_CreatedAt");
+
+            entity.HasOne(d => d.Document).WithMany(p => p.DocumentTags)
+                .HasForeignKey(d => d.DocumentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DocumentTags_Documents");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.DocumentTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DocumentTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.DocumentTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DocumentTags_Users");
         });
 
         modelBuilder.Entity<EntityLink>(entity =>
