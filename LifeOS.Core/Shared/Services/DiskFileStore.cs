@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace LifeOS.Core.Shared.Services;
 
@@ -9,18 +10,25 @@ namespace LifeOS.Core.Shared.Services;
 /// <see cref="IFileStore"/> on the local disk: &lt;root&gt;/&lt;userId&gt;/&lt;stored name&gt;. An upload is streamed to a
 /// ".part" file while its size and SHA-256 are counted, checked, then renamed into place — so a half-written or
 /// refused upload never looks like a real file. Registered as a singleton; it holds no per-request state.
+/// Encrypted files (the vault, Session 41) are protected with ASP.NET Core Data Protection under a per-user purpose,
+/// so the bytes on disk are unreadable without the app's key ring — and a file copied into another user's folder
+/// doesn't open there either. They are held in memory while being checked, so plaintext never touches the disk.
 /// </summary>
 public class DiskFileStore : IFileStore
 {
     private const int BufferSize = 81920;
 
+    private const string ProtectionPurpose = "LifeOS.Files.v1";
+
     private readonly string root;
     private readonly long maxFileBytes;
+    private readonly IDataProtectionProvider dataProtection;
 
-    public DiskFileStore(string root, long maxFileBytes)
+    public DiskFileStore(string root, long maxFileBytes, IDataProtectionProvider dataProtection)
     {
         this.root = Path.GetFullPath(root);
         this.maxFileBytes = maxFileBytes;
+        this.dataProtection = dataProtection;
         Directory.CreateDirectory(this.root);
     }
 
@@ -45,8 +53,14 @@ public class DiskFileStore : IFileStore
         return resolved;
     }
 
+    /// <summary>Where the Data Protection key ring lives: the configured folder, or %LOCALAPPDATA%/LifeOS/keys.</summary>
+    public static string ResolveKeysPath(string? configured) =>
+        Path.GetFullPath(string.IsNullOrWhiteSpace(configured)
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LifeOS", "keys")
+            : configured);
+
     public async Task<OperationResult<StoredFile>> SaveAsync(int userId, Stream content, string? originalName,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default, bool encrypt = false)
     {
         var name = FileRules.CleanOriginalName(originalName);
         if (name is null)
@@ -74,8 +88,10 @@ public class DiskFileStore : IFileStore
 
         try
         {
-            await using (var output = new FileStream(partPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                             BufferSize, useAsync: true))
+            // An encrypted file is collected in memory (it's at most maxFileBytes) and only its ciphertext is written.
+            var plain = encrypt ? new MemoryStream() : null;
+            await using (Stream output = (Stream?)plain ?? new FileStream(partPath, FileMode.CreateNew, FileAccess.Write,
+                             FileShare.None, BufferSize, useAsync: true))
             {
                 var buffer = new byte[BufferSize];
                 int read;
@@ -108,8 +124,13 @@ public class DiskFileStore : IFileStore
 
             if (problem is not null)
             {
-                File.Delete(partPath);
+                TryDelete(partPath);
                 return OperationResult<StoredFile>.Fail(problem);
+            }
+
+            if (plain is not null)
+            {
+                await File.WriteAllBytesAsync(partPath, Protector(userId).Protect(plain.ToArray()), cancellationToken);
             }
 
             File.Move(partPath, finalPath);
@@ -122,10 +143,10 @@ public class DiskFileStore : IFileStore
         }
 
         var sha256 = Convert.ToHexString(hash.GetHashAndReset());
-        return OperationResult<StoredFile>.Ok(new StoredFile(storedName, name, type.ContentType, total, sha256));
+        return OperationResult<StoredFile>.Ok(new StoredFile(storedName, name, type.ContentType, total, sha256, encrypt));
     }
 
-    public Stream? OpenRead(int userId, string storedName)
+    public Stream? OpenRead(int userId, string storedName, bool encrypted = false)
     {
         var path = PathOf(userId, storedName);
         if (path is null || !File.Exists(path))
@@ -133,7 +154,46 @@ public class DiskFileStore : IFileStore
             return null;
         }
 
-        return new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true);
+        return encrypted
+            ? new MemoryStream(Protector(userId).Unprotect(File.ReadAllBytes(path)), writable: false)
+            : new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, BufferSize, useAsync: true);
+    }
+
+    public async Task<string?> RewriteAsync(int userId, string storedName, bool encrypted, bool encrypt,
+        CancellationToken cancellationToken = default)
+    {
+        var path = PathOf(userId, storedName);
+        if (path is null || !File.Exists(path))
+        {
+            return null;
+        }
+
+        var protector = Protector(userId);
+        var bytes = await File.ReadAllBytesAsync(path, cancellationToken);
+        if (encrypted)
+        {
+            bytes = protector.Unprotect(bytes);
+        }
+
+        if (encrypt)
+        {
+            bytes = protector.Protect(bytes);
+        }
+
+        var newPath = Path.Combine(UserFolder(userId), FileRules.NewStoredName(Path.GetExtension(storedName)));
+        var partPath = newPath + ".part";
+        try
+        {
+            await File.WriteAllBytesAsync(partPath, bytes, cancellationToken);
+            File.Move(partPath, newPath);
+        }
+        catch
+        {
+            TryDelete(partPath);
+            throw;
+        }
+
+        return Path.GetFileName(newPath);
     }
 
     public bool Delete(int userId, string storedName)
@@ -147,6 +207,9 @@ public class DiskFileStore : IFileStore
         File.Delete(path);
         return true;
     }
+
+    private IDataProtector Protector(int userId) =>
+        dataProtection.CreateProtector(ProtectionPurpose, userId.ToString(CultureInfo.InvariantCulture));
 
     private string UserFolder(int userId) => Path.Combine(root, userId.ToString(CultureInfo.InvariantCulture));
 

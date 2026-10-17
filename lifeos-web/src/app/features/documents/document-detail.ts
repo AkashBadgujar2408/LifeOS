@@ -4,6 +4,7 @@ import {
   DestroyRef,
   OnInit,
   computed,
+  effect,
   inject,
   input,
   signal,
@@ -23,10 +24,13 @@ import {
   LifeDocument,
 } from '../../core/services/documents.service';
 import { ToastService } from '../../core/services/toast.service';
+import { VaultService } from '../../core/services/vault.service';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { LoadError } from '../../shared/components/load-error/load-error';
+import { ensureVaultUnlocked } from '../../shared/components/vault-unlock/vault-unlock';
 import { openDocumentEditor } from './document-editor';
+import { saveBlob } from '../../core/files/files';
 import {
   ACCEPTED_FILES,
   EXPIRY_REMINDER_OPTIONS,
@@ -61,6 +65,7 @@ export class DocumentDetail implements OnInit {
   private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly vault = inject(VaultService);
 
   readonly id = input.required<string>();
 
@@ -77,6 +82,8 @@ export class DocumentDetail implements OnInit {
   protected readonly dragging = signal(false);
   protected readonly preview = signal<Preview | null>(null);
   protected readonly previewLoading = signal<number | null>(null);
+  /** When the vault locks again (ms), or null while it's locked. */
+  protected readonly vaultUntil = this.vault.unlockedUntil;
 
   protected readonly expiry = computed(() =>
     expiryStatus(this.document()?.expiresOn ?? null, this.today),
@@ -92,6 +99,14 @@ export class DocumentDetail implements OnInit {
 
   constructor() {
     this.destroyRef.onDestroy(() => this.clearPreview());
+    // A vault document's preview doesn't outlive the unlock.
+    effect(() => {
+      if (this.vaultUntil() === null && this.document()?.isVault) {
+        this.previewSubscription?.unsubscribe();
+        this.previewLoading.set(null);
+        this.clearPreview();
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -118,18 +133,19 @@ export class DocumentDetail implements OnInit {
     if (shown && document.files.some((f) => f.id === shown.fileId)) {
       return;
     }
+    // A vault document shows nothing until it's unlocked; opening the page never asks for the password by itself.
     const first = document.files.find((f) => previewKind(f) !== null);
-    if (first) {
+    if (first && (!document.isVault || this.vault.isUnlocked())) {
       this.showPreview(first);
     } else {
       this.clearPreview();
     }
   }
 
-  protected showPreview(file: DocumentFile): void {
+  protected async showPreview(file: DocumentFile): Promise<void> {
     const kind = previewKind(file);
     const document = this.document();
-    if (!kind || !document) {
+    if (!kind || !document || !(await this.ensureAccess(document))) {
       return;
     }
 
@@ -160,9 +176,37 @@ export class DocumentDetail implements OnInit {
       },
       error: (err) => {
         this.previewLoading.set(null);
-        this.toast.error(apiErrorMessage(err, `Could not open "${file.originalName}".`));
+        this.onFileError(err, `Could not open "${file.originalName}".`);
       },
     });
+  }
+
+  /** Unlocked already, or asks for the password; true for an ordinary document. */
+  private ensureAccess(document: LifeDocument): Promise<boolean> {
+    return document.isVault
+      ? ensureVaultUnlocked(this.modal, this.vault, `"${document.title}" is in your vault.`)
+      : Promise.resolve(true);
+  }
+
+  /** 423: the unlock ran out on the server first — lock here too so the next try asks again. */
+  private onFileError(err: unknown, fallback: string): void {
+    if ((err as { status?: number }).status === 423) {
+      this.vault.lock();
+      this.toast.error('The vault locked again. Open the file once more to unlock it.');
+      return;
+    }
+    this.toast.error(apiErrorMessage(err, fallback));
+  }
+
+  protected async unlockVault(): Promise<void> {
+    const document = this.document();
+    if (document && (await this.ensureAccess(document))) {
+      this.setDocument(document);
+    }
+  }
+
+  protected lockVault(): void {
+    this.vault.lock();
   }
 
   private clearPreview(): void {
@@ -173,23 +217,14 @@ export class DocumentDetail implements OnInit {
     this.preview.set(null);
   }
 
-  protected download(file: DocumentFile): void {
+  protected async download(file: DocumentFile): Promise<void> {
     const document = this.document();
-    if (!document) {
+    if (!document || !(await this.ensureAccess(document))) {
       return;
     }
     this.documentsService.fileBlob(document.id, file).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = window.document.createElement('a');
-        link.href = url;
-        link.download = file.originalName;
-        link.click();
-        // Give the browser a moment to start the download before letting go of the bytes.
-        setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      },
-      error: (err) =>
-        this.toast.error(apiErrorMessage(err, `Could not download "${file.originalName}".`)),
+      next: (blob) => saveBlob(blob, file.originalName),
+      error: (err) => this.onFileError(err, `Could not download "${file.originalName}".`),
     });
   }
 

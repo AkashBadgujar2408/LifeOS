@@ -60,3 +60,7 @@ public partial class Document : ISoftDeletable, IUserOwned;
 public partial class DocumentFile : ISoftDeletable, IUserOwned;
 
 public partial class DocumentTag : ISoftDeletable, IUserOwned;
+
+public partial class Attachment : ISoftDeletable, IUserOwned;
+
+public partial class VaultAccessLog : ISoftDeletable, IUserOwned;

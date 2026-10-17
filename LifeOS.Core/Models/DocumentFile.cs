@@ -29,6 +29,8 @@ public partial class DocumentFile
 
     public DateTime? DeletedAt { get; set; }
 
+    public bool IsEncrypted { get; set; }
+
     public virtual Document Document { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;

@@ -1,10 +1,13 @@
 import { daysBetween } from '../dashboard/my-day-view';
 import {
   DOCUMENT_KINDS,
-  DocumentFile,
   DocumentKind,
   DocumentSummary,
 } from '../../core/services/documents.service';
+
+// Moved to core/files in Session 41 (attachments use them too); re-exported for the documents feature.
+export { ACCEPTED_FILES, formatBytes, previewKind } from '../../core/files/files';
+export type { PreviewKind } from '../../core/files/files';
 
 /** How the library and My Day describe a kind. */
 export const KIND_META: Record<DocumentKind, { label: string; icon: string }> = {
@@ -67,41 +70,6 @@ export function groupByKind(
       .sort((a, b) => a.title.localeCompare(b.title)),
   })).filter((group) => group.documents.length > 0);
 }
-
-/** 512 → "512 B", 2048 → "2 KB", 3_500_000 → "3.3 MB". */
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-  if (bytes < 1024 * 1024) {
-    return `${Math.round(bytes / 1024)} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-export type PreviewKind = 'image' | 'pdf' | 'text' | null;
-
-/** What the browser can show inline (HEIC and office files can only be downloaded). */
-export function previewKind(file: Pick<DocumentFile, 'contentType'>): PreviewKind {
-  switch (file.contentType) {
-    case 'application/pdf':
-      return 'pdf';
-    case 'image/jpeg':
-    case 'image/png':
-    case 'image/gif':
-    case 'image/webp':
-      return 'image';
-    case 'text/plain':
-    case 'text/csv':
-      return 'text';
-    default:
-      return null;
-  }
-}
-
-/** What the upload box accepts — the same list the API checks (FileRules). */
-export const ACCEPTED_FILES =
-  '.pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.txt,.csv,.doc,.docx,.xls,.xlsx,.odt,.ods';
 
 /** Expiry-reminder choices for the editor (days before; 0 = on the day). */
 export const EXPIRY_REMINDER_OPTIONS: { days: number | null; label: string }[] = [

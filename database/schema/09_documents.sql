@@ -126,3 +126,12 @@ IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Documents_Ex
     ALTER TABLE documents.Documents ADD CONSTRAINT CK_Documents_ExpiryReminderDays
         CHECK (ExpiryReminderDays IS NULL OR (ExpiryReminderDays BETWEEN 0 AND 365 AND ExpiresOn IS NOT NULL));
 GO
+
+-- Vault (Session 41). A sensitive document's files are encrypted at rest with ASP.NET Core Data Protection: the bytes
+-- on disk are unreadable without the app's key ring. IsEncrypted says how this file's bytes are stored (the truth for
+-- reading it back), kept per file because marking a document sensitive — or not — rewrites its files one by one.
+-- Sha256 stays the hash of the original bytes either way.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('documents.DocumentFiles') AND name = 'IsEncrypted')
+    ALTER TABLE documents.DocumentFiles ADD
+        IsEncrypted     BIT  NOT NULL CONSTRAINT DF_DocumentFiles_IsEncrypted DEFAULT (0);
+GO

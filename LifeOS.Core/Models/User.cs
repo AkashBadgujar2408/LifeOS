@@ -27,6 +27,8 @@ public partial class User
 
     public string? BaseCurrency { get; set; }
 
+    public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
+
     public virtual Chapter? Chapter { get; set; }
 
     public virtual ICollection<DocumentFile> DocumentFiles { get; set; } = new List<DocumentFile>();
@@ -78,6 +80,8 @@ public partial class User
     public virtual ICollection<UserHiddenLifeArea> UserHiddenLifeAreas { get; set; } = new List<UserHiddenLifeArea>();
 
     public virtual ICollection<UserHiddenModule> UserHiddenModules { get; set; } = new List<UserHiddenModule>();
+
+    public virtual ICollection<VaultAccessLog> VaultAccessLogs { get; set; } = new List<VaultAccessLog>();
 
     public virtual ICollection<WeeklyReflection> WeeklyReflections { get; set; } = new List<WeeklyReflection>();
 }

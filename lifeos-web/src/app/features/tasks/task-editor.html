@@ -169,6 +169,9 @@
         />
       </div>
       <div class="border-top pt-3">
+        <app-attachments entityType="Task" [entityId]="task.id" />
+      </div>
+      <div class="border-top pt-3">
         <app-entity-reminders entityType="Task" [entityId]="task.id" [entityTitle]="task.title" />
       </div>
     } @else if (!inboxItemId()) {

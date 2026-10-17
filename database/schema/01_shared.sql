@@ -255,3 +255,67 @@ IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_UserHiddenMo
     ALTER TABLE shared.UserHiddenModules ADD CONSTRAINT CK_UserHiddenModules_ModuleKey
         CHECK (ModuleKey IN ('Calendar', 'Reminders', 'Goals', 'Tasks', 'Projects', 'Habits', 'Journal', 'Story', 'Documents'));
 GO
+
+-- Attachments (Session 41): files on any item (goals and tasks first; journal memories, receipts, travel documents
+-- later). Same file mechanism as documents.DocumentFiles — bytes in IFileStore, only the description here — and the
+-- same open EntityType/EntityId pair as EntityLinks and Reminders (type strings from ILinkableEntityProvider).
+-- A module's delete soft-deletes its item's attachments; the bytes stay until permanent deletion (Session 60).
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('shared.Attachments'))
+BEGIN
+    CREATE TABLE shared.Attachments
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Attachments PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_Attachments_Users REFERENCES shared.Users(Id),
+        EntityType      NVARCHAR(100)     NOT NULL,
+        EntityId        INT               NOT NULL,
+        StoredName      NVARCHAR(50)      NOT NULL,
+        OriginalName    NVARCHAR(255)     NOT NULL,
+        ContentType     NVARCHAR(100)     NOT NULL,
+        SizeBytes       BIGINT            NOT NULL CONSTRAINT CK_Attachments_SizeBytes CHECK (SizeBytes > 0),
+        Sha256          CHAR(64)          NOT NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_Attachments_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_Attachments_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_Attachments_StoredName CHECK (StoredName COLLATE Latin1_General_BIN NOT LIKE '%[^0-9a-z.]%' AND LEN(StoredName) >= 32),
+        CONSTRAINT CK_Attachments_Sha256 CHECK (Sha256 COLLATE Latin1_General_BIN NOT LIKE '%[^0-9A-F]%')
+    );
+END
+GO
+
+-- A name on disk belongs to exactly one row, ever (live or deleted) — as for document files.
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.Attachments') AND name = 'UX_Attachments_StoredName')
+    CREATE UNIQUE INDEX UX_Attachments_StoredName ON shared.Attachments(StoredName);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.Attachments') AND name = 'IX_Attachments_Entity')
+    CREATE INDEX IX_Attachments_Entity ON shared.Attachments(UserId, EntityType, EntityId) WHERE IsDeleted = 0;
+GO
+
+-- Vault activity (Session 41): every unlock (and failed unlock), every sensitive file opened, every document taken
+-- out of the vault. Append-only history the user can read in Settings; Health and Safety log here too later.
+-- EntityType/EntityId say what was opened (NULL for an unlock); Detail is the file name; ClientAddress where from.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('shared.VaultAccessLog'))
+BEGIN
+    CREATE TABLE shared.VaultAccessLog
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_VaultAccessLog PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_VaultAccessLog_Users REFERENCES shared.Users(Id),
+        Action          NVARCHAR(20)      NOT NULL CONSTRAINT CK_VaultAccessLog_Action
+                            CHECK (Action IN ('Unlocked', 'UnlockFailed', 'Opened', 'Unprotected')),
+        EntityType      NVARCHAR(100)     NULL,
+        EntityId        INT               NULL,
+        Detail          NVARCHAR(255)     NULL,
+        ClientAddress   NVARCHAR(45)      NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_VaultAccessLog_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_VaultAccessLog_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_VaultAccessLog_Entity CHECK ((EntityType IS NULL AND EntityId IS NULL) OR (EntityType IS NOT NULL AND EntityId IS NOT NULL))
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.VaultAccessLog') AND name = 'IX_VaultAccessLog_User_CreatedAt')
+    CREATE INDEX IX_VaultAccessLog_User_CreatedAt ON shared.VaultAccessLog(UserId, CreatedAt DESC) WHERE IsDeleted = 0;
+GO

@@ -180,6 +180,17 @@ h6 {
   min-width: 0 !important;
 }
 
+// <app-attachments> (Session 41): its list doubles as a drop target; only the drag state needs a rule.
+.attachments-zone {
+  border: 1px dashed transparent;
+  transition: border-color 0.15s ease;
+
+  &.is-dragging {
+    border-color: var(--lifeos-teal);
+    background: color-mix(in srgb, var(--lifeos-teal) 8%, white);
+  }
+}
+
 // Document expiry (Session 40): the same light-tint-plus-dark-text reading as toasts, never a saturated fill.
 .expiry-badge {
   font-weight: 600;

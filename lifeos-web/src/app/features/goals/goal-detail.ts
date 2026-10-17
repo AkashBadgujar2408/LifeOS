@@ -26,6 +26,7 @@ import {
   GoalsService,
 } from '../../core/services/goals.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { Attachments } from '../../shared/components/attachments/attachments';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { MissionLinks } from '../story/mission-links';
 import { openMissionPassed } from '../story/mission-passed';
@@ -55,6 +56,7 @@ const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(20
     RouterLink,
     NgbInputDatepicker,
     LinkedItems,
+    Attachments,
     EntityReminders,
     MissionLinks,
   ],

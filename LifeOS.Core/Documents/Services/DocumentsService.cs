@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace LifeOS.Core.Documents.Services;
 
 public class DocumentsService(AppDbContext db, IFileStore fileStore, IEntityLinksService entityLinksService,
-    IRemindersService remindersService) : IDocumentsService
+    IRemindersService remindersService, IVaultService vaultService) : IDocumentsService
 {
     private const string NotFound = DocumentErrors.NotFound;
     private const int MaxFilesPerUpload = 10;
@@ -120,6 +120,16 @@ public class DocumentsService(AppDbContext db, IFileStore fileStore, IEntityLink
             return OperationResult<DocumentDto>.Fail(error);
         }
 
+        // Out of the vault means its files get decrypted on disk: that needs the vault unlocked, like opening them.
+        var leavingVault = document.IsVault && !request.IsVault;
+        if (leavingVault && !vaultService.IsUnlocked)
+        {
+            return OperationResult<DocumentDto>.Fail(DocumentErrors.VaultLocked);
+        }
+
+        // Every save of a vault document also encrypts any file still stored plain (one marked sensitive before
+        // Session 41), so nothing sensitive is left readable on disk.
+        var rewritten = document.IsVault || request.IsVault ? await RewriteFilesAsync(document, request.IsVault) : [];
         var now = DateTime.UtcNow;
         Apply(document, request);
         document.UpdatedAt = now;
@@ -137,15 +147,33 @@ public class DocumentsService(AppDbContext db, IFileStore fileStore, IEntityLink
             db.DocumentTags.Add(new DocumentTag { UserId = document.UserId, DocumentId = id, TagId = tagId });
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync();
-        await db.SaveChangesAsync();
-        var reminderError = await SyncExpiryReminderAsync(document, request.TimeZone);
-        if (reminderError is not null)
+        try
         {
-            return OperationResult<DocumentDto>.Fail(reminderError);
+            await using var transaction = await db.Database.BeginTransactionAsync();
+            await db.SaveChangesAsync();
+            var reminderError = await SyncExpiryReminderAsync(document, request.TimeZone);
+            if (reminderError is not null)
+            {
+                DeleteStored(document.UserId, rewritten.Select(r => r.NewName));
+                return OperationResult<DocumentDto>.Fail(reminderError);
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            // The rows still name the old bytes, which are untouched; the rewritten copies would never be read.
+            DeleteStored(document.UserId, rewritten.Select(r => r.NewName));
+            throw;
         }
 
-        await transaction.CommitAsync();
+        // Only now that the rows point at the new copies: the old bytes (plaintext, when entering the vault) go.
+        DeleteStored(document.UserId, rewritten.Select(r => r.OldName));
+        if (leavingVault)
+        {
+            await vaultService.LogAsync(VaultActions.Unprotected, DocumentLinkableProvider.Type, id, null);
+        }
+
         return await GetAsync(id);
     }
 
@@ -204,7 +232,8 @@ public class DocumentsService(AppDbContext db, IFileStore fileStore, IEntityLink
         var stored = new List<StoredFile>();
         foreach (var file in files)
         {
-            var result = await fileStore.SaveAsync(document.UserId, file.Content, file.FileName, cancellationToken);
+            var result = await fileStore.SaveAsync(document.UserId, file.Content, file.FileName, cancellationToken,
+                encrypt: document.IsVault);
             if (!result.Success)
             {
                 // All or none: the ones already written have no row and never will.
@@ -232,7 +261,8 @@ public class DocumentsService(AppDbContext db, IFileStore fileStore, IEntityLink
                 : OperationResult<DocumentDto>.Fail(NotFound);
         }
 
-        var result = await fileStore.SaveAsync(row.UserId, file.Content, file.FileName, cancellationToken);
+        var result = await fileStore.SaveAsync(row.UserId, file.Content, file.FileName, cancellationToken,
+            encrypt: row.Document.IsVault);
         if (!result.Success)
         {
             return OperationResult<DocumentDto>.Fail(result.Error!);
@@ -265,15 +295,34 @@ public class DocumentsService(AppDbContext db, IFileStore fileStore, IEntityLink
         return await GetAsync(id);
     }
 
-    public async Task<OperationResult<DocumentFileContent>> OpenFileAsync(int id, int fileId)
+    public async Task<OperationResult<FileContent>> OpenFileAsync(int id, int fileId)
     {
         // The user filter on DocumentFiles (and on the document it must belong to) is what keeps this owner-only.
-        var row = await db.DocumentFiles.AsNoTracking()
+        var row = await db.DocumentFiles.AsNoTracking().Include(f => f.Document)
             .FirstOrDefaultAsync(f => f.Id == fileId && f.DocumentId == id && !f.Document.IsDeleted);
-        var content = row is null ? null : fileStore.OpenRead(row.UserId, row.StoredName);
-        return row is null || content is null
-            ? OperationResult<DocumentFileContent>.Fail(DocumentErrors.FileNotFound)
-            : OperationResult<DocumentFileContent>.Ok(new DocumentFileContent(content, row.ContentType, row.OriginalName, row.SizeBytes, row.Sha256));
+        if (row is null)
+        {
+            return OperationResult<FileContent>.Fail(DocumentErrors.FileNotFound);
+        }
+
+        var sensitive = row.Document.IsVault || row.IsEncrypted;
+        if (sensitive && !vaultService.IsUnlocked)
+        {
+            return OperationResult<FileContent>.Fail(DocumentErrors.VaultLocked);
+        }
+
+        var content = fileStore.OpenRead(row.UserId, row.StoredName, row.IsEncrypted);
+        if (content is null)
+        {
+            return OperationResult<FileContent>.Fail(DocumentErrors.FileNotFound);
+        }
+
+        if (sensitive)
+        {
+            await vaultService.LogAsync(VaultActions.Opened, DocumentLinkableProvider.Type, id, row.OriginalName);
+        }
+
+        return OperationResult<FileContent>.Ok(new FileContent(content, row.ContentType, row.OriginalName, row.SizeBytes, row.Sha256));
     }
 
     private static string KindError => $"Kind must be one of {string.Join(", ", DocumentKinds.All)}.";
@@ -410,6 +459,42 @@ public class DocumentsService(AppDbContext db, IFileStore fileStore, IEntityLink
         return TimeZoneInfo.Utc;
     }
 
+    /// <summary>
+    /// A document entering or leaving the vault: every one of its files — removed ones too, they're kept for restore —
+    /// is written again encrypted or not under a new name, and the tracked rows are pointed at the new copies. The
+    /// caller saves, then deletes the old names (or the new ones, if the save fails).
+    /// </summary>
+    private async Task<List<(string OldName, string NewName)>> RewriteFilesAsync(Document document, bool encrypt)
+    {
+        var rows = await db.DocumentFiles.IgnoreQueryFilters()
+            .Where(f => f.DocumentId == document.Id && f.UserId == document.UserId && f.IsEncrypted != encrypt)
+            .ToListAsync();
+
+        var rewritten = new List<(string OldName, string NewName)>();
+        try
+        {
+            foreach (var row in rows)
+            {
+                // Null: the bytes are missing (never expected) — nothing to rewrite, the row is left as it was.
+                if (await fileStore.RewriteAsync(row.UserId, row.StoredName, row.IsEncrypted, encrypt) is not { } newName)
+                {
+                    continue;
+                }
+
+                rewritten.Add((row.StoredName, newName));
+                row.StoredName = newName;
+                row.IsEncrypted = encrypt;
+            }
+        }
+        catch
+        {
+            DeleteStored(document.UserId, rewritten.Select(r => r.NewName));
+            throw;
+        }
+
+        return rewritten;
+    }
+
     private async Task SaveOrCleanUpAsync(int userId, List<StoredFile> stored)
     {
         try
@@ -424,11 +509,14 @@ public class DocumentsService(AppDbContext db, IFileStore fileStore, IEntityLink
         }
     }
 
-    private void DeleteStored(int userId, IEnumerable<StoredFile> stored)
+    private void DeleteStored(int userId, IEnumerable<StoredFile> stored) =>
+        DeleteStored(userId, stored.Select(s => s.StoredName));
+
+    private void DeleteStored(int userId, IEnumerable<string> storedNames)
     {
-        foreach (var file in stored)
+        foreach (var name in storedNames)
         {
-            fileStore.Delete(userId, file.StoredName);
+            fileStore.Delete(userId, name);
         }
     }
 
@@ -441,6 +529,7 @@ public class DocumentsService(AppDbContext db, IFileStore fileStore, IEntityLink
         ContentType = stored.ContentType,
         SizeBytes = stored.SizeBytes,
         Sha256 = stored.Sha256,
+        IsEncrypted = stored.IsEncrypted,
     };
 
     private static DocumentDto ToDto(Document d) => new()
@@ -466,6 +555,7 @@ public class DocumentsService(AppDbContext db, IFileStore fileStore, IEntityLink
             ContentType = f.ContentType,
             SizeBytes = f.SizeBytes,
             Sha256 = f.Sha256,
+            IsEncrypted = f.IsEncrypted,
             CreatedAt = f.CreatedAt,
         }).ToList(),
     };

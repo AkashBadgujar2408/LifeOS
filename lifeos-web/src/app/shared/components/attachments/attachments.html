@@ -1,0 +1,80 @@
+<div>
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <span class="small fw-semibold text-body-secondary">
+      <i class="bi bi-paperclip"></i> Files
+    </span>
+    <label class="btn btn-link btn-sm p-0 mb-0" [class.disabled]="uploading()">
+      {{ uploading() ? 'Uploading...' : '+ Attach' }}
+      <input
+        type="file"
+        class="visually-hidden"
+        multiple
+        [accept]="accepted"
+        [disabled]="uploading()"
+        (change)="onPick($event)"
+      />
+    </label>
+  </div>
+
+  <div
+    class="attachments-zone rounded-2 p-2"
+    [class.is-dragging]="dragging()"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+  >
+    @if (loading()) {
+      <div class="small text-body-secondary">Loading files...</div>
+    } @else if (loadFailed()) {
+      <div class="small text-body-secondary">
+        Couldn't load the files.
+        <button type="button" class="btn btn-link btn-sm p-0 align-baseline" (click)="reload()">
+          Try again
+        </button>
+      </div>
+    } @else if (attachments().length === 0) {
+      <div class="small text-body-secondary">
+        No files yet — drop them here or use + Attach (PDF, photos, text, Word or Excel, up to 20 MB
+        each).
+      </div>
+    } @else {
+      <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
+        @for (attachment of attachments(); track attachment.id) {
+          <li class="d-flex align-items-center gap-2 small">
+            <i class="bi {{ fileIcon(attachment) }} text-body-secondary" aria-hidden="true"></i>
+            <button
+              type="button"
+              class="btn btn-link btn-sm p-0 text-start text-truncate min-w-0 flex-grow-1"
+              [disabled]="opening() === attachment.id"
+              [title]="attachment.originalName"
+              (click)="open(attachment)"
+            >
+              {{ attachment.originalName }}
+            </button>
+            <span class="text-body-secondary text-nowrap d-none d-sm-inline">
+              {{ formatBytes(attachment.sizeBytes) }} · {{ attachment.createdAt | date }}
+            </span>
+            <button
+              type="button"
+              class="btn btn-link btn-sm p-0 text-body-secondary"
+              [attr.aria-label]="'Download ' + attachment.originalName"
+              title="Download"
+              (click)="download(attachment)"
+            >
+              <i class="bi bi-download"></i>
+            </button>
+            <button
+              type="button"
+              class="btn btn-link btn-sm p-0 text-body-secondary"
+              [attr.aria-label]="'Remove ' + attachment.originalName"
+              title="Remove"
+              (click)="remove(attachment)"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

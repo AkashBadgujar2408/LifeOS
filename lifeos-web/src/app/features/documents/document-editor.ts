@@ -18,7 +18,9 @@ import {
   LifeDocument,
 } from '../../core/services/documents.service';
 import { ToastService } from '../../core/services/toast.service';
+import { VaultService } from '../../core/services/vault.service';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
+import { ensureVaultUnlocked } from '../../shared/components/vault-unlock/vault-unlock';
 import { EXPIRY_REMINDER_OPTIONS, KIND_META } from './document-view';
 
 /** Opens the create/edit dialog; resolves with the saved document, or null if it was dismissed. */
@@ -65,6 +67,8 @@ export class DocumentEditor {
   private readonly documentsService = inject(DocumentsService);
   private readonly toast = inject(ToastService);
   protected readonly activeModal = inject(NgbActiveModal);
+  private readonly modal = inject(NgbModal);
+  private readonly vault = inject(VaultService);
 
   protected readonly kinds = DOCUMENT_KINDS;
   protected readonly kindMeta = KIND_META;
@@ -144,7 +148,7 @@ export class DocumentEditor {
     return null;
   }
 
-  protected submit(): void {
+  protected async submit(): Promise<void> {
     const title = this.form.controls.title;
     title.setValue(title.value.trim());
     if (this.form.invalid) {
@@ -153,6 +157,19 @@ export class DocumentEditor {
     }
 
     const v = this.form.getRawValue();
+    const existing = this.document();
+    // Out of the vault = its files are decrypted on disk, so it takes the password, like opening them.
+    if (
+      existing?.isVault &&
+      !v.isVault &&
+      !(await ensureVaultUnlocked(
+        this.modal,
+        this.vault,
+        'Taking it out of the vault decrypts its files.',
+      ))
+    ) {
+      return;
+    }
     const payload: DocumentPayload = {
       title: v.title,
       kind: v.kind,
@@ -167,7 +184,6 @@ export class DocumentEditor {
       tagIds: this.tagIds(),
     };
 
-    const existing = this.document();
     this.saving.set(true);
     (existing
       ? this.documentsService.update(existing.id, payload)

@@ -21,6 +21,7 @@ import {
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { RecoveryCodes } from '../../shared/components/recovery-codes/recovery-codes';
+import { VaultActivity } from './vault-activity';
 
 function passwordsMatch(group: AbstractControl): ValidationErrors | null {
   return group.get('newPassword')?.value === group.get('confirmPassword')?.value
@@ -44,7 +45,7 @@ function allTimeZones(): string[] {
 @Component({
   selector: 'app-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, LoadError, RecoveryCodes],
+  imports: [ReactiveFormsModule, LoadError, RecoveryCodes, VaultActivity],
   templateUrl: './settings.html',
 })
 export class Settings {

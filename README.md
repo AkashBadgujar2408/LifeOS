@@ -81,6 +81,11 @@ Uploaded files are kept on disk, one folder per user, outside the repo and any w
 different folders, as they have different databases. `FileStorage:MaxFileBytes` (default 20 MB) caps a single file.
 Back this folder up together with the database — SQL holds only the files' names and hashes.
 
+Files of sensitive (vault) documents are encrypted with ASP.NET Core Data Protection. Its key ring lives in
+`%LOCALAPPDATA%\LifeOS\keys` (DPAPI-wrapped on Windows, so it opens only for the Windows account running the API);
+set `FileStorage:KeysPath` to move it. **Back the keys folder up with the files folder** — without it, vault files
+can't be read. Each environment (UAT, Live) gets its own keys folder, like its own files folder.
+
 ## Running it
 
 Two terminals:

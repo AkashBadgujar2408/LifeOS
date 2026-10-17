@@ -98,7 +98,21 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   under a random stored name (32 hex + extension), streaming to a `.part` file while counting size and SHA-256, then
   checking the type twice — the extension must be on `FileRules`' list (no SVG/HTML/executables) and the first bytes
   must match it — before renaming into place. Callers keep the returned `StoredFile` in SQL and only ever pass a
-  stored name back; anything else (slashes, `..`, a drive) is refused. Files are served only through the API.
+  stored name back; anything else (slashes, `..`, a drive) is refused. Files are served only through the API, with
+  the headers in one place (`FileResponses.Send` in `LifeOS.Api/Infrastructure`).
+- **Vault** (Session 41): a sensitive document's files are written encrypted (`SaveAsync(..., encrypt: true)`: the
+  upload is checked in memory and only ciphertext reaches disk) with Data Protection under a per-user purpose; the
+  key ring lives in `FileStorage:KeysPath` (DPAPI-wrapped on Windows). Moving a document into or out of the vault
+  rewrites each file under a **new** stored name (`IFileStore.RewriteAsync`), points the row at it with its
+  `IsEncrypted` flag, saves, then deletes the old bytes — so a row and its bytes always agree. `IVaultService`:
+  `POST api/Shared/Vault/unlock` checks the password and returns a 15-minute time-limited Data Protection token the
+  client keeps in memory only and sends as `X-Vault-Unlock`; `IsUnlocked` checks it per request (423 Locked
+  otherwise). Unlocks, failed unlocks, opens and "taken out of the vault" go to `shared.VaultAccessLog` (Settings ›
+  Vault activity). Client: `VaultService` + `ensureVaultUnlocked(modal, vault, reason)`.
+- **Attachments** (Session 41): `shared.Attachments` (open `EntityType`/`EntityId`, same file columns as document
+  files) through `IAttachmentsService` / `api/Shared/Attachments`. Only `AttachmentsService.AttachableTypes` take
+  files (Goal, Task); each of those modules' deletes calls `RemoveAllForEntityAsync`. UI:
+  `<app-attachments entityType="Goal" [entityId]="id" />` (list, click/drop upload, open, download, remove).
 - **Settings + account** (Session 37): preferences on `shared.Users` (`TimeZone` = the zone new repeating events and
   reminders follow, `BaseCurrency`), switched-off modules and life areas in `shared.UserHiddenModules` /
   `UserHiddenLifeAreas` (soft-deleted to switch back on). The shell loads them once into `SettingsService`; the nav
@@ -142,6 +156,8 @@ All routes need a JWT except register, login and ping.
 |---|---|
 | `api/Shared/Auth` | `POST register` (returns the first recovery codes), `POST login`, `GET me`, `PUT password`, `POST recovery-codes` (new set), anonymous `POST reset-password` (username + recovery code; rate-limited) |
 | `api/Shared/Settings` | `GET` (profile, timezone, base currency, hidden modules/life areas, recovery codes left), `PUT profile`, `PUT preferences` (replaces all preferences), `GET currencies` |
+| `api/Shared/Vault` | `POST unlock` (`{ password }` → 15-minute token for the `X-Vault-Unlock` header; rate-limited), `GET activity` (latest 50, newest first) |
+| `api/Shared/Attachments` | `GET ?entityType&entityId`, `POST ?entityType&entityId` (multipart `files`, 1–10, all or none), `DELETE {id}`, `GET {id}/file[?download=true | ?raw=true]` |
 | `api/Shared/Tags`, `Inbox`, `LifeAreas`, `EntityLinks`, `Search` | CRUD; Inbox `PUT {id}/processed`; EntityLinks `GET types`, `GET candidates`; `GET Search?q=` (matches grouped per linkable type) |
 | `api/Goals/Goals` | CRUD, `PUT {id}/status`; milestones under `Goals/{goalId}/Milestones` (CRUD, `PUT {id}/completed`, `PUT order`) |
 | `api/Tasks/Tasks` | CRUD, `PUT {id}/completed`, `POST from-inbox/{id}` |
@@ -154,7 +170,7 @@ All routes need a JWT except register, login and ping.
 | `api/Story/Achievements` | `GET ?tz=` — all 17 achievements, unlocked with the local day or locked with progress/target; unlocks also appear in the Life Story as `AchievementUnlocked` beats |
 | `api/Story/LifeAreas` | `GET stats` (XP + level per area), `GET ratings?from&to` (months by first day), `PUT ratings/{month}` (`{ today, ratings: [{ lifeAreaId, rating 1–10 | null, note }] }`, null clears; rewritten in place) |
 | `api/Story/Missions` | goals as missions (`GET`, `GET {goalId}`), `POST {goalId}/prerequisites`, `DELETE {goalId}/prerequisites/{requiresGoalId}`, `GET {goalId}/passed`, `PUT {goalId}/debrief` |
-| `api/Documents/Documents` | CRUD (`GET ?kind&search&tagId`; `number` is cut to its last 4 characters; `expiryReminderDays` keeps one reminder about the document at 09:00 local, N days before `ExpiresOn`); files: `POST {id}/files` (multipart `files`, 1–10, all or none), `PUT {id}/files/{fileId}` (new version), `DELETE {id}/files/{fileId}`, `GET {id}/files/{fileId}[?download=true | ?raw=true]` (owner only; inline for PDF/images/text, nosniff, `X-Content-SHA256`; `raw` = the app's own fetch: no file name, neutral type, so download managers leave it alone) |
+| `api/Documents/Documents` | CRUD (`GET ?kind&search&tagId`; `number` is cut to its last 4 characters; `expiryReminderDays` keeps one reminder about the document at 09:00 local, N days before `ExpiresOn`); files: `POST {id}/files` (multipart `files`, 1–10, all or none), `PUT {id}/files/{fileId}` (new version), `DELETE {id}/files/{fileId}`, `GET {id}/files/{fileId}[?download=true | ?raw=true]` (owner only; inline for PDF/images/text, nosniff, `X-Content-SHA256`; `raw` = the app's own fetch: no file name, neutral type, so download managers leave it alone); a vault document's files need `X-Vault-Unlock` (423 without), and leaving the vault (`isVault` false on `PUT`) does too |
 
 Swagger UI (`/swagger`, Development only) has the full request/response shapes.
 

@@ -51,6 +51,8 @@ public class DocumentFileDto
     public string ContentType { get; init; } = string.Empty;
     public long SizeBytes { get; init; }
     public string Sha256 { get; init; } = string.Empty;
+    /// <summary>Stored encrypted (the document is in the vault); opening it needs the vault unlocked.</summary>
+    public bool IsEncrypted { get; init; }
     public DateTime CreatedAt { get; init; }
 }
 
@@ -76,6 +78,7 @@ public class DocumentRequest
     [StringLength(4000)]
     public string? Notes { get; init; }
 
+    /// <summary>Sensitive: files encrypted at rest, opened only with the vault unlocked (as is turning this off).</summary>
     public bool IsVault { get; init; }
 
     /// <summary>0–365, needs ExpiresOn; null = no expiry reminder.</summary>
@@ -89,14 +92,9 @@ public class DocumentRequest
     public List<int> TagIds { get; init; } = [];
 }
 
-/// <summary>One file in an upload, however it arrived (multipart from the API, a stream in tests).</summary>
-public sealed record FileUpload(string? FileName, Stream Content);
-
-/// <summary>A file's bytes, ready to send. The caller disposes Content.</summary>
-public sealed record DocumentFileContent(Stream Content, string ContentType, string FileName, long SizeBytes, string Sha256);
-
 public static class DocumentErrors
 {
     public const string NotFound = "Document not found.";
     public const string FileNotFound = "File not found.";
+    public const string VaultLocked = VaultErrors.Locked;
 }

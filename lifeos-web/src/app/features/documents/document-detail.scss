@@ -3,6 +3,23 @@
   display: block;
 }
 
+// A vault document's lock state, above its files.
+.vault-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--lifeos-canvas);
+  border: 1px solid var(--lifeos-border);
+  border-left: 3px solid var(--lifeos-teal);
+  border-radius: 0.5rem;
+
+  > i {
+    color: var(--lifeos-teal);
+  }
+}
+
 .drop-zone {
   display: flex;
   flex-direction: column;

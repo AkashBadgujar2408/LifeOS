@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 namespace LifeOS.Core.Goals.Services;
 
 public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
-    IRemindersService remindersService) : IGoalsService
+    IRemindersService remindersService, IAttachmentsService attachmentsService) : IGoalsService
 {
     private const string NotFound = "Goal not found.";
 
@@ -208,6 +208,7 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         await db.SaveChangesAsync();
         await entityLinksService.RemoveAllForEntityAsync(GoalLinkableProvider.Type, id);
         await remindersService.RemoveAllForEntityAsync(GoalLinkableProvider.Type, id);
+        await attachmentsService.RemoveAllForEntityAsync(GoalLinkableProvider.Type, id);
 
         await transaction.CommitAsync();
         return OperationResult<bool>.Ok(true);

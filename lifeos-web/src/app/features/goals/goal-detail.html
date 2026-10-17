@@ -389,6 +389,12 @@
 
         <div class="card">
           <div class="card-body">
+            <app-attachments [entityType]="goalEntityType" [entityId]="goal.id" />
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
             <app-entity-reminders
               entityType="Goal"
               [entityId]="goal.id"

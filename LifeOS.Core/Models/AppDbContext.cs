@@ -11,6 +11,8 @@ public partial class AppDbContext : DbContext
     {
     }
 
+    public virtual DbSet<Attachment> Attachments { get; set; }
+
     public virtual DbSet<Chapter> Chapters { get; set; }
 
     public virtual DbSet<Document> Documents { get; set; }
@@ -67,10 +69,36 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<UserHiddenModule> UserHiddenModules { get; set; }
 
+    public virtual DbSet<VaultAccessLog> VaultAccessLogs { get; set; }
+
     public virtual DbSet<WeeklyReflection> WeeklyReflections { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Attachment>(entity =>
+        {
+            entity.ToTable("Attachments", "shared");
+
+            entity.HasIndex(e => new { e.UserId, e.EntityType, e.EntityId }, "IX_Attachments_Entity").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.StoredName, "UX_Attachments_StoredName").IsUnique();
+
+            entity.Property(e => e.ContentType).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Attachments_CreatedAt");
+            entity.Property(e => e.EntityType).HasMaxLength(100);
+            entity.Property(e => e.OriginalName).HasMaxLength(255);
+            entity.Property(e => e.Sha256)
+                .HasMaxLength(64)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.StoredName).HasMaxLength(50);
+
+            entity.HasOne(d => d.User).WithMany(p => p.Attachments)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Attachments_Users");
+        });
+
         modelBuilder.Entity<Chapter>(entity =>
         {
             entity.ToTable("Chapters", "story");
@@ -714,6 +742,26 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_UserHiddenModules_Users");
+        });
+
+        modelBuilder.Entity<VaultAccessLog>(entity =>
+        {
+            entity.ToTable("VaultAccessLog", "shared");
+
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt }, "IX_VaultAccessLog_User_CreatedAt")
+                .IsDescending(false, true)
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Action).HasMaxLength(20);
+            entity.Property(e => e.ClientAddress).HasMaxLength(45);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_VaultAccessLog_CreatedAt");
+            entity.Property(e => e.Detail).HasMaxLength(255);
+            entity.Property(e => e.EntityType).HasMaxLength(100);
+
+            entity.HasOne(d => d.User).WithMany(p => p.VaultAccessLogs)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_VaultAccessLog_Users");
         });
 
         modelBuilder.Entity<WeeklyReflection>(entity =>

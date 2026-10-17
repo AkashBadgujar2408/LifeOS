@@ -1,9 +1,9 @@
+using LifeOS.Api.Infrastructure;
 using LifeOS.Core.Documents.DTOs;
 using LifeOS.Core.Documents.ServiceContracts;
 using LifeOS.Core.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Net.Http.Headers;
 
 namespace LifeOS.Api.Areas.Documents.Controllers;
 
@@ -13,17 +13,7 @@ namespace LifeOS.Api.Areas.Documents.Controllers;
 [Authorize]
 public class DocumentsController(IDocumentsService documentsService) : ControllerBase
 {
-    // Ten files of up to 20 MB each, plus the multipart framing. The per-file limit is enforced (with a readable
-    // message) by the file store while it streams; this only stops absurd requests early.
-    private const long MaxUploadBytes = 10L * 20 * 1024 * 1024 + 1024 * 1024;
-
-    /// <summary>The type for ?raw=true responses: deliberately not a type any download manager knows.</summary>
-    public const string RawContentType = "application/x-lifeos-file";
-
-    // What a browser can show itself; everything else is always a download.
-    private static readonly HashSet<string> Previewable =
-        ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp", "text/plain", "text/csv"];
-
+    private const long MaxUploadBytes = FileResponses.MaxUploadBytes;
     /// <summary>GET api/Documents/Documents?kind=Identity&amp;search=pass&amp;tagId=3</summary>
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] string? kind, [FromQuery] string? search, [FromQuery] int? tagId)
@@ -88,38 +78,21 @@ public class DocumentsController(IDocumentsService documentsService) : Controlle
         Respond(await documentsService.RemoveFileAsync(id, fileId));
 
     /// <summary>
-    /// GET api/Documents/Documents/5/files/9[?download=true] — the bytes, owner only. Shown inline when the browser can
-    /// (PDF, images, text) unless a download is asked for. The type is the one the server decided at upload (checked
-    /// against the bytes), and nosniff stops the browser second-guessing it.
+    /// GET api/Documents/Documents/5/files/9[?download=true | ?raw=true] — the bytes, owner only (see FileResponses).
+    /// A vault document's file needs the X-Vault-Unlock header: 423 Locked without a live one.
     /// </summary>
     [HttpGet("{id:int}/files/{fileId:int}")]
     public async Task<IActionResult> Download(int id, int fileId, [FromQuery] bool download = false, [FromQuery] bool raw = false)
     {
         var result = await documentsService.OpenFileAsync(id, fileId);
-        if (!result.Success)
+        if (result.Success)
         {
-            return NotFound(ApiResponse<object>.Fail(result.Error!));
+            return FileResponses.Send(this, result.Data!, download, raw);
         }
 
-        var file = result.Data!;
-        Response.Headers[HeaderNames.XContentTypeOptions] = "nosniff";
-        Response.Headers[HeaderNames.CacheControl] = "private, no-store";
-        Response.Headers["X-Content-SHA256"] = file.Sha256;
-
-        // ?raw=true is the app fetching bytes for itself (preview, its own Save): no file name and a neutral type,
-        // because download managers (IDM found in Session 40) seize anything that looks like a file — a PDF with a
-        // Content-Disposition — and the page then gets an empty response. The app already knows the real type and
-        // name from the document and rebuilds the Blob with them.
-        if (raw)
-        {
-            return File(file.Content, RawContentType, enableRangeProcessing: true);
-        }
-
-        var inline = !download && Previewable.Contains(file.ContentType);
-        var disposition = new ContentDispositionHeaderValue(inline ? "inline" : "attachment");
-        disposition.SetHttpFileName(file.FileName);
-        Response.Headers[HeaderNames.ContentDisposition] = disposition.ToString();
-        return File(file.Content, file.ContentType, enableRangeProcessing: true);
+        return result.Error == DocumentErrors.VaultLocked
+            ? StatusCode(StatusCodes.Status423Locked, ApiResponse<object>.Fail(result.Error))
+            : NotFound(ApiResponse<object>.Fail(result.Error!));
     }
 
     private IActionResult Respond(OperationResult<DocumentDto> result)
@@ -129,8 +102,11 @@ public class DocumentsController(IDocumentsService documentsService) : Controlle
             return Ok(ApiResponse<DocumentDto>.Ok(result.Data));
         }
 
-        return result.Error is DocumentErrors.NotFound or DocumentErrors.FileNotFound
-            ? NotFound(ApiResponse<DocumentDto>.Fail(result.Error))
-            : BadRequest(ApiResponse<DocumentDto>.Fail(result.Error!));
+        return result.Error switch
+        {
+            DocumentErrors.NotFound or DocumentErrors.FileNotFound => NotFound(ApiResponse<DocumentDto>.Fail(result.Error)),
+            DocumentErrors.VaultLocked => StatusCode(StatusCodes.Status423Locked, ApiResponse<DocumentDto>.Fail(result.Error)),
+            _ => BadRequest(ApiResponse<DocumentDto>.Fail(result.Error!)),
+        };
     }
 }

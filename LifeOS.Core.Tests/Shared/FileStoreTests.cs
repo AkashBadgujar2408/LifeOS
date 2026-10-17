@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using LifeOS.Core.Shared.Services;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace LifeOS.Core.Tests.Shared;
 
@@ -89,7 +90,7 @@ public sealed class DiskFileStoreTests : IDisposable
 
     public DiskFileStoreTests()
     {
-        store = new DiskFileStore(root, maxFileBytes: 1024);
+        store = new DiskFileStore(root, maxFileBytes: 1024, new EphemeralDataProtectionProvider());
     }
 
     public void Dispose()
@@ -160,6 +161,62 @@ public sealed class DiskFileStoreTests : IDisposable
         Assert.True(store.Delete(7, stored.StoredName));
         Assert.Null(store.OpenRead(7, stored.StoredName));
         Assert.False(store.Delete(7, stored.StoredName));
+    }
+
+    [Fact]
+    public async Task An_encrypted_file_is_unreadable_on_disk_and_reads_back_whole()
+    {
+        var stored = (await store.SaveAsync(7, new MemoryStream(PdfBytes), "passport.pdf", encrypt: true)).Data!;
+
+        var onDisk = await File.ReadAllBytesAsync(Path.Combine(root, "7", stored.StoredName));
+        Assert.True(stored.IsEncrypted);
+        Assert.NotEqual(PdfBytes, onDisk);
+        Assert.Equal(-1, onDisk.AsSpan().IndexOf("%PDF"u8));
+        // Size and hash describe the original bytes, so downloads can still be checked against them.
+        Assert.Equal(PdfBytes.Length, stored.SizeBytes);
+        Assert.Equal(Convert.ToHexString(SHA256.HashData(PdfBytes)), stored.Sha256);
+
+        await using var read = store.OpenRead(7, stored.StoredName, encrypted: true)!;
+        Assert.Equal(stored.Sha256, Convert.ToHexString(await SHA256.HashDataAsync(read)));
+    }
+
+    [Fact]
+    public async Task An_encrypted_file_copied_into_another_users_folder_doesnt_open_there()
+    {
+        var stored = (await store.SaveAsync(7, new MemoryStream(PdfBytes), "passport.pdf", encrypt: true)).Data!;
+        Directory.CreateDirectory(Path.Combine(root, "8"));
+        File.Copy(Path.Combine(root, "7", stored.StoredName), Path.Combine(root, "8", stored.StoredName));
+
+        Assert.ThrowsAny<CryptographicException>(() => store.OpenRead(8, stored.StoredName, encrypted: true));
+    }
+
+    [Fact]
+    public async Task Encrypted_uploads_are_checked_the_same_and_leave_nothing_behind()
+    {
+        var tooBig = await store.SaveAsync(7, new MemoryStream([.. PdfBytes, .. new byte[2000]]), "big.pdf", encrypt: true);
+        var disguised = await store.SaveAsync(7, new MemoryStream("<html></html>"u8.ToArray()), "x.pdf", encrypt: true);
+
+        Assert.Contains("too big", tooBig.Error);
+        Assert.Contains("isn't really a PDF", disguised.Error);
+        Assert.Empty(Directory.Exists(Path.Combine(root, "7")) ? Directory.GetFiles(Path.Combine(root, "7")) : []);
+    }
+
+    [Fact]
+    public async Task Rewriting_moves_a_file_into_and_out_of_encryption_under_new_names()
+    {
+        var plain = (await store.SaveAsync(7, new MemoryStream(PdfBytes), "a.pdf")).Data!;
+
+        var encryptedName = (await store.RewriteAsync(7, plain.StoredName, encrypted: false, encrypt: true))!;
+        Assert.NotEqual(plain.StoredName, encryptedName);
+        Assert.True(FileRules.IsStoredName(encryptedName));
+        Assert.EndsWith(".pdf", encryptedName);
+        // The old bytes are left for the caller to delete once its row points at the new name.
+        Assert.True(File.Exists(Path.Combine(root, "7", plain.StoredName)));
+        Assert.NotEqual(PdfBytes, await File.ReadAllBytesAsync(Path.Combine(root, "7", encryptedName)));
+
+        var plainAgain = (await store.RewriteAsync(7, encryptedName, encrypted: true, encrypt: false))!;
+        Assert.Equal(PdfBytes, await File.ReadAllBytesAsync(Path.Combine(root, "7", plainAgain)));
+        Assert.Null(await store.RewriteAsync(7, FileRules.NewStoredName(".pdf"), encrypted: false, encrypt: true));
     }
 
     [Fact]

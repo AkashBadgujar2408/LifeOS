@@ -21,6 +21,7 @@ using LifeOS.Core.Shared.Services;
 using LifeOS.Core.Story.ServiceContracts;
 using LifeOS.Core.Story.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -80,12 +81,25 @@ try
     builder.Services.AddScoped<ISearchService, SearchService>();
     builder.Services.AddScoped<ISettingsService, SettingsService>();
     builder.Services.AddScoped<IDocumentsService, DocumentsService>();
+    builder.Services.AddScoped<IVaultService, VaultService>();
+    builder.Services.AddScoped<IAttachmentsService, AttachmentsService>();
     builder.Services.AddRecoveryRateLimit();
 
-    // Files (documents, later attachments) live on disk outside any web root, one folder per user (IFileStore).
+    // Files (document files, attachments) live on disk outside any web root, one folder per user (IFileStore).
+    // Vault files and vault unlocks are protected with Data Protection; its key ring lives in its own folder (kept
+    // out of the repo, DPAPI-wrapped on Windows) — without it vault files can't be read, so it's backed up with them.
     var fileStorage = builder.Configuration.GetSection(FileStorageOptions.Section).Get<FileStorageOptions>() ?? new FileStorageOptions();
-    builder.Services.AddSingleton<IFileStore>(new DiskFileStore(
-        DiskFileStore.ResolveRoot(fileStorage.RootPath, builder.Environment.WebRootPath), fileStorage.MaxFileBytes));
+    var dataProtection = builder.Services.AddDataProtection()
+        .SetApplicationName("LifeOS")
+        .PersistKeysToFileSystem(new DirectoryInfo(DiskFileStore.ResolveKeysPath(fileStorage.KeysPath)));
+    if (OperatingSystem.IsWindows())
+    {
+        dataProtection.ProtectKeysWithDpapi();
+    }
+
+    builder.Services.AddSingleton<IFileStore>(services => new DiskFileStore(
+        DiskFileStore.ResolveRoot(fileStorage.RootPath, builder.Environment.WebRootPath), fileStorage.MaxFileBytes,
+        services.GetRequiredService<IDataProtectionProvider>()));
 
     // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
     builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();

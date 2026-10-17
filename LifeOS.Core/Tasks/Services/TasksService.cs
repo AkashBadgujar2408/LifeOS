@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 namespace LifeOS.Core.Tasks.Services;
 
 public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
-    IRemindersService remindersService) : ITasksService
+    IRemindersService remindersService, IAttachmentsService attachmentsService) : ITasksService
 {
     private const string NotFound = "Task not found.";
     private const int DoneListLimit = 100;
@@ -196,6 +196,7 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         await db.SaveChangesAsync();
         await entityLinksService.RemoveAllForEntityAsync(TaskLinkableProvider.Type, id);
         await remindersService.RemoveAllForEntityAsync(TaskLinkableProvider.Type, id);
+        await attachmentsService.RemoveAllForEntityAsync(TaskLinkableProvider.Type, id);
 
         await transaction.CommitAsync();
         return OperationResult<bool>.Ok(true);

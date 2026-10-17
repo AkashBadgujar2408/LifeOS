@@ -77,6 +77,34 @@
               Files <span class="badge rounded-pill text-bg-light">{{ doc.files.length }}</span>
             </h2>
 
+            @if (doc.isVault) {
+              <div class="vault-status small mb-3" role="status">
+                @if (vaultUntil(); as until) {
+                  <i class="bi bi-unlock" aria-hidden="true"></i>
+                  <span class="flex-grow-1">Vault open until {{ until | date: 'h:mm a' }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    (click)="lockVault()"
+                  >
+                    Lock now
+                  </button>
+                } @else {
+                  <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                  <span class="flex-grow-1">
+                    Encrypted. Opening a file asks for your password again.
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    (click)="unlockVault()"
+                  >
+                    Unlock
+                  </button>
+                }
+              </div>
+            }
+
             <label
               class="drop-zone mb-3"
               [class.is-dragging]="dragging()"
@@ -190,6 +218,11 @@
               }
             } @else if (previewLoading() !== null) {
               <p class="small text-body-secondary mb-0">Opening...</p>
+            } @else if (doc.isVault && vaultUntil() === null) {
+              <p class="small text-body-secondary mb-0">
+                <i class="bi bi-lock-fill" aria-hidden="true"></i> Locked — unlock the vault to
+                preview these files.
+              </p>
             } @else {
               <p class="small text-body-secondary mb-0">
                 PDFs, photos and text files show here. Other files (Word, Excel, HEIC photos) can be

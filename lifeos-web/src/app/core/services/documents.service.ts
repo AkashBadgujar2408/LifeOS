@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map, tap } from 'rxjs';
 import { ApiResponse } from './api-response';
 import { RemindersService } from './reminders.service';
+import { VaultService } from './vault.service';
 
 export const DOCUMENT_ENTITY_TYPE = 'Document';
 
@@ -45,6 +46,8 @@ export interface DocumentFile {
   contentType: string;
   sizeBytes: number;
   sha256: string;
+  /** Stored encrypted (vault); opening it needs the vault unlocked. */
+  isEncrypted: boolean;
   createdAt: string;
 }
 
@@ -81,6 +84,7 @@ export interface DocumentFilter {
 export class DocumentsService {
   private readonly http = inject(HttpClient);
   private readonly remindersService = inject(RemindersService);
+  private readonly vault = inject(VaultService);
   private readonly baseUrl = '/api/Documents/Documents';
 
   list(filter: DocumentFilter = {}): Observable<DocumentSummary[]> {
@@ -113,11 +117,15 @@ export class DocumentsService {
     );
   }
 
+  // Carries the vault unlock: taking a document out of the vault needs it (423 otherwise).
   update(id: number, payload: DocumentPayload): Observable<LifeDocument> {
-    return this.http.put<ApiResponse<LifeDocument>>(`${this.baseUrl}/${id}`, payload).pipe(
-      map((response) => response.data!),
-      tap(() => this.remindersService.notifyChanged()),
-    );
+    const headers = this.vault.headers();
+    return this.http
+      .put<ApiResponse<LifeDocument>>(`${this.baseUrl}/${id}`, payload, { headers })
+      .pipe(
+        map((response) => response.data!),
+        tap(() => this.remindersService.notifyChanged()),
+      );
   }
 
   remove(id: number): Observable<void> {
@@ -155,11 +163,13 @@ export class DocumentsService {
    * it, and a token never goes in a URL). `raw=true` makes the API answer without a file name and with a neutral
    * type, so download managers such as IDM don't seize the response and leave the page with nothing; the type comes
    * from the file's own record instead. The caller turns it into an object URL and revokes it when done.
+   * A vault document's file needs the vault unlocked (`ensureVaultUnlocked` first); the API answers 423 otherwise.
    */
   fileBlob(id: number, file: Pick<DocumentFile, 'id' | 'contentType'>): Observable<Blob> {
     const params = new HttpParams().set('raw', true);
+    const headers = this.vault.headers();
     return this.http
-      .get(`${this.baseUrl}/${id}/files/${file.id}`, { params, responseType: 'blob' })
+      .get(`${this.baseUrl}/${id}/files/${file.id}`, { params, headers, responseType: 'blob' })
       .pipe(map((blob) => new Blob([blob], { type: file.contentType })));
   }
 }
