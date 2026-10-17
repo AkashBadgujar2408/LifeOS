@@ -149,6 +149,17 @@
                         <p class="story-quote small mb-0">{{ beat.detail }}</p>
                       }
                     }
+                    @case ('Memory') {
+                      @if (beat.detail) {
+                        <p class="story-quote small mb-2">{{ beat.detail }}</p>
+                      }
+                      <app-attachments
+                        entityType="JournalEntry"
+                        [entityId]="beat.entityId!"
+                        [photos]="true"
+                        [readonly]="true"
+                      />
+                    }
                   }
 
                   @if (beat.kind === 'MissionPassed' && (beat.detail || beat.advice)) {

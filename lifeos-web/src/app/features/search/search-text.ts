@@ -40,6 +40,7 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   JournalEntry: 'bi-journal-text',
   InboxItem: 'bi-inbox',
   Document: 'bi-folder2-open',
+  Decision: 'bi-signpost-split',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -63,4 +64,5 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   JournalEntry: 'Journal',
   InboxItem: 'Inbox',
   Document: 'Documents',
+  Decision: 'Decisions',
 };

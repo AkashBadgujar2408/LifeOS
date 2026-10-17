@@ -128,7 +128,24 @@ export const routes: Routes = [
         title: 'Journal | LifeOS',
         loadComponent: () => import('./features/journal/journal').then((m) => m.Journal),
       },
-      // Before 'journal/:date', so "week" isn't read as a date.
+      // Before 'journal/:date', so "week", "month" and "decisions" aren't read as dates.
+      {
+        path: 'journal/decisions',
+        title: 'Decisions | LifeOS',
+        loadComponent: () => import('./features/journal/decisions').then((m) => m.Decisions),
+      },
+      {
+        path: 'journal/month',
+        title: 'Monthly reflection | LifeOS',
+        loadComponent: () =>
+          import('./features/journal/monthly-reflection').then((m) => m.MonthlyReflection),
+      },
+      {
+        path: 'journal/month/:month',
+        title: 'Monthly reflection | LifeOS',
+        loadComponent: () =>
+          import('./features/journal/monthly-reflection').then((m) => m.MonthlyReflection),
+      },
       {
         path: 'journal/week',
         title: 'Weekly reflection | LifeOS',

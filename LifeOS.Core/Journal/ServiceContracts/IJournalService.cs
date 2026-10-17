@@ -31,4 +31,16 @@ public interface IJournalService
 
     /// <summary>Saves the week's answers; all three blank removes a saved reflection.</summary>
     Task<OperationResult<WeeklyReviewDto>> SaveWeekAsync(DateOnly weekStart, WeeklyReflectionRequest request);
+
+    /// <summary>The day's gratitude list and lessons (empty lists when there are none).</summary>
+    Task<DayNotesDto> GetNotesAsync(DateOnly day);
+
+    /// <summary>Replaces the day's gratitude list and lessons.</summary>
+    Task<OperationResult<DayNotesDto>> SaveNotesAsync(DateOnly day, DayNotesRequest request);
+
+    /// <summary>The month (keyed by its first day): saved answers plus what the journal holds for it.</summary>
+    Task<OperationResult<MonthlyReviewDto>> GetMonthAsync(DateOnly monthStart);
+
+    /// <summary>Saves the month's answers; all blank removes a saved reflection.</summary>
+    Task<OperationResult<MonthlyReviewDto>> SaveMonthAsync(DateOnly monthStart, MonthlyReflectionRequest request);
 }

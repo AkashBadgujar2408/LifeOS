@@ -8,6 +8,7 @@ import {
   input,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
@@ -28,14 +29,25 @@ import { LifeAreasService } from '../../core/services/life-areas.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { pickableLifeAreas } from '../../core/settings/visibility';
 import { ToastService } from '../../core/services/toast.service';
+import { Attachments } from '../../shared/components/attachments/attachments';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
+import { DayDecisions } from './day-decisions';
+import { DayNotes } from './day-notes';
 import { MOODS, moodMeta } from './journal-days';
 import { MoodTrend } from './mood-trend';
 import { apiErrorMessage } from '../../core/services/api-error';
 
-/** How far back the side panel's trend and recent list reach. */
+/** How far back the recent list reaches. */
 const RECENT_DAYS = 30;
+
+/** The mood trend's ranges (the API allows up to 400 days). */
+const TREND_RANGES = [
+  { days: 30, label: '30 days' },
+  { days: 90, label: '90 days' },
+  { days: 365, label: 'Year' },
+] as const;
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -46,7 +58,18 @@ const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 @Component({
   selector: 'app-journal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, RouterLink, LinkedItems, EntityReminders, MoodTrend],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    RouterLink,
+    LinkedItems,
+    EntityReminders,
+    MoodTrend,
+    TagPicker,
+    DayNotes,
+    DayDecisions,
+    Attachments,
+  ],
   templateUrl: './journal.html',
 })
 export class Journal {
@@ -82,7 +105,14 @@ export class Journal {
 
   protected readonly recent = signal<JournalEntry[]>([]);
   protected readonly moodPoints = signal<MoodPoint[]>([]);
-  protected readonly trendFrom = computed(() => addDaysIso(this.today(), 1 - RECENT_DAYS));
+  protected readonly trendRanges = TREND_RANGES;
+  protected readonly trendDays = signal<number>(30);
+  protected readonly trendLabel = computed(
+    () => TREND_RANGES.find((r) => r.days === this.trendDays())?.label ?? '',
+  );
+  protected readonly trendFrom = computed(() => addDaysIso(this.today(), 1 - this.trendDays()));
+  protected readonly tagIds = signal<number[]>([]);
+  private readonly dayNotes = viewChild(DayNotes);
 
   protected readonly form = this.fb.group({
     mood: this.fb.control<Mood | null>(null),
@@ -97,6 +127,22 @@ export class Journal {
       untracked(() => this.loadDay(day));
     });
     this.loadSidePanel();
+  }
+
+  protected setTrendDays(days: number): void {
+    this.trendDays.set(days);
+    this.journalService
+      .moods(this.trendFrom(), this.today())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (points) => this.moodPoints.set(points),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not load the mood trend.')),
+      });
+  }
+
+  protected setTags(ids: number[]): void {
+    this.tagIds.set(ids);
+    this.form.markAsDirty();
   }
 
   protected selectMood(mood: Mood): void {
@@ -154,6 +200,7 @@ export class Journal {
         content: content || null,
         mood: value.mood,
         lifeAreaId: value.lifeAreaId,
+        tagIds: this.tagIds(),
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -173,7 +220,7 @@ export class Journal {
   protected async remove(): Promise<void> {
     const result = await Swal.fire({
       title: 'Delete this entry?',
-      text: 'The words, the mood, its links and reminders all go.',
+      text: "The words, the mood, its tags, photos, links and reminders all go. The day's lists and decisions stay.",
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete entry',
@@ -197,7 +244,7 @@ export class Journal {
   }
 
   private async confirmDiscard(): Promise<boolean> {
-    if (!this.form.dirty) {
+    if (!this.form.dirty && !this.dayNotes()?.hasUnsavedChanges()) {
       return true;
     }
     const result = await Swal.fire({
@@ -237,15 +284,15 @@ export class Journal {
       content: entry?.content ?? '',
       lifeAreaId: entry?.lifeAreaId ?? null,
     });
+    this.tagIds.set(entry?.tags.map((t) => t.id) ?? []);
   }
 
   private loadSidePanel(): void {
-    const from = this.trendFrom();
     const to = this.today();
     // One request pair, one outcome: the side panel is secondary, so a failure is a single toast, not two.
     forkJoin({
-      entries: this.journalService.list(from, to),
-      points: this.journalService.moods(from, to),
+      entries: this.journalService.list(addDaysIso(to, 1 - RECENT_DAYS), to),
+      points: this.journalService.moods(this.trendFrom(), to),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

@@ -1,4 +1,5 @@
 using LifeOS.Core.Goals.Services;
+using LifeOS.Core.Journal.Services;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
@@ -14,10 +15,10 @@ public class AttachmentsService(AppDbContext db, IFileStore fileStore, IEnumerab
 
     /// <summary>
     /// The item types that take attachments. Each one's delete calls RemoveAllForEntityAsync — a new type is added
-    /// here together with that call (journal memories next, Session 42).
+    /// here together with that call.
     /// </summary>
-    public static readonly IReadOnlySet<string> AttachableTypes =
-        new HashSet<string>([GoalLinkableProvider.Type, TaskLinkableProvider.Type], StringComparer.Ordinal);
+    public static readonly IReadOnlySet<string> AttachableTypes = new HashSet<string>(
+        [GoalLinkableProvider.Type, TaskLinkableProvider.Type, JournalEntryLinkableProvider.Type], StringComparer.Ordinal);
 
     public async Task<OperationResult<List<AttachmentDto>>> ListAsync(string entityType, int entityId)
     {

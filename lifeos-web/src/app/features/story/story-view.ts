@@ -41,6 +41,12 @@ export function beatText(beat: StoryBeat): BeatText {
       return { icon: 'bi-arrow-repeat', tone: 'step', headline: `Started a habit: ${title}` };
     case 'AchievementUnlocked':
       return { icon: 'bi-award', tone: 'win', headline: `Achievement unlocked: ${title}` };
+    case 'Memory':
+      return {
+        icon: 'bi-camera',
+        tone: beat.mood === 1 ? 'hard' : beat.mood === 5 ? 'win' : 'step',
+        headline: beat.title ? `A day to remember: ${title}` : 'A day to remember',
+      };
     case 'JournalHighlight':
       return beat.mood === 1
         ? {

@@ -95,6 +95,9 @@ export class MoodTrend {
 
   protected readonly chartData = computed<ChartConfiguration<'line'>['data']>(() => {
     const teal = token('--lifeos-teal', '#159895');
+    // Past ~two months full-size dots crowd into a band; small ones still mark each recorded day (a lone mood
+    // would otherwise vanish), and hover shows the day.
+    const dense = this.series().length > 60;
     return {
       labels: this.series().map((day) => formatDate(day.day, APP_DAY_MONTH_FORMAT, this.locale)),
       datasets: [
@@ -105,11 +108,11 @@ export class MoodTrend {
           borderColor: teal,
           borderWidth: 2,
           tension: 0.25,
-          pointRadius: 4,
-          pointHoverRadius: 6,
+          pointRadius: dense ? 2 : 4,
+          pointHoverRadius: dense ? 4 : 6,
           pointBackgroundColor: teal,
           pointBorderColor: token('--lifeos-surface', '#ffffff'),
-          pointBorderWidth: 2,
+          pointBorderWidth: dense ? 0 : 2,
           pointHitRadius: 12,
         },
       ],

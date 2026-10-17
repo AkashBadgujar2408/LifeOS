@@ -4,9 +4,17 @@
       <h1 class="h3 mb-1">Journal</h1>
       <p class="text-body-secondary mb-0 small">One entry a day: a few lines, a mood, or both.</p>
     </div>
-    <a routerLink="/journal/week" class="btn btn-outline-primary">
-      <i class="bi bi-calendar-week"></i> Weekly reflection
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+      <a routerLink="/journal/week" class="btn btn-outline-primary">
+        <i class="bi bi-calendar-week"></i> Week
+      </a>
+      <a routerLink="/journal/month" class="btn btn-outline-primary">
+        <i class="bi bi-calendar-month"></i> Month
+      </a>
+      <a routerLink="/journal/decisions" class="btn btn-outline-primary">
+        <i class="bi bi-signpost-split"></i> Decisions
+      </a>
+    </div>
   </div>
 
   <div class="row g-3">
@@ -121,6 +129,16 @@
                 }
               </div>
 
+              <div>
+                <span class="form-label d-block"
+                  >Tags <span class="text-body-secondary small">(optional)</span></span
+                >
+                <app-tag-picker
+                  [selectedTagIds]="tagIds()"
+                  (selectedTagIdsChange)="setTags($event)"
+                />
+              </div>
+
               <div class="row g-3 align-items-end">
                 <div class="col-sm-6">
                   <label class="form-label" for="journal-life-area">
@@ -165,7 +183,30 @@
         </div>
       </div>
 
+      <div class="card">
+        <div class="card-body">
+          <app-day-notes [day]="day()" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <app-day-decisions [day]="day()" />
+        </div>
+      </div>
+
       @if (entry(); as saved) {
+        <div class="card">
+          <div class="card-body">
+            <app-attachments
+              [entityType]="entryEntityType"
+              [entityId]="saved.id"
+              [photos]="true"
+              label="Memories"
+            />
+          </div>
+        </div>
+
         <div class="row g-3">
           <div class="col-md-6">
             <div class="card h-100">
@@ -192,7 +233,25 @@
     <div class="col-lg-4 d-flex flex-column gap-3">
       <div class="card">
         <div class="card-body">
-          <h2 class="h6 mb-3">Mood, last 30 days</h2>
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+            <h2 class="h6 mb-0">
+              Mood, last {{ trendLabel() === 'Year' ? 'year' : trendLabel() }}
+            </h2>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Mood trend range">
+              @for (range of trendRanges; track range.days) {
+                <button
+                  type="button"
+                  class="btn"
+                  [class.btn-primary]="trendDays() === range.days"
+                  [class.btn-outline-secondary]="trendDays() !== range.days"
+                  [attr.aria-pressed]="trendDays() === range.days"
+                  (click)="setTrendDays(range.days)"
+                >
+                  {{ range.label }}
+                </button>
+              }
+            </div>
+          </div>
           <app-mood-trend [points]="moodPoints()" [from]="trendFrom()" [to]="today()" />
         </div>
       </div>
@@ -229,6 +288,13 @@
                     <span class="d-block small text-body-secondary text-truncate">
                       {{ item.title || item.content || 'Mood only' }}
                     </span>
+                    @if (item.tags.length > 0) {
+                      <span class="d-flex flex-wrap gap-1 mt-1">
+                        @for (tag of item.tags; track tag.id) {
+                          <span class="badge rounded-pill text-bg-light">{{ tag.name }}</span>
+                        }
+                      </span>
+                    }
                   </span>
                 </button>
               }

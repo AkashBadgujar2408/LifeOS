@@ -191,6 +191,56 @@ h6 {
   }
 }
 
+// Photo thumbnails (journal memories, the Life Story): square tiles that fill the row.
+.attachment-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.attachment-photo {
+  position: relative;
+  aspect-ratio: 1;
+}
+
+.attachment-photo-open {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  background: var(--lifeos-canvas);
+  border: 1px solid var(--lifeos-border);
+  border-radius: 0.5rem;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--lifeos-teal);
+    outline-offset: 2px;
+  }
+}
+
+.attachment-photo-remove {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--lifeos-ink);
+  background: color-mix(in srgb, var(--lifeos-surface) 85%, transparent);
+  border: 1px solid var(--lifeos-border);
+  border-radius: 50%;
+}
+
 // Document expiry (Session 40): the same light-tint-plus-dark-text reading as toasts, never a saturated fill.
 .expiry-badge {
   font-weight: 600;

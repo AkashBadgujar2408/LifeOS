@@ -31,6 +31,8 @@ public partial class User
 
     public virtual Chapter? Chapter { get; set; }
 
+    public virtual ICollection<Decision> Decisions { get; set; } = new List<Decision>();
+
     public virtual ICollection<DocumentFile> DocumentFiles { get; set; } = new List<DocumentFile>();
 
     public virtual ICollection<DocumentTag> DocumentTags { get; set; } = new List<DocumentTag>();
@@ -59,11 +61,17 @@ public partial class User
 
     public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
 
+    public virtual ICollection<JournalEntryTag> JournalEntryTags { get; set; } = new List<JournalEntryTag>();
+
+    public virtual ICollection<JournalNote> JournalNotes { get; set; } = new List<JournalNote>();
+
     public virtual ICollection<LifeAreaRating> LifeAreaRatings { get; set; } = new List<LifeAreaRating>();
 
     public virtual ICollection<MissionDebrief> MissionDebriefs { get; set; } = new List<MissionDebrief>();
 
     public virtual ICollection<MissionPrerequisite> MissionPrerequisites { get; set; } = new List<MissionPrerequisite>();
+
+    public virtual ICollection<MonthlyReflection> MonthlyReflections { get; set; } = new List<MonthlyReflection>();
 
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
 

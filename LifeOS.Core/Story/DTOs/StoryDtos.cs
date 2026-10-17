@@ -54,6 +54,8 @@ public static class StoryBeatKinds
     public const string MilestoneDone = "MilestoneDone";
     public const string HabitStarted = "HabitStarted";
     public const string JournalHighlight = "JournalHighlight";
+    /// <summary>A journal day with photos (Session 42); its Mood is the day's, if any.</summary>
+    public const string Memory = "Memory";
     /// <summary>Not from the procedure: an achievement, on the day it was earned (Achievements.Evaluate).</summary>
     public const string AchievementUnlocked = "AchievementUnlocked";
 }

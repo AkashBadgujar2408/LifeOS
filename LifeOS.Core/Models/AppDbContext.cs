@@ -15,6 +15,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Chapter> Chapters { get; set; }
 
+    public virtual DbSet<Decision> Decisions { get; set; }
+
     public virtual DbSet<Document> Documents { get; set; }
 
     public virtual DbSet<DocumentFile> DocumentFiles { get; set; }
@@ -43,6 +45,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<JournalEntry> JournalEntries { get; set; }
 
+    public virtual DbSet<JournalEntryTag> JournalEntryTags { get; set; }
+
+    public virtual DbSet<JournalNote> JournalNotes { get; set; }
+
     public virtual DbSet<LifeArea> LifeAreas { get; set; }
 
     public virtual DbSet<LifeAreaRating> LifeAreaRatings { get; set; }
@@ -50,6 +56,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<MissionDebrief> MissionDebriefs { get; set; }
 
     public virtual DbSet<MissionPrerequisite> MissionPrerequisites { get; set; }
+
+    public virtual DbSet<MonthlyReflection> MonthlyReflections { get; set; }
 
     public virtual DbSet<Project> Projects { get; set; }
 
@@ -118,6 +126,28 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey<Chapter>(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Chapters_Users");
+        });
+
+        modelBuilder.Entity<Decision>(entity =>
+        {
+            entity.ToTable("Decisions", "journal");
+
+            entity.HasIndex(e => new { e.UserId, e.DecidedOn }, "IX_Decisions_User_DecidedOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.UserId, e.ReviewOn }, "IX_Decisions_User_ReviewOn").HasFilter("([IsDeleted]=(0) AND [ReviewedOn] IS NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Decisions_CreatedAt");
+            entity.Property(e => e.Title).HasMaxLength(300);
+            entity.Property(e => e.Verdict).HasMaxLength(20);
+
+            entity.HasOne(d => d.ReviewReminder).WithMany(p => p.Decisions)
+                .HasForeignKey(d => d.ReviewReminderId)
+                .HasConstraintName("FK_Decisions_ReviewReminder");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Decisions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Decisions_Users");
         });
 
         modelBuilder.Entity<Document>(entity =>
@@ -458,6 +488,50 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_JournalEntries_Users");
         });
 
+        modelBuilder.Entity<JournalEntryTag>(entity =>
+        {
+            entity.ToTable("JournalEntryTags", "journal");
+
+            entity.HasIndex(e => e.TagId, "IX_JournalEntryTags_Tag").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.JournalEntryId, e.TagId }, "UX_JournalEntryTags_Entry_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_JournalEntryTags_CreatedAt");
+
+            entity.HasOne(d => d.JournalEntry).WithMany(p => p.JournalEntryTags)
+                .HasForeignKey(d => d.JournalEntryId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_JournalEntryTags_JournalEntries");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.JournalEntryTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_JournalEntryTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.JournalEntryTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_JournalEntryTags_Users");
+        });
+
+        modelBuilder.Entity<JournalNote>(entity =>
+        {
+            entity.ToTable("JournalNotes", "journal");
+
+            entity.HasIndex(e => new { e.UserId, e.EntryDate }, "IX_JournalNotes_User_Date").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_JournalNotes_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Text).HasMaxLength(500);
+
+            entity.HasOne(d => d.User).WithMany(p => p.JournalNotes)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_JournalNotes_Users");
+        });
+
         modelBuilder.Entity<LifeArea>(entity =>
         {
             entity.ToTable("LifeAreas", "shared");
@@ -541,6 +615,22 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MissionPrerequisites_Users");
+        });
+
+        modelBuilder.Entity<MonthlyReflection>(entity =>
+        {
+            entity.ToTable("MonthlyReflections", "journal");
+
+            entity.HasIndex(e => new { e.UserId, e.MonthStart }, "UX_MonthlyReflections_User_Month")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MonthlyReflections_CreatedAt");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MonthlyReflections)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MonthlyReflections_Users");
         });
 
         modelBuilder.Entity<Project>(entity =>

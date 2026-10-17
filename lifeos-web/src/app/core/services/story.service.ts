@@ -42,6 +42,7 @@ export type StoryBeatKind =
   | 'MilestoneDone'
   | 'HabitStarted'
   | 'JournalHighlight'
+  | 'Memory'
   | 'AchievementUnlocked';
 
 /** One thing that happened, on the user's local day (the API used their timezone). */

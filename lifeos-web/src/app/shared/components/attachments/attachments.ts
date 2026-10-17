@@ -1,6 +1,8 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  computed,
   effect,
   inject,
   input,
@@ -21,9 +23,14 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 import { Attachment, AttachmentsService } from '../../../core/services/attachments.service';
 import { ToastService } from '../../../core/services/toast.service';
 
+/** Image types a browser can show (HEIC is stored but listed as a file). */
+const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+const PHOTO_ACCEPT = '.jpg,.jpeg,.png,.gif,.webp,.heic';
+
 /**
- * Files on any item that takes them (goals, tasks): list, upload (click or drop), open, download, remove.
- * <app-attachments entityType="Goal" [entityId]="goal.id" />
+ * Files on any item that takes them (goals, tasks, journal days): list, upload (click or drop), open, download,
+ * remove. <app-attachments entityType="Goal" [entityId]="goal.id" />. With [photos]="true" pictures show as
+ * thumbnails (journal memories); [readonly]="true" just shows them (the Life Story).
  */
 @Component({
   selector: 'app-attachments',
@@ -37,8 +44,25 @@ export class Attachments {
 
   readonly entityType = input.required<string>();
   readonly entityId = input.required<number>();
+  /** Show pictures as thumbnails, and offer photos first when choosing files. */
+  readonly photos = input(false);
+  /** No upload or remove — only what's there (nothing at all when there's nothing). */
+  readonly readonly = input(false);
+  /** The heading ("Files" by default; "Memories" on a journal day). */
+  readonly label = input('Files');
 
-  protected readonly accepted = ACCEPTED_FILES;
+  private readonly destroyRef = inject(DestroyRef);
+  protected readonly accepted = computed(() => (this.photos() ? PHOTO_ACCEPT : ACCEPTED_FILES));
+  /** Object URLs of the picture thumbnails by attachment id; revoked when the list changes or the component goes. */
+  protected readonly thumbnails = signal<ReadonlyMap<number, string>>(new Map());
+  protected readonly pictures = computed(() =>
+    this.photos() ? this.attachments().filter((a) => PHOTO_TYPES.has(a.contentType)) : [],
+  );
+  protected readonly others = computed(() =>
+    this.photos()
+      ? this.attachments().filter((a) => !PHOTO_TYPES.has(a.contentType))
+      : this.attachments(),
+  );
   protected readonly formatBytes = formatBytes;
   protected readonly fileIcon = fileIcon;
 
@@ -55,6 +79,37 @@ export class Attachments {
       const id = this.entityId();
       untracked(() => this.load(type, id));
     });
+    // Thumbnails follow the list: new pictures fetched, removed ones let go.
+    effect(() => {
+      const pictures = this.pictures();
+      untracked(() => this.syncThumbnails(pictures));
+    });
+    this.destroyRef.onDestroy(() => this.thumbnails().forEach((url) => URL.revokeObjectURL(url)));
+  }
+
+  private syncThumbnails(pictures: readonly Attachment[]): void {
+    const wanted = new Set(pictures.map((p) => p.id));
+    const kept = new Map<number, string>();
+    this.thumbnails().forEach((url, id) => {
+      if (wanted.has(id)) {
+        kept.set(id, url);
+      } else {
+        URL.revokeObjectURL(url);
+      }
+    });
+    this.thumbnails.set(kept);
+    for (const picture of pictures.filter((p) => !kept.has(p.id))) {
+      this.attachmentsService.fileBlob(picture).subscribe({
+        next: (blob) => {
+          if (!this.pictures().some((p) => p.id === picture.id)) {
+            return;
+          }
+          this.thumbnails.update((map) => new Map(map).set(picture.id, URL.createObjectURL(blob)));
+        },
+        // A picture that won't load shows as its name instead.
+        error: () => undefined,
+      });
+    }
   }
 
   protected reload(): void {
@@ -139,7 +194,11 @@ export class Attachments {
         this.uploading.set(false);
         this.attachments.set(attachments);
         this.toast.success(
-          files.length === 1 ? 'File attached.' : `${files.length} files attached.`,
+          files.length === 1
+            ? this.photos()
+              ? 'Photo added.'
+              : 'File attached.'
+            : `${files.length} ${this.photos() ? 'photos added' : 'files attached'}.`,
         );
       },
       error: (err) => {

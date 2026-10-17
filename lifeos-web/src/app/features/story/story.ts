@@ -14,6 +14,7 @@ import { todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { Chapter, LifeStory, StoryService } from '../../core/services/story.service';
 import { ToastService } from '../../core/services/toast.service';
+import { Attachments } from '../../shared/components/attachments/attachments';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { openChapterEditor } from './chapter-editor';
 import { beatLink, beatText, chapterLength, gapHeading } from './story-view';
@@ -25,7 +26,7 @@ import { beatLink, beatText, chapterLength, gapHeading } from './story-view';
 @Component({
   selector: 'app-story',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, LoadError],
+  imports: [DatePipe, RouterLink, LoadError, Attachments],
   templateUrl: './story.html',
   styleUrl: './story.scss',
 })

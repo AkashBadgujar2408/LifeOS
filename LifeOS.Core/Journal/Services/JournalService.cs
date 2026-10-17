@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 namespace LifeOS.Core.Journal.Services;
 
 public class JournalService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
-    IRemindersService remindersService) : IJournalService
+    IRemindersService remindersService, IAttachmentsService attachmentsService) : IJournalService
 {
     private const string NotFound = JournalErrors.NotFound;
     private const string Empty = "Write something or pick a mood.";
@@ -66,6 +66,13 @@ public class JournalService(AppDbContext db, IMapper mapper, IEntityLinksService
             return OperationResult<JournalEntryDto>.Fail("Life area not found.");
         }
 
+        // Tags go through the per-user filter, so another user's tag id counts as missing.
+        var wantedTags = request.TagIds.Distinct().ToList();
+        if (wantedTags.Count > 0 && await db.Tags.CountAsync(t => wantedTags.Contains(t.Id)) != wantedTags.Count)
+        {
+            return OperationResult<JournalEntryDto>.Fail("Tag not found.");
+        }
+
         var entry = await db.JournalEntries.FirstOrDefaultAsync(e => e.EntryDate == day);
         if (entry is null)
         {
@@ -81,6 +88,18 @@ public class JournalService(AppDbContext db, IMapper mapper, IEntityLinksService
         entry.Content = content;
         entry.Mood = request.Mood;
         entry.LifeAreaId = request.LifeAreaId;
+
+        var current = entry.Id == 0 ? [] : await db.JournalEntryTags.Where(t => t.JournalEntryId == entry.Id).ToListAsync();
+        foreach (var tag in current.Where(t => !wantedTags.Contains(t.TagId)))
+        {
+            tag.IsDeleted = true;
+            tag.DeletedAt = DateTime.UtcNow;
+        }
+
+        foreach (var tagId in wantedTags.Except(current.Select(t => t.TagId)))
+        {
+            entry.JournalEntryTags.Add(new JournalEntryTag { UserId = entry.UserId, TagId = tagId });
+        }
 
         try
         {
@@ -105,11 +124,20 @@ public class JournalService(AppDbContext db, IMapper mapper, IEntityLinksService
 
         await using var transaction = await db.Database.BeginTransactionAsync();
 
+        var now = DateTime.UtcNow;
         entry.IsDeleted = true;
-        entry.DeletedAt = DateTime.UtcNow;
+        entry.DeletedAt = now;
+        foreach (var tag in await db.JournalEntryTags.Where(t => t.JournalEntryId == entry.Id).ToListAsync())
+        {
+            tag.IsDeleted = true;
+            tag.DeletedAt = now;
+        }
+
         await db.SaveChangesAsync();
         await entityLinksService.RemoveAllForEntityAsync(JournalEntryLinkableProvider.Type, entry.Id);
         await remindersService.RemoveAllForEntityAsync(JournalEntryLinkableProvider.Type, entry.Id);
+        // The day's photos (memories) go with it; the gratitude list and lessons belong to the day and stay.
+        await attachmentsService.RemoveAllForEntityAsync(JournalEntryLinkableProvider.Type, entry.Id);
 
         await transaction.CommitAsync();
         return OperationResult<bool>.Ok(true);
@@ -261,6 +289,161 @@ public class JournalService(AppDbContext db, IMapper mapper, IEntityLinksService
 
         return await GetWeekAsync(weekStart);
     }
+
+    public async Task<DayNotesDto> GetNotesAsync(DateOnly day)
+    {
+        var notes = await db.JournalNotes.AsNoTracking()
+            .Where(n => n.EntryDate == day)
+            .OrderBy(n => n.SortOrder).ThenBy(n => n.Id)
+            .Select(n => new { n.Kind, n.Text })
+            .ToListAsync();
+
+        return new DayNotesDto
+        {
+            EntryDate = day,
+            Gratitude = notes.Where(n => n.Kind == JournalNoteKinds.Gratitude).Select(n => n.Text).ToList(),
+            Lessons = notes.Where(n => n.Kind == JournalNoteKinds.Lesson).Select(n => n.Text).ToList(),
+        };
+    }
+
+    public async Task<OperationResult<DayNotesDto>> SaveNotesAsync(DateOnly day, DayNotesRequest request)
+    {
+        var gratitude = CleanList(request.Gratitude);
+        var lessons = CleanList(request.Lessons);
+        if (gratitude.Concat(lessons).Any(text => text.Length > 500))
+        {
+            return OperationResult<DayNotesDto>.Fail("Keep each one under 500 characters.");
+        }
+
+        var now = DateTime.UtcNow;
+        var userId = db.CurrentUserId!.Value;
+        foreach (var old in await db.JournalNotes.Where(n => n.EntryDate == day).ToListAsync())
+        {
+            old.IsDeleted = true;
+            old.DeletedAt = now;
+        }
+
+        db.JournalNotes.AddRange(gratitude.Select((text, i) => new JournalNote
+        {
+            UserId = userId, EntryDate = day, Kind = JournalNoteKinds.Gratitude, Text = text, SortOrder = i,
+        }));
+        db.JournalNotes.AddRange(lessons.Select((text, i) => new JournalNote
+        {
+            UserId = userId, EntryDate = day, Kind = JournalNoteKinds.Lesson, Text = text, SortOrder = i,
+        }));
+        await db.SaveChangesAsync();
+        return OperationResult<DayNotesDto>.Ok(await GetNotesAsync(day));
+    }
+
+    public async Task<OperationResult<MonthlyReviewDto>> GetMonthAsync(DateOnly monthStart)
+    {
+        if (monthStart.Day != 1)
+        {
+            return OperationResult<MonthlyReviewDto>.Fail("A month is addressed by its first day.");
+        }
+
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+        var reflection = await db.MonthlyReflections
+            .Where(r => r.MonthStart == monthStart)
+            .ProjectTo<MonthlyReflectionDto>(mapper.ConfigurationProvider)
+            .FirstOrDefaultAsync();
+
+        var entries = await db.JournalEntries.AsNoTracking()
+            .Where(e => e.EntryDate >= monthStart && e.EntryDate <= monthEnd)
+            .OrderBy(e => e.EntryDate)
+            .Select(e => new { e.EntryDate, e.Title, e.Mood, e.Content })
+            .ToListAsync();
+
+        var notes = await db.JournalNotes.AsNoTracking()
+            .Where(n => n.EntryDate >= monthStart && n.EntryDate <= monthEnd)
+            .OrderBy(n => n.EntryDate).ThenBy(n => n.SortOrder).ThenBy(n => n.Id)
+            .Select(n => new { n.Kind, n.EntryDate, n.Text })
+            .ToListAsync();
+
+        var decisions = await db.Decisions.AsNoTracking()
+            .Where(d => d.DecidedOn >= monthStart && d.DecidedOn <= monthEnd)
+            .OrderBy(d => d.DecidedOn).ThenBy(d => d.Id)
+            .Select(d => new MonthDecisionDto
+            {
+                Id = d.Id, DecidedOn = d.DecidedOn, Title = d.Title, ReviewedOn = d.ReviewedOn, Verdict = d.Verdict,
+            })
+            .ToListAsync();
+
+        var moods = entries.Where(e => e.Mood is not null).Select(e => (int)e.Mood!.Value).ToList();
+        return OperationResult<MonthlyReviewDto>.Ok(new MonthlyReviewDto
+        {
+            MonthStart = monthStart,
+            MonthEnd = monthEnd,
+            Reflection = reflection,
+            DaysWritten = entries.Count,
+            MoodDays = moods.Count,
+            MoodAverage = moods.Count == 0 ? null : Math.Round(moods.Average(), 1),
+            Gratitude = notes.Where(n => n.Kind == JournalNoteKinds.Gratitude)
+                .Select(n => new DatedNoteDto { EntryDate = n.EntryDate, Text = n.Text }).ToList(),
+            Lessons = notes.Where(n => n.Kind == JournalNoteKinds.Lesson)
+                .Select(n => new DatedNoteDto { EntryDate = n.EntryDate, Text = n.Text }).ToList(),
+            Decisions = decisions,
+            StandoutDays = entries.Where(e => e.Mood is 1 or 5)
+                .Select(e => new JournalDaySummaryDto { EntryDate = e.EntryDate, Title = e.Title, Mood = e.Mood, Excerpt = Excerpt(e.Content) })
+                .ToList(),
+        });
+    }
+
+    public async Task<OperationResult<MonthlyReviewDto>> SaveMonthAsync(DateOnly monthStart, MonthlyReflectionRequest request)
+    {
+        if (monthStart.Day != 1)
+        {
+            return OperationResult<MonthlyReviewDto>.Fail("A month is addressed by its first day.");
+        }
+
+        var highlights = NormalizeText(request.Highlights);
+        var learned = NormalizeText(request.Learned);
+        var wouldChange = NormalizeText(request.WouldChange);
+        var nextFocus = NormalizeText(request.NextFocus);
+        var reflection = await db.MonthlyReflections.FirstOrDefaultAsync(r => r.MonthStart == monthStart);
+
+        if (highlights is null && learned is null && wouldChange is null && nextFocus is null)
+        {
+            // All blank removes the reflection rather than storing an empty row (CK_MonthlyReflections_NotEmpty).
+            if (reflection is not null)
+            {
+                reflection.IsDeleted = true;
+                reflection.DeletedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+            }
+
+            return await GetMonthAsync(monthStart);
+        }
+
+        if (reflection is null)
+        {
+            reflection = new MonthlyReflection { UserId = db.CurrentUserId!.Value, MonthStart = monthStart };
+            db.MonthlyReflections.Add(reflection);
+        }
+        else
+        {
+            reflection.UpdatedAt = DateTime.UtcNow;
+        }
+
+        reflection.Highlights = highlights;
+        reflection.Learned = learned;
+        reflection.WouldChange = wouldChange;
+        reflection.NextFocus = nextFocus;
+
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        {
+            return OperationResult<MonthlyReviewDto>.Fail("This month's reflection was just saved somewhere else. Reload to see it.");
+        }
+
+        return await GetMonthAsync(monthStart);
+    }
+
+    private static List<string> CleanList(IEnumerable<string?> lines) =>
+        lines.Where(line => !string.IsNullOrWhiteSpace(line)).Select(line => line!.Trim()).ToList();
 
     private static string? ValidateRange(DateOnly from, DateOnly to)
     {

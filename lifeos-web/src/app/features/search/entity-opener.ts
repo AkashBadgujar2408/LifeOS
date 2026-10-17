@@ -6,7 +6,9 @@ import { JournalService } from '../../core/services/journal.service';
 import { RemindersService } from '../../core/services/reminders.service';
 import { TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
+import { DecisionsService } from '../../core/services/decisions.service';
 import { openEventEditor } from '../calendar/event-editor';
+import { openDecisionEditor } from '../journal/decision-editor';
 import { openTaskEditor } from '../tasks/task-editor';
 import { apiErrorMessage } from '../../core/services/api-error';
 
@@ -25,9 +27,21 @@ export class EntityOpener {
   private readonly journalService = inject(JournalService);
   private readonly toast = inject(ToastService);
   private readonly remindersService = inject(RemindersService);
+  private readonly decisionsService = inject(DecisionsService);
 
   open(entityType: string, entityId: number): void {
     switch (entityType) {
+      case 'Decision':
+        this.decisionsService.get(entityId).subscribe({
+          next: async (decision) => {
+            const result = await openDecisionEditor(this.modal, { decision });
+            if (result) {
+              this.toast.success(result.kind === 'saved' ? 'Decision saved.' : 'Decision deleted.');
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the decision.')),
+        });
+        break;
       case 'Goal':
         void this.router.navigate(['/goals', entityId]);
         break;

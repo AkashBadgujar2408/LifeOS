@@ -27,6 +27,8 @@ public partial class JournalEntry
 
     public DateTime? DeletedAt { get; set; }
 
+    public virtual ICollection<JournalEntryTag> JournalEntryTags { get; set; } = new List<JournalEntryTag>();
+
     public virtual LifeArea? LifeArea { get; set; }
 
     public virtual User User { get; set; } = null!;

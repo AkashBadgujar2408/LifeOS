@@ -72,6 +72,7 @@ try
     builder.Services.AddScoped<IRemindersService, RemindersService>();
     builder.Services.AddScoped<IHabitsService, HabitsService>();
     builder.Services.AddScoped<IJournalService, JournalService>();
+    builder.Services.AddScoped<IDecisionsService, DecisionsService>();
     builder.Services.AddScoped<IDashboardService, DashboardService>();
     builder.Services.AddScoped<IChaptersService, ChaptersService>();
     builder.Services.AddScoped<ILifeStoryService, LifeStoryService>();
@@ -110,6 +111,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, HabitLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, JournalEntryLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, DocumentLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, DecisionLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

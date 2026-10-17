@@ -10,7 +10,7 @@ export type ReminderStatus = 'Pending' | 'Dismissed';
 
 /** Types a reminder can be about (the linkable types, minus inbox items). Same strings as EntityLinks. */
 export type ReminderTargetType =
-  'Task' | 'Event' | 'Goal' | 'Project' | 'Habit' | 'JournalEntry' | 'Document';
+  'Task' | 'Event' | 'Goal' | 'Project' | 'Habit' | 'JournalEntry' | 'Document' | 'Decision';
 
 /** How each target type reads in the UI ("About Journal entry: 15/Oct/2026"), not the stored type string. */
 export const REMINDER_TARGET_LABELS: Record<ReminderTargetType, string> = {
@@ -21,6 +21,7 @@ export const REMINDER_TARGET_LABELS: Record<ReminderTargetType, string> = {
   Habit: 'Habit',
   JournalEntry: 'Journal entry',
   Document: 'Document',
+  Decision: 'Decision',
 };
 
 export interface Reminder {

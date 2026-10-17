@@ -1,0 +1,203 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="decision-editor-heading" class="modal-title h5">
+      {{ decision() ? 'Decision' : 'Record a decision' }}
+    </h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    <div class="row g-3">
+      <div class="col-sm-8">
+        <label class="form-label" for="decision-title">What did you decide?</label>
+        <input
+          id="decision-title"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('title')"
+          formControlName="title"
+          placeholder="e.g. Take the job in Berlin"
+          autocomplete="off"
+          ngbAutofocus
+        />
+        @if (fieldError('title'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label" for="decision-decided-on">Decided on</label>
+        <div class="input-group">
+          <input
+            id="decision-decided-on"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('decidedOn')"
+            formControlName="decidedOn"
+            placeholder="e.g. 14/Oct/2026"
+            autocomplete="off"
+            ngbDatepicker
+            #decidedPicker="ngbDatepicker"
+            [minDate]="minDate"
+            [maxDate]="maxDate"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the day you decided"
+            (click)="decidedPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('decidedOn'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label" for="decision-reasons">
+        Why <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="decision-reasons"
+        class="form-control"
+        rows="3"
+        [class.is-invalid]="fieldError('reasons')"
+        formControlName="reasons"
+        placeholder="The reasons that tipped it, and what you weighed against them"
+      ></textarea>
+      @if (fieldError('reasons'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div>
+      <label class="form-label" for="decision-expected">
+        What do you expect to happen? <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="decision-expected"
+        class="form-control"
+        rows="2"
+        [class.is-invalid]="fieldError('expectedOutcome')"
+        formControlName="expectedOutcome"
+        placeholder="e.g. Happier at work within three months"
+      ></textarea>
+      @if (fieldError('expectedOutcome'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div>
+      <label class="form-label" for="decision-review-on">
+        Look back on it <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <div class="d-flex flex-wrap gap-2 align-items-start">
+        <div class="input-group" style="max-width: 16rem">
+          <input
+            id="decision-review-on"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('reviewOn')"
+            formControlName="reviewOn"
+            placeholder="e.g. 14/Jan/2027"
+            autocomplete="off"
+            ngbDatepicker
+            #reviewPicker="ngbDatepicker"
+            [minDate]="minDate"
+            [maxDate]="maxDate"
+            container="body"
+            aria-describedby="decision-review-help"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the review day"
+            (click)="reviewPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        <div class="d-flex flex-wrap gap-1">
+          @for (option of reviewAfter; track option.days) {
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary"
+              (click)="setReviewAfter(option.days)"
+            >
+              {{ option.label }}
+            </button>
+          }
+        </div>
+      </div>
+      @if (fieldError('reviewOn'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+      <div id="decision-review-help" class="form-text">
+        A reminder at 9:00 that morning asks how it turned out.
+      </div>
+    </div>
+
+    @if (decision(); as saved) {
+      <section class="border-top pt-3" aria-labelledby="decision-outcome-heading">
+        <h3 id="decision-outcome-heading" class="h6 mb-2">{{ reviewLabel() }}</h3>
+        <label class="form-label visually-hidden" for="decision-outcome"
+          >What actually happened</label
+        >
+        <textarea
+          id="decision-outcome"
+          class="form-control mb-2"
+          rows="3"
+          [class.is-invalid]="fieldError('actualOutcome')"
+          formControlName="actualOutcome"
+          placeholder="What actually happened? Leave it blank to keep the decision open."
+        ></textarea>
+        @if (fieldError('actualOutcome'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+        <div
+          class="d-flex flex-wrap gap-2"
+          role="group"
+          aria-label="Compared with what you expected"
+        >
+          @for (verdict of verdicts; track verdict.value) {
+            <button
+              type="button"
+              class="btn btn-sm"
+              [class.btn-primary]="form.controls.verdict.value === verdict.value"
+              [class.btn-outline-secondary]="form.controls.verdict.value !== verdict.value"
+              [attr.aria-pressed]="form.controls.verdict.value === verdict.value"
+              [disabled]="!form.controls.actualOutcome.value.trim()"
+              (click)="setVerdict(verdict.value)"
+            >
+              <i class="bi {{ verdict.icon }}" aria-hidden="true"></i> {{ verdict.label }}
+            </button>
+          }
+        </div>
+      </section>
+
+      <div class="border-top pt-3">
+        <app-linked-items [entityType]="entityType" [entityId]="saved.id" />
+      </div>
+    }
+  </div>
+
+  <div class="modal-footer">
+    @if (decision()) {
+      <button type="button" class="btn btn-outline-danger me-auto" (click)="remove()">
+        <i class="bi bi-trash"></i> Delete
+      </button>
+    }
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">Save</button>
+  </div>
+</form>

@@ -17,11 +17,15 @@ GO
 --   MilestoneDone    a milestone ticked (GoalMilestones.CompletedAt), with its goal as ParentTitle
 --   HabitStarted     a habit's start date
 --   JournalHighlight a journal day rated Great (5) or Awful (1) — the days a biography would mention
+--   Memory           a journal day with photos attached (Session 42); carries the day's mood, so a great day with
+--                    photos is one Memory beat rather than a highlight and a memory. The client shows the photos
+--                    (attachments of that JournalEntry).
 --
 -- Moments come back as UTC (OccurredAt); calendar days as DATE (OccurredOn). Exactly one is set per row. Turning a
 -- moment into the user's local day needs their timezone, which only the caller has — StoryService does it.
 --
--- This runs outside EF Core: every branch filters UserId/IsDeleted itself, joined goals included.
+-- This runs outside EF Core: every branch filters UserId/IsDeleted itself, joined goals included. Depends also on
+-- 01_shared.sql (Attachments) for memories.
 CREATE OR ALTER PROCEDURE story.GetLifeStory
     @UserId INT
 AS
@@ -128,6 +132,23 @@ BEGIN
     LEFT JOIN shared.LifeAreas la ON la.Id = je.LifeAreaId
     WHERE je.UserId = @UserId
       AND je.IsDeleted = 0
-      AND je.Mood IN (1, 5);
+      AND je.Mood IN (1, 5)
+      AND NOT EXISTS (SELECT 1 FROM shared.Attachments a
+                      WHERE a.UserId = @UserId AND a.IsDeleted = 0 AND a.EntityType = N'JournalEntry'
+                        AND a.EntityId = je.Id AND a.ContentType IN (N'image/jpeg', N'image/png', N'image/gif', N'image/webp'))
+
+    UNION ALL
+
+    -- Memories: only photos a browser can show count (HEIC is stored but can't be previewed).
+    SELECT
+        N'Memory', je.EntryDate, NULL, je.Title, LEFT(je.Content, 280), NULL, NULL,
+        NULL, la.Name, je.Mood, NULL, NULL, N'JournalEntry', je.Id, NULL
+    FROM journal.JournalEntries je
+    LEFT JOIN shared.LifeAreas la ON la.Id = je.LifeAreaId
+    WHERE je.UserId = @UserId
+      AND je.IsDeleted = 0
+      AND EXISTS (SELECT 1 FROM shared.Attachments a
+                  WHERE a.UserId = @UserId AND a.IsDeleted = 0 AND a.EntityType = N'JournalEntry'
+                    AND a.EntityId = je.Id AND a.ContentType IN (N'image/jpeg', N'image/png', N'image/gif', N'image/webp'));
 END
 GO

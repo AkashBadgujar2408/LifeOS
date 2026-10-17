@@ -19,6 +19,7 @@ export interface JournalEntry {
   mood: Mood | null;
   lifeAreaId: number | null;
   lifeAreaName: string | null;
+  tags: { id: number; name: string }[];
   createdAt: string;
   updatedAt: string | null;
 }
@@ -28,6 +29,55 @@ export interface JournalEntryPayload {
   content: string | null;
   mood: Mood | null;
   lifeAreaId: number | null;
+  tagIds: number[];
+}
+
+/** A day's gratitude list and lessons, in the order written. */
+export interface DayNotes {
+  entryDate: string;
+  gratitude: string[];
+  lessons: string[];
+}
+
+export interface DatedNote {
+  entryDate: string;
+  text: string;
+}
+
+export interface MonthlyReflection {
+  monthStart: string;
+  highlights: string | null;
+  learned: string | null;
+  wouldChange: string | null;
+  nextFocus: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface MonthlyReview {
+  monthStart: string;
+  monthEnd: string;
+  reflection: MonthlyReflection | null;
+  daysWritten: number;
+  moodDays: number;
+  moodAverage: number | null;
+  gratitude: DatedNote[];
+  lessons: DatedNote[];
+  decisions: {
+    id: number;
+    decidedOn: string;
+    title: string;
+    reviewedOn: string | null;
+    verdict: string | null;
+  }[];
+  standoutDays: JournalDaySummary[];
+}
+
+export interface MonthlyReflectionPayload {
+  highlights: string | null;
+  learned: string | null;
+  wouldChange: string | null;
+  nextFocus: string | null;
 }
 
 export interface MoodPoint {
@@ -122,6 +172,33 @@ export class JournalService {
     return this.http
       .get<ApiResponse<MoodPoint[]>>(`${this.entriesUrl}/moods`, { params })
       .pipe(map((response) => response.data ?? []));
+  }
+
+  getNotes(day: string): Observable<DayNotes> {
+    return this.http
+      .get<ApiResponse<DayNotes>>(`${this.entriesUrl}/day/${day}/notes`)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Replaces the day's gratitude list and lessons. */
+  saveNotes(day: string, notes: { gratitude: string[]; lessons: string[] }): Observable<DayNotes> {
+    return this.http
+      .put<ApiResponse<DayNotes>>(`${this.entriesUrl}/day/${day}/notes`, notes)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** `monthStart` is the month's first day, "yyyy-MM-01". */
+  getMonth(monthStart: string): Observable<MonthlyReview> {
+    return this.http
+      .get<ApiResponse<MonthlyReview>>(`${this.reflectionsUrl}/month/${monthStart}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Saves the month's answers; all blank removes the saved reflection. */
+  saveMonth(monthStart: string, payload: MonthlyReflectionPayload): Observable<MonthlyReview> {
+    return this.http
+      .put<ApiResponse<MonthlyReview>>(`${this.reflectionsUrl}/month/${monthStart}`, payload)
+      .pipe(map((response) => response.data!));
   }
 
   getWeek(weekStart: string): Observable<WeeklyReview> {

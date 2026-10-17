@@ -64,3 +64,11 @@ public partial class DocumentTag : ISoftDeletable, IUserOwned;
 public partial class Attachment : ISoftDeletable, IUserOwned;
 
 public partial class VaultAccessLog : ISoftDeletable, IUserOwned;
+
+public partial class JournalEntryTag : ISoftDeletable, IUserOwned;
+
+public partial class JournalNote : ISoftDeletable, IUserOwned;
+
+public partial class Decision : ISoftDeletable, IUserOwned;
+
+public partial class MonthlyReflection : ISoftDeletable, IUserOwned;

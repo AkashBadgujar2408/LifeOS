@@ -75,6 +75,21 @@ public class EntriesController(IJournalService journalService) : ControllerBase
         return Ok(ApiResponse<bool>.Ok(true));
     }
 
+    /// <summary>GET api/Journal/Entries/day/2026-10-15/notes — the day's gratitude list and lessons.</summary>
+    [HttpGet("day/{day}/notes")]
+    public async Task<IActionResult> GetNotes(DateOnly day) =>
+        Ok(ApiResponse<DayNotesDto>.Ok(await journalService.GetNotesAsync(day)));
+
+    /// <summary>PUT api/Journal/Entries/day/2026-10-15/notes { gratitude: [...], lessons: [...] } — replaces both lists.</summary>
+    [HttpPut("day/{day}/notes")]
+    public async Task<IActionResult> SaveNotes(DateOnly day, DayNotesRequest request)
+    {
+        var result = await journalService.SaveNotesAsync(day, request);
+        return result.Success
+            ? Ok(ApiResponse<DayNotesDto>.Ok(result.Data))
+            : BadRequest(ApiResponse<DayNotesDto>.Fail(result.Error!));
+    }
+
     /// <summary>POST api/Journal/Entries/from-inbox/12 { "entryDate": "2026-10-15" }</summary>
     [HttpPost("from-inbox/{inboxItemId:int}")]
     public async Task<IActionResult> CreateFromInbox(int inboxItemId, JournalEntryFromInboxRequest request)
