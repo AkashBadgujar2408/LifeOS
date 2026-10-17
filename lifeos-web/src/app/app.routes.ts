@@ -108,6 +108,17 @@ export const routes: Routes = [
         loadComponent: () => import('./features/habits/habits').then((m) => m.Habits),
       },
       {
+        path: 'documents',
+        title: 'Documents | LifeOS',
+        loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),
+      },
+      {
+        path: 'documents/:id',
+        title: 'Document | LifeOS',
+        loadComponent: () =>
+          import('./features/documents/document-detail').then((m) => m.DocumentDetail),
+      },
+      {
         path: 'habits/:id',
         title: 'Habit | LifeOS',
         loadComponent: () => import('./features/habits/habit-detail').then((m) => m.HabitDetail),

@@ -10,6 +10,7 @@
   --lifeos-blue: #3d6fb6;
   --lifeos-amber: #b7791f;
   --lifeos-violet: #8a4fbf;
+  --lifeos-red: #c0392b;
   --lifeos-gradient: linear-gradient(
     135deg,
     var(--lifeos-ink) 0%,
@@ -177,4 +178,26 @@ h6 {
 // the page wider than the viewport).
 .min-w-0 {
   min-width: 0 !important;
+}
+
+// Document expiry (Session 40): the same light-tint-plus-dark-text reading as toasts, never a saturated fill.
+.expiry-badge {
+  font-weight: 600;
+  color: var(--lifeos-ink);
+  border: 1px solid transparent;
+}
+
+.expiry-soon {
+  background: color-mix(in srgb, var(--lifeos-amber) 16%, white);
+  border-color: color-mix(in srgb, var(--lifeos-amber) 45%, white);
+}
+
+.expiry-expired {
+  background: color-mix(in srgb, var(--lifeos-red) 12%, white);
+  border-color: color-mix(in srgb, var(--lifeos-red) 40%, white);
+}
+
+// A whole-row link in a list (documents): hover lifts it slightly, focus shows the ring.
+.document-row:hover {
+  background: var(--lifeos-canvas);
 }

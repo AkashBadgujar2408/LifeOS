@@ -36,6 +36,7 @@ import { moodMeta } from '../journal/journal-days';
 import { ReminderTargetOpener } from '../reminders/open-reminder-target';
 import { ReminderRow } from '../reminders/reminder-row';
 import { openTaskEditor } from '../tasks/task-editor';
+import { expiryStatus } from '../documents/document-view';
 import {
   daySummary,
   daysBetween,
@@ -113,6 +114,7 @@ export class MyDay {
   protected readonly targetLabels = REMINDER_TARGET_LABELS;
   protected readonly habitToday = habitToday;
   protected readonly moodMeta = moodMeta;
+  protected readonly expiryStatus = expiryStatus;
 
   /** The user's local date; moves on if the page is still open after midnight (checked on tab focus). */
   protected readonly today = signal(todayIso());

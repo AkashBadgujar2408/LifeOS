@@ -10,11 +10,14 @@ public record InsightInputs(
     IReadOnlyList<InsightHabit> Habits,
     IReadOnlyList<InsightGoal> Goals,
     DateOnly? LatestJournalDate,
-    int OverdueTaskCount);
+    int OverdueTaskCount,
+    IReadOnlyList<InsightDocument>? ExpiringDocuments = null);
 
 public record InsightHabit(int Id, string Title, byte ScheduleDays, DateOnly StartDate, IReadOnlyCollection<DateOnly> DoneDates, HabitStreak Streak);
 
 public record InsightGoal(int Id, string Title, DateTime LastActivityAt);
+
+public record InsightDocument(int Id, string Title, DateOnly ExpiresOn);
 
 /// <summary>
 /// The lightweight, deterministic "insights" (plan, Section 2 #6 — no AI): a handful of plain rules over data the
@@ -26,6 +29,9 @@ public static class DashboardInsights
     public const int GoalUntouchedDays = 14;
     public const int JournalGapDays = 5;
     public const int OverdueTasksThreshold = 3;
+
+    /// <summary>A document this close to expiry (or expired, within My Day's 30-day look-back) earns a nudge.</summary>
+    public const int DocumentNudgeDays = 30;
 
     /// <summary>Streak lengths worth a word of congratulation.</summary>
     public static readonly IReadOnlySet<int> StreakMilestones = new HashSet<int> { 7, 14, 21, 30, 50, 100, 200, 365 };
@@ -92,6 +98,22 @@ public static class DashboardInsights
             });
         }
 
+        // Only the soonest: several expiring papers are one job ("sort out renewals"), and the My Day card lists them all.
+        if (inputs.ExpiringDocuments?
+                .Where(d => d.ExpiresOn.DayNumber - inputs.Today.DayNumber <= DocumentNudgeDays)
+                .OrderBy(d => d.ExpiresOn)
+                .FirstOrDefault() is { } document)
+        {
+            insights.Add(new InsightDto
+            {
+                Kind = InsightKinds.DocumentExpiring,
+                Tone = InsightTones.Nudge,
+                Message = DocumentExpiryMessage(document, inputs.Today),
+                EntityType = "Document",
+                EntityId = document.Id,
+            });
+        }
+
         foreach (var habit in inputs.Habits.Where(h => h.Streak.DoneToday && StreakMilestones.Contains(h.Streak.Current)))
         {
             insights.Add(new InsightDto
@@ -105,6 +127,20 @@ public static class DashboardInsights
         }
 
         return insights;
+    }
+
+    /// <summary>The nudge for a document close to (or just past) its expiry.</summary>
+    public static string DocumentExpiryMessage(InsightDocument document, DateOnly today)
+    {
+        var days = document.ExpiresOn.DayNumber - today.DayNumber;
+        return days switch
+        {
+            < -1 => $"\"{document.Title}\" expired {-days} days ago. Renewing it now saves a scramble later.",
+            -1 => $"\"{document.Title}\" expired yesterday. Renewing it now saves a scramble later.",
+            0 => $"\"{document.Title}\" expires today.",
+            1 => $"\"{document.Title}\" expires tomorrow.",
+            _ => $"\"{document.Title}\" expires in {days} days. Renewals take time, so it's worth starting now.",
+        };
     }
 
     /// <summary>

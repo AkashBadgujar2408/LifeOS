@@ -91,6 +91,10 @@ export function insightLink(insight: Insight): { link: (string | number)[]; labe
       return { link: ['/journal'], label: 'Write today' };
     case 'Tasks':
       return { link: ['/tasks'], label: 'Review tasks' };
+    case 'Document':
+      return insight.entityId
+        ? { link: ['/documents', insight.entityId], label: 'Open document' }
+        : null;
     default:
       return null;
   }
@@ -124,6 +128,7 @@ const INSIGHT_MODULES: Record<string, ModuleKey> = {
   Goal: 'Goals',
   Journal: 'Journal',
   Tasks: 'Tasks',
+  Document: 'Documents',
 };
 
 /**
@@ -144,6 +149,7 @@ export function withoutHiddenModules(myDay: MyDay, hidden: ReadonlySet<ModuleKey
     habits: hidden.has('Habits') ? [] : myDay.habits,
     goals: hidden.has('Goals') ? [] : myDay.goals,
     latestJournalEntry: hidden.has('Journal') ? null : myDay.latestJournalEntry,
+    expiringDocuments: hidden.has('Documents') ? [] : myDay.expiringDocuments,
     insights: myDay.insights.filter((insight) => {
       const module = insightModule(insight);
       return !module || !hidden.has(module);

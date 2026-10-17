@@ -1,0 +1,146 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Documents</h1>
+      <p class="text-body-secondary mb-0 small">
+        @if (needAttention() > 0) {
+          {{ needAttention() }} {{ needAttention() === 1 ? 'needs' : 'need' }} attention — expired
+          or expiring within 60 days.
+        } @else {
+          Passports, certificates, contracts — and their scans, in one place.
+        }
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="newDocument()">
+      <i class="bi bi-plus-lg"></i> New document
+    </button>
+  </div>
+
+  <div class="row g-2 mb-3" role="search" aria-label="Filter documents">
+    <div class="col-md-6">
+      <label class="visually-hidden" for="documents-search">Search documents</label>
+      <div class="input-group">
+        <span class="input-group-text bg-transparent"
+          ><i class="bi bi-search" aria-hidden="true"></i
+        ></span>
+        <input
+          id="documents-search"
+          type="search"
+          class="form-control"
+          placeholder="Search titles, issuers and notes"
+          autocomplete="off"
+          [value]="search()"
+          (input)="onSearch($event)"
+        />
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="visually-hidden" for="documents-kind">Kind</label>
+      <select id="documents-kind" class="form-select" (change)="onKind($event)">
+        <option value="" [selected]="!kind()">All kinds</option>
+        @for (k of kinds; track k) {
+          <option [value]="k" [selected]="kind() === k">{{ kindMeta[k].label }}</option>
+        }
+      </select>
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="visually-hidden" for="documents-tag">Tag</label>
+      <select id="documents-tag" class="form-select" (change)="onTag($event)">
+        <option value="" [selected]="!tagId()">All tags</option>
+        @for (tag of tags(); track tag.id) {
+          <option [value]="tag.id" [selected]="tagId() === tag.id">{{ tag.name }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (loadFailed() && !loaded()) {
+    <app-load-error message="Couldn't load your documents." (retry)="reload()" />
+  } @else if (!loaded()) {
+    <p class="text-body-secondary">Loading your documents...</p>
+  } @else if (documents().length === 0) {
+    <div class="card">
+      <div class="card-body p-4 text-center">
+        @if (filtered()) {
+          <p class="mb-2">Nothing matches these filters.</p>
+          <button type="button" class="btn btn-link" (click)="clearFilters()">Clear filters</button>
+        } @else {
+          <i class="bi bi-folder2-open fs-2 text-body-secondary" aria-hidden="true"></i>
+          <p class="mt-2 mb-3">
+            No documents yet. Start with the ones you'd hate to hunt for: passport, ID card, degree
+            certificate.
+          </p>
+          <button type="button" class="btn btn-primary" (click)="newDocument()">
+            Add your first document
+          </button>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="d-flex flex-column gap-3" [attr.aria-busy]="loading()">
+      @for (group of groups(); track group.kind) {
+        <section class="card" [attr.aria-labelledby]="'kind-' + group.kind">
+          <div class="card-body p-3 p-md-4">
+            <h2 [id]="'kind-' + group.kind" class="h6 mb-3 d-flex align-items-center gap-2">
+              <i class="bi {{ kindMeta[group.kind].icon }}" aria-hidden="true"></i>
+              {{ kindMeta[group.kind].label }}
+              <span class="badge rounded-pill text-bg-light">{{ group.documents.length }}</span>
+            </h2>
+            <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+              @for (doc of group.documents; track doc.id) {
+                @let expiry = expiryStatus(doc.expiresOn, today);
+                <li>
+                  <a
+                    [routerLink]="['/documents', doc.id]"
+                    class="d-flex flex-wrap align-items-center gap-2 p-2 rounded border text-reset text-decoration-none document-row"
+                  >
+                    <span class="fw-semibold min-w-0 text-truncate">
+                      @if (doc.isVault) {
+                        <i class="bi bi-lock-fill text-body-secondary me-1" title="Sensitive"></i>
+                      }
+                      {{ doc.title }}
+                    </span>
+                    @if (doc.numberLast4) {
+                      <span class="small text-body-secondary">…{{ doc.numberLast4 }}</span>
+                    }
+                    @if (doc.issuer) {
+                      <span class="small text-body-secondary text-truncate min-w-0">
+                        {{ doc.issuer }}
+                      </span>
+                    }
+                    <span class="ms-auto d-flex flex-wrap align-items-center gap-2">
+                      @for (tag of doc.tags; track tag.id) {
+                        <span class="badge rounded-pill text-bg-light">{{ tag.name }}</span>
+                      }
+                      @switch (expiry.state) {
+                        @case ('expired') {
+                          <span class="badge expiry-badge expiry-expired">{{ expiry.label }}</span>
+                        }
+                        @case ('today') {
+                          <span class="badge expiry-badge expiry-expired">{{ expiry.label }}</span>
+                        }
+                        @case ('soon') {
+                          <span class="badge expiry-badge expiry-soon">{{ expiry.label }}</span>
+                        }
+                        @case ('valid') {
+                          <span class="small text-body-secondary">
+                            Valid until {{ doc.expiresOn | date }}
+                          </span>
+                        }
+                      }
+                      <span class="small text-body-secondary" [title]="doc.fileCount + ' files'">
+                        <i class="bi bi-paperclip" aria-hidden="true"></i>
+                        {{ doc.fileCount }}
+                        <span class="visually-hidden">files</span>
+                      </span>
+                    </span>
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        </section>
+      }
+    </div>
+  }
+</div>

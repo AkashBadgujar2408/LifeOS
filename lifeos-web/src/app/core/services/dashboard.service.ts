@@ -1,3 +1,4 @@
+import type { DocumentKind } from './documents.service';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
@@ -85,7 +86,7 @@ export interface Insight {
   tone: 'Nudge' | 'Cheer';
   message: string;
   /** Where to act on it: Habit/Goal with an id, or a whole page (Journal, Tasks). */
-  entityType: 'Habit' | 'Goal' | 'Journal' | 'Tasks' | null;
+  entityType: 'Habit' | 'Goal' | 'Journal' | 'Tasks' | 'Document' | null;
   entityId: number | null;
 }
 
@@ -110,6 +111,13 @@ export interface LifeBalance {
 }
 
 /** Mirrors MyDayDto: everything the My Day screen shows, as of the user's local `today`. */
+export interface MyDayDocument {
+  id: number;
+  title: string;
+  kind: DocumentKind;
+  expiresOn: string;
+}
+
 export interface MyDay {
   today: string;
   tasks: MyDayTask[];
@@ -118,6 +126,8 @@ export interface MyDay {
   goals: MyDayGoal[];
   habits: MyDayHabit[];
   latestJournalEntry: MyDayJournalEntry | null;
+  /** Expiring within 60 days or expired in the last 30, soonest first. */
+  expiringDocuments: MyDayDocument[];
   /** Nudges first, then good news. */
   insights: Insight[];
 }

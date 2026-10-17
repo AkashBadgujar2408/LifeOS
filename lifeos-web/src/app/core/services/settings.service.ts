@@ -6,7 +6,15 @@ import { browserTimeZone } from '../dates/today';
 
 /** Modules that can be switched off; same keys as the API (never rename one). */
 export type ModuleKey =
-  'Calendar' | 'Reminders' | 'Goals' | 'Tasks' | 'Projects' | 'Habits' | 'Journal' | 'Story';
+  | 'Calendar'
+  | 'Reminders'
+  | 'Goals'
+  | 'Tasks'
+  | 'Projects'
+  | 'Habits'
+  | 'Journal'
+  | 'Story'
+  | 'Documents';
 
 export interface ModuleInfo {
   key: ModuleKey;
@@ -23,6 +31,11 @@ export const MODULES: ModuleInfo[] = [
   { key: 'Projects', label: 'Projects', hides: 'its page' },
   { key: 'Habits', label: 'Habits', hides: 'its page and the habits card on My Day' },
   { key: 'Journal', label: 'Journal', hides: 'its page and the journal card on My Day' },
+  {
+    key: 'Documents',
+    label: 'Documents',
+    hides: 'its page and "Documents expiring" on My Day',
+  },
   {
     key: 'Story',
     label: 'Story Mode',

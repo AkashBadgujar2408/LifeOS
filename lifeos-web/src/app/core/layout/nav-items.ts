@@ -44,6 +44,12 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [{ label: 'Journal', route: '/journal', icon: 'bi-journal-text', module: 'Journal' }],
   },
   {
+    label: 'Life administration',
+    items: [
+      { label: 'Documents', route: '/documents', icon: 'bi-folder2-open', module: 'Documents' },
+    ],
+  },
+  {
     label: 'Your story',
     items: [
       { label: 'Story', route: '/story', icon: 'bi-book', module: 'Story' },

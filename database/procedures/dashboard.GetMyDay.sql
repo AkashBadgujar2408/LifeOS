@@ -6,7 +6,7 @@ SET ANSI_NULLS ON;
 GO
 
 -- Everything the My Day screen shows, in one round trip: several result sets, read in order by DashboardService
--- through Dapper's QueryMultiple. Depends on 01_shared.sql to 07_dashboard.sql.
+-- through Dapper's QueryMultiple. Depends on 01_shared.sql to 09_documents.sql.
 --
 -- Result sets, in this order:
 --   1 Tasks          open tasks due today or earlier (overdue), plus tasks due today already done
@@ -18,6 +18,7 @@ GO
 --   7 Journal        the latest journal entry on or before @Today (zero or one row)
 --   8 EventSeries    recurring events that may occur today (Session 33; set 2 holds one-off events only)
 --   9 SkippedDates   skipped occurrences of those series — DashboardService expands 8 minus 9 with EventRecurrence
+--  10 Documents      documents expiring from 30 days ago to 60 days ahead (Session 40), soonest first
 --
 -- @Today is the user's local date; @DayStartUtc/@DayEndUtc are its local midnights as UTC instants, worked out by the
 -- client (same split as calendar.GetCalendarFeed). Half-open: [@DayStartUtc, @DayEndUtc).
@@ -219,5 +220,15 @@ BEGIN
     WHERE x.UserId = @UserId
       AND x.IsDeleted = 0
       AND x.OccurrenceDate <= DATEADD(DAY, 2, @Today);
+
+    -- 10 Documents whose expiry is close (up to 60 days ahead) or only just passed (up to 30 days ago, so one that
+    -- lapsed unnoticed still shows for a while, but not forever). The window lives here; DashboardInsights picks
+    -- the soonest for its nudge.
+    SELECT d.Id, d.Title, d.Kind, d.ExpiresOn
+    FROM documents.Documents d
+    WHERE d.UserId = @UserId
+      AND d.IsDeleted = 0
+      AND d.ExpiresOn BETWEEN DATEADD(DAY, -30, @Today) AND DATEADD(DAY, 60, @Today)
+    ORDER BY d.ExpiresOn, d.Title, d.Id;
 END
 GO

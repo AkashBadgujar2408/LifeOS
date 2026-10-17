@@ -21,8 +21,18 @@ public class MyDayDto
     public List<MyDayHabitDto> Habits { get; init; } = [];
     /// <summary>The latest journal entry on or before today, if any.</summary>
     public MyDayJournalDto? LatestJournalEntry { get; init; }
+    /// <summary>Documents expiring within 60 days or expired in the last 30, soonest first.</summary>
+    public List<MyDayDocumentDto> ExpiringDocuments { get; init; } = [];
     /// <summary>Rule-based nudges and good news (DashboardInsights), nudges first.</summary>
     public List<InsightDto> Insights { get; set; } = [];
+}
+
+public class MyDayDocumentDto
+{
+    public int Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string Kind { get; init; } = string.Empty;
+    public DateOnly ExpiresOn { get; init; }
 }
 
 public class MyDayTaskDto
@@ -109,6 +119,7 @@ public static class InsightKinds
     public const string JournalGap = "JournalGap";
     public const string OverdueTasks = "OverdueTasks";
     public const string HabitStreakMilestone = "HabitStreakMilestone";
+    public const string DocumentExpiring = "DocumentExpiring";
 }
 
 public static class InsightTones

@@ -60,6 +60,7 @@ public class DashboardService(AppDbContext db) : IDashboardService
         var journal = (await reader.ReadAsync<JournalRow>()).FirstOrDefault();
         var eventSeries = (await reader.ReadAsync<EventSeriesRow>()).ToList();
         var skippedDates = (await reader.ReadAsync<SkippedDateRow>()).ToList();
+        var documents = (await reader.ReadAsync<DocumentRow>()).ToList();
 
         var doneByHabit = entries
             .GroupBy(e => e.HabitId)
@@ -154,6 +155,13 @@ public class DashboardService(AppDbContext db) : IDashboardService
                 Excerpt = journal.Excerpt,
                 Mood = journal.Mood,
             },
+            ExpiringDocuments = documents.Select(d => new MyDayDocumentDto
+            {
+                Id = d.Id,
+                Title = d.Title,
+                Kind = d.Kind,
+                ExpiresOn = DateOnly.FromDateTime(d.ExpiresOn),
+            }).ToList(),
         };
 
         myDay.Insights = DashboardInsights.Evaluate(new InsightInputs(
@@ -164,7 +172,8 @@ public class DashboardService(AppDbContext db) : IDashboardService
                 .ToList(),
             myDay.Goals.Select(g => new InsightGoal(g.Id, g.Title, g.LastActivityAt)).ToList(),
             myDay.LatestJournalEntry?.EntryDate,
-            myDay.Tasks.Count(t => !t.IsDone && t.DueDate < today)));
+            myDay.Tasks.Count(t => !t.IsDone && t.DueDate < today),
+            myDay.ExpiringDocuments.Select(d => new InsightDocument(d.Id, d.Title, d.ExpiresOn)).ToList()));
 
         return OperationResult<MyDayDto>.Ok(myDay);
     }
@@ -306,6 +315,14 @@ public class DashboardService(AppDbContext db) : IDashboardService
         public string? Title { get; init; }
         public string? Excerpt { get; init; }
         public byte? Mood { get; init; }
+    }
+
+    private sealed class DocumentRow
+    {
+        public int Id { get; init; }
+        public string Title { get; init; } = string.Empty;
+        public string Kind { get; init; } = string.Empty;
+        public DateTime ExpiresOn { get; init; }
     }
 
     private static DateOnly? AsDate(DateTime? value) => value is null ? null : DateOnly.FromDateTime(value.Value);

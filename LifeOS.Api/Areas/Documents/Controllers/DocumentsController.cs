@@ -17,6 +17,9 @@ public class DocumentsController(IDocumentsService documentsService) : Controlle
     // message) by the file store while it streams; this only stops absurd requests early.
     private const long MaxUploadBytes = 10L * 20 * 1024 * 1024 + 1024 * 1024;
 
+    /// <summary>The type for ?raw=true responses: deliberately not a type any download manager knows.</summary>
+    public const string RawContentType = "application/x-lifeos-file";
+
     // What a browser can show itself; everything else is always a download.
     private static readonly HashSet<string> Previewable =
         ["application/pdf", "image/jpeg", "image/png", "image/gif", "image/webp", "text/plain", "text/csv"];
@@ -90,7 +93,7 @@ public class DocumentsController(IDocumentsService documentsService) : Controlle
     /// against the bytes), and nosniff stops the browser second-guessing it.
     /// </summary>
     [HttpGet("{id:int}/files/{fileId:int}")]
-    public async Task<IActionResult> Download(int id, int fileId, [FromQuery] bool download = false)
+    public async Task<IActionResult> Download(int id, int fileId, [FromQuery] bool download = false, [FromQuery] bool raw = false)
     {
         var result = await documentsService.OpenFileAsync(id, fileId);
         if (!result.Success)
@@ -99,13 +102,23 @@ public class DocumentsController(IDocumentsService documentsService) : Controlle
         }
 
         var file = result.Data!;
+        Response.Headers[HeaderNames.XContentTypeOptions] = "nosniff";
+        Response.Headers[HeaderNames.CacheControl] = "private, no-store";
+        Response.Headers["X-Content-SHA256"] = file.Sha256;
+
+        // ?raw=true is the app fetching bytes for itself (preview, its own Save): no file name and a neutral type,
+        // because download managers (IDM found in Session 40) seize anything that looks like a file — a PDF with a
+        // Content-Disposition — and the page then gets an empty response. The app already knows the real type and
+        // name from the document and rebuilds the Blob with them.
+        if (raw)
+        {
+            return File(file.Content, RawContentType, enableRangeProcessing: true);
+        }
+
         var inline = !download && Previewable.Contains(file.ContentType);
         var disposition = new ContentDispositionHeaderValue(inline ? "inline" : "attachment");
         disposition.SetHttpFileName(file.FileName);
         Response.Headers[HeaderNames.ContentDisposition] = disposition.ToString();
-        Response.Headers[HeaderNames.XContentTypeOptions] = "nosniff";
-        Response.Headers[HeaderNames.CacheControl] = "private, no-store";
-        Response.Headers["X-Content-SHA256"] = file.Sha256;
         return File(file.Content, file.ContentType, enableRangeProcessing: true);
     }
 

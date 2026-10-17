@@ -40,6 +40,9 @@ export class EntityOpener {
       case 'InboxItem':
         void this.router.navigate(['/inbox']);
         break;
+      case 'Document':
+        void this.router.navigate(['/documents', entityId]);
+        break;
       case 'JournalEntry':
         // Journal pages are addressed by day; only the entry's id is known here.
         this.journalService.get(entityId).subscribe({

@@ -47,6 +47,7 @@ function myDay(overrides: Partial<MyDay>): MyDay {
     goals: [],
     habits: [],
     latestJournalEntry: null,
+    expiringDocuments: [],
     insights: [],
     ...overrides,
   };

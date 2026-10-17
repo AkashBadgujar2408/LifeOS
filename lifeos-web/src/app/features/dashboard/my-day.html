@@ -303,6 +303,36 @@
           </section>
         }
 
+        <!-- Documents expiring -->
+        @if (day.expiringDocuments.length > 0) {
+          <section class="card" aria-labelledby="documents-heading">
+            <div class="card-body p-4">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <h2 id="documents-heading" class="h5 mb-0">Documents expiring</h2>
+                <a routerLink="/documents" class="small">All documents</a>
+              </div>
+              <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                @for (doc of day.expiringDocuments; track doc.id) {
+                  @let expiry = expiryStatus(doc.expiresOn, today());
+                  <li class="d-flex flex-wrap align-items-center gap-2">
+                    <a [routerLink]="['/documents', doc.id]" class="fw-semibold me-auto">{{
+                      doc.title
+                    }}</a>
+                    <span
+                      class="badge expiry-badge"
+                      [class.expiry-soon]="expiry.state === 'soon'"
+                      [class.expiry-expired]="expiry.state !== 'soon'"
+                    >
+                      {{ expiry.label }}
+                    </span>
+                    <span class="small text-body-secondary">{{ doc.expiresOn | date }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          </section>
+        }
+
         <!-- Inbox -->
         <section class="card" aria-labelledby="inbox-heading">
           <div class="card-body p-4">

@@ -1,0 +1,221 @@
+<div class="container py-4">
+  <a routerLink="/documents" class="small d-inline-block mb-3">
+    <i class="bi bi-arrow-left"></i> All documents
+  </a>
+
+  @if (loadFailed() && !document()) {
+    <app-load-error message="Couldn't load this document." (retry)="load()" />
+  } @else if (document(); as doc) {
+    <header class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+      <div class="min-w-0">
+        <div class="small text-body-secondary mb-1">
+          <i class="bi {{ kindMeta[doc.kind].icon }}" aria-hidden="true"></i>
+          {{ kindMeta[doc.kind].label }}
+          @if (doc.isVault) {
+            · <i class="bi bi-lock-fill" aria-hidden="true"></i> Sensitive
+          }
+        </div>
+        <h1 class="h3 mb-1 text-break">{{ doc.title }}</h1>
+        @switch (expiry().state) {
+          @case ('expired') {
+            <span class="badge expiry-badge expiry-expired">{{ expiry().label }}</span>
+          }
+          @case ('today') {
+            <span class="badge expiry-badge expiry-expired">{{ expiry().label }}</span>
+          }
+          @case ('soon') {
+            <span class="badge expiry-badge expiry-soon">{{ expiry().label }}</span>
+          }
+        }
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary" (click)="edit()">
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+        <button type="button" class="btn btn-outline-danger" (click)="remove()">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </div>
+    </header>
+
+    <div class="row g-3">
+      <div class="col-lg-5 d-flex flex-column gap-3">
+        <section class="card" aria-labelledby="facts-heading">
+          <div class="card-body p-4">
+            <h2 id="facts-heading" class="h6 mb-3">Details</h2>
+            <dl class="row small mb-0 document-facts">
+              <dt class="col-5">Issued by</dt>
+              <dd class="col-7">{{ doc.issuer || '—' }}</dd>
+              <dt class="col-5">Number</dt>
+              <dd class="col-7">{{ doc.numberLast4 ? '…' + doc.numberLast4 : '—' }}</dd>
+              <dt class="col-5">Issued on</dt>
+              <dd class="col-7">{{ doc.issuedOn ? (doc.issuedOn | date) : '—' }}</dd>
+              <dt class="col-5">Expires on</dt>
+              <dd class="col-7">{{ doc.expiresOn ? (doc.expiresOn | date) : "Doesn't expire" }}</dd>
+              @if (doc.expiresOn) {
+                <dt class="col-5">Expiry reminder</dt>
+                <dd class="col-7">{{ reminderLabel() ?? 'None' }}</dd>
+              }
+              @if (doc.tags.length > 0) {
+                <dt class="col-5">Tags</dt>
+                <dd class="col-7 d-flex flex-wrap gap-1">
+                  @for (tag of doc.tags; track tag.id) {
+                    <span class="badge rounded-pill text-bg-light">{{ tag.name }}</span>
+                  }
+                </dd>
+              }
+            </dl>
+            @if (doc.notes) {
+              <p class="small mb-0 mt-3 text-pre-line">{{ doc.notes }}</p>
+            }
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="files-heading">
+          <div class="card-body p-4">
+            <h2 id="files-heading" class="h6 mb-3">
+              Files <span class="badge rounded-pill text-bg-light">{{ doc.files.length }}</span>
+            </h2>
+
+            <label
+              class="drop-zone mb-3"
+              [class.is-dragging]="dragging()"
+              [class.is-busy]="uploading()"
+              (dragover)="onDragOver($event)"
+              (dragleave)="onDragLeave($event)"
+              (drop)="onDrop($event)"
+            >
+              <input
+                type="file"
+                class="visually-hidden"
+                multiple
+                [accept]="accepted"
+                [disabled]="uploading()"
+                (change)="onPick($event)"
+              />
+              <i class="bi bi-cloud-arrow-up fs-4" aria-hidden="true"></i>
+              @if (uploading()) {
+                <span>Uploading...</span>
+              } @else {
+                <span><strong>Drop scans here</strong> or click to choose</span>
+                <span class="small text-body-secondary">
+                  PDF, photos, text, Word or Excel — up to 20 MB each, 10 at a time
+                </span>
+              }
+            </label>
+
+            @if (doc.files.length === 0) {
+              <p class="small text-body-secondary mb-0">
+                No files yet — add the front and back, or every page.
+              </p>
+            } @else {
+              <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                @for (file of doc.files; track file.id) {
+                  <li class="file-row" [class.is-previewed]="preview()?.fileId === file.id">
+                    <div class="min-w-0 flex-grow-1">
+                      <div class="text-truncate fw-semibold small">{{ file.originalName }}</div>
+                      <div class="small text-body-secondary">
+                        {{ formatBytes(file.sizeBytes) }} · {{ file.createdAt | date }}
+                      </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1 justify-content-end">
+                      @if (previewKind(file)) {
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-secondary"
+                          [attr.aria-label]="'Preview ' + file.originalName"
+                          [disabled]="previewLoading() === file.id"
+                          (click)="showPreview(file)"
+                        >
+                          <i class="bi bi-eye"></i>
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        [attr.aria-label]="'Download ' + file.originalName"
+                        (click)="download(file)"
+                      >
+                        <i class="bi bi-download"></i>
+                      </button>
+                      <label
+                        class="btn btn-sm btn-outline-secondary mb-0"
+                        [attr.aria-label]="'Replace ' + file.originalName"
+                        title="Replace with a new version"
+                      >
+                        <i class="bi bi-arrow-repeat"></i>
+                        <input
+                          type="file"
+                          class="visually-hidden"
+                          [accept]="accepted"
+                          (change)="onReplace(file, $event)"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        [attr.aria-label]="'Remove ' + file.originalName"
+                        (click)="removeFile(file)"
+                      >
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+      </div>
+
+      <div class="col-lg-7 d-flex flex-column gap-3">
+        <section class="card" aria-labelledby="preview-heading">
+          <div class="card-body p-3 p-md-4">
+            <h2 id="preview-heading" class="h6 mb-3">Preview</h2>
+            @if (preview(); as p) {
+              @switch (p.kind) {
+                @case ('image') {
+                  <img [src]="p.url" class="preview-image" alt="Preview of the selected file" />
+                }
+                @case ('pdf') {
+                  <iframe
+                    [src]="p.frameUrl"
+                    class="preview-frame"
+                    title="Preview of the selected PDF"
+                  ></iframe>
+                }
+                @case ('text') {
+                  <pre class="preview-text small mb-0">{{ p.text }}</pre>
+                }
+              }
+            } @else if (previewLoading() !== null) {
+              <p class="small text-body-secondary mb-0">Opening...</p>
+            } @else {
+              <p class="small text-body-secondary mb-0">
+                PDFs, photos and text files show here. Other files (Word, Excel, HEIC photos) can be
+                downloaded.
+              </p>
+            }
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-body p-4">
+            <app-linked-items [entityType]="entityType" [entityId]="doc.id" />
+          </div>
+        </section>
+        <section class="card">
+          <div class="card-body p-4">
+            <app-entity-reminders
+              entityType="Document"
+              [entityId]="doc.id"
+              [entityTitle]="doc.title"
+            />
+          </div>
+        </section>
+      </div>
+    </div>
+  } @else {
+    <p class="text-body-secondary">Loading...</p>
+  }
+</div>

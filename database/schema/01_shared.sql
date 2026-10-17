@@ -188,7 +188,7 @@ BEGIN
         Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_UserHiddenModules PRIMARY KEY,
         UserId          INT               NOT NULL CONSTRAINT FK_UserHiddenModules_Users REFERENCES shared.Users(Id),
         ModuleKey       NVARCHAR(30)      NOT NULL CONSTRAINT CK_UserHiddenModules_ModuleKey
-                            CHECK (ModuleKey IN ('Calendar', 'Reminders', 'Goals', 'Tasks', 'Projects', 'Habits', 'Journal', 'Story')),
+                            CHECK (ModuleKey IN ('Calendar', 'Reminders', 'Goals', 'Tasks', 'Projects', 'Habits', 'Journal', 'Story', 'Documents')),
         CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_UserHiddenModules_CreatedAt DEFAULT (SYSUTCDATETIME()),
         UpdatedAt       DATETIME2         NULL,
         IsDeleted       BIT               NOT NULL CONSTRAINT DF_UserHiddenModules_IsDeleted DEFAULT (0),
@@ -244,4 +244,14 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.RecoveryCodes') AND name = 'IX_RecoveryCodes_User_Hash')
     CREATE INDEX IX_RecoveryCodes_User_Hash ON shared.RecoveryCodes(UserId, CodeHash) WHERE IsDeleted = 0 AND UsedAt IS NULL;
+GO
+
+-- Session 40: Documents can be switched off too. Databases created before then have the shorter module list.
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_UserHiddenModules_ModuleKey' AND definition NOT LIKE '%Documents%')
+    ALTER TABLE shared.UserHiddenModules DROP CONSTRAINT CK_UserHiddenModules_ModuleKey;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_UserHiddenModules_ModuleKey')
+    ALTER TABLE shared.UserHiddenModules ADD CONSTRAINT CK_UserHiddenModules_ModuleKey
+        CHECK (ModuleKey IN ('Calendar', 'Reminders', 'Goals', 'Tasks', 'Projects', 'Habits', 'Journal', 'Story', 'Documents'));
 GO

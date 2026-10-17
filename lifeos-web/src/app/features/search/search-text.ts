@@ -39,6 +39,7 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   Habit: 'bi-arrow-repeat',
   JournalEntry: 'bi-journal-text',
   InboxItem: 'bi-inbox',
+  Document: 'bi-folder2-open',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -61,4 +62,5 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   Habit: 'Habits',
   JournalEntry: 'Journal',
   InboxItem: 'Inbox',
+  Document: 'Documents',
 };

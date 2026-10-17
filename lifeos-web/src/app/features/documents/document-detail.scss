@@ -1,0 +1,100 @@
+// Documents need a few things utilities don't give: a drop zone, file rows and a preview area. Tokens only.
+:host {
+  display: block;
+}
+
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  color: var(--lifeos-ink);
+  background: var(--lifeos-canvas);
+  border: 2px dashed var(--lifeos-border);
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  > i {
+    color: var(--lifeos-teal);
+  }
+
+  &:hover,
+  &:focus-within {
+    border-color: var(--lifeos-teal);
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--lifeos-teal);
+    outline-offset: 2px;
+  }
+
+  &.is-dragging {
+    border-color: var(--lifeos-teal);
+    background: color-mix(in srgb, var(--lifeos-teal) 10%, white);
+  }
+
+  &.is-busy {
+    cursor: progress;
+    opacity: 0.7;
+  }
+}
+
+.file-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--lifeos-border);
+  border-radius: 0.5rem;
+
+  &.is-previewed {
+    border-color: var(--lifeos-teal);
+    box-shadow: inset 3px 0 0 var(--lifeos-teal);
+  }
+}
+
+.preview-image {
+  display: block;
+  max-width: 100%;
+  max-height: 75vh;
+  margin: 0 auto;
+  border-radius: 0.4rem;
+}
+
+.preview-frame {
+  display: block;
+  width: 100%;
+  height: 75vh;
+  min-height: 24rem;
+  border: 1px solid var(--lifeos-border);
+  border-radius: 0.4rem;
+}
+
+.preview-text {
+  max-height: 60vh;
+  overflow: auto;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  background: var(--lifeos-canvas);
+  border-radius: 0.4rem;
+}
+
+.document-facts dd {
+  overflow-wrap: anywhere;
+}
+
+.text-pre-line {
+  white-space: pre-line;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-zone {
+    transition: none;
+  }
+}

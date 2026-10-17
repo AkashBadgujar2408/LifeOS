@@ -1,0 +1,219 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="document-editor-heading" class="modal-title h5">
+      {{ document() ? 'Edit document' : 'New document' }}
+    </h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    <div class="row g-3">
+      <div class="col-sm-8">
+        <label class="form-label" for="document-title">Title</label>
+        <input
+          id="document-title"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('title')"
+          formControlName="title"
+          placeholder="e.g. Passport"
+          autocomplete="off"
+          ngbAutofocus
+        />
+        @if (fieldError('title'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label" for="document-kind">Kind</label>
+        <select id="document-kind" class="form-select" formControlName="kind">
+          @for (kind of kinds; track kind) {
+            <option [ngValue]="kind">{{ kindMeta[kind].label }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-8">
+        <label class="form-label" for="document-issuer">
+          Issued by <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <input
+          id="document-issuer"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('issuer')"
+          formControlName="issuer"
+          placeholder="e.g. Passport Seva, University of Pune"
+          autocomplete="off"
+        />
+        @if (fieldError('issuer'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-4">
+        <label class="form-label" for="document-number">
+          Number <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <input
+          id="document-number"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('number')"
+          formControlName="number"
+          placeholder="Last 4 is enough"
+          autocomplete="off"
+          aria-describedby="document-number-help"
+        />
+        <div id="document-number-help" class="form-text">Only the last 4 characters are kept.</div>
+        @if (fieldError('number'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="document-issued">
+          Issued on <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <div class="input-group">
+          <input
+            id="document-issued"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('issuedOn')"
+            formControlName="issuedOn"
+            placeholder="e.g. 15/Dec/2016"
+            autocomplete="off"
+            ngbDatepicker
+            #issuedPicker="ngbDatepicker"
+            [minDate]="minDate"
+            [maxDate]="maxDate"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the issue date"
+            (click)="issuedPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('issuedOn'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="document-expires">
+          Expires on <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <div class="input-group">
+          <input
+            id="document-expires"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('expiresOn')"
+            formControlName="expiresOn"
+            placeholder="e.g. 14/Dec/2026"
+            autocomplete="off"
+            ngbDatepicker
+            #expiresPicker="ngbDatepicker"
+            [minDate]="minDate"
+            [maxDate]="maxDate"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the expiry date"
+            (click)="expiresPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('expiresOn'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    </div>
+
+    @if (form.controls.expiresOn.value) {
+      <div>
+        <label class="form-label" for="document-reminder">Remind me</label>
+        <select
+          id="document-reminder"
+          class="form-select w-auto"
+          formControlName="expiryReminderDays"
+          aria-describedby="document-reminder-help"
+        >
+          @for (option of reminderOptions; track option.label) {
+            <option [ngValue]="option.days">{{ option.label }}</option>
+          }
+        </select>
+        <div id="document-reminder-help" class="form-text">
+          A reminder at 9:00 that morning; it moves if you change the expiry date.
+        </div>
+        @if (fieldError('reminder'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    }
+
+    <div class="form-check form-switch">
+      <input
+        id="document-vault"
+        class="form-check-input"
+        type="checkbox"
+        role="switch"
+        formControlName="isVault"
+        aria-describedby="document-vault-help"
+      />
+      <label class="form-check-label" for="document-vault">Sensitive (vault)</label>
+      <div id="document-vault-help" class="form-text">
+        Marked with a lock in the library. Encryption and asking for your password before opening
+        come next.
+      </div>
+    </div>
+
+    <div>
+      <span class="form-label d-block"
+        >Tags <span class="text-body-secondary small">(optional)</span></span
+      >
+      <app-tag-picker [selectedTagIds]="tagIds()" (selectedTagIdsChange)="tagIds.set($event)" />
+    </div>
+
+    <div>
+      <label class="form-label" for="document-notes">
+        Notes <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="document-notes"
+        class="form-control"
+        rows="3"
+        [class.is-invalid]="fieldError('notes')"
+        formControlName="notes"
+        placeholder="Where the original is kept, what renewing involves"
+      ></textarea>
+      @if (fieldError('notes'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">
+      {{ document() ? 'Save' : 'Add document' }}
+    </button>
+  </div>
+</form>
