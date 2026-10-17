@@ -14,6 +14,7 @@ import { AuthService } from '../services/auth.service';
 import { InboxService } from '../services/inbox.service';
 import { QuickAddService } from '../services/quick-add.service';
 import { RemindersService } from '../services/reminders.service';
+import { SearchPaletteService } from '../services/search-palette.service';
 import { QuickAdd } from '../../shared/components/quick-add/quick-add';
 import { NAV_GROUPS } from './nav-items';
 
@@ -23,6 +24,7 @@ const REMINDER_CHECK_MS = 60_000;
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgTemplateOutlet, QuickAdd],
+  host: { '(document:keydown)': 'onKeydown($event)' },
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
@@ -33,9 +35,13 @@ export class Shell implements OnInit {
   protected readonly inboxService = inject(InboxService);
   protected readonly quickAdd = inject(QuickAddService);
   protected readonly remindersService = inject(RemindersService);
+  private readonly searchPalette = inject(SearchPaletteService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly navGroups = NAV_GROUPS;
+
+  /** How the search shortcut reads on this machine. */
+  protected readonly searchShortcut = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K';
 
   protected readonly initials = computed(() => {
     const name = this.authService.currentUser()?.displayName ?? '';
@@ -86,6 +92,25 @@ export class Shell implements OnInit {
     this.offcanvas.dismiss();
   }
 
+  protected openSearch(): void {
+    this.closeDrawer();
+    void this.searchPalette.open();
+  }
+
+  /**
+   * Ctrl+K / Cmd+K opens search from anywhere, even while typing (the usual palette shortcut); "/" only when not
+   * typing in a field, so it can still be typed.
+   */
+  protected onKeydown(event: KeyboardEvent): void {
+    const modifier = event.ctrlKey || event.metaKey;
+    const isPaletteKey = modifier && !event.altKey && event.key.toLowerCase() === 'k';
+    const isSlash = event.key === '/' && !modifier && !event.altKey && !isTyping(event.target);
+    if (isPaletteKey || isSlash) {
+      event.preventDefault();
+      void this.searchPalette.open();
+    }
+  }
+
   protected openQuickAdd(): void {
     this.closeDrawer();
     this.quickAdd.open();
@@ -98,4 +123,13 @@ export class Shell implements OnInit {
     this.remindersService.reset();
     this.router.navigateByUrl('/login');
   }
+}
+
+function isTyping(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target instanceof HTMLSelectElement ||
+    (target instanceof HTMLElement && target.isContentEditable)
+  );
 }

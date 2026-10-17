@@ -695,3 +695,15 @@
 - UAT test data: `moveuser1` "Deep work" (Career, Tue 20 Oct 10:00 IST), "Gym" weekly series (Health, now Wednesdays) + its one-off on 10 Nov; `moveuser2` (empty).
 
 - Next up: **Session 36 — Global search** (plan, Section 7).
+
+## Last session: 2026-10-17 — Session 36 — Global search
+- Shipped (backend): `GET api/Shared/Search?q=` → `SearchService`: trims the query (under 2 characters → no groups, over 100 → 400), runs every registered `ILinkableEntityProvider.SearchAsync` one after another in a fixed order (Goal, Task, Project, Event, Habit, JournalEntry, InboxItem, then any later type), 5 per type with `hasMore`; journal hits get a `snippet` from the pure `SearchSnippets.Around` (one line, whole words, "…" where text was cut, the start of the text when the match was in the title; 6 xUnit cases).
+- Shipped (frontend): `SearchPalette` (lazy-loaded chunk, opened through `SearchPaletteService.open()`): 200 ms debounce, idle / searching / failed / nothing-found states, groups with plural headings and the module icons, match highlighted (`highlightParts`), journal excerpt clamped to two lines, ↑/↓ wrap (`moveActive`) + Enter or click, combobox + listbox ARIA (`aria-activedescendant`), key hints hidden on phones. Entry points: Ctrl/Cmd+K anywhere, `/` outside text fields, sidebar **Search** button (shows ⌘K on Apple devices), phone top-bar icon. New shared `EntityOpener` opens any item by type/id; `ReminderTargetOpener` is now a thin wrapper over it.
+- Verified:
+  - curl (`searchuser1`/`searchuser2`): "lisbon" → Goals "Visit Lisbon in spring", Tasks "Book Lisbon flights", Events "Lisbon planning call", Journal 15/Oct/2026 with "…Priya. She told me all about her week in Lisbon and the tiled houses in Alfama; …", Inbox "Lisbon food tour?"; "packing" over six tasks → five + `hasMore`; "l" → []; 101 characters → 400; `searchuser2` → [].
+  - Browser (`searchuser1`): Ctrl+K from My Day → all five groups; ↓↓↓ Enter → `/journal/2026-10-15`; "flights" + click → task editor; a `/` keydown opens the palette from the page but not from the journal textarea; 375px (iframe): top-bar search icon opens it, results fit, no horizontal scroll; no console errors.
+  - `dotnet build` 0 warnings; `ng build` (palette in its own 9 kB chunk), lint, Prettier clean; tests **167 backend + 126 frontend**.
+- Decisions (mine — say if you want them changed): Ctrl+K works even while typing in a field (the usual palette convention), `/` doesn't; processed inbox items are searched like the link picker sees them; the route lives in the Shared area (`api/Shared/Search`) like the other cross-cutting endpoints.
+- UAT test data: `searchuser1` (the Lisbon goal/task/event/journal day/inbox idea, "Packing item 1–6" tasks); `searchuser2` (empty).
+
+- Next up: **Session 37 — Settings + account** (plan, Section 7).

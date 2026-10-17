@@ -87,6 +87,12 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   `ILinkableEntityProvider` (a stable type string, titles and search through `AppDbContext`, so the filters apply).
   Links are stored in one canonical direction, so a unique index rejects duplicates either way. Deleting an item
   removes its links. UI: `<app-linked-items entityType="Goal" [entityId]="id" />`.
+- **Global search** (Session 36): `GET api/Shared/Search?q=` (`SearchService`) runs the same
+  `ILinkableEntityProvider.SearchAsync` the link picker uses, one provider after another (one DbContext), 5 per type
+  + `hasMore`, groups in a fixed order; journal hits get a `SearchSnippets.Around` excerpt of the text. A new linkable
+  module is searchable with no change here. UI: the lazy-loaded palette (`features/search/search-palette`) opened by
+  Ctrl/Cmd+K, `/` (outside fields), the sidebar Search button or the phone top bar, via `SearchPaletteService.open()`;
+  results open through `EntityOpener` (shared with reminder targets).
 - **Inbox / Quick Add**: press <kbd>Q</kbd> anywhere to capture a task, note, journal line or idea into
   `shared.InboxItems`. Modules turn items into real entities ("Make it a task", "Add to journal"), moving the item's
   links and marking it processed in one transaction.
@@ -122,7 +128,7 @@ All routes need a JWT except register, login and ping.
 | Area | Endpoints |
 |---|---|
 | `api/Shared/Auth` | `POST register`, `POST login`, `GET me` |
-| `api/Shared/Tags`, `Inbox`, `LifeAreas`, `EntityLinks` | CRUD; Inbox `PUT {id}/processed`; EntityLinks `GET types`, `GET candidates` |
+| `api/Shared/Tags`, `Inbox`, `LifeAreas`, `EntityLinks`, `Search` | CRUD; Inbox `PUT {id}/processed`; EntityLinks `GET types`, `GET candidates`; `GET Search?q=` (matches grouped per linkable type) |
 | `api/Goals/Goals` | CRUD, `PUT {id}/status`; milestones under `Goals/{goalId}/Milestones` (CRUD, `PUT {id}/completed`, `PUT order`) |
 | `api/Tasks/Tasks` | CRUD, `PUT {id}/completed`, `POST from-inbox/{id}` |
 | `api/Tasks/Projects` | CRUD, `PUT {id}/status` |

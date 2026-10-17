@@ -12,6 +12,12 @@
       <kbd>Q</kbd>
     </button>
 
+    <button type="button" class="sidebar-capture sidebar-search" (click)="openSearch()">
+      <i class="bi bi-search"></i>
+      <span>Search</span>
+      <kbd>{{ searchShortcut }}</kbd>
+    </button>
+
     <nav class="sidebar-nav" aria-label="Main">
       @for (group of navGroups; track group.label) {
         <div class="nav-group">
@@ -93,6 +99,14 @@
         <img src="logo.png" alt="" height="26" width="26" />
         <span class="fw-semibold">LifeOS</span>
       </a>
+      <button
+        type="button"
+        class="btn btn-sm text-white ms-auto"
+        aria-label="Search"
+        (click)="openSearch()"
+      >
+        <i class="bi bi-search fs-5"></i>
+      </button>
     </header>
 
     <main class="app-content">

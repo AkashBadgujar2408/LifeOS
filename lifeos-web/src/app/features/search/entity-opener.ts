@@ -1,0 +1,78 @@
+import { Injectable, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { CalendarService } from '../../core/services/calendar.service';
+import { JournalService } from '../../core/services/journal.service';
+import { RemindersService } from '../../core/services/reminders.service';
+import { TasksService } from '../../core/services/tasks.service';
+import { ToastService } from '../../core/services/toast.service';
+import { openEventEditor } from '../calendar/event-editor';
+import { openTaskEditor } from '../tasks/task-editor';
+import { apiErrorMessage } from '../../core/services/api-error';
+
+/**
+ * Opens any linkable item by its type and id, the way the calendar does: tasks and events in their editor, goals,
+ * projects and habits on their page, a journal entry on its day, an inbox item in the Inbox. Used by search and by
+ * reminder rows (through ReminderTargetOpener). Kept out of ReminderRow and the editors so they don't import
+ * themselves in a cycle.
+ */
+@Injectable({ providedIn: 'root' })
+export class EntityOpener {
+  private readonly router = inject(Router);
+  private readonly modal = inject(NgbModal);
+  private readonly tasksService = inject(TasksService);
+  private readonly calendarService = inject(CalendarService);
+  private readonly journalService = inject(JournalService);
+  private readonly toast = inject(ToastService);
+  private readonly remindersService = inject(RemindersService);
+
+  open(entityType: string, entityId: number): void {
+    switch (entityType) {
+      case 'Goal':
+        void this.router.navigate(['/goals', entityId]);
+        break;
+      case 'Project':
+        void this.router.navigate(['/projects', entityId]);
+        break;
+      case 'Habit':
+        void this.router.navigate(['/habits', entityId]);
+        break;
+      case 'InboxItem':
+        void this.router.navigate(['/inbox']);
+        break;
+      case 'JournalEntry':
+        // Journal pages are addressed by day; only the entry's id is known here.
+        this.journalService.get(entityId).subscribe({
+          next: (entry) => void this.router.navigate(['/journal', entry.entryDate]),
+          error: (err) =>
+            this.toast.error(apiErrorMessage(err, 'Could not open the journal entry.')),
+        });
+        break;
+      case 'Task':
+        this.tasksService.get(entityId).subscribe({
+          next: async (task) => {
+            const result = await openTaskEditor(this.modal, { task });
+            if (result) {
+              // A new title shows on reminders about it; a deleted task takes its reminders with it.
+              this.remindersService.notifyChanged();
+              this.toast.success(result.kind === 'saved' ? 'Task saved.' : 'Task deleted.');
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the task.')),
+        });
+        break;
+      case 'Event':
+        this.calendarService.getEvent(entityId).subscribe({
+          next: async (event) => {
+            const result = await openEventEditor(this.modal, { event });
+            if (result) {
+              this.remindersService.notifyChanged();
+              this.toast.success(result.kind === 'saved' ? 'Event saved.' : 'Event deleted.');
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the event.')),
+        });
+        break;
+    }
+  }
+}

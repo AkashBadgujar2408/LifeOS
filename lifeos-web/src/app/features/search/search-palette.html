@@ -1,0 +1,115 @@
+<div class="modal-header border-0 pb-2">
+  <label id="search-palette-label" class="visually-hidden" for="search-palette-input">Search</label>
+  <div class="input-group">
+    <span class="input-group-text bg-transparent">
+      <i class="bi bi-search" aria-hidden="true"></i>
+    </span>
+    <input
+      id="search-palette-input"
+      type="search"
+      class="form-control form-control-lg"
+      placeholder="Search goals, tasks, events, journal..."
+      autocomplete="off"
+      spellcheck="false"
+      role="combobox"
+      aria-autocomplete="list"
+      aria-controls="search-palette-results"
+      [attr.aria-expanded]="groups().length > 0"
+      [attr.aria-activedescendant]="active() >= 0 ? optionId(active()) : null"
+      [value]="query()"
+      (input)="onInput($event)"
+      (keydown)="onKeydown($event)"
+      ngbAutofocus
+    />
+  </div>
+  <button
+    type="button"
+    class="btn-close ms-2"
+    aria-label="Close search"
+    (click)="activeModal.dismiss()"
+  ></button>
+</div>
+
+<div class="modal-body pt-0" #list>
+  @switch (state().kind) {
+    @case ('idle') {
+      <p class="text-body-secondary small mb-1">
+        Type at least {{ minLength }} letters. Searches the titles of goals, tasks, projects,
+        events, habits and inbox items, and the words of your journal.
+      </p>
+    }
+    @case ('loading') {
+      <p class="text-body-secondary small mb-1" role="status">Searching...</p>
+    }
+    @case ('failed') {
+      <p class="text-danger small mb-1" role="alert">{{ failure() }}</p>
+    }
+    @case ('done') {
+      @if (groups().length === 0) {
+        <p class="text-body-secondary small mb-1" role="status">
+          Nothing matches "{{ query().trim() }}".
+        </p>
+      }
+    }
+  }
+
+  <div id="search-palette-results" role="listbox" aria-label="Search results">
+    @for (group of groups(); track group.entityType) {
+      <div role="group" [attr.aria-labelledby]="'search-group-' + group.entityType" class="mb-2">
+        <div [id]="'search-group-' + group.entityType" class="search-group-label">
+          {{ labels[group.entityType] ?? group.displayName }}
+        </div>
+        @for (item of group.items; track item.entityId; let i = $index) {
+          <div
+            [id]="optionId(group.offset + i)"
+            role="option"
+            class="search-option"
+            [class.is-active]="active() === group.offset + i"
+            [attr.aria-selected]="active() === group.offset + i"
+            tabindex="-1"
+            (click)="open(item)"
+            (keydown.enter)="open(item)"
+            (mousemove)="active.set(group.offset + i)"
+          >
+            <i class="bi {{ icons[item.entityType] ?? 'bi-dot' }}" aria-hidden="true"></i>
+            <div class="min-w-0">
+              <div class="text-truncate">
+                @for (part of highlight(item.title, query()); track $index) {
+                  @if (part.match) {
+                    <mark>{{ part.text }}</mark>
+                  } @else {
+                    {{ part.text }}
+                  }
+                }
+              </div>
+              @if (item.snippet) {
+                <div class="small text-body-secondary search-snippet">
+                  @for (part of highlight(item.snippet, query()); track $index) {
+                    @if (part.match) {
+                      <mark>{{ part.text }}</mark>
+                    } @else {
+                      {{ part.text }}
+                    }
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+        @if (group.hasMore) {
+          <div class="small text-body-secondary search-more">
+            More matches here. Keep typing to narrow it down.
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
+
+<div
+  class="modal-footer d-none d-sm-flex justify-content-start border-0 pt-0 small text-body-secondary"
+>
+  <span><kbd>↑</kbd> <kbd>↓</kbd> to move</span>
+  <span><kbd>Enter</kbd> to open</span>
+  <span><kbd>Esc</kbd> to close</span>
+</div>

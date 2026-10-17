@@ -222,3 +222,10 @@
 .sidebar-count-alert {
   background: color-mix(in srgb, var(--lifeos-amber) 55%, white);
 }
+
+// Search sits right under Quick add, a quieter second entry point.
+.sidebar-search {
+  margin-top: -0.5rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+}
