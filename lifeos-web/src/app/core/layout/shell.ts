@@ -15,6 +15,8 @@ import { InboxService } from '../services/inbox.service';
 import { QuickAddService } from '../services/quick-add.service';
 import { RemindersService } from '../services/reminders.service';
 import { SearchPaletteService } from '../services/search-palette.service';
+import { SettingsService } from '../services/settings.service';
+import { visibleNavGroups } from '../settings/visibility';
 import { QuickAdd } from '../../shared/components/quick-add/quick-add';
 import { NAV_GROUPS } from './nav-items';
 
@@ -36,9 +38,13 @@ export class Shell implements OnInit {
   protected readonly quickAdd = inject(QuickAddService);
   protected readonly remindersService = inject(RemindersService);
   private readonly searchPalette = inject(SearchPaletteService);
+  private readonly settingsService = inject(SettingsService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly navGroups = NAV_GROUPS;
+  /** The navigation without the modules switched off in Settings. */
+  protected readonly navGroups = computed(() =>
+    visibleNavGroups(NAV_GROUPS, this.settingsService.hiddenModules()),
+  );
 
   /** How the search shortcut reads on this machine. */
   protected readonly searchShortcut = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K';
@@ -54,6 +60,8 @@ export class Shell implements OnInit {
 
   ngOnInit(): void {
     this.inboxService.refreshOpenCounts();
+    // What's switched off shapes the nav and My Day. If this fails, everything just stays visible.
+    this.settingsService.load().subscribe({ error: () => undefined });
 
     // No job server (deferred to Phase 2): reminders surface because the app asks what's due — now, every minute
     // while it's open, and whenever the tab comes back into view.
@@ -121,6 +129,7 @@ export class Shell implements OnInit {
     this.authService.logout();
     this.inboxService.resetOpenCounts();
     this.remindersService.reset();
+    this.settingsService.reset();
     this.router.navigateByUrl('/login');
   }
 }

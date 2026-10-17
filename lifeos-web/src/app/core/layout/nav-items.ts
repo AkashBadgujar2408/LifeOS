@@ -1,9 +1,13 @@
+import type { ModuleKey } from '../services/settings.service';
+
 export interface NavItem {
   label: string;
   route: string;
   icon: string;
   /** Exact-match active state; needed for '/' so it isn't "active" on every page. */
   exact?: boolean;
+  /** The module this entry belongs to: switching that module off in Settings hides it. */
+  module?: ModuleKey;
 }
 
 export interface NavGroup {
@@ -22,34 +26,37 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'My Day', route: '/', icon: 'bi-sun', exact: true },
       { label: 'Inbox', route: '/inbox', icon: 'bi-inbox' },
-      { label: 'Calendar', route: '/calendar', icon: 'bi-calendar3' },
-      { label: 'Reminders', route: '/reminders', icon: 'bi-bell' },
+      { label: 'Calendar', route: '/calendar', icon: 'bi-calendar3', module: 'Calendar' },
+      { label: 'Reminders', route: '/reminders', icon: 'bi-bell', module: 'Reminders' },
     ],
   },
   {
     label: 'Planning & growth',
     items: [
-      { label: 'Goals', route: '/goals', icon: 'bi-flag' },
-      { label: 'Tasks', route: '/tasks', icon: 'bi-check2-square' },
-      { label: 'Projects', route: '/projects', icon: 'bi-kanban' },
-      { label: 'Habits', route: '/habits', icon: 'bi-arrow-repeat' },
+      { label: 'Goals', route: '/goals', icon: 'bi-flag', module: 'Goals' },
+      { label: 'Tasks', route: '/tasks', icon: 'bi-check2-square', module: 'Tasks' },
+      { label: 'Projects', route: '/projects', icon: 'bi-kanban', module: 'Projects' },
+      { label: 'Habits', route: '/habits', icon: 'bi-arrow-repeat', module: 'Habits' },
     ],
   },
   {
     label: 'Wellbeing',
-    items: [{ label: 'Journal', route: '/journal', icon: 'bi-journal-text' }],
+    items: [{ label: 'Journal', route: '/journal', icon: 'bi-journal-text', module: 'Journal' }],
   },
   {
     label: 'Your story',
     items: [
-      { label: 'Story', route: '/story', icon: 'bi-book' },
-      { label: 'Missions', route: '/missions', icon: 'bi-compass' },
-      { label: 'Life areas', route: '/life-areas', icon: 'bi-bar-chart-steps' },
-      { label: 'Achievements', route: '/achievements', icon: 'bi-award' },
+      { label: 'Story', route: '/story', icon: 'bi-book', module: 'Story' },
+      { label: 'Missions', route: '/missions', icon: 'bi-compass', module: 'Story' },
+      { label: 'Life areas', route: '/life-areas', icon: 'bi-bar-chart-steps', module: 'Story' },
+      { label: 'Achievements', route: '/achievements', icon: 'bi-award', module: 'Story' },
     ],
   },
   {
     label: 'System',
-    items: [{ label: 'Tags', route: '/tags', icon: 'bi-tags' }],
+    items: [
+      { label: 'Tags', route: '/tags', icon: 'bi-tags' },
+      { label: 'Settings', route: '/settings', icon: 'bi-gear' },
+    ],
   },
 ];

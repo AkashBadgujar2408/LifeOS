@@ -3,6 +3,7 @@ import { rxResource } from '@angular/core/rxjs-interop';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { DashboardService, LifeBalanceArea } from '../../core/services/dashboard.service';
 import { balanceSummary, joinNames } from './my-day-view';
+import { SettingsService } from '../../core/services/settings.service';
 
 /**
  * The Life Balance "wheel", drawn as one horizontal bar per life area (the dataviz guidance: comparing magnitude
@@ -21,7 +22,7 @@ import { balanceSummary, joinNames } from './my-day-view';
         <p class="small text-body-secondary mb-3">{{ summary }}</p>
       }
       <ul class="list-unstyled mb-0 d-flex flex-column gap-2" aria-label="Activity per life area">
-        @for (area of data.areas; track area.lifeAreaId) {
+        @for (area of areas(); track area.lifeAreaId) {
           <li
             class="balance-row"
             tabindex="0"
@@ -79,17 +80,24 @@ export class LifeBalance {
   readonly from = input.required<string>();
   readonly to = input.required<string>();
 
+  private readonly hiddenAreaIds = inject(SettingsService).hiddenLifeAreaIds;
+
   protected readonly balance = rxResource({
     params: () => ({ from: this.from(), to: this.to() }),
     stream: ({ params }) => this.dashboardService.getLifeBalance(params.from, params.to),
   });
+
+  /** The areas switched on in Settings. */
+  protected readonly areas = computed(() =>
+    (this.balance.value()?.areas ?? []).filter((a) => !this.hiddenAreaIds().has(a.lifeAreaId)),
+  );
 
   protected readonly sentence = computed(() => {
     const data = this.balance.value();
     if (!data) {
       return null;
     }
-    const { busiest, quiet } = balanceSummary(data.areas);
+    const { busiest, quiet } = balanceSummary(this.areas());
     if (busiest.length === 0) {
       return 'Nothing logged against a life area in this period yet. Goals, habits and journal entries filed under an area show up here.';
     }

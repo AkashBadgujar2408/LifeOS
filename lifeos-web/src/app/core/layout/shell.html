@@ -19,7 +19,7 @@
     </button>
 
     <nav class="sidebar-nav" aria-label="Main">
-      @for (group of navGroups; track group.label) {
+      @for (group of navGroups(); track group.label) {
         <div class="nav-group">
           <div class="nav-group-label" [attr.id]="'nav-group-' + $index">{{ group.label }}</div>
           <ul class="list-unstyled mb-0" [attr.aria-labelledby]="'nav-group-' + $index">

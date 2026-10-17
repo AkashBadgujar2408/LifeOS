@@ -75,6 +75,8 @@ try
     builder.Services.AddScoped<ILifeAreasStoryService, LifeAreasStoryService>();
     builder.Services.AddScoped<IAchievementsService, AchievementsService>();
     builder.Services.AddScoped<ISearchService, SearchService>();
+    builder.Services.AddScoped<ISettingsService, SettingsService>();
+    builder.Services.AddRecoveryRateLimit();
 
     // Linkable entity types for EntityLinks — each module registers its own provider here (Goal, Task, ...).
     builder.Services.AddScoped<ILinkableEntityProvider, InboxLinkableProvider>();
@@ -130,6 +132,7 @@ try
 
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
 
     app.MapControllers();
 

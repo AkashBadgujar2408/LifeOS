@@ -37,6 +37,9 @@
     <button type="submit" class="btn btn-primary w-100 mt-2" [disabled]="submitting()">
       {{ submitting() ? 'Logging in...' : 'Log in' }}
     </button>
+    <div class="text-end mt-2">
+      <a routerLink="/reset-password" class="small">Forgot your password?</a>
+    </div>
   </form>
 
   <p class="text-center mt-4 mb-0 text-secondary">

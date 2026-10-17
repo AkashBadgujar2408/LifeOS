@@ -20,6 +20,8 @@ import {
   GoalsService,
 } from '../../core/services/goals.service';
 import { LifeArea, LifeAreasService } from '../../core/services/life-areas.service';
+import { SettingsService } from '../../core/services/settings.service';
+import { pickableLifeAreas } from '../../core/settings/visibility';
 import { dateFieldError } from '../../core/dates/date-format';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -51,6 +53,8 @@ export class GoalForm implements OnInit {
   protected readonly typeLabels = GOAL_TYPE_LABELS;
   protected readonly typeHints = GOAL_TYPE_HINTS;
 
+  protected readonly hiddenAreaIds = inject(SettingsService).hiddenLifeAreaIds;
+  protected readonly pickableLifeAreas = pickableLifeAreas;
   protected readonly lifeAreas = signal<LifeArea[]>([]);
   protected readonly tagIds = signal<number[]>([]);
   protected readonly loading = signal(false);

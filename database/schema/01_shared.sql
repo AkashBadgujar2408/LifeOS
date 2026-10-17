@@ -163,3 +163,85 @@ JOIN sys.tables t ON t.object_id = kc.parent_object_id
 WHERE kc.type = 'PK' AND SCHEMA_NAME(t.schema_id) = 'shared' AND kc.name <> N'PK_' + t.name;
 EXEC sp_executesql @renamePks;
 GO
+
+-- Settings + account (Session 37). Preferences live on the user row; what can be switched off and the password
+-- recovery codes get their own small tables.
+--   TimeZone      the IANA zone repeating events and reminders follow (NULL = whatever the device says).
+--   BaseCurrency  ISO 4217 code money is reported in (Finance, Phase 2); NULL until chosen.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('shared.Users') AND name = 'TimeZone')
+    ALTER TABLE shared.Users ADD
+        TimeZone        NVARCHAR(64)      NULL,
+        BaseCurrency    CHAR(3)           NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Users_BaseCurrency')
+    ALTER TABLE shared.Users ADD CONSTRAINT CK_Users_BaseCurrency
+        CHECK (BaseCurrency IS NULL OR BaseCurrency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]');
+GO
+
+-- Modules a user has switched off (Blueprint principle 9: modularity). Hidden = left out of the navigation and My
+-- Day; the data stays and the pages still open. Turning one back on soft-deletes the row (filtered unique index).
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('shared.UserHiddenModules'))
+BEGIN
+    CREATE TABLE shared.UserHiddenModules
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_UserHiddenModules PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_UserHiddenModules_Users REFERENCES shared.Users(Id),
+        ModuleKey       NVARCHAR(30)      NOT NULL CONSTRAINT CK_UserHiddenModules_ModuleKey
+                            CHECK (ModuleKey IN ('Calendar', 'Reminders', 'Goals', 'Tasks', 'Projects', 'Habits', 'Journal', 'Story')),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_UserHiddenModules_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_UserHiddenModules_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.UserHiddenModules') AND name = 'UX_UserHiddenModules_User_Module')
+    CREATE UNIQUE INDEX UX_UserHiddenModules_User_Module ON shared.UserHiddenModules(UserId, ModuleKey) WHERE IsDeleted = 0;
+GO
+
+-- Life areas a user has switched off: no longer offered in pickers or shown in the Life balance card. Things already
+-- filed under one keep it.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('shared.UserHiddenLifeAreas'))
+BEGIN
+    CREATE TABLE shared.UserHiddenLifeAreas
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_UserHiddenLifeAreas PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_UserHiddenLifeAreas_Users REFERENCES shared.Users(Id),
+        LifeAreaId      INT               NOT NULL CONSTRAINT FK_UserHiddenLifeAreas_LifeAreas REFERENCES shared.LifeAreas(Id),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_UserHiddenLifeAreas_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_UserHiddenLifeAreas_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.UserHiddenLifeAreas') AND name = 'UX_UserHiddenLifeAreas_User_Area')
+    CREATE UNIQUE INDEX UX_UserHiddenLifeAreas_User_Area ON shared.UserHiddenLifeAreas(UserId, LifeAreaId) WHERE IsDeleted = 0;
+GO
+
+-- One-time password recovery codes (no email is sent anywhere, so these are how a forgotten password is reset).
+-- Shown once — at registration or when regenerated in Settings — and stored only as a SHA-256 hash: each code
+-- carries 80 random bits, so a fast hash is enough and lets a reset look the code up directly. Using one sets
+-- UsedAt; regenerating soft-deletes the old set.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('shared.RecoveryCodes'))
+BEGIN
+    CREATE TABLE shared.RecoveryCodes
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_RecoveryCodes PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_RecoveryCodes_Users REFERENCES shared.Users(Id),
+        CodeHash        CHAR(64)          NOT NULL,
+        UsedAt          DATETIME2         NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_RecoveryCodes_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_RecoveryCodes_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.RecoveryCodes') AND name = 'IX_RecoveryCodes_User_Hash')
+    CREATE INDEX IX_RecoveryCodes_User_Hash ON shared.RecoveryCodes(UserId, CodeHash) WHERE IsDeleted = 0 AND UsedAt IS NULL;
+GO

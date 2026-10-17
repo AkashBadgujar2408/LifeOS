@@ -10,6 +10,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ToastService } from '../../../core/services/toast.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { AuthLayout } from '../../../shared/components/auth-layout/auth-layout';
+import { RecoveryCodes } from '../../../shared/components/recovery-codes/recovery-codes';
 import { apiErrorMessage } from '../../../core/services/api-error';
 
 function passwordsMatchValidator(control: AbstractControl): ValidationErrors | null {
@@ -23,7 +24,7 @@ type FieldName = 'displayName' | 'username' | 'email' | 'password' | 'confirmPas
 @Component({
   selector: 'app-register',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, AuthLayout],
+  imports: [ReactiveFormsModule, RouterLink, AuthLayout, RecoveryCodes],
   templateUrl: './register.html',
 })
 export class Register {
@@ -33,6 +34,8 @@ export class Register {
   private readonly toast = inject(ToastService);
 
   protected readonly submitting = signal(false);
+  /** Set once the account exists: its recovery codes, shown before going in. */
+  protected readonly recoveryCodes = signal<string[] | null>(null);
 
   protected readonly form = this.fb.nonNullable.group(
     {
@@ -68,6 +71,14 @@ export class Register {
     return null;
   }
 
+  protected continueToApp(): void {
+    this.router.navigateByUrl('/');
+  }
+
+  protected username(): string {
+    return this.form.controls.username.value;
+  }
+
   submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -78,9 +89,14 @@ export class Register {
 
     this.submitting.set(true);
     this.authService.register({ displayName, username, email, password }).subscribe({
-      next: () => {
+      next: (response) => {
         this.submitting.set(false);
-        this.router.navigateByUrl('/');
+        const codes = response.data?.recoveryCodes;
+        if (codes?.length) {
+          this.recoveryCodes.set(codes);
+        } else {
+          this.router.navigateByUrl('/');
+        }
       },
       error: (err) => {
         this.submitting.set(false);

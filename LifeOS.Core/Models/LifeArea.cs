@@ -28,4 +28,6 @@ public partial class LifeArea
     public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
 
     public virtual ICollection<LifeAreaRating> LifeAreaRatings { get; set; } = new List<LifeAreaRating>();
+
+    public virtual ICollection<UserHiddenLifeArea> UserHiddenLifeAreas { get; set; } = new List<UserHiddenLifeArea>();
 }

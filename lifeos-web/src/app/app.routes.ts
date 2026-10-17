@@ -30,6 +30,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/register/register').then((m) => m.Register),
   },
   {
+    path: 'reset-password',
+    title: 'Reset password | LifeOS',
+    loadComponent: () =>
+      import('./features/auth/reset-password/reset-password').then((m) => m.ResetPassword),
+  },
+  {
     path: '',
     component: Shell,
     canActivate: [authGuard],
@@ -39,6 +45,11 @@ export const routes: Routes = [
         path: 'inbox',
         title: 'Inbox | LifeOS',
         loadComponent: () => import('./features/inbox/inbox').then((m) => m.Inbox),
+      },
+      {
+        path: 'settings',
+        title: 'Settings | LifeOS',
+        loadComponent: () => import('./features/settings/settings').then((m) => m.Settings),
       },
       {
         path: 'tags',

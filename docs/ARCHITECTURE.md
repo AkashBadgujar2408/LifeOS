@@ -37,7 +37,7 @@ every error with `apiErrorMessage(err, fallback)`.
 
 | Module | SQL schema | Tables | Server (`LifeOS.Core/…`) | Pages (`features/…`) |
 |---|---|---|---|---|
-| Shared platform | `shared` | Users, LifeAreas (seeded, global), Tags, EntityLinks, InboxItems | `Shared/` — Auth, JWT, current user, Tags, EntityLinks, Inbox, LifeAreas | `auth`, `inbox`, `tags` |
+| Shared platform | `shared` | Users, LifeAreas (seeded, global), Tags, EntityLinks, InboxItems, UserHiddenModules, UserHiddenLifeAreas, RecoveryCodes | `Shared/` — Auth, JWT, current user, Tags, EntityLinks, Inbox, LifeAreas, Search, Settings | `auth`, `inbox`, `tags`, `search`, `settings` |
 | Goals & Milestones | `goals` | Goals, GoalMilestones, GoalTags, GoalHistory | `Goals/` | `goals` |
 | Tasks & Projects | `tasks` | TaskItems, Projects, TaskTags | `Tasks/` | `tasks`, `projects` |
 | Calendar & Reminders | `calendar` | Events (one-off or recurring series), EventExceptions (skipped occurrences), Reminders (one-time or repeating; occurrence reminders of events) | `Calendar/` (+ proc `calendar.GetCalendarFeed`) | `calendar`, `reminders` |
@@ -93,6 +93,13 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   module is searchable with no change here. UI: the lazy-loaded palette (`features/search/search-palette`) opened by
   Ctrl/Cmd+K, `/` (outside fields), the sidebar Search button or the phone top bar, via `SearchPaletteService.open()`;
   results open through `EntityOpener` (shared with reminder targets).
+- **Settings + account** (Session 37): preferences on `shared.Users` (`TimeZone` = the zone new repeating events and
+  reminders follow, `BaseCurrency`), switched-off modules and life areas in `shared.UserHiddenModules` /
+  `UserHiddenLifeAreas` (soft-deleted to switch back on). The shell loads them once into `SettingsService`; the nav
+  (`visibleNavGroups`), My Day (`withoutHiddenModules`) and every life-area picker (`pickableLifeAreas`) read its
+  signals — hiding is presentation only. Password reset without email: 8 one-time recovery codes (80 random bits,
+  stored as SHA-256 in `shared.RecoveryCodes`) shown at registration or made in Settings; `reset-password` is
+  anonymous, gives one answer for every failure and sits behind `RecoveryRateLimit` (ASP.NET's built-in limiter).
 - **Inbox / Quick Add**: press <kbd>Q</kbd> anywhere to capture a task, note, journal line or idea into
   `shared.InboxItems`. Modules turn items into real entities ("Make it a task", "Add to journal"), moving the item's
   links and marking it processed in one transaction.
@@ -127,7 +134,8 @@ All routes need a JWT except register, login and ping.
 
 | Area | Endpoints |
 |---|---|
-| `api/Shared/Auth` | `POST register`, `POST login`, `GET me` |
+| `api/Shared/Auth` | `POST register` (returns the first recovery codes), `POST login`, `GET me`, `PUT password`, `POST recovery-codes` (new set), anonymous `POST reset-password` (username + recovery code; rate-limited) |
+| `api/Shared/Settings` | `GET` (profile, timezone, base currency, hidden modules/life areas, recovery codes left), `PUT profile`, `PUT preferences` (replaces all preferences), `GET currencies` |
 | `api/Shared/Tags`, `Inbox`, `LifeAreas`, `EntityLinks`, `Search` | CRUD; Inbox `PUT {id}/processed`; EntityLinks `GET types`, `GET candidates`; `GET Search?q=` (matches grouped per linkable type) |
 | `api/Goals/Goals` | CRUD, `PUT {id}/status`; milestones under `Goals/{goalId}/Milestones` (CRUD, `PUT {id}/completed`, `PUT order`) |
 | `api/Tasks/Tasks` | CRUD, `PUT {id}/completed`, `POST from-inbox/{id}` |

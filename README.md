@@ -86,8 +86,10 @@ cd lifeos-web
 npm start
 ```
 
-Open http://localhost:4200, register, and you land on **My Day**. Press <kbd>Q</kbd> anywhere to capture something
-into the Inbox.
+Open http://localhost:4200, register, and you land on **My Day** — after saving the eight recovery codes registration
+shows you (LifeOS sends no email; a code is how a forgotten password is reset, via "Forgot your password?" on the login
+page; Settings makes a new set). Press <kbd>Q</kbd> anywhere to capture something into the Inbox, and
+<kbd>Ctrl</kbd>+<kbd>K</kbd> (or <kbd>/</kbd>) to search.
 
 ## Tests and checks
 

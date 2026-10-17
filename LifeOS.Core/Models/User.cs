@@ -23,6 +23,10 @@ public partial class User
 
     public string Username { get; set; } = null!;
 
+    public string? TimeZone { get; set; }
+
+    public string? BaseCurrency { get; set; }
+
     public virtual Chapter? Chapter { get; set; }
 
     public virtual ICollection<EntityLink> EntityLinks { get; set; } = new List<EntityLink>();
@@ -55,6 +59,8 @@ public partial class User
 
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
 
+    public virtual ICollection<RecoveryCode> RecoveryCodes { get; set; } = new List<RecoveryCode>();
+
     public virtual ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
@@ -62,6 +68,10 @@ public partial class User
     public virtual ICollection<TaskItem> TaskItems { get; set; } = new List<TaskItem>();
 
     public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();
+
+    public virtual ICollection<UserHiddenLifeArea> UserHiddenLifeAreas { get; set; } = new List<UserHiddenLifeArea>();
+
+    public virtual ICollection<UserHiddenModule> UserHiddenModules { get; set; } = new List<UserHiddenModule>();
 
     public virtual ICollection<WeeklyReflection> WeeklyReflections { get; set; } = new List<WeeklyReflection>();
 }

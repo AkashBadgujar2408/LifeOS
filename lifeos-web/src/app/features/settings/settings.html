@@ -1,0 +1,320 @@
+<div class="container py-4">
+  <header class="mb-4">
+    <h1 class="h3 mb-1">Settings</h1>
+    <p class="text-body-secondary small mb-0">
+      Your profile and account, and which parts of LifeOS you use.
+    </p>
+  </header>
+
+  @if (loadFailed() && !settings()) {
+    <app-load-error message="Couldn't load your settings." (retry)="load()" />
+  } @else if (settings(); as s) {
+    <div class="row g-3">
+      <div class="col-lg-6 d-flex flex-column gap-3">
+        <!-- Profile -->
+        <section class="card" aria-labelledby="profile-heading">
+          <div class="card-body p-4">
+            <h2 id="profile-heading" class="h5 mb-3">Profile</h2>
+            <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+              <div class="mb-3">
+                <label class="form-label" for="settings-username">Username</label>
+                <input
+                  id="settings-username"
+                  type="text"
+                  class="form-control"
+                  [value]="s.username"
+                  readonly
+                  aria-describedby="settings-username-help"
+                />
+                <div id="settings-username-help" class="form-text">
+                  What you log in with; it can't be changed.
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="settings-display-name">Display name</label>
+                <input
+                  id="settings-display-name"
+                  type="text"
+                  class="form-control"
+                  [class.is-invalid]="profileError('displayName')"
+                  formControlName="displayName"
+                  placeholder="How LifeOS greets you"
+                  autocomplete="name"
+                />
+                @if (profileError('displayName'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="settings-email">Email</label>
+                <input
+                  id="settings-email"
+                  type="email"
+                  class="form-control"
+                  [class.is-invalid]="profileError('email')"
+                  formControlName="email"
+                  placeholder="you@example.com"
+                  autocomplete="email"
+                />
+                @if (profileError('email'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="savingProfile() || profileForm.pristine"
+              >
+                Save profile
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <!-- Time and money -->
+        <section class="card" aria-labelledby="preferences-heading">
+          <div class="card-body p-4">
+            <h2 id="preferences-heading" class="h5 mb-3">Time and money</h2>
+            <form [formGroup]="preferencesForm" (ngSubmit)="savePreferences()" novalidate>
+              <div class="mb-3">
+                <label class="form-label" for="settings-timezone">Timezone</label>
+                <select
+                  id="settings-timezone"
+                  class="form-select"
+                  formControlName="timeZone"
+                  aria-describedby="settings-timezone-help"
+                >
+                  <option [ngValue]="null">This device's ({{ deviceZone }})</option>
+                  @for (zone of timeZones; track zone) {
+                    <option [ngValue]="zone" [selected]="zone === preferencesForm.value.timeZone">
+                      {{ zone }}
+                    </option>
+                  }
+                </select>
+                <div id="settings-timezone-help" class="form-text">
+                  The clock new repeating events and reminders follow — choose your home zone if you
+                  travel. Days and times on screen always follow this device.
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="settings-currency">Base currency</label>
+                <select
+                  id="settings-currency"
+                  class="form-select"
+                  formControlName="baseCurrency"
+                  aria-describedby="settings-currency-help"
+                >
+                  <option [ngValue]="null">Not chosen yet</option>
+                  @for (currency of currencies(); track currency.code) {
+                    <option
+                      [ngValue]="currency.code"
+                      [selected]="currency.code === preferencesForm.value.baseCurrency"
+                    >
+                      {{ currency.code }} — {{ currency.name }}
+                    </option>
+                  }
+                </select>
+                <div id="settings-currency-help" class="form-text">
+                  What money is totalled in once Finance arrives.
+                </div>
+              </div>
+              <button
+                type="submit"
+                class="btn btn-primary"
+                [disabled]="savingPreferences() || preferencesForm.pristine"
+              >
+                Save
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <!-- Password -->
+        <section class="card" aria-labelledby="password-heading">
+          <div class="card-body p-4">
+            <h2 id="password-heading" class="h5 mb-3">Password</h2>
+            <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" novalidate>
+              <!-- Lets password managers tie the new password to this account. -->
+              <input
+                type="text"
+                class="d-none"
+                [value]="s.username"
+                autocomplete="username"
+                aria-hidden="true"
+                tabindex="-1"
+              />
+              <div class="mb-3">
+                <label class="form-label" for="settings-current-password">Current password</label>
+                <input
+                  id="settings-current-password"
+                  type="password"
+                  class="form-control"
+                  [class.is-invalid]="passwordError('currentPassword')"
+                  formControlName="currentPassword"
+                  placeholder="The one you use now"
+                  autocomplete="current-password"
+                />
+                @if (passwordError('currentPassword'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="settings-new-password">New password</label>
+                <input
+                  id="settings-new-password"
+                  type="password"
+                  class="form-control"
+                  [class.is-invalid]="passwordError('newPassword')"
+                  formControlName="newPassword"
+                  placeholder="At least 8 characters"
+                  autocomplete="new-password"
+                />
+                @if (passwordError('newPassword'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="settings-confirm-password">
+                  Confirm new password
+                </label>
+                <input
+                  id="settings-confirm-password"
+                  type="password"
+                  class="form-control"
+                  [class.is-invalid]="passwordError('confirmPassword')"
+                  formControlName="confirmPassword"
+                  placeholder="Type it again"
+                  autocomplete="new-password"
+                />
+                @if (passwordError('confirmPassword'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <button type="submit" class="btn btn-primary" [disabled]="savingPassword()">
+                Change password
+              </button>
+            </form>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-lg-6 d-flex flex-column gap-3">
+        <!-- Modules -->
+        <section class="card" aria-labelledby="modules-heading">
+          <div class="card-body p-4">
+            <h2 id="modules-heading" class="h5 mb-1">Modules</h2>
+            <p class="small text-body-secondary mb-3">
+              Switch off what you don't use. It leaves the navigation and My Day; nothing is
+              deleted, and switching it back on brings it all back.
+            </p>
+            <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+              @for (module of modules; track module.key) {
+                <li class="form-check form-switch">
+                  <input
+                    [id]="'module-' + module.key"
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    [checked]="isModuleOn(module.key)"
+                    (change)="toggleModule(module.key, $any($event.target).checked)"
+                    [attr.aria-describedby]="'module-' + module.key + '-hint'"
+                  />
+                  <label class="form-check-label" [for]="'module-' + module.key">
+                    {{ module.label }}
+                  </label>
+                  <div [id]="'module-' + module.key + '-hint'" class="small text-body-secondary">
+                    Off hides {{ module.hides }}.
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+        </section>
+
+        <!-- Life areas -->
+        <section class="card" aria-labelledby="areas-heading">
+          <div class="card-body p-4">
+            <h2 id="areas-heading" class="h5 mb-1">Life areas</h2>
+            <p class="small text-body-secondary mb-3">
+              Areas switched off aren't offered when you file a goal, habit, event or journal day,
+              and leave the Life balance card. Things already filed under one keep it.
+            </p>
+            <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+              @for (area of lifeAreas(); track area.id) {
+                @let on = !hiddenAreas().has(area.id);
+                <li class="form-check form-switch">
+                  <input
+                    [id]="'area-' + area.id"
+                    class="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    [checked]="on"
+                    [disabled]="on && areasOn() === 1"
+                    (change)="toggleArea(area.id, $any($event.target).checked)"
+                  />
+                  <label class="form-check-label" [for]="'area-' + area.id">{{ area.name }}</label>
+                </li>
+              }
+            </ul>
+            @if (areasOn() === 1) {
+              <p class="small text-body-secondary mt-2 mb-0">
+                At least one area stays on — goals need one.
+              </p>
+            }
+          </div>
+        </section>
+
+        <!-- Recovery codes -->
+        <section class="card" aria-labelledby="codes-heading">
+          <div class="card-body p-4">
+            <h2 id="codes-heading" class="h5 mb-1">Recovery codes</h2>
+            <p class="small text-body-secondary mb-3">
+              LifeOS never emails you: if you forget your password, one of these codes resets it
+              ("Forgot your password?" on the login page). Each works once.
+            </p>
+            @if (newCodes(); as codes) {
+              <div class="alert alert-warning small" role="status">
+                Your new codes — save them now, they won't be shown again. The old ones no longer
+                work.
+              </div>
+              <app-recovery-codes [codes]="codes" [username]="s.username" />
+            } @else {
+              <p class="mb-3" [class.text-danger]="s.recoveryCodesLeft === 0">
+                <strong>{{ s.recoveryCodesLeft }}</strong> of 8 unused codes left.
+                @if (s.recoveryCodesLeft === 0) {
+                  Make a new set, or a forgotten password can't be reset.
+                } @else if (s.recoveryCodesLeft <= 2) {
+                  Running low — consider a new set.
+                }
+              </p>
+              <form [formGroup]="codesForm" (ngSubmit)="makeNewCodes()" novalidate>
+                <label class="form-label" for="settings-codes-password">
+                  Make a new set (the old codes stop working)
+                </label>
+                <div class="input-group">
+                  <input
+                    id="settings-codes-password"
+                    type="password"
+                    class="form-control"
+                    [class.is-invalid]="codesError()"
+                    formControlName="currentPassword"
+                    placeholder="Your current password"
+                    autocomplete="current-password"
+                  />
+                  <button type="submit" class="btn btn-outline-primary" [disabled]="makingCodes()">
+                    Make new codes
+                  </button>
+                </div>
+                @if (codesError(); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </form>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+  } @else {
+    <p class="text-body-secondary">Loading your settings...</p>
+  }
+</div>

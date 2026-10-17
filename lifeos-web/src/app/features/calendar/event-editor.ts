@@ -16,7 +16,7 @@ import {
 } from '@ng-bootstrap/ng-bootstrap';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
-import { addDaysIso, browserTimeZone, localMidnight } from '../../core/dates/today';
+import { addDaysIso, localMidnight } from '../../core/dates/today';
 import {
   CalendarEvent,
   CalendarEventPayload,
@@ -26,6 +26,8 @@ import {
 import { RECURRENCE_FREQUENCIES, RecurrenceFrequency } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LifeAreasService } from '../../core/services/life-areas.service';
+import { SettingsService } from '../../core/services/settings.service';
+import { pickableLifeAreas } from '../../core/settings/visibility';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { localDateTimeToUtc, utcToLocalParts } from './calendar-feed';
@@ -171,6 +173,9 @@ export class EventEditor {
   private readonly fb = inject(FormBuilder);
   private readonly calendarService = inject(CalendarService);
   private readonly toast = inject(ToastService);
+  private readonly settingsService = inject(SettingsService);
+  protected readonly hiddenAreaIds = this.settingsService.hiddenLifeAreaIds;
+  protected readonly pickableLifeAreas = pickableLifeAreas;
   protected readonly lifeAreas = toSignal(inject(LifeAreasService).list(), { initialValue: [] });
   protected readonly activeModal = inject(NgbActiveModal);
 
@@ -388,7 +393,8 @@ export class EventEditor {
       recurrence: repeats
         ? { frequency: v.repeat as RecurrenceFrequency, interval: v.interval, until: v.until }
         : null,
-      timeZone: repeats && !v.isAllDay ? browserTimeZone() : null,
+      // The zone the series follows: the one chosen in Settings, else this device's.
+      timeZone: repeats && !v.isAllDay ? this.settingsService.preferredTimeZone() : null,
       // Only a timed series can remind before each occurrence; anything else leaves it off.
       reminderMinutesBefore: repeats && !v.isAllDay ? v.remindBefore : null,
       lifeAreaId: v.lifeAreaId,

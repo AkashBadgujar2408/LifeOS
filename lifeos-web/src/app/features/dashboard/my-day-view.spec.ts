@@ -9,6 +9,7 @@ import {
   joinNames,
   laterToday,
   splitTasks,
+  withoutHiddenModules,
 } from './my-day-view';
 
 const TODAY = '2026-10-15';
@@ -190,5 +191,35 @@ describe('balanceSummary / joinNames', () => {
     expect(joinNames(['Health'])).toBe('Health');
     expect(joinNames(['Health', 'Career'])).toBe('Health and Career');
     expect(joinNames(['Health', 'Career', 'Fun'])).toBe('Health, Career and Fun');
+  });
+});
+
+describe('withoutHiddenModules', () => {
+  const insight = (entityType: 'Habit' | 'Goal' | 'Journal' | 'Tasks' | null) => ({
+    kind: 'GoalUntouched' as const,
+    tone: 'Nudge' as const,
+    message: String(entityType),
+    entityType,
+    entityId: entityType === 'Habit' || entityType === 'Goal' ? 1 : null,
+  });
+
+  const full = myDay({
+    tasks: [task(1, TODAY)],
+    habits: [habit(1, false, true)],
+    insights: [insight('Habit'), insight('Tasks'), insight('Goal'), insight(null)],
+  });
+
+  it('returns the day unchanged when nothing is hidden', () => {
+    expect(withoutHiddenModules(full, new Set())).toBe(full);
+  });
+
+  it("empties hidden modules' data and drops their insights, so the summary follows", () => {
+    const shown = withoutHiddenModules(full, new Set(['Habits', 'Tasks']));
+
+    expect(shown.habits).toEqual([]);
+    expect(shown.tasks).toEqual([]);
+    expect(shown.insights.map((i) => i.entityType)).toEqual(['Goal', null]);
+    expect(daySummary(shown)).toEqual([]);
+    expect(daySummary(full)).toEqual(['1 task left', '1 habit to tick']);
   });
 });

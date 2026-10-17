@@ -25,6 +25,8 @@ import {
   MoodPoint,
 } from '../../core/services/journal.service';
 import { LifeAreasService } from '../../core/services/life-areas.service';
+import { SettingsService } from '../../core/services/settings.service';
+import { pickableLifeAreas } from '../../core/settings/visibility';
 import { ToastService } from '../../core/services/toast.service';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
@@ -62,6 +64,8 @@ export class Journal {
   protected readonly dateTimeFormat = APP_DATE_TIME_FORMAT;
   protected readonly weekdayFormat = APP_WEEKDAY_FORMAT;
   protected readonly entryEntityType = JOURNAL_ENTRY_ENTITY_TYPE;
+  protected readonly hiddenAreaIds = inject(SettingsService).hiddenLifeAreaIds;
+  protected readonly pickableLifeAreas = pickableLifeAreas;
   protected readonly lifeAreas = toSignal(inject(LifeAreasService).list(), { initialValue: [] });
 
   protected readonly today = signal(todayIso());

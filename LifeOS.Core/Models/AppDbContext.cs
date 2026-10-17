@@ -45,6 +45,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Project> Projects { get; set; }
 
+    public virtual DbSet<RecoveryCode> RecoveryCodes { get; set; }
+
     public virtual DbSet<Reminder> Reminders { get; set; }
 
     public virtual DbSet<Tag> Tags { get; set; }
@@ -54,6 +56,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<TaskTag> TaskTags { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+
+    public virtual DbSet<UserHiddenLifeArea> UserHiddenLifeAreas { get; set; }
+
+    public virtual DbSet<UserHiddenModule> UserHiddenModules { get; set; }
 
     public virtual DbSet<WeeklyReflection> WeeklyReflections { get; set; }
 
@@ -443,6 +449,24 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_Projects_Users");
         });
 
+        modelBuilder.Entity<RecoveryCode>(entity =>
+        {
+            entity.ToTable("RecoveryCodes", "shared");
+
+            entity.HasIndex(e => new { e.UserId, e.CodeHash }, "IX_RecoveryCodes_User_Hash").HasFilter("([IsDeleted]=(0) AND [UsedAt] IS NULL)");
+
+            entity.Property(e => e.CodeHash)
+                .HasMaxLength(64)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_RecoveryCodes_CreatedAt");
+
+            entity.HasOne(d => d.User).WithMany(p => p.RecoveryCodes)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RecoveryCodes_Users");
+        });
+
         modelBuilder.Entity<Reminder>(entity =>
         {
             entity.ToTable("Reminders", "calendar");
@@ -556,11 +580,54 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("([IsDeleted]=(0))");
 
+            entity.Property(e => e.BaseCurrency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Users_CreatedAt");
             entity.Property(e => e.DisplayName).HasMaxLength(200);
             entity.Property(e => e.Email).HasMaxLength(256);
             entity.Property(e => e.PasswordHash).HasMaxLength(500);
+            entity.Property(e => e.TimeZone).HasMaxLength(64);
             entity.Property(e => e.Username).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<UserHiddenLifeArea>(entity =>
+        {
+            entity.ToTable("UserHiddenLifeAreas", "shared");
+
+            entity.HasIndex(e => new { e.UserId, e.LifeAreaId }, "UX_UserHiddenLifeAreas_User_Area")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_UserHiddenLifeAreas_CreatedAt");
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.UserHiddenLifeAreas)
+                .HasForeignKey(d => d.LifeAreaId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_UserHiddenLifeAreas_LifeAreas");
+
+            entity.HasOne(d => d.User).WithMany(p => p.UserHiddenLifeAreas)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_UserHiddenLifeAreas_Users");
+        });
+
+        modelBuilder.Entity<UserHiddenModule>(entity =>
+        {
+            entity.ToTable("UserHiddenModules", "shared");
+
+            entity.HasIndex(e => new { e.UserId, e.ModuleKey }, "UX_UserHiddenModules_User_Module")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_UserHiddenModules_CreatedAt");
+            entity.Property(e => e.ModuleKey).HasMaxLength(30);
+
+            entity.HasOne(d => d.User).WithMany(p => p.UserHiddenModules)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_UserHiddenModules_Users");
         });
 
         modelBuilder.Entity<WeeklyReflection>(entity =>

@@ -47,3 +47,10 @@ public partial class MissionPrerequisite : ISoftDeletable, IUserOwned;
 public partial class MissionDebrief : ISoftDeletable, IUserOwned;
 
 public partial class LifeAreaRating : ISoftDeletable, IUserOwned;
+
+public partial class UserHiddenModule : ISoftDeletable, IUserOwned;
+
+public partial class UserHiddenLifeArea : ISoftDeletable, IUserOwned;
+
+// Password reset runs before anyone is logged in, so it reads these with IgnoreQueryFilters() and filters itself.
+public partial class RecoveryCode : ISoftDeletable, IUserOwned;

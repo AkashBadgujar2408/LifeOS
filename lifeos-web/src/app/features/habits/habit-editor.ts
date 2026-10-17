@@ -6,6 +6,8 @@ import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
 import { Habit, HabitsService } from '../../core/services/habits.service';
 import { LifeAreasService } from '../../core/services/life-areas.service';
+import { SettingsService } from '../../core/services/settings.service';
+import { pickableLifeAreas } from '../../core/settings/visibility';
 import { ToastService } from '../../core/services/toast.service';
 import { EVERY_DAY, WEEKDAYS, WEEKDAY_NAMES } from './habit-schedule';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -33,6 +35,8 @@ export class HabitEditor {
   private readonly toast = inject(ToastService);
   protected readonly activeModal = inject(NgbActiveModal);
 
+  protected readonly hiddenAreaIds = inject(SettingsService).hiddenLifeAreaIds;
+  protected readonly pickableLifeAreas = pickableLifeAreas;
   protected readonly lifeAreas = toSignal(inject(LifeAreasService).list(), { initialValue: [] });
   protected readonly weekdayNames = WEEKDAY_NAMES;
   protected readonly presets = [

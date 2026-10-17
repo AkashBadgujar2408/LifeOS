@@ -43,7 +43,9 @@ import {
   habitsInOrder,
   laterToday,
   splitTasks,
+  withoutHiddenModules,
 } from './my-day-view';
+import { SettingsService } from '../../core/services/settings.service';
 import { InsightsList } from './insights-list';
 import { LifeBalance } from './life-balance';
 import { StoryRecap } from '../story/story-recap';
@@ -102,6 +104,7 @@ export class MyDay {
   protected readonly quickAdd = inject(QuickAddService);
   protected readonly remindersService = inject(RemindersService);
   protected readonly targetOpener = inject(ReminderTargetOpener);
+  private readonly settingsService = inject(SettingsService);
 
   protected readonly kinds = INBOX_KINDS;
   protected readonly dayMonthFormat = APP_DAY_MONTH_FORMAT;
@@ -115,7 +118,14 @@ export class MyDay {
   protected readonly today = signal(todayIso());
   /** The Life Balance window: the 30 days ending today. */
   protected readonly balanceFrom = computed(() => addDaysIso(this.today(), -29));
-  protected readonly data = signal<MyDayData | null>(null);
+  /** My Day as the API returned it. */
+  private readonly loaded = signal<MyDayData | null>(null);
+  /** What the page shows: without the modules switched off in Settings. */
+  protected readonly data = computed(() => {
+    const loaded = this.loaded();
+    return loaded ? withoutHiddenModules(loaded, this.settingsService.hiddenModules()) : null;
+  });
+  protected readonly hidden = this.settingsService.hiddenModules;
   protected readonly loadError = signal(false);
   protected readonly busyTaskId = signal<number | null>(null);
   protected readonly busyHabitId = signal<number | null>(null);
@@ -211,7 +221,7 @@ export class MyDay {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {
-          this.data.set(data);
+          this.loaded.set(data);
           this.loadError.set(false);
         },
         error: () => this.loadError.set(true),
@@ -292,7 +302,7 @@ export class MyDay {
         next: ({ streak }) => {
           this.busyHabitId.set(null);
           // The API returns the new streak; patch it in instead of re-reading the whole day.
-          this.data.update((data) =>
+          this.loaded.update((data) =>
             data
               ? {
                   ...data,

@@ -10,9 +10,13 @@ export interface AuthUser {
   displayName: string;
 }
 
-interface AuthResponseData extends AuthUser {
+export interface AuthResponseData extends AuthUser {
   token: string;
   expiresAtUtc: string;
+  /** Registration only: the recovery codes, shown once. */
+  recoveryCodes: string[] | null;
+  /** Password reset only: unused codes left. */
+  recoveryCodesLeft: number | null;
 }
 
 export interface RegisterPayload {
@@ -25,6 +29,12 @@ export interface RegisterPayload {
 export interface LoginPayload {
   username: string;
   password: string;
+}
+
+export interface ResetPasswordPayload {
+  username: string;
+  recoveryCode: string;
+  newPassword: string;
 }
 
 const TOKEN_KEY = 'lifeos.token';
@@ -49,6 +59,24 @@ export class AuthService {
     return this.http
       .post<ApiResponse<AuthResponseData>>('/api/Shared/Auth/login', payload)
       .pipe(tap((response) => this.handleAuthResponse(response)));
+  }
+
+  /** Forgotten password: a recovery code sets a new one and logs in. */
+  resetPassword(payload: ResetPasswordPayload): Observable<ApiResponse<AuthResponseData>> {
+    return this.http
+      .post<ApiResponse<AuthResponseData>>('/api/Shared/Auth/reset-password', payload)
+      .pipe(tap((response) => this.handleAuthResponse(response)));
+  }
+
+  /** After the profile changes in Settings: the name and email shown in the shell follow. */
+  updateProfile(displayName: string, email: string): void {
+    const user = this.currentUserSignal();
+    if (!user) {
+      return;
+    }
+    const updated = { ...user, displayName, email };
+    localStorage.setItem(USER_KEY, JSON.stringify(updated));
+    this.currentUserSignal.set(updated);
   }
 
   logout(): void {

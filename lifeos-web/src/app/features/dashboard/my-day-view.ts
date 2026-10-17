@@ -7,6 +7,7 @@ import {
   MyDayReminder,
   MyDayTask,
 } from '../../core/services/dashboard.service';
+import type { ModuleKey } from '../../core/services/settings.service';
 
 /** What a habit asks of you today: tick it, already ticked, or nothing (not on its schedule). */
 export type HabitToday = 'open' | 'done' | 'off';
@@ -115,4 +116,37 @@ export function joinNames(names: readonly string[]): string {
   return names.length <= 1
     ? (names[0] ?? '')
     : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+}
+
+// Which module an insight is about (its EntityType: an item kind, or a page).
+const INSIGHT_MODULES: Record<string, ModuleKey> = {
+  Habit: 'Habits',
+  Goal: 'Goals',
+  Journal: 'Journal',
+  Tasks: 'Tasks',
+};
+
+/**
+ * My Day without the modules switched off in Settings: their data is emptied (so the header summary and the cards'
+ * empty states follow) and their insights dropped. Reminders aren't touched here — the reminders card and the
+ * "later today" list check the Reminders module themselves.
+ */
+export function withoutHiddenModules(myDay: MyDay, hidden: ReadonlySet<ModuleKey>): MyDay {
+  if (hidden.size === 0) {
+    return myDay;
+  }
+  const insightModule = (insight: Insight) =>
+    insight.entityType ? INSIGHT_MODULES[insight.entityType] : undefined;
+  return {
+    ...myDay,
+    tasks: hidden.has('Tasks') ? [] : myDay.tasks,
+    events: hidden.has('Calendar') ? [] : myDay.events,
+    habits: hidden.has('Habits') ? [] : myDay.habits,
+    goals: hidden.has('Goals') ? [] : myDay.goals,
+    latestJournalEntry: hidden.has('Journal') ? null : myDay.latestJournalEntry,
+    insights: myDay.insights.filter((insight) => {
+      const module = insightModule(insight);
+      return !module || !hidden.has(module);
+    }),
+  };
 }

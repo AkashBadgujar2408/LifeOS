@@ -16,7 +16,8 @@ import {
 } from '@ng-bootstrap/ng-bootstrap';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
-import { browserTimeZone, toLocalIsoDate } from '../../core/dates/today';
+import { toLocalIsoDate } from '../../core/dates/today';
+import { SettingsService } from '../../core/services/settings.service';
 import { RECURRENCE_FREQUENCIES, RecurrenceFrequency } from '../../core/services/tasks.service';
 import { intervalUnit, recurrenceSummary } from '../calendar/event-recurrence';
 import {
@@ -73,6 +74,7 @@ export class ReminderEditor {
   private readonly fb = inject(FormBuilder);
   private readonly remindersService = inject(RemindersService);
   private readonly toast = inject(ToastService);
+  private readonly settingsService = inject(SettingsService);
   protected readonly activeModal = inject(NgbActiveModal);
 
   protected readonly reminder = signal<Reminder | null>(null);
@@ -219,7 +221,8 @@ export class ReminderEditor {
         v.repeat !== 'None' && this.canRepeat()
           ? { frequency: v.repeat, interval: v.interval, until: v.until }
           : null,
-      timeZone: v.repeat !== 'None' && this.canRepeat() ? browserTimeZone() : null,
+      timeZone:
+        v.repeat !== 'None' && this.canRepeat() ? this.settingsService.preferredTimeZone() : null,
     };
 
     const existing = this.reminder();
