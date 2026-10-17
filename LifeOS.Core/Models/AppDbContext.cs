@@ -106,6 +106,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.NumberLast4).HasMaxLength(4);
             entity.Property(e => e.Title).HasMaxLength(200);
 
+            entity.HasOne(d => d.ExpiryReminder).WithMany(p => p.Documents)
+                .HasForeignKey(d => d.ExpiryReminderId)
+                .HasConstraintName("FK_Documents_ExpiryReminder");
+
             entity.HasOne(d => d.User).WithMany(p => p.Documents)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

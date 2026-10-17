@@ -41,5 +41,7 @@ public partial class Reminder
 
     public DateOnly? OccurrenceDate { get; set; }
 
+    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
+
     public virtual User User { get; set; } = null!;
 }

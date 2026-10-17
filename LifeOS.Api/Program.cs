@@ -4,6 +4,8 @@ using LifeOS.Core.Calendar.ServiceContracts;
 using LifeOS.Core.Calendar.Services;
 using LifeOS.Core.Dashboard.ServiceContracts;
 using LifeOS.Core.Dashboard.Services;
+using LifeOS.Core.Documents.ServiceContracts;
+using LifeOS.Core.Documents.Services;
 using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Habits.ServiceContracts;
@@ -77,6 +79,7 @@ try
     builder.Services.AddScoped<IAchievementsService, AchievementsService>();
     builder.Services.AddScoped<ISearchService, SearchService>();
     builder.Services.AddScoped<ISettingsService, SettingsService>();
+    builder.Services.AddScoped<IDocumentsService, DocumentsService>();
     builder.Services.AddRecoveryRateLimit();
 
     // Files (documents, later attachments) live on disk outside any web root, one folder per user (IFileStore).
@@ -92,6 +95,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, EventLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, HabitLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, JournalEntryLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, DocumentLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

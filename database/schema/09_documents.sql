@@ -5,7 +5,7 @@ SET QUOTED_IDENTIFIER ON;
 SET ANSI_NULLS ON;
 GO
 
--- Documents (Phase 2, Sessions 38-41). Depends on 01_shared.sql (Users, Tags).
+-- Documents (Phase 2, Sessions 38-41). Depends on 01_shared.sql (Users, Tags) and 04_calendar.sql (Reminders).
 -- A document is the record of a real-world paper — a passport, a degree certificate, a lease — plus the scans or
 -- files of it. The files themselves live on disk (IFileStore: outside the web root, one folder per user, served
 -- only through the API to their owner); SQL keeps only what describes them.
@@ -111,4 +111,18 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('documents.DocumentTags') AND name = 'IX_DocumentTags_Tag')
     CREATE INDEX IX_DocumentTags_Tag ON documents.DocumentTags(TagId) WHERE IsDeleted = 0;
+GO
+
+-- Expiry reminders (Session 39). "Remind me N days before it expires" (0 = on the day, up to a year): the documents
+-- service keeps one ordinary calendar.Reminders row about the document in step with ExpiresOn and the days chosen
+-- (09:00 in the user's zone), so done/snooze/history work as for any reminder. ExpiryReminderId points at it.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('documents.Documents') AND name = 'ExpiryReminderDays')
+    ALTER TABLE documents.Documents ADD
+        ExpiryReminderDays  INT  NULL,
+        ExpiryReminderId    INT  NULL CONSTRAINT FK_Documents_ExpiryReminder REFERENCES calendar.Reminders(Id);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Documents_ExpiryReminderDays')
+    ALTER TABLE documents.Documents ADD CONSTRAINT CK_Documents_ExpiryReminderDays
+        CHECK (ExpiryReminderDays IS NULL OR (ExpiryReminderDays BETWEEN 0 AND 365 AND ExpiresOn IS NOT NULL));
 GO

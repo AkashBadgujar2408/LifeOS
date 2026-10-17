@@ -44,7 +44,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Habits | `habits` | Habits, HabitEntries | `Habits/` | `habits` |
 | Journal | `journal` | JournalEntries, WeeklyReflections | `Journal/` | `journal` |
 | Story Mode (Phase 2) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — Chapters, Life Story (+ proc `story.GetLifeStory`, recap), Missions, life-area levels + monthly ratings (+ proc `story.GetLifeAreaStats`), achievements (+ proc `story.GetAchievementFacts`); pure `MissionKinds`/`MissionGraph`/`ChapterRules`/`LifeStoryBuilder`/`LifeAreaLevels`/`StoryRecap`/`Achievements` | `story` (`/story`, `/missions`, `/life-areas`, Mission passed dialog, goal-page Story card, `/achievements`, "Previously on…" card on My Day) |
-| Documents (Phase 2) | `documents` | Documents (kind, issuer, last 4 of the number, issued/expiry, vault flag), DocumentFiles (stored name, original name, type, size, SHA-256), DocumentTags | `Shared/` — `IFileStore`/`DiskFileStore` + pure `FileRules` (Session 38); `Documents/` from Session 39 | `documents` (Session 40) |
+| Documents (Phase 2) | `documents` | Documents (kind, issuer, last 4 of the number, issued/expiry, vault flag), DocumentFiles (stored name, original name, type, size, SHA-256), DocumentTags | `Shared/` — `IFileStore`/`DiskFileStore` + pure `FileRules` (Session 38); `Documents/` — `DocumentsService`, `DocumentLinkableProvider`, pure `DocumentRules` (last 4, expiry reminder time) | `documents` (Session 40) |
 | Dashboard & Insights | `dashboard` (procedures only) | — | `Dashboard/` (+ procs `dashboard.GetMyDay`, `dashboard.GetLifeBalance`) | `dashboard` (My Day) |
 
 Every module has the same server layout: `DTOs/` (request/response shapes, status constants), `ServiceContracts/`
@@ -154,6 +154,7 @@ All routes need a JWT except register, login and ping.
 | `api/Story/Achievements` | `GET ?tz=` — all 17 achievements, unlocked with the local day or locked with progress/target; unlocks also appear in the Life Story as `AchievementUnlocked` beats |
 | `api/Story/LifeAreas` | `GET stats` (XP + level per area), `GET ratings?from&to` (months by first day), `PUT ratings/{month}` (`{ today, ratings: [{ lifeAreaId, rating 1–10 | null, note }] }`, null clears; rewritten in place) |
 | `api/Story/Missions` | goals as missions (`GET`, `GET {goalId}`), `POST {goalId}/prerequisites`, `DELETE {goalId}/prerequisites/{requiresGoalId}`, `GET {goalId}/passed`, `PUT {goalId}/debrief` |
+| `api/Documents/Documents` | CRUD (`GET ?kind&search&tagId`; `number` is cut to its last 4 characters; `expiryReminderDays` keeps one reminder about the document at 09:00 local, N days before `ExpiresOn`); files: `POST {id}/files` (multipart `files`, 1–10, all or none), `PUT {id}/files/{fileId}` (new version), `DELETE {id}/files/{fileId}`, `GET {id}/files/{fileId}[?download=true]` (owner only; inline for PDF/images/text, nosniff, `X-Content-SHA256`) |
 
 Swagger UI (`/swagger`, Development only) has the full request/response shapes.
 

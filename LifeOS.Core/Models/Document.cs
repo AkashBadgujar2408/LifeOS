@@ -33,9 +33,15 @@ public partial class Document
 
     public DateTime? DeletedAt { get; set; }
 
+    public int? ExpiryReminderDays { get; set; }
+
+    public int? ExpiryReminderId { get; set; }
+
     public virtual ICollection<DocumentFile> DocumentFiles { get; set; } = new List<DocumentFile>();
 
     public virtual ICollection<DocumentTag> DocumentTags { get; set; } = new List<DocumentTag>();
+
+    public virtual Reminder? ExpiryReminder { get; set; }
 
     public virtual User User { get; set; } = null!;
 }
