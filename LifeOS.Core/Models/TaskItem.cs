@@ -39,11 +39,19 @@ public partial class TaskItem
 
     public DateTime? DeletedAt { get; set; }
 
+    public int? EstimateMinutes { get; set; }
+
+    public virtual ICollection<FocusSession> FocusSessions { get; set; } = new List<FocusSession>();
+
     public virtual ICollection<TaskItem> InverseNextOccurrenceTask { get; set; } = new List<TaskItem>();
 
     public virtual TaskItem? NextOccurrenceTask { get; set; }
 
     public virtual Project? Project { get; set; }
+
+    public virtual ICollection<TaskDependency> TaskDependencyBlockedByTasks { get; set; } = new List<TaskDependency>();
+
+    public virtual ICollection<TaskDependency> TaskDependencyTaskItems { get; set; } = new List<TaskDependency>();
 
     public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();
 

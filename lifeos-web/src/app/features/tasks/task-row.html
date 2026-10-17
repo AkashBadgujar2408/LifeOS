@@ -44,6 +44,16 @@
           <i class="bi bi-kanban"></i> {{ t.projectName }}
         </span>
       }
+      @if (waitingOn(); as waiting) {
+        <span class="text-warning-emphasis" [title]="'Waiting for: ' + waiting.titles">
+          <i class="bi bi-hourglass-split"></i> Waiting for {{ waiting.label }}
+        </span>
+      }
+      @if (timeText(); as time) {
+        <span class="text-body-secondary" title="Focus time / estimate">
+          <i class="bi bi-stopwatch"></i> {{ time }}
+        </span>
+      }
       @if (t.notes) {
         <span class="text-body-secondary" title="Has notes"><i class="bi bi-text-left"></i></span>
       }

@@ -811,3 +811,12 @@
 - UAT test data: `routineuser1` (Stretch — finished 7-day challenge + a 30-day one under way; Water — 8 glasses; No sugar — avoid; routine "Morning" = Stretch, Water; Weights deleted), `routineuser2` (empty).
 
 - Next up: **Session 45 — Tasks follow-up** (plan, Section 7).
+
+## Last session: 2026-10-17 — Session 45 — Tasks follow-up
+- Shipped (backend): schema (`03_tasks.sql`: `EstimateMinutes`, `TaskDependencies`, `FocusSessions`; UAT backed up first, `LifeOS_UAT_pre45.bak`); shared `DependencyGraph` (MissionGraph delegates to it); tasks take/return estimates and waits (`blockedBy` with status, `actualMinutes`; split queries for the two collections); focus-session endpoints with `TaskTime.CheckSession`; next occurrence keeps the estimate; delete cleans waits both ways and sessions. 6 new xUnit cases (sessions + loop check).
+- Shipped (frontend): `TaskItem`/`TaskPayload` fields, focus API; `focus.ts` helpers (`formatClock`, `sessionMinutes`, `focusedSeconds`, `timeVersusEstimate`, spec); `<app-focus-timer>`; editor Estimate + "Waits for" picker + focus timer; `waitingOn` (spec) and focus-vs-estimate on task rows; quick-add creates send the new fields.
+- Verified: see the plan row (curl + browser as `focususer1`); fresh DB scaffolds identically; `dotnet build` (unsandboxed) 0 warnings; `ng build`, lint, Prettier clean; **249 backend + 159 frontend** tests, `npm run test:tz` green in all six zones.
+- Decisions (mine — say if you want them changed): waiting is advisory (a task can be done before what it waits for, as with mission locks); only open tasks can be picked as blockers; focus time under a minute isn't logged and a session is at most 10 hours; the timer logs whatever was focused if the editor closes mid-session; the estimate carries to a repeating task's next occurrence but waits and focus time don't.
+- UAT test data: `focususer1` (Get quotes from painters — done, 20m of 1h; Paint the hallway — waits for Quotes and Buy paint, 4h; Buy paint — due today, 1m of 30m; Choose a painter deleted), `focususer2` (empty).
+
+- Next up: **Session 46 — Goals + Dashboard follow-up** (plan, Section 7).

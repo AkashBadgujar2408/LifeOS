@@ -32,7 +32,28 @@ export interface TaskItem {
   projectName: string | null;
   recurrence: TaskRecurrence | null;
   tags: Tag[];
+  /** How long it should take; null when not estimated. */
+  estimateMinutes: number | null;
+  /** Focus time logged (the sum of its focus sessions). */
+  actualMinutes: number;
+  /** Tasks it waits for, open ones first; it's blocked while any is open. */
+  blockedBy: TaskRef[];
   createdAt: string;
+}
+
+/** Another task, as a dependency names it. */
+export interface TaskRef {
+  id: number;
+  title: string;
+  status: 'Open' | 'Done';
+}
+
+/** Time spent on a task with the focus timer (UTC instants). */
+export interface FocusSession {
+  id: number;
+  startedAt: string;
+  endedAt: string;
+  minutes: number;
 }
 
 export interface TaskPayload {
@@ -43,6 +64,9 @@ export interface TaskPayload {
   projectId: number | null;
   recurrence: TaskRecurrence | null;
   tagIds: number[];
+  estimateMinutes: number | null;
+  /** Replaces what it waits for; loops are refused. */
+  blockedByTaskIds: number[];
 }
 
 export interface SetTaskCompletedResult {
@@ -107,6 +131,28 @@ export class TasksService {
         completed,
         today,
       })
+      .pipe(map((response) => response.data!));
+  }
+
+  focusSessions(id: number): Observable<FocusSession[]> {
+    return this.http
+      .get<ApiResponse<FocusSession[]>>(`${this.baseUrl}/${id}/focus`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  /** Logs a focus session (UTC instants, focused minutes); returns the task with its new actual time. */
+  addFocusSession(
+    id: number,
+    session: { startedAt: string; endedAt: string; minutes: number },
+  ): Observable<TaskItem> {
+    return this.http
+      .post<ApiResponse<TaskItem>>(`${this.baseUrl}/${id}/focus`, session)
+      .pipe(map((response) => response.data!));
+  }
+
+  removeFocusSession(id: number, sessionId: number): Observable<TaskItem> {
+    return this.http
+      .delete<ApiResponse<TaskItem>>(`${this.baseUrl}/${id}/focus/${sessionId}`)
       .pipe(map((response) => response.data!));
   }
 

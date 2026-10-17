@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { DatePipe } from '@angular/common';
 import { APP_DATE_TIME_FORMAT } from '../../core/dates/date-format';
 import { TaskItem } from '../../core/services/tasks.service';
-import { recurrenceLabel } from './task-views';
+import { formatMinutes } from '../calendar/calendar-feed';
+import { timeVersusEstimate } from './focus';
+import { recurrenceLabel, waitingOn } from './task-views';
 
 const PRIORITY_META: Record<string, { icon: string; tone: string } | undefined> = {
   High: { icon: 'bi-flag-fill', tone: 'text-danger' },
@@ -37,6 +39,14 @@ export class TaskRow {
   protected readonly priorityMeta = PRIORITY_META;
   protected readonly recurrenceLabel = recurrenceLabel;
   protected readonly dateTimeFormat = APP_DATE_TIME_FORMAT;
+
+  /** Open tasks it still waits for: "Choose a painter" or "2 tasks". */
+  protected readonly waitingOn = computed(() =>
+    this.task().status === 'Open' ? waitingOn(this.task()) : null,
+  );
+  protected readonly timeText = computed(() =>
+    timeVersusEstimate(this.task().actualMinutes, this.task().estimateMinutes, formatMinutes),
+  );
 
   protected readonly overdue = computed(() => {
     const task = this.task();

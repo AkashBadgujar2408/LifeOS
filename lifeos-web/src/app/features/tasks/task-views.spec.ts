@@ -7,6 +7,7 @@ import {
   recurrenceLabel,
   relativeDayLabel,
   sortTasks,
+  waitingOn,
 } from './task-views';
 
 let nextId = 1;
@@ -23,6 +24,9 @@ const task = (overrides: Partial<TaskItem>): TaskItem => ({
   recurrence: null,
   tags: [],
   createdAt: '2026-10-01T10:00:00Z',
+  estimateMinutes: null,
+  actualMinutes: 0,
+  blockedBy: [],
   ...overrides,
 });
 
@@ -152,5 +156,28 @@ describe('recurrenceLabel', () => {
     expect(recurrenceLabel({ frequency: 'Weekly', interval: 1 })).toBe('Every week');
     expect(recurrenceLabel({ frequency: 'Daily', interval: 3 })).toBe('Every 3 days');
     expect(recurrenceLabel({ frequency: 'Monthly', interval: 2 })).toBe('Every 2 months');
+  });
+});
+
+describe('waitingOn', () => {
+  it('names the open tasks it waits for, ignoring done ones', () => {
+    const single = task({
+      blockedBy: [
+        { id: 2, title: 'Choose a painter', status: 'Open' },
+        { id: 3, title: 'Get quotes', status: 'Done' },
+      ],
+    });
+    const several = task({
+      blockedBy: [
+        { id: 2, title: 'A', status: 'Open' },
+        { id: 3, title: 'B', status: 'Open' },
+      ],
+    });
+
+    expect(waitingOn(single)).toEqual({ label: '"Choose a painter"', titles: 'Choose a painter' });
+    expect(waitingOn(several)).toEqual({ label: '2 tasks', titles: 'A, B' });
+    expect(
+      waitingOn(task({ blockedBy: [{ id: 3, title: 'Get quotes', status: 'Done' }] })),
+    ).toBeNull();
   });
 });

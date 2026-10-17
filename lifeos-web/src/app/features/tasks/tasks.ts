@@ -159,6 +159,8 @@ export class Tasks {
         projectId: null,
         recurrence: null,
         tagIds: [],
+        estimateMinutes: null,
+        blockedByTaskIds: [],
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

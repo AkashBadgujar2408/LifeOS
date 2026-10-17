@@ -136,6 +136,8 @@ export class ProjectDetail implements OnInit {
         projectId: this.projectId,
         recurrence: null,
         tagIds: [],
+        estimateMinutes: null,
+        blockedByTaskIds: [],
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

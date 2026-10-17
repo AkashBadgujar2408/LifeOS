@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 import {
@@ -21,8 +22,10 @@ import {
   TaskItem,
   TaskPayload,
   TaskPriority,
+  TaskRef,
   TasksService,
 } from '../../core/services/tasks.service';
+import { FocusTimer } from './focus-timer';
 import { ToastService } from '../../core/services/toast.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { Attachments } from '../../shared/components/attachments/attachments';
@@ -73,6 +76,8 @@ function repeatNeedsDueDate(group: AbstractControl): ValidationErrors | null {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     ReactiveFormsModule,
+    FormsModule,
+    FocusTimer,
     NgbInputDatepicker,
     TagPicker,
     LinkedItems,
@@ -110,6 +115,25 @@ export class TaskEditor {
   protected readonly tagIds = signal<number[]>([]);
   protected readonly saving = signal(false);
 
+  protected readonly estimatePresets = [15, 30, 60, 120] as const;
+  /** What this task waits for (kept in the order added). */
+  protected readonly blockers = signal<TaskRef[]>([]);
+  protected readonly blockerSearch = signal('');
+  /** Open tasks it could wait for: loaded once, filtered by the search box. */
+  private readonly openTasks = toSignal(
+    this.tasksService.list('Open').pipe(catchError(() => of<TaskItem[]>([]))),
+    { initialValue: [] },
+  );
+  protected readonly blockerCandidates = computed(() => {
+    const term = this.blockerSearch().trim().toLowerCase();
+    const chosen = new Set(this.blockers().map((b) => b.id));
+    const self = this.task()?.id;
+    return this.openTasks()
+      .filter((t) => t.id !== self && !chosen.has(t.id))
+      .filter((t) => !term || t.title.toLowerCase().includes(term))
+      .slice(0, 6);
+  });
+
   protected readonly form = this.fb.group(
     {
       title: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(300)]),
@@ -122,6 +146,10 @@ export class TaskEditor {
         Validators.required,
         Validators.min(1),
         Validators.max(999),
+      ]),
+      estimateMinutes: this.fb.control<number | null>(null, [
+        Validators.min(1),
+        Validators.max(10080),
       ]),
     },
     { validators: repeatNeedsDueDate },
@@ -139,8 +167,47 @@ export class TaskEditor {
       projectId: task ? task.projectId : (defaults?.projectId ?? null),
       repeat: task?.recurrence?.frequency ?? 'None',
       interval: task?.recurrence?.interval ?? 1,
+      estimateMinutes: task?.estimateMinutes ?? null,
     });
     this.tagIds.set(task?.tags.map((t) => t.id) ?? []);
+    this.blockers.set(task?.blockedBy ?? []);
+  }
+
+  protected setEstimate(minutes: number): void {
+    this.form.controls.estimateMinutes.setValue(minutes);
+    this.form.controls.estimateMinutes.markAsTouched();
+  }
+
+  protected addBlocker(candidate: TaskItem): void {
+    this.blockers.update((list) => [
+      ...list,
+      { id: candidate.id, title: candidate.title, status: candidate.status },
+    ]);
+    this.blockerSearch.set('');
+  }
+
+  protected removeBlocker(id: number): void {
+    this.blockers.update((list) => list.filter((b) => b.id !== id));
+  }
+
+  /** Closing without saving still hands back the task when focus time was logged, so lists show the new time. */
+  protected close(): void {
+    const task = this.task();
+    if (this.focusChanged && task) {
+      this.activeModal.close({ kind: 'saved', task } as TaskEditorResult);
+    } else {
+      this.activeModal.dismiss();
+    }
+  }
+
+  private focusChanged = false;
+
+  /** A logged or removed focus session: the task's actual time changed. */
+  protected onFocusChanged(updated: TaskItem): void {
+    this.focusChanged = true;
+    this.task.update((current) =>
+      current ? { ...current, actualMinutes: updated.actualMinutes } : current,
+    );
   }
 
   protected intervalUnit(): string {
@@ -159,10 +226,16 @@ export class TaskEditor {
     return this.inboxItemId() ? 'Make it a task' : 'New task';
   }
 
-  protected fieldError(name: 'title' | 'notes' | 'dueDate' | 'interval'): string | null {
+  protected fieldError(
+    name: 'title' | 'notes' | 'dueDate' | 'interval' | 'estimateMinutes',
+  ): string | null {
     const control = this.form.controls[name];
     if (!control.touched) {
       return null;
+    }
+
+    if (name === 'estimateMinutes') {
+      return control.errors ? 'An estimate is 1 minute to 7 days (10,080 minutes).' : null;
     }
 
     if (name === 'dueDate') {
@@ -212,6 +285,8 @@ export class TaskEditor {
       recurrence:
         value.repeat === 'None' ? null : { frequency: value.repeat, interval: value.interval },
       tagIds: this.tagIds(),
+      estimateMinutes: value.estimateMinutes || null,
+      blockedByTaskIds: this.blockers().map((b) => b.id),
     };
 
     const task = this.task();

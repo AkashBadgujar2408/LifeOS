@@ -1,12 +1,7 @@
 <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
   <div class="modal-header">
     <h2 id="task-editor-heading" class="modal-title h5">{{ heading() }}</h2>
-    <button
-      type="button"
-      class="btn-close"
-      aria-label="Close"
-      (click)="activeModal.dismiss()"
-    ></button>
+    <button type="button" class="btn-close" aria-label="Close" (click)="close()"></button>
   </div>
 
   <div class="modal-body d-flex flex-column gap-3">
@@ -160,7 +155,104 @@
       <app-tag-picker [selectedTagIds]="tagIds()" (selectedTagIdsChange)="tagIds.set($event)" />
     </div>
 
+    <div class="row g-3">
+      <div class="col-sm-5">
+        <label class="form-label" for="task-estimate">
+          Estimate <span class="text-body-secondary small">(minutes, optional)</span>
+        </label>
+        <input
+          id="task-estimate"
+          type="number"
+          min="1"
+          max="10080"
+          class="form-control"
+          [class.is-invalid]="fieldError('estimateMinutes')"
+          formControlName="estimateMinutes"
+          placeholder="e.g. 45"
+        />
+        <div class="d-flex flex-wrap gap-1 mt-1">
+          @for (preset of estimatePresets; track preset) {
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary py-0"
+              (click)="setEstimate(preset)"
+            >
+              {{ preset < 60 ? preset + 'm' : preset / 60 + 'h' }}
+            </button>
+          }
+        </div>
+        @if (fieldError('estimateMinutes'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-7">
+        <label class="form-label" for="task-blocker-search">
+          Waits for <span class="text-body-secondary small">(optional)</span>
+        </label>
+        @if (blockers().length > 0) {
+          <ul class="list-unstyled small mb-2 d-flex flex-column gap-1">
+            @for (b of blockers(); track b.id) {
+              <li class="d-flex align-items-center gap-2">
+                <i
+                  class="bi {{
+                    b.status === 'Done'
+                      ? 'bi-check-circle text-success'
+                      : 'bi-hourglass-split text-body-secondary'
+                  }}"
+                  [title]="b.status === 'Done' ? 'Done' : 'Still open'"
+                ></i>
+                <span
+                  class="flex-grow-1 text-break"
+                  [class.text-decoration-line-through]="b.status === 'Done'"
+                  >{{ b.title }}</span
+                >
+                <button
+                  type="button"
+                  class="btn btn-link btn-sm p-0 text-body-secondary"
+                  [attr.aria-label]="'Stop waiting for ' + b.title"
+                  (click)="removeBlocker(b.id)"
+                >
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+        <input
+          id="task-blocker-search"
+          type="search"
+          class="form-control form-control-sm"
+          placeholder="Find an open task it needs first"
+          autocomplete="off"
+          [ngModel]="blockerSearch()"
+          [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="blockerSearch.set($event)"
+          (keydown.enter)="$event.preventDefault()"
+        />
+        @if (blockerSearch().trim()) {
+          <div class="list-group list-group-flush border rounded mt-1">
+            @for (c of blockerCandidates(); track c.id) {
+              <button
+                type="button"
+                class="list-group-item list-group-item-action small py-1"
+                (click)="addBlocker(c)"
+              >
+                {{ c.title }}
+              </button>
+            } @empty {
+              <span class="list-group-item small text-body-secondary py-1"
+                >No open task matches.</span
+              >
+            }
+          </div>
+        }
+      </div>
+    </div>
+
     @if (task(); as task) {
+      <div class="border-top pt-3">
+        <app-focus-timer [task]="task" (changed)="onFocusChanged($event)" />
+      </div>
       <div class="border-top pt-3">
         <app-linked-items
           [entityType]="taskEntityType"
@@ -187,9 +279,7 @@
         <i class="bi bi-trash"></i> Delete
       </button>
     }
-    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
-      Cancel
-    </button>
+    <button type="button" class="btn btn-outline-secondary" (click)="close()">Cancel</button>
     <button type="submit" class="btn btn-primary" [disabled]="saving()">
       {{ task() ? 'Save' : inboxItemId() ? 'Create task' : 'Add task' }}
     </button>

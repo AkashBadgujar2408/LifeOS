@@ -80,3 +80,7 @@ public partial class HabitChallenge : ISoftDeletable, IUserOwned;
 public partial class Routine : ISoftDeletable, IUserOwned;
 
 public partial class RoutineHabit : ISoftDeletable, IUserOwned;
+
+public partial class TaskDependency : ISoftDeletable, IUserOwned;
+
+public partial class FocusSession : ISoftDeletable, IUserOwned;

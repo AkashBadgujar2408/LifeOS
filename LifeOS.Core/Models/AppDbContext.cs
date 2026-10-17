@@ -29,6 +29,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EventException> EventExceptions { get; set; }
 
+    public virtual DbSet<FocusSession> FocusSessions { get; set; }
+
     public virtual DbSet<Goal> Goals { get; set; }
 
     public virtual DbSet<GoalHistory> GoalHistories { get; set; }
@@ -74,6 +76,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<RoutineHabit> RoutineHabits { get; set; }
 
     public virtual DbSet<Tag> Tags { get; set; }
+
+    public virtual DbSet<TaskDependency> TaskDependencies { get; set; }
 
     public virtual DbSet<TaskItem> TaskItems { get; set; }
 
@@ -307,6 +311,25 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_EventExceptions_Users");
+        });
+
+        modelBuilder.Entity<FocusSession>(entity =>
+        {
+            entity.ToTable("FocusSessions", "tasks");
+
+            entity.HasIndex(e => e.TaskItemId, "IX_FocusSessions_Task").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_FocusSessions_CreatedAt");
+
+            entity.HasOne(d => d.TaskItem).WithMany(p => p.FocusSessions)
+                .HasForeignKey(d => d.TaskItemId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FocusSessions_Task");
+
+            entity.HasOne(d => d.User).WithMany(p => p.FocusSessions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FocusSessions_Users");
         });
 
         modelBuilder.Entity<Goal>(entity =>
@@ -816,6 +839,34 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Tags_Users");
+        });
+
+        modelBuilder.Entity<TaskDependency>(entity =>
+        {
+            entity.ToTable("TaskDependencies", "tasks");
+
+            entity.HasIndex(e => e.BlockedByTaskId, "IX_TaskDependencies_BlockedBy").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.TaskItemId, e.BlockedByTaskId }, "UX_TaskDependencies_Pair")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_TaskDependencies_CreatedAt");
+
+            entity.HasOne(d => d.BlockedByTask).WithMany(p => p.TaskDependencyBlockedByTasks)
+                .HasForeignKey(d => d.BlockedByTaskId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TaskDependencies_BlockedBy");
+
+            entity.HasOne(d => d.TaskItem).WithMany(p => p.TaskDependencyTaskItems)
+                .HasForeignKey(d => d.TaskItemId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TaskDependencies_Task");
+
+            entity.HasOne(d => d.User).WithMany(p => p.TaskDependencies)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TaskDependencies_Users");
         });
 
         modelBuilder.Entity<TaskItem>(entity =>

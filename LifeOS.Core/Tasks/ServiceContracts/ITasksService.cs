@@ -16,6 +16,14 @@ public interface ITasksService
     Task<OperationResult<SetTaskCompletedResult>> SetCompletedAsync(int id, bool completed, DateOnly today);
     Task<OperationResult<bool>> DeleteAsync(int id);
 
+    /// <summary>The task's focus sessions, newest first.</summary>
+    Task<OperationResult<List<FocusSessionDto>>> GetFocusSessionsAsync(int id);
+
+    /// <summary>Logs a focus session; returns the task with its new actual time.</summary>
+    Task<OperationResult<TaskItemDto>> AddFocusSessionAsync(int id, FocusSessionRequest request);
+
+    Task<OperationResult<TaskItemDto>> RemoveFocusSessionAsync(int id, int sessionId);
+
     /// <summary>Turns a captured Inbox item into a real task: creates it, moves the item's links to it, marks the item processed.</summary>
     Task<OperationResult<TaskItemDto>> CreateFromInboxAsync(int inboxItemId, TaskRequest request);
 }

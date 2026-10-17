@@ -45,6 +45,8 @@ public partial class User
 
     public virtual ICollection<Event> Events { get; set; } = new List<Event>();
 
+    public virtual ICollection<FocusSession> FocusSessions { get; set; } = new List<FocusSession>();
+
     public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();
 
     public virtual ICollection<GoalMilestone> GoalMilestones { get; set; } = new List<GoalMilestone>();
@@ -88,6 +90,8 @@ public partial class User
     public virtual ICollection<Routine> Routines { get; set; } = new List<Routine>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
+
+    public virtual ICollection<TaskDependency> TaskDependencies { get; set; } = new List<TaskDependency>();
 
     public virtual ICollection<TaskItem> TaskItems { get; set; } = new List<TaskItem>();
 

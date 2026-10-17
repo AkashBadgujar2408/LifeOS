@@ -68,39 +68,6 @@ public static class MissionGraph
     /// <paramref name="requiresGoalId"/> already (directly or through others) requires <paramref name="goalId"/> — or
     /// is the same goal.
     /// </summary>
-    public static bool WouldCreateCycle(IEnumerable<(int GoalId, int RequiresGoalId)> edges, int goalId, int requiresGoalId)
-    {
-        if (goalId == requiresGoalId)
-        {
-            return true;
-        }
-
-        var requires = edges
-            .GroupBy(e => e.GoalId)
-            .ToDictionary(g => g.Key, g => g.Select(e => e.RequiresGoalId).ToList());
-
-        // Walk everything requiresGoalId depends on; reaching goalId means the new edge would close a loop.
-        var seen = new HashSet<int>();
-        var stack = new Stack<int>([requiresGoalId]);
-        while (stack.Count > 0)
-        {
-            var current = stack.Pop();
-            if (current == goalId)
-            {
-                return true;
-            }
-
-            if (!seen.Add(current) || !requires.TryGetValue(current, out var next))
-            {
-                continue;
-            }
-
-            foreach (var n in next)
-            {
-                stack.Push(n);
-            }
-        }
-
-        return false;
-    }
+    public static bool WouldCreateCycle(IEnumerable<(int GoalId, int RequiresGoalId)> edges, int goalId, int requiresGoalId) =>
+        Shared.Services.DependencyGraph.WouldCreateCycle(edges.Select(e => (e.GoalId, e.RequiresGoalId)), goalId, requiresGoalId);
 }

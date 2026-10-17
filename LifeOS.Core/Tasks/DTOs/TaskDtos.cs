@@ -51,7 +51,43 @@ public class TaskItemDto
     public string? ProjectName { get; init; }
     public TaskRecurrenceDto? Recurrence { get; init; }
     public List<TagDto> Tags { get; init; } = [];
+    /// <summary>How long it should take; null when not estimated.</summary>
+    public int? EstimateMinutes { get; init; }
+    /// <summary>Focus time logged on it (the sum of its focus sessions).</summary>
+    public int ActualMinutes { get; init; }
+    /// <summary>The tasks it waits for, open ones first. It's blocked while any of them is open.</summary>
+    public List<TaskRefDto> BlockedBy { get; init; } = [];
     public DateTime CreatedAt { get; init; }
+}
+
+/// <summary>Another task, as a dependency names it.</summary>
+public class TaskRefDto
+{
+    public int Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+}
+
+/// <summary>Time spent on a task with the focus timer.</summary>
+public class FocusSessionDto
+{
+    public int Id { get; init; }
+    public DateTime StartedAt { get; init; }
+    public DateTime EndedAt { get; init; }
+    public int Minutes { get; init; }
+}
+
+public class FocusSessionRequest
+{
+    [Required]
+    public DateTime? StartedAt { get; init; }
+
+    [Required]
+    public DateTime? EndedAt { get; init; }
+
+    /// <summary>Focused minutes (pauses excluded): 1–600, and no more than the span from start to end.</summary>
+    [Range(1, 600, ErrorMessage = "A focus session is 1 to 600 minutes.")]
+    public int Minutes { get; init; }
 }
 
 public class TaskRequest
@@ -76,6 +112,12 @@ public class TaskRequest
     public TaskRecurrenceDto? Recurrence { get; init; }
 
     public List<int> TagIds { get; init; } = [];
+
+    [Range(1, 10080, ErrorMessage = "An estimate is 1 minute to 7 days (10,080 minutes).")]
+    public int? EstimateMinutes { get; init; }
+
+    /// <summary>Tasks this one waits for. Loops are refused.</summary>
+    public List<int> BlockedByTaskIds { get; init; } = [];
 }
 
 public class SetTaskCompletedRequest

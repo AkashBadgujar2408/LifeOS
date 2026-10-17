@@ -116,3 +116,20 @@ export function defaultDueDateFor(view: TaskView, today: string): string | null 
       return null;
   }
 }
+
+/**
+ * What an open task is still waiting for: its blockers that aren't done yet, as a short label ("Choose a painter",
+ * "2 tasks") and the full list for a tooltip; null when nothing holds it back (advisory — it can still be done).
+ */
+export function waitingOn(
+  task: Pick<TaskItem, 'blockedBy'>,
+): { label: string; titles: string } | null {
+  const open = task.blockedBy.filter((b) => b.status === 'Open');
+  if (open.length === 0) {
+    return null;
+  }
+  return {
+    label: open.length === 1 ? `"${open[0].title}"` : `${open.length} tasks`,
+    titles: open.map((b) => b.title).join(', '),
+  };
+}

@@ -29,7 +29,8 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
             ? query.OrderByDescending(t => t.CompletedAt).Take(DoneListLimit)
             : query.OrderBy(t => t.DueDate == null).ThenBy(t => t.DueDate).ThenBy(t => t.CreatedAt);
 
-        return await query.ProjectTo<TaskItemDto>(mapper.ConfigurationProvider).ToListAsync();
+        // Two collections (tags, blockers): split so they don't multiply each other's rows.
+        return await query.ProjectTo<TaskItemDto>(mapper.ConfigurationProvider).AsSplitQuery().ToListAsync();
     }
 
     public async Task<OperationResult<TaskItemDto>> GetAsync(int id)
@@ -37,6 +38,7 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         var task = await db.TaskItems
             .Where(t => t.Id == id)
             .ProjectTo<TaskItemDto>(mapper.ConfigurationProvider)
+            .AsSplitQuery()
             .FirstOrDefaultAsync();
 
         return task is null ? OperationResult<TaskItemDto>.Fail(NotFound) : OperationResult<TaskItemDto>.Ok(task);
@@ -48,6 +50,12 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         if (error is not null)
         {
             return OperationResult<TaskItemDto>.Fail(error);
+        }
+
+        var dependencyError = await ValidateBlockersAsync(0, request.BlockedByTaskIds);
+        if (dependencyError is not null)
+        {
+            return OperationResult<TaskItemDto>.Fail(dependencyError);
         }
 
         var task = NewTask(request);
@@ -65,7 +73,7 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
             return OperationResult<TaskItemDto>.Fail(NotFound);
         }
 
-        var error = await ValidateAsync(request, task.ProjectId);
+        var error = await ValidateAsync(request, task.ProjectId) ?? await ValidateBlockersAsync(id, request.BlockedByTaskIds);
         if (error is not null)
         {
             return OperationResult<TaskItemDto>.Fail(error);
@@ -87,7 +95,21 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         task.RecurrenceFrequency = recurrence?.Frequency;
         task.RecurrenceInterval = recurrence?.Interval;
         task.RecurrenceAnchorDate = recurrence is null ? null : scheduleChanged ? request.DueDate : task.RecurrenceAnchorDate;
+        task.EstimateMinutes = request.EstimateMinutes;
         task.UpdatedAt = DateTime.UtcNow;
+
+        var wantedBlockers = request.BlockedByTaskIds.Distinct().ToHashSet();
+        var currentBlockers = await db.TaskDependencies.Where(d => d.TaskItemId == id).ToListAsync();
+        foreach (var dependency in currentBlockers.Where(d => !wantedBlockers.Contains(d.BlockedByTaskId)))
+        {
+            dependency.IsDeleted = true;
+            dependency.DeletedAt = DateTime.UtcNow;
+        }
+
+        foreach (var blockerId in wantedBlockers.Except(currentBlockers.Select(d => d.BlockedByTaskId)))
+        {
+            db.TaskDependencies.Add(new TaskDependency { UserId = task.UserId, TaskItemId = id, BlockedByTaskId = blockerId });
+        }
 
         var wanted = request.TagIds.Distinct().ToHashSet();
         var current = await db.TaskTags.Where(tt => tt.TaskItemId == id).ToListAsync();
@@ -154,6 +176,8 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
                 RecurrenceFrequency = task.RecurrenceFrequency,
                 RecurrenceInterval = task.RecurrenceInterval,
                 RecurrenceAnchorDate = task.RecurrenceAnchorDate,
+                // The estimate carries over; blockers and focus time belong to this occurrence.
+                EstimateMinutes = task.EstimateMinutes,
             };
             var tagIds = await db.TaskTags.Where(tt => tt.TaskItemId == id).Select(tt => tt.TagId).ToListAsync();
             foreach (var tagId in tagIds)
@@ -190,6 +214,13 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         await db.TaskTags
             .Where(tt => tt.TaskItemId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(tt => tt.IsDeleted, true).SetProperty(tt => tt.DeletedAt, now));
+        // Its blockers, and its place as a blocker of other tasks (they're no longer waiting on it).
+        await db.TaskDependencies
+            .Where(d => d.TaskItemId == id || d.BlockedByTaskId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(d => d.IsDeleted, true).SetProperty(d => d.DeletedAt, now));
+        await db.FocusSessions
+            .Where(f => f.TaskItemId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(f => f.IsDeleted, true).SetProperty(f => f.DeletedAt, now));
 
         task.IsDeleted = true;
         task.DeletedAt = now;
@@ -238,6 +269,114 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         return await GetAsync(task.Id);
     }
 
+    public async Task<OperationResult<List<FocusSessionDto>>> GetFocusSessionsAsync(int id)
+    {
+        if (!await db.TaskItems.AnyAsync(t => t.Id == id))
+        {
+            return OperationResult<List<FocusSessionDto>>.Fail(NotFound);
+        }
+
+        return OperationResult<List<FocusSessionDto>>.Ok(await db.FocusSessions.AsNoTracking()
+            .Where(f => f.TaskItemId == id)
+            .OrderByDescending(f => f.StartedAt)
+            .Select(f => new FocusSessionDto { Id = f.Id, StartedAt = f.StartedAt, EndedAt = f.EndedAt, Minutes = f.Minutes })
+            .ToListAsync());
+    }
+
+    public async Task<OperationResult<TaskItemDto>> AddFocusSessionAsync(int id, FocusSessionRequest request)
+    {
+        var task = await db.TaskItems.FindAsync(id);
+        if (task is null)
+        {
+            return OperationResult<TaskItemDto>.Fail(NotFound);
+        }
+
+        var started = request.StartedAt!.Value.ToUniversalTime();
+        var ended = request.EndedAt!.Value.ToUniversalTime();
+        var error = TaskTime.CheckSession(started, ended, request.Minutes, DateTime.UtcNow);
+        if (error is not null)
+        {
+            return OperationResult<TaskItemDto>.Fail(error);
+        }
+
+        db.FocusSessions.Add(new FocusSession
+        {
+            UserId = task.UserId,
+            TaskItemId = id,
+            StartedAt = started,
+            EndedAt = ended,
+            Minutes = request.Minutes,
+        });
+        await db.SaveChangesAsync();
+        return await GetAsync(id);
+    }
+
+    public async Task<OperationResult<TaskItemDto>> RemoveFocusSessionAsync(int id, int sessionId)
+    {
+        var session = await db.FocusSessions.FirstOrDefaultAsync(f => f.Id == sessionId && f.TaskItemId == id);
+        if (session is null)
+        {
+            return OperationResult<TaskItemDto>.Fail(await db.TaskItems.AnyAsync(t => t.Id == id) ? "Focus session not found." : NotFound);
+        }
+
+        session.IsDeleted = true;
+        session.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return await GetAsync(id);
+    }
+
+    /// <summary>
+    /// The blockers exist (for this user) and none of them closes a loop with the task's other dependencies.
+    /// <paramref name="taskId"/> is 0 for a new task (nothing can depend on it yet, so no loop is possible).
+    /// </summary>
+    private async Task<string?> ValidateBlockersAsync(int taskId, IReadOnlyCollection<int> blockerIds)
+    {
+        var ids = blockerIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return null;
+        }
+
+        if (ids.Count > 20)
+        {
+            return "A task can wait for up to 20 others.";
+        }
+
+        if (ids.Contains(taskId))
+        {
+            return "A task can't wait for itself.";
+        }
+
+        if (await db.TaskItems.CountAsync(t => ids.Contains(t.Id)) != ids.Count)
+        {
+            return "Task not found.";
+        }
+
+        if (taskId == 0)
+        {
+            return null;
+        }
+
+        // Every live dependency except this task's own (they're being replaced).
+        var edges = await db.TaskDependencies
+            .Where(d => d.TaskItemId != taskId)
+            .Select(d => new { d.TaskItemId, d.BlockedByTaskId })
+            .ToListAsync();
+        var graph = edges.Select(e => (e.TaskItemId, e.BlockedByTaskId)).ToList();
+        foreach (var blockerId in ids)
+        {
+            if (DependencyGraph.WouldCreateCycle(graph, taskId, blockerId))
+            {
+                var title = await db.TaskItems.Where(t => t.Id == blockerId).Select(t => t.Title).FirstAsync();
+                return $"\"{title}\" already waits for this task (directly or through others), so this would go round in a loop.";
+            }
+
+            graph.Add((taskId, blockerId));
+        }
+
+        return null;
+    }
+
     private TaskItem NewTask(TaskRequest request)
     {
         var userId = db.CurrentUserId!.Value;
@@ -253,10 +392,16 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
             RecurrenceFrequency = request.Recurrence?.Frequency,
             RecurrenceInterval = request.Recurrence?.Interval,
             RecurrenceAnchorDate = request.Recurrence is null ? null : request.DueDate,
+            EstimateMinutes = request.EstimateMinutes,
         };
         foreach (var tagId in request.TagIds.Distinct())
         {
             task.TaskTags.Add(new TaskTag { UserId = userId, TagId = tagId });
+        }
+
+        foreach (var blockerId in request.BlockedByTaskIds.Distinct())
+        {
+            task.TaskDependencyTaskItems.Add(new TaskDependency { UserId = userId, BlockedByTaskId = blockerId });
         }
 
         return task;

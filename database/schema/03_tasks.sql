@@ -111,3 +111,64 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('tasks.TaskTags') AND name = 'IX_TaskTags_Tag')
     CREATE INDEX IX_TaskTags_Tag ON tasks.TaskTags(TagId) WHERE IsDeleted = 0;
 GO
+
+-- Session 45 (tasks follow-up).
+-- EstimateMinutes: how long the task should take (1 minute to a week of minutes); compared with the focus time
+-- actually logged (the sum of FocusSessions — never stored on the task).
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('tasks.TaskItems') AND name = 'EstimateMinutes')
+    ALTER TABLE tasks.TaskItems ADD
+        EstimateMinutes INT NULL CONSTRAINT CK_TaskItems_EstimateMinutes CHECK (EstimateMinutes IS NULL OR EstimateMinutes BETWEEN 1 AND 10080);
+GO
+
+-- "TaskItemId can't really start until BlockedByTaskId is done." Advisory, like mission locks: a blocked task shows
+-- what it's waiting for, nothing refuses it. Loops are refused by the service (DependencyGraph.WouldCreateCycle);
+-- the CHECK only stops the trivial one. Filtered unique so remove-then-add works under soft delete.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('tasks.TaskDependencies'))
+BEGIN
+    CREATE TABLE tasks.TaskDependencies
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_TaskDependencies PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_TaskDependencies_Users REFERENCES shared.Users(Id),
+        TaskItemId      INT               NOT NULL CONSTRAINT FK_TaskDependencies_Task REFERENCES tasks.TaskItems(Id),
+        BlockedByTaskId INT               NOT NULL CONSTRAINT FK_TaskDependencies_BlockedBy REFERENCES tasks.TaskItems(Id),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_TaskDependencies_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_TaskDependencies_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_TaskDependencies_NotSelf CHECK (TaskItemId <> BlockedByTaskId)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('tasks.TaskDependencies') AND name = 'UX_TaskDependencies_Pair')
+    CREATE UNIQUE INDEX UX_TaskDependencies_Pair ON tasks.TaskDependencies(TaskItemId, BlockedByTaskId) WHERE IsDeleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('tasks.TaskDependencies') AND name = 'IX_TaskDependencies_BlockedBy')
+    CREATE INDEX IX_TaskDependencies_BlockedBy ON tasks.TaskDependencies(BlockedByTaskId) WHERE IsDeleted = 0;
+GO
+
+-- A focus session (the editor's Pomodoro timer): a stretch of time actually spent on the task. Minutes is the focused
+-- time (pauses excluded), so it can be less than EndedAt − StartedAt. A task's actual time is the sum of these.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('tasks.FocusSessions'))
+BEGIN
+    CREATE TABLE tasks.FocusSessions
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_FocusSessions PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_FocusSessions_Users REFERENCES shared.Users(Id),
+        TaskItemId      INT               NOT NULL CONSTRAINT FK_FocusSessions_Task REFERENCES tasks.TaskItems(Id),
+        StartedAt       DATETIME2         NOT NULL,
+        EndedAt         DATETIME2         NOT NULL,
+        Minutes         INT               NOT NULL CONSTRAINT CK_FocusSessions_Minutes CHECK (Minutes BETWEEN 1 AND 600),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_FocusSessions_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_FocusSessions_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_FocusSessions_Times CHECK (EndedAt > StartedAt)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('tasks.FocusSessions') AND name = 'IX_FocusSessions_Task')
+    CREATE INDEX IX_FocusSessions_Task ON tasks.FocusSessions(TaskItemId) INCLUDE (Minutes) WHERE IsDeleted = 0;
+GO

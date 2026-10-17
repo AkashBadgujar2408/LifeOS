@@ -85,6 +85,37 @@ public class TasksController(ITasksService tasksService) : ControllerBase
         return Ok(ApiResponse<SetTaskCompletedResult>.Ok(result.Data));
     }
 
+    /// <summary>GET api/Tasks/Tasks/5/focus — its focus sessions, newest first.</summary>
+    [HttpGet("{id:int}/focus")]
+    public async Task<IActionResult> FocusSessions(int id)
+    {
+        var result = await tasksService.GetFocusSessionsAsync(id);
+        return result.Success
+            ? Ok(ApiResponse<List<FocusSessionDto>>.Ok(result.Data))
+            : NotFound(ApiResponse<List<FocusSessionDto>>.Fail(result.Error!));
+    }
+
+    /// <summary>POST api/Tasks/Tasks/5/focus { startedAt, endedAt, minutes } (UTC) — returns the task with its new actual time.</summary>
+    [HttpPost("{id:int}/focus")]
+    public async Task<IActionResult> AddFocusSession(int id, FocusSessionRequest request) =>
+        RespondTask(await tasksService.AddFocusSessionAsync(id, request));
+
+    [HttpDelete("{id:int}/focus/{sessionId:int}")]
+    public async Task<IActionResult> RemoveFocusSession(int id, int sessionId) =>
+        RespondTask(await tasksService.RemoveFocusSessionAsync(id, sessionId));
+
+    private IActionResult RespondTask(OperationResult<TaskItemDto> result)
+    {
+        if (result.Success)
+        {
+            return Ok(ApiResponse<TaskItemDto>.Ok(result.Data));
+        }
+
+        return result.Error is "Task not found." or "Focus session not found."
+            ? NotFound(ApiResponse<TaskItemDto>.Fail(result.Error))
+            : BadRequest(ApiResponse<TaskItemDto>.Fail(result.Error!));
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
