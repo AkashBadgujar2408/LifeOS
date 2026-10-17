@@ -74,3 +74,9 @@ public partial class Decision : ISoftDeletable, IUserOwned;
 public partial class MonthlyReflection : ISoftDeletable, IUserOwned;
 
 public partial class HabitTag : ISoftDeletable, IUserOwned;
+
+public partial class HabitChallenge : ISoftDeletable, IUserOwned;
+
+public partial class Routine : ISoftDeletable, IUserOwned;
+
+public partial class RoutineHabit : ISoftDeletable, IUserOwned;

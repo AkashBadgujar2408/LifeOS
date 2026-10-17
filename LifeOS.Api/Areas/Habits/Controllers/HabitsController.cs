@@ -96,6 +96,28 @@ public class HabitsController(IHabitsService habitsService) : ControllerBase
         return Ok(ApiResponse<HabitEntryResultDto>.Ok(result.Data));
     }
 
+    /// <summary>POST api/Habits/Habits/5/challenges { "days": 30, "today": "2026-10-17" } — starts today unless startDate is given.</summary>
+    [HttpPost("{id:int}/challenges")]
+    public async Task<IActionResult> StartChallenge(int id, StartChallengeRequest request) =>
+        RespondChallenges(await habitsService.StartChallengeAsync(id, request));
+
+    /// <summary>DELETE api/Habits/Habits/5/challenges/3?today=2026-10-17</summary>
+    [HttpDelete("{id:int}/challenges/{challengeId:int}")]
+    public async Task<IActionResult> RemoveChallenge(int id, int challengeId, [FromQuery] DateOnly? today) =>
+        RespondChallenges(await habitsService.RemoveChallengeAsync(id, challengeId, today ?? UtcToday()));
+
+    private IActionResult RespondChallenges(OperationResult<List<HabitChallengeDto>> result)
+    {
+        if (result.Success)
+        {
+            return Ok(ApiResponse<List<HabitChallengeDto>>.Ok(result.Data));
+        }
+
+        return result.Error is HabitErrors.NotFound or HabitErrors.ChallengeNotFound
+            ? NotFound(ApiResponse<List<HabitChallengeDto>>.Fail(result.Error))
+            : BadRequest(ApiResponse<List<HabitChallengeDto>>.Fail(result.Error!));
+    }
+
     /// <summary>GET api/Habits/Habits/templates — the habit library.</summary>
     [HttpGet("templates")]
     public IActionResult Templates() => Ok(ApiResponse<IReadOnlyList<HabitTemplateDto>>.Ok(HabitTemplates.All));

@@ -35,11 +35,15 @@ public partial class Habit
 
     public string? Unit { get; set; }
 
+    public virtual ICollection<HabitChallenge> HabitChallenges { get; set; } = new List<HabitChallenge>();
+
     public virtual ICollection<HabitEntry> HabitEntries { get; set; } = new List<HabitEntry>();
 
     public virtual ICollection<HabitTag> HabitTags { get; set; } = new List<HabitTag>();
 
     public virtual LifeArea? LifeArea { get; set; }
+
+    public virtual ICollection<RoutineHabit> RoutineHabits { get; set; } = new List<RoutineHabit>();
 
     public virtual User User { get; set; } = null!;
 }

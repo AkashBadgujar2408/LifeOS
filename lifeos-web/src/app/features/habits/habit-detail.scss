@@ -1,0 +1,88 @@
+// The year heatmap and the weekday bars: the detail page's own visuals (Habits may have bespoke CSS). Tokens only, the
+// same colour meanings as the tick grid (habit-day.scss).
+:host {
+  display: block;
+}
+
+.habit-year {
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.habit-year-week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.habit-year-month {
+  height: 0.9rem;
+  font-size: 0.6rem;
+  line-height: 0.9rem;
+  color: var(--lifeos-text-secondary);
+  white-space: nowrap;
+  width: 0.6rem;
+  overflow: visible;
+}
+
+.habit-year-day {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 2px;
+  background: var(--lifeos-canvas);
+  border: 1px solid var(--lifeos-border);
+}
+
+.habit-year-done {
+  background: var(--lifeos-teal);
+  border-color: var(--lifeos-teal);
+}
+
+.habit-year-partial {
+  background: color-mix(in srgb, var(--lifeos-teal) 35%, var(--lifeos-surface));
+  border-color: color-mix(in srgb, var(--lifeos-teal) 50%, transparent);
+}
+
+.habit-year-missed {
+  background: color-mix(in srgb, var(--cui-danger) 10%, var(--lifeos-surface));
+  border-color: color-mix(in srgb, var(--cui-danger) 30%, transparent);
+}
+
+.habit-year-clean {
+  background: color-mix(in srgb, var(--lifeos-green) 45%, var(--lifeos-surface));
+  border-color: transparent;
+}
+
+.habit-year-slipped {
+  background: var(--lifeos-amber);
+  border-color: var(--lifeos-amber);
+}
+
+.habit-year-open {
+  border-color: var(--lifeos-teal);
+  border-style: dashed;
+}
+
+.habit-year-off,
+.habit-year-notStarted,
+.habit-year-future {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--lifeos-border) 60%, transparent);
+}
+
+.habit-weekday-bar {
+  display: block;
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  background: var(--lifeos-canvas);
+  overflow: hidden;
+
+  > span {
+    display: block;
+    height: 100%;
+    background: var(--lifeos-teal);
+  }
+}

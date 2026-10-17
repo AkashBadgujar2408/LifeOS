@@ -8,6 +8,7 @@ public static class HabitErrors
 {
     /// <summary>Also what another user's habit looks like; the controller maps it to a 404.</summary>
     public const string NotFound = "Habit not found.";
+    public const string ChallengeNotFound = "Challenge not found.";
 }
 
 public static class HabitStatuses
@@ -56,6 +57,82 @@ public class HabitDto
     public Dictionary<DateOnly, decimal> Values { get; set; } = [];
     /// <summary>Avoid habits: the slips inside the window, oldest first.</summary>
     public List<DateOnly> SlipDates { get; set; } = [];
+    /// <summary>Its challenges, newest first, each worked out as of today.</summary>
+    public List<HabitChallengeDto> Challenges { get; set; } = [];
+}
+
+/// <summary>A 7 / 30 / 90-day challenge on a habit and where it stands (HabitChallenges.Evaluate).</summary>
+public class HabitChallengeDto
+{
+    public int Id { get; init; }
+    public int Days { get; init; }
+    public DateOnly StartDate { get; init; }
+    public DateOnly EndDate { get; init; }
+    /// <summary>Active, Completed or Broken (ChallengeStates).</summary>
+    public string State { get; init; } = string.Empty;
+    public int DaysDone { get; init; }
+    public int DaysTotal { get; init; }
+    public DateOnly? CompletedOn { get; init; }
+}
+
+public class StartChallengeRequest
+{
+    [Range(7, 90, ErrorMessage = "A challenge is 7, 30 or 90 days.")]
+    public int Days { get; init; }
+
+    /// <summary>The first day of the challenge; defaults to today.</summary>
+    public DateOnly? StartDate { get; init; }
+
+    /// <summary>The user's local date.</summary>
+    [Required]
+    public DateOnly? Today { get; init; }
+}
+
+/// <summary>An ordered group of build habits done together (Morning, Evening, Weekend).</summary>
+public class RoutineDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public int SortOrder { get; init; }
+    /// <summary>In the routine's order.</summary>
+    public List<int> HabitIds { get; init; } = [];
+}
+
+public class RoutineRequest
+{
+    [Required(ErrorMessage = "Give the routine a name.")]
+    [StringLength(100)]
+    public string Name { get; init; } = string.Empty;
+
+    /// <summary>Build habits, in the order they're done. 1–20.</summary>
+    public List<int> HabitIds { get; init; } = [];
+}
+
+public class SetRoutineDoneRequest
+{
+    public bool Done { get; init; }
+
+    [Required]
+    public DateOnly? Today { get; init; }
+}
+
+/// <summary>What ticking (or un-ticking) a routine did: each habit's new figures, and the ones left alone.</summary>
+public class RoutineTickResultDto
+{
+    public List<RoutineHabitResultDto> Results { get; init; } = [];
+    /// <summary>Habits in the routine not touched: archived, not started, not scheduled that day, or already as asked.</summary>
+    public List<int> Skipped { get; init; } = [];
+}
+
+public class RoutineHabitResultDto
+{
+    public int HabitId { get; init; }
+    public HabitEntryResultDto Result { get; init; } = new();
+}
+
+public static class RoutineErrors
+{
+    public const string NotFound = "Routine not found.";
 }
 
 public class HabitRequest

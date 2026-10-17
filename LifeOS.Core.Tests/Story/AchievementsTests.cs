@@ -28,10 +28,36 @@ public class AchievementsTests
     {
         var all = Achievements.Evaluate(Facts());
 
-        Assert.Equal(17, all.Count);
+        Assert.Equal(20, all.Count);
         Assert.All(all, a => Assert.Null(a.UnlockedOn));
         Assert.All(all, a => Assert.Equal(0, a.Progress));
         Assert.Equal(all.Count, all.Select(a => a.Key).Distinct().Count());
+    }
+
+    [Fact]
+    public void A_finished_challenge_unlocks_on_the_day_it_finished_and_counts_for_shorter_lengths()
+    {
+        // Every day 1–30 Sep done: the 30-day challenge from 1 Sep finished on 30 Sep, which also earns the 7-day one.
+        var done = Enumerable.Range(0, 30).Select(i => D(9, 1).AddDays(i)).ToList();
+        var habit = new HabitFact(1, 127, D(9, 1), null, done);
+        var challenge = new ChallengeFact(1, 30, D(9, 1), false, 127, D(9, 1), []);
+        var facts = Facts(habits: [habit]) with { Challenges = [challenge] };
+
+        Assert.Equal(D(9, 30), Get(facts, "challenge-30").UnlockedOn);
+        Assert.Equal(D(9, 30), Get(facts, "challenge-7").UnlockedOn);
+        Assert.Null(Get(facts, "challenge-90").UnlockedOn);
+
+        // Un-tick one day and the challenge — and its achievements — go again.
+        var gap = facts with { Habits = [habit with { DoneDays = done.Where(d => d != D(9, 15)).ToList() }] };
+        Assert.Null(Get(gap, "challenge-30").UnlockedOn);
+    }
+
+    [Fact]
+    public void An_avoid_challenge_finished_clean_unlocks_too()
+    {
+        var challenge = new ChallengeFact(2, 7, D(10, 1), true, 127, D(10, 1), [D(9, 28)]);
+
+        Assert.Equal(D(10, 7), Get(Facts() with { Challenges = [challenge] }, "challenge-7").UnlockedOn);
     }
 
     [Fact]

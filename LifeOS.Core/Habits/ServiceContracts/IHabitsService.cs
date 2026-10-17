@@ -21,6 +21,12 @@ public interface IHabitsService
     /// </summary>
     Task<OperationResult<HabitEntryResultDto>> SetEntryAsync(int id, DateOnly date, bool done, decimal? value, DateOnly today);
 
-    /// <summary>Deletes the habit with its ticked days, links and reminders.</summary>
+    /// <summary>Deletes the habit with its ticked days, tags, challenges, routine places, links and reminders.</summary>
     Task<OperationResult<bool>> DeleteAsync(int id);
+
+    /// <summary>Starts a 7 / 30 / 90-day challenge (one under way at a time per habit). Returns the habit's challenges.</summary>
+    Task<OperationResult<List<HabitChallengeDto>>> StartChallengeAsync(int id, StartChallengeRequest request);
+
+    /// <summary>Removes a challenge (giving up, or tidying old ones). Returns the habit's challenges.</summary>
+    Task<OperationResult<List<HabitChallengeDto>>> RemoveChallengeAsync(int id, int challengeId, DateOnly today);
 }

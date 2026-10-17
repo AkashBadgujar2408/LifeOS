@@ -19,6 +19,7 @@ public class HabitsProfile : Profile
             .ForMember(d => d.CleanRun, o => o.Ignore())
             .ForMember(d => d.DoneDates, o => o.Ignore())
             .ForMember(d => d.Values, o => o.Ignore())
-            .ForMember(d => d.SlipDates, o => o.Ignore());
+            .ForMember(d => d.SlipDates, o => o.Ignore())
+            .ForMember(d => d.Challenges, o => o.Ignore());
     }
 }

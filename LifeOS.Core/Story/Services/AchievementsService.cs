@@ -55,6 +55,8 @@ public class AchievementsService(AppDbContext db) : IAchievementsService
         var debriefs = (await reader.ReadAsync<DateTime>()).ToList();
         var ratings = (await reader.ReadAsync<RatingRow>()).ToList();
         var lifeAreaCount = await reader.ReadSingleAsync<int>();
+        var challenges = (await reader.ReadAsync<ChallengeRow>()).ToList();
+        var slips = (await reader.ReadAsync<HabitDayRow>()).ToLookup(s => s.HabitId, s => DateOnly.FromDateTime(s.EntryDate));
 
         var daysByHabit = habitDays.ToLookup(d => d.HabitId, d => DateOnly.FromDateTime(d.EntryDate));
         var areaByHabit = habitDays.GroupBy(d => d.HabitId).ToDictionary(g => g.Key, g => g.First().LifeAreaId);
@@ -72,7 +74,9 @@ public class AchievementsService(AppDbContext db) : IAchievementsService
                 DateOnly.FromDateTime(c.StartDate), c.EndDate is { } end ? DateOnly.FromDateTime(end) : null, Local(c.CreatedAt)))
                 .ToList(),
             debriefs.Select(Local).ToList(),
-            ratings.Select(r => new RatingFact(r.LifeAreaId, DateOnly.FromDateTime(r.MonthStart), Local(r.CreatedAt))).ToList());
+            ratings.Select(r => new RatingFact(r.LifeAreaId, DateOnly.FromDateTime(r.MonthStart), Local(r.CreatedAt))).ToList(),
+            challenges.Select(c => new ChallengeFact(c.HabitId, c.Days, DateOnly.FromDateTime(c.StartDate), c.Kind == "Avoid",
+                c.ScheduleDays, DateOnly.FromDateTime(c.HabitStartDate), slips[c.HabitId].ToList())).ToList());
 
         return Achievements.Evaluate(facts);
     }
@@ -116,6 +120,16 @@ public class AchievementsService(AppDbContext db) : IAchievementsService
         public DateTime StartDate { get; init; }
         public DateTime? EndDate { get; init; }
         public DateTime CreatedAt { get; init; }
+    }
+
+    private sealed class ChallengeRow
+    {
+        public int HabitId { get; init; }
+        public int Days { get; init; }
+        public DateTime StartDate { get; init; }
+        public string Kind { get; init; } = string.Empty;
+        public byte ScheduleDays { get; init; }
+        public DateTime HabitStartDate { get; init; }
     }
 
     private sealed class RatingRow

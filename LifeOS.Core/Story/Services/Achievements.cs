@@ -14,6 +14,10 @@ public record ChapterFact(DateOnly Start, DateOnly? End, DateOnly CreatedOn);
 
 public record RatingFact(int LifeAreaId, DateOnly Month, DateOnly CreatedOn);
 
+/// <summary>A habit challenge and what it's judged on: the build habit's done days come from <see cref="HabitFact"/>; an avoid habit's slips are here.</summary>
+public record ChallengeFact(int HabitId, int Days, DateOnly StartDate, bool Avoid, byte ScheduleDays, DateOnly HabitStartDate,
+    IReadOnlyCollection<DateOnly> Slips);
+
 /// <summary>
 /// Everything achievements are judged on, already on the user's local days (the service converts UTC moments with
 /// their timezone).
@@ -27,7 +31,8 @@ public record AchievementFacts(
     IReadOnlyList<AreaDay> JournalDays,
     IReadOnlyList<ChapterFact> Chapters,
     IReadOnlyList<DateOnly> DebriefDays,
-    IReadOnlyList<RatingFact> Ratings);
+    IReadOnlyList<RatingFact> Ratings,
+    IReadOnlyList<ChallengeFact>? Challenges = null);
 
 /// <summary>One achievement: unlocked on a day, or locked with how far along it is.</summary>
 public record Achievement(
@@ -68,6 +73,7 @@ public static class Achievements
         var streak = Streaks(facts.Habits, today, [7, 30, 100]);
         var rounded = WellRounded(facts, today);
         var rated = FullyRated(facts, today);
+        var challenges = ChallengesFinished(facts, today);
 
         return
         [
@@ -83,6 +89,12 @@ public static class Achievements
             Streak("streak-7", "A week strong", "Kept a habit for seven scheduled days in a row.", streak, 7),
             Streak("streak-30", "A month strong", "Kept a habit for thirty scheduled days in a row.", streak, 30),
             Streak("streak-100", "A hundred days strong", "Kept a habit for a hundred scheduled days in a row.", streak, 100),
+            Count("challenge-7", "Seven days, done", "Finished a 7-day habit challenge.", "bi-flag",
+                challenges.Where(c => c.Days >= 7).Select(c => c.On).Order().ToList(), 1),
+            Count("challenge-30", "Thirty days, done", "Finished a 30-day habit challenge.", "bi-flag-fill",
+                challenges.Where(c => c.Days >= 30).Select(c => c.On).Order().ToList(), 1),
+            Count("challenge-90", "Ninety days, done", "Finished a 90-day habit challenge.", "bi-award-fill",
+                challenges.Where(c => c.Days >= 90).Select(c => c.On).Order().ToList(), 1),
             Count("journal-10", "Ten pages", "Wrote in your journal on ten days.", "bi-journal-text", journalDays, 10),
             Count("journal-100", "A hundred pages", "Wrote in your journal on a hundred days.", "bi-journal-bookmark", journalDays, 100),
             Count("debrief", "Lessons learned", "Wrote your first mission debrief.", "bi-chat-quote", debriefDays, 1),
@@ -105,6 +117,24 @@ public static class Achievements
             streak.ReachedOn.TryGetValue(target, out var on) ? on : null);
 
     internal record StreakFacts(int Longest, Dictionary<int, DateOnly> ReachedOn);
+
+    /// <summary>Every finished challenge (any habit) with its length and the day it finished, through HabitChallenges.</summary>
+    internal static List<(int Days, DateOnly On)> ChallengesFinished(AchievementFacts facts, DateOnly today)
+    {
+        var doneByHabit = facts.Habits.ToDictionary(h => h.Id, h => h.DoneDays.ToHashSet());
+        var finished = new List<(int Days, DateOnly On)>();
+        foreach (var c in facts.Challenges ?? [])
+        {
+            var logged = c.Avoid ? c.Slips.ToHashSet() : doneByHabit.GetValueOrDefault(c.HabitId) ?? [];
+            var progress = HabitChallenges.Evaluate(c.Days, c.StartDate, c.Avoid, c.ScheduleDays, c.HabitStartDate, logged, today);
+            if (progress.CompletedOn is { } on)
+            {
+                finished.Add((c.Days, on));
+            }
+        }
+
+        return finished;
+    }
 
     /// <summary>
     /// The longest run of scheduled days done (any habit), and the first day any habit's run reached each threshold.

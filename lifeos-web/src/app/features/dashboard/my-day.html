@@ -129,46 +129,77 @@
                   each day.
                 </p>
               } @else {
-                <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
-                  @for (habit of habits(); track habit.id) {
-                    @let state = habitToday(habit);
-                    <li
-                      class="d-flex align-items-center gap-3"
-                      [class.opacity-75]="state === 'off'"
-                    >
-                      <app-habit-day
-                        [day]="today()"
-                        [state]="state"
-                        [habitTitle]="habit.title"
-                        [busy]="busyHabitId() === habit.id"
-                        (toggled)="toggleHabit(habit)"
-                      />
-                      <a
-                        [routerLink]="['/habits', habit.id]"
-                        class="flex-grow-1 min-w-0 text-truncate link-body-emphasis text-decoration-none"
-                        [class.text-body-secondary]="state === 'done'"
+                @for (group of habitGroups().routines; track group.routine.id) {
+                  @let progress = routineProgress(group.habits);
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="small fw-semibold text-body-secondary flex-grow-1">
+                      <i class="bi bi-list-check"></i> {{ group.routine.name }}
+                      @if (progress.due > 0) {
+                        · {{ progress.done }} of {{ progress.due }}
+                      }
+                    </span>
+                    @if (progress.done < progress.due) {
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary py-0"
+                        [disabled]="busyRoutineId() === group.routine.id"
+                        (click)="tickRoutine(group.routine)"
                       >
-                        {{ habit.title }}
-                        @if (habit.targetValue !== null) {
-                          <span class="small text-body-secondary">
-                            · {{ habit.targetValue }}{{ habit.unit ? ' ' + habit.unit : '' }}</span
-                          >
-                        }
-                      </a>
-                      @if (state === 'off') {
-                        <span class="small text-body-secondary flex-shrink-0">Not today</span>
-                      }
-                      @if (habit.streak.current > 0) {
-                        <span
-                          class="small fw-semibold flex-shrink-0 my-day-streak"
-                          title="Current streak"
-                        >
-                          <i class="bi bi-fire"></i> {{ habit.streak.current }}
-                        </span>
-                      }
-                    </li>
+                        Tick all
+                      </button>
+                    }
+                  </div>
+                  <ul class="list-unstyled mb-3 d-flex flex-column gap-2">
+                    @for (habit of group.habits; track habit.id) {
+                      <ng-container *ngTemplateOutlet="habitRow; context: { $implicit: habit }" />
+                    }
+                  </ul>
+                }
+                @if (habitGroups().others.length > 0) {
+                  @if (habitGroups().routines.length > 0) {
+                    <div class="small fw-semibold text-body-secondary mb-2">Other habits</div>
                   }
-                </ul>
+                  <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                    @for (habit of habitGroups().others; track habit.id) {
+                      <ng-container *ngTemplateOutlet="habitRow; context: { $implicit: habit }" />
+                    }
+                  </ul>
+                }
+                <ng-template #habitRow let-habit>
+                  @let state = habitToday(habit);
+                  <li class="d-flex align-items-center gap-3" [class.opacity-75]="state === 'off'">
+                    <app-habit-day
+                      [day]="today()"
+                      [state]="state"
+                      [habitTitle]="habit.title"
+                      [busy]="busyHabitId() === habit.id"
+                      (toggled)="toggleHabit(habit)"
+                    />
+                    <a
+                      [routerLink]="['/habits', habit.id]"
+                      class="flex-grow-1 min-w-0 text-truncate link-body-emphasis text-decoration-none"
+                      [class.text-body-secondary]="state === 'done'"
+                    >
+                      {{ habit.title }}
+                      @if (habit.targetValue !== null) {
+                        <span class="small text-body-secondary">
+                          · {{ habit.targetValue }}{{ habit.unit ? ' ' + habit.unit : '' }}</span
+                        >
+                      }
+                    </a>
+                    @if (state === 'off') {
+                      <span class="small text-body-secondary flex-shrink-0">Not today</span>
+                    }
+                    @if (habit.streak.current > 0) {
+                      <span
+                        class="small fw-semibold flex-shrink-0 my-day-streak"
+                        title="Current streak"
+                      >
+                        <i class="bi bi-fire"></i> {{ habit.streak.current }}
+                      </span>
+                    }
+                  </li>
+                </ng-template>
               }
             </div>
           </section>

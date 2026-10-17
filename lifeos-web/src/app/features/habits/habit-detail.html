@@ -166,6 +166,151 @@
           </div>
         </div>
 
+        <section class="card" aria-labelledby="challenge-heading">
+          <div class="card-body">
+            <h2 id="challenge-heading" class="h6 mb-3">Challenge</h2>
+            @if (activeChallenge(); as c) {
+              <div class="d-flex justify-content-between align-items-baseline small mb-1">
+                <span class="fw-semibold">{{ c.days }}-day challenge</span>
+                <span class="text-body-secondary">
+                  {{ c.startDate | date }} – {{ c.endDate | date }}
+                </span>
+              </div>
+              <div
+                class="progress"
+                role="progressbar"
+                [attr.aria-valuenow]="c.daysDone"
+                aria-valuemin="0"
+                [attr.aria-valuemax]="c.daysTotal"
+                [attr.aria-label]="c.days + '-day challenge progress'"
+              >
+                <div
+                  class="progress-bar"
+                  [style.width.%]="c.daysTotal ? (100 * c.daysDone) / c.daysTotal : 0"
+                ></div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center small mt-1">
+                <span>
+                  {{ c.daysDone }} of {{ c.daysTotal }}
+                  {{ habit.kind === 'Avoid' ? 'days clean' : 'days done' }}
+                </span>
+                <button
+                  type="button"
+                  class="btn btn-link btn-sm p-0 text-body-secondary"
+                  (click)="removeChallenge(c.id, true)"
+                >
+                  Stop
+                </button>
+              </div>
+            } @else if (habit.status === 'Active') {
+              <p class="small text-body-secondary mb-2">
+                @if (habit.kind === 'Avoid') {
+                  Go clean for a set stretch, starting today.
+                } @else {
+                  Do it on every scheduled day for a set stretch, starting today.
+                }
+                Finishing one earns an achievement.
+              </p>
+              <div class="d-flex gap-2">
+                @for (days of challengeLengths; track days) {
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary flex-fill"
+                    [disabled]="startingChallenge()"
+                    (click)="startChallenge(days)"
+                  >
+                    {{ days }} days
+                  </button>
+                }
+              </div>
+            } @else {
+              <p class="small text-body-secondary mb-0">
+                Restore the habit to take on a challenge.
+              </p>
+            }
+
+            @if (pastChallenges().length > 0) {
+              <ul class="list-unstyled small mb-0 mt-3 d-flex flex-column gap-1">
+                @for (c of pastChallenges(); track c.id) {
+                  <li class="d-flex gap-2 align-items-center">
+                    @if (c.state === 'Completed') {
+                      <i class="bi bi-trophy text-success" aria-hidden="true"></i>
+                      <span class="flex-grow-1">
+                        {{ c.days }} days — finished {{ c.completedOn | date }}
+                      </span>
+                    } @else {
+                      <i
+                        class="bi bi-arrow-counterclockwise text-body-secondary"
+                        aria-hidden="true"
+                      ></i>
+                      <span class="flex-grow-1 text-body-secondary">
+                        {{ c.days }} days from {{ c.startDate | date }} — {{ c.daysDone }} of
+                        {{ c.daysTotal }}, not this time
+                      </span>
+                    }
+                    <button
+                      type="button"
+                      class="btn btn-link btn-sm p-0 text-body-secondary"
+                      [attr.aria-label]="
+                        'Remove the ' + c.days + '-day challenge from ' + (c.startDate | date)
+                      "
+                      (click)="removeChallenge(c.id, false)"
+                    >
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="year-heading">
+          <div class="card-body">
+            <h2 id="year-heading" class="h6 mb-3">The year at a glance</h2>
+            <div
+              #yearStrip
+              class="habit-year"
+              role="img"
+              [attr.aria-label]="'A year of ' + habit.title"
+            >
+              @for (week of year(); track week.monday) {
+                <div class="habit-year-week">
+                  <span class="habit-year-month" aria-hidden="true">{{ week.monthLabel }}</span>
+                  @for (cell of week.days; track cell.day) {
+                    <span
+                      class="habit-year-day habit-year-{{ cell.state }}"
+                      [title]="(cell.day | date) + ' · ' + cell.state"
+                    ></span>
+                  }
+                </div>
+              }
+            </div>
+
+            <h3 class="h6 mt-4 mb-2">
+              {{ habit.kind === 'Avoid' ? 'Clean days by weekday' : 'Consistency by weekday' }}
+            </h3>
+            <ul class="list-unstyled mb-0 d-flex flex-column gap-1 small">
+              @for (row of weekdays(); track row.weekday) {
+                <li class="d-flex align-items-center gap-2">
+                  <span class="text-body-secondary" style="width: 2.25rem">{{ row.weekday }}</span>
+                  @if (row.percent === null) {
+                    <span class="text-body-secondary">—</span>
+                  } @else {
+                    <span class="habit-weekday-bar flex-grow-1">
+                      <span [style.width.%]="row.percent"></span>
+                    </span>
+                    <span class="text-end" style="width: 5.5rem">
+                      {{ row.percent }}%
+                      <span class="text-body-secondary">({{ row.good }}/{{ row.total }})</span>
+                    </span>
+                  }
+                </li>
+              }
+            </ul>
+          </div>
+        </section>
+
         @if (habit.description) {
           <div class="card">
             <div class="card-body text-break" style="white-space: pre-line">

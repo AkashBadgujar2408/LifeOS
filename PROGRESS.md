@@ -802,3 +802,12 @@
 - UAT test data: `measureuser1` (Read — 20 pages, Learning tag; No smoking — slips 5 and 12 Oct; Walk — 30 minutes, 15 logged today), `measureuser2` (empty). Note: `habituser1/2` already existed with other passwords.
 
 - Next up: **Session 44 — Habits follow-up 2** (plan, Section 7).
+
+## Last session: 2026-10-17 — Session 44 — Habits follow-up 2
+- Shipped (backend): schema (`05_habits.sql`: `HabitChallenges`, `Routines`, `RoutineHabits`; UAT backed up first, `LifeOS_UAT_pre44.bak`); pure `HabitChallenges.Evaluate` (5 xUnit cases); challenges on the habit DTO + start/remove endpoints; achievements `challenge-7/-30/-90` (facts sets 10–11, 2 new xUnit cases, count now 20); `IRoutinesService`/`RoutinesService` + `api/Habits/Routines` (CRUD, tick a routine); habit delete cleans up challenges and routine places.
+- Shipped (frontend): `RoutinesService`, routines dialog (Habits page), My Day habits grouped by routine with "Tick all" (`groupByRoutine`, spec); habit page Challenge card, year heatmap (`yearGrid`, opens scrolled to the latest weeks) and weekday consistency (`weekdayConsistency`) — `habit-analytics.ts` with specs; the habit page now loads a year of days.
+- Verified: see the plan row (curl + browser as `routineuser1`); fresh DB scaffolds identically; `dotnet build` (unsandboxed) 0 warnings; `ng build`, lint, Prettier clean; **243 backend + 154 frontend** tests, `npm run test:tz` green in all six zones.
+- Decisions (mine — say if you want them changed): a challenge starts today or on a past day (not a future one) and only one can be under way per habit; a challenge that's no longer possible is "Broken" in the data but reads "not this time" — it can be removed, a new one started at once; a finished challenge also counts for the shorter achievements (a 30-day one earns "Seven days, done" too); routines tick only habits due that day and leave done ones alone, and un-ticking a routine un-ticks all of its habits done that day; avoid habits can't be in a routine.
+- UAT test data: `routineuser1` (Stretch — finished 7-day challenge + a 30-day one under way; Water — 8 glasses; No sugar — avoid; routine "Morning" = Stretch, Water; Weights deleted), `routineuser2` (empty).
+
+- Next up: **Session 45 — Tasks follow-up** (plan, Section 7).

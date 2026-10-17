@@ -53,6 +53,8 @@ public partial class User
 
     public virtual ICollection<Goal> Goals { get; set; } = new List<Goal>();
 
+    public virtual ICollection<HabitChallenge> HabitChallenges { get; set; } = new List<HabitChallenge>();
+
     public virtual ICollection<HabitEntry> HabitEntries { get; set; } = new List<HabitEntry>();
 
     public virtual ICollection<HabitTag> HabitTags { get; set; } = new List<HabitTag>();
@@ -80,6 +82,10 @@ public partial class User
     public virtual ICollection<RecoveryCode> RecoveryCodes { get; set; } = new List<RecoveryCode>();
 
     public virtual ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
+
+    public virtual ICollection<RoutineHabit> RoutineHabits { get; set; } = new List<RoutineHabit>();
+
+    public virtual ICollection<Routine> Routines { get; set; } = new List<Routine>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
 

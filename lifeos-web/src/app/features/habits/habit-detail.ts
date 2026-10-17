@@ -2,11 +2,16 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  Injector,
   OnInit,
+  afterNextRender,
   computed,
+  effect,
   inject,
   input,
   signal,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
@@ -22,6 +27,7 @@ import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { HabitDay } from './habit-day';
 import { openHabitEditor } from './habit-editor';
 import { entryChangeFor } from './habit-entry';
+import { heatmapStart, weekdayConsistency, yearGrid } from './habit-analytics';
 import {
   WEEKDAY_NAMES,
   applyEntry,
@@ -42,6 +48,7 @@ const HISTORY_WEEKS = 12;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DatePipe, RouterLink, HabitDay, LinkedItems, EntityReminders],
   templateUrl: './habit-detail.html',
+  styleUrl: './habit-detail.scss',
 })
 export class HabitDetail implements OnInit {
   private readonly habitsService = inject(HabitsService);
@@ -87,11 +94,50 @@ export class HabitDetail implements OnInit {
     }));
   });
 
-  protected readonly doneInHistory = computed(() => this.habit()?.doneDates.length ?? 0);
-  protected readonly slipsInHistory = computed(() => this.habit()?.slipDates.length ?? 0);
+  protected readonly doneInHistory = computed(
+    () => this.habit()?.doneDates.filter((d) => d >= this.historyStart()).length ?? 0,
+  );
+  protected readonly slipsInHistory = computed(
+    () => this.habit()?.slipDates.filter((d) => d >= this.historyStart()).length ?? 0,
+  );
+
+  /** A year of the habit, a square a day (read-only), and how reliably each weekday goes. */
+  protected readonly year = computed(() => {
+    const habit = this.habit();
+    return habit ? yearGrid(habit, this.today()) : [];
+  });
+  /** The heatmap strip: on a narrow screen it scrolls, and should open on the latest weeks. */
+  private readonly yearStrip = viewChild<ElementRef<HTMLElement>>('yearStrip');
+
+  protected readonly weekdays = computed(() => {
+    const habit = this.habit();
+    return habit ? weekdayConsistency(habit, heatmapStart(this.today()), this.today()) : [];
+  });
+
+  protected readonly challengeLengths = [7, 30, 90] as const;
+  protected readonly startingChallenge = signal(false);
+  protected readonly activeChallenge = computed(
+    () => this.habit()?.challenges.find((c) => c.state === 'Active') ?? null,
+  );
+  protected readonly pastChallenges = computed(
+    () => this.habit()?.challenges.filter((c) => c.state !== 'Active') ?? [],
+  );
 
   private get habitId(): number {
     return Number(this.id());
+  }
+
+  private readonly injector = inject(Injector);
+
+  constructor() {
+    // Once the heatmap has drawn (and whenever its data changes), show the latest weeks on a narrow screen.
+    effect(() => {
+      const strip = this.yearStrip()?.nativeElement;
+      this.year();
+      if (strip) {
+        afterNextRender(() => (strip.scrollLeft = strip.scrollWidth), { injector: this.injector });
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -121,6 +167,56 @@ export class HabitDetail implements OnInit {
       });
   }
 
+  protected startChallenge(days: 7 | 30 | 90): void {
+    const habit = this.habit();
+    if (!habit) {
+      return;
+    }
+    this.startingChallenge.set(true);
+    this.habitsService
+      .startChallenge(habit.id, days, this.today())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (challenges) => {
+          this.startingChallenge.set(false);
+          this.habit.update((current) => (current ? { ...current, challenges } : current));
+          this.toast.success(`${days}-day challenge started. Good luck!`);
+        },
+        error: (err) => {
+          this.startingChallenge.set(false);
+          this.toast.error(apiErrorMessage(err, 'Could not start the challenge.'));
+        },
+      });
+  }
+
+  protected async removeChallenge(challengeId: number, active: boolean): Promise<void> {
+    const habit = this.habit();
+    if (!habit) {
+      return;
+    }
+    const answer = await Swal.fire({
+      title: active ? 'Stop this challenge?' : 'Remove this challenge?',
+      text: active
+        ? 'Your ticked days stay; only the challenge goes. You can start a new one any time.'
+        : 'It goes from the list; your ticked days stay.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: active ? 'Stop it' : 'Remove',
+      confirmButtonColor: 'var(--lifeos-teal)',
+    });
+    if (!answer.isConfirmed) {
+      return;
+    }
+    this.habitsService
+      .removeChallenge(habit.id, challengeId, this.today())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (challenges) =>
+          this.habit.update((current) => (current ? { ...current, challenges } : current)),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not remove the challenge.')),
+      });
+  }
+
   protected async edit(): Promise<void> {
     const habit = this.habit();
     if (habit && (await openHabitEditor(this.modal, habit))) {
@@ -138,7 +234,7 @@ export class HabitDetail implements OnInit {
       .subscribe({
         next: (updated) => {
           this.changingStatus.set(false);
-          // The response only carries the last week of logged days; keep the 12 weeks already shown.
+          // The response only carries the last week of logged days; keep the year already shown.
           this.habit.update((current) =>
             current
               ? {
@@ -186,7 +282,8 @@ export class HabitDetail implements OnInit {
   private reload(): void {
     this.today.set(todayIso());
     this.habitsService
-      .get(this.habitId, this.today(), this.historyStart())
+      // A year of days: the 12-week grid, the heatmap and the weekday consistency all read from it.
+      .get(this.habitId, this.today(), heatmapStart(this.today()))
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (habit) => this.habit.set(habit),

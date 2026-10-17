@@ -6,7 +6,7 @@ SET ANSI_NULLS ON;
 GO
 
 -- Story Mode's achievements are computed, never stored: this procedure returns the raw facts they're judged on, and
--- the pure Achievements.Evaluate in C# decides what's unlocked and on which day. Nine result sets, read in this order
+-- the pure Achievements.Evaluate in C# decides what's unlocked and on which day. Eleven result sets, read in this order
 -- by AchievementsService (Dapper QueryMultiple — keep the two in step). Depends on 01_shared.sql to 08_story.sql.
 --
 --   1 GoalsPassed       GoalType, LifeAreaId, CompletedAt (UTC)     goals currently Completed
@@ -18,6 +18,8 @@ GO
 --   7 Debriefs          CreatedAt (UTC)
 --   8 Ratings           LifeAreaId, MonthStart, CreatedAt (UTC)     monthly self-ratings
 --   9 LifeAreaCount     how many life areas there are (for "every area")
+--  10 Challenges        HabitId, Days, StartDate, Kind, ScheduleDays, HabitStartDate   habit challenges (Session 44)
+--  11 ChallengeSlips    HabitId, LifeAreaId, EntryDate               slips of avoid habits that have a challenge
 --
 -- Moments stay UTC; the service puts them on the user's local day with their timezone. Every set filters
 -- UserId/IsDeleted itself (EF's filters don't apply here), joined parents included.
@@ -83,5 +85,23 @@ BEGIN
     SELECT LifeAreaCount = COUNT(*)
     FROM shared.LifeAreas la
     WHERE la.IsDeleted = 0;
+
+    SELECT c.HabitId, c.Days, c.StartDate, h.Kind, h.ScheduleDays, HabitStartDate = h.StartDate
+    FROM habits.HabitChallenges c
+    INNER JOIN habits.Habits h
+        ON h.Id = c.HabitId
+       AND h.UserId = @UserId
+       AND h.IsDeleted = 0
+    WHERE c.UserId = @UserId AND c.IsDeleted = 0;
+
+    SELECT he.HabitId, h.LifeAreaId, he.EntryDate
+    FROM habits.HabitEntries he
+    INNER JOIN habits.Habits h
+        ON h.Id = he.HabitId
+       AND h.UserId = @UserId
+       AND h.IsDeleted = 0
+       AND h.Kind = N'Avoid'
+    WHERE he.UserId = @UserId AND he.IsDeleted = 0
+      AND EXISTS (SELECT 1 FROM habits.HabitChallenges c WHERE c.HabitId = h.Id AND c.UserId = @UserId AND c.IsDeleted = 0);
 END
 GO

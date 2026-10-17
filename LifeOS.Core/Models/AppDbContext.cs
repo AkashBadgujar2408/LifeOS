@@ -39,6 +39,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Habit> Habits { get; set; }
 
+    public virtual DbSet<HabitChallenge> HabitChallenges { get; set; }
+
     public virtual DbSet<HabitEntry> HabitEntries { get; set; }
 
     public virtual DbSet<HabitTag> HabitTags { get; set; }
@@ -66,6 +68,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<RecoveryCode> RecoveryCodes { get; set; }
 
     public virtual DbSet<Reminder> Reminders { get; set; }
+
+    public virtual DbSet<Routine> Routines { get; set; }
+
+    public virtual DbSet<RoutineHabit> RoutineHabits { get; set; }
 
     public virtual DbSet<Tag> Tags { get; set; }
 
@@ -433,6 +439,25 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_Habits_Users");
         });
 
+        modelBuilder.Entity<HabitChallenge>(entity =>
+        {
+            entity.ToTable("HabitChallenges", "habits");
+
+            entity.HasIndex(e => new { e.HabitId, e.StartDate }, "IX_HabitChallenges_Habit").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_HabitChallenges_CreatedAt");
+
+            entity.HasOne(d => d.Habit).WithMany(p => p.HabitChallenges)
+                .HasForeignKey(d => d.HabitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HabitChallenges_Habits");
+
+            entity.HasOne(d => d.User).WithMany(p => p.HabitChallenges)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HabitChallenges_Users");
+        });
+
         modelBuilder.Entity<HabitEntry>(entity =>
         {
             entity.ToTable("HabitEntries", "habits");
@@ -729,6 +754,51 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Reminders_Users");
+        });
+
+        modelBuilder.Entity<Routine>(entity =>
+        {
+            entity.ToTable("Routines", "habits");
+
+            entity.HasIndex(e => new { e.UserId, e.Name }, "UX_Routines_User_Name")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Routines_CreatedAt");
+            entity.Property(e => e.Name).HasMaxLength(100);
+
+            entity.HasOne(d => d.User).WithMany(p => p.Routines)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Routines_Users");
+        });
+
+        modelBuilder.Entity<RoutineHabit>(entity =>
+        {
+            entity.ToTable("RoutineHabits", "habits");
+
+            entity.HasIndex(e => e.HabitId, "IX_RoutineHabits_Habit").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.RoutineId, e.HabitId }, "UX_RoutineHabits_Routine_Habit")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_RoutineHabits_CreatedAt");
+
+            entity.HasOne(d => d.Habit).WithMany(p => p.RoutineHabits)
+                .HasForeignKey(d => d.HabitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RoutineHabits_Habits");
+
+            entity.HasOne(d => d.Routine).WithMany(p => p.RoutineHabits)
+                .HasForeignKey(d => d.RoutineId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RoutineHabits_Routines");
+
+            entity.HasOne(d => d.User).WithMany(p => p.RoutineHabits)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RoutineHabits_Users");
         });
 
         modelBuilder.Entity<Tag>(entity =>

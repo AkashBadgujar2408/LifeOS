@@ -58,6 +58,22 @@ export interface Habit {
   values: Record<string, number>;
   /** Avoid: the slips inside the window, oldest first. */
   slipDates: string[];
+  /** Newest first, each as of today. */
+  challenges: HabitChallenge[];
+}
+
+export type ChallengeState = 'Active' | 'Completed' | 'Broken';
+
+/** A 7 / 30 / 90-day challenge and where it stands (HabitChallenges.Evaluate on the API). */
+export interface HabitChallenge {
+  id: number;
+  days: 7 | 30 | 90;
+  startDate: string;
+  endDate: string;
+  state: ChallengeState;
+  daysDone: number;
+  daysTotal: number;
+  completedOn: string | null;
 }
 
 export interface HabitPayload {
@@ -152,6 +168,22 @@ export class HabitsService {
         value,
       })
       .pipe(map((response) => response.data!));
+  }
+
+  /** Starts a challenge today (or on `startDate`); returns the habit's challenges. */
+  startChallenge(id: number, days: 7 | 30 | 90, today: string): Observable<HabitChallenge[]> {
+    return this.http
+      .post<ApiResponse<HabitChallenge[]>>(`${this.baseUrl}/${id}/challenges`, { days, today })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  removeChallenge(id: number, challengeId: number, today: string): Observable<HabitChallenge[]> {
+    const params = new HttpParams().set('today', today);
+    return this.http
+      .delete<ApiResponse<HabitChallenge[]>>(`${this.baseUrl}/${id}/challenges/${challengeId}`, {
+        params,
+      })
+      .pipe(map((response) => response.data ?? []));
   }
 
   /** The habit library. */

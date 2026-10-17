@@ -133,3 +133,76 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('habits.HabitTags') AND name = 'IX_HabitTags_Tag')
     CREATE INDEX IX_HabitTags_Tag ON habits.HabitTags(TagId) WHERE IsDeleted = 0;
 GO
+
+-- Session 44 (habits follow-up 2).
+-- A challenge: keep a habit for Days (7 / 30 / 90) calendar days from StartDate — every scheduled day done for a build
+-- habit, no slip for an avoid one. Only the attempt is stored; whether it's under way, finished or broken is computed
+-- every time from the habit's days (HabitChallenges.Evaluate), like streaks — so un-ticking a day un-finishes it.
+-- A finished challenge unlocks a Story achievement (challenge-7 / -30 / -90).
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('habits.HabitChallenges'))
+BEGIN
+    CREATE TABLE habits.HabitChallenges
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_HabitChallenges PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_HabitChallenges_Users REFERENCES shared.Users(Id),
+        HabitId         INT               NOT NULL CONSTRAINT FK_HabitChallenges_Habits REFERENCES habits.Habits(Id),
+        Days            INT               NOT NULL CONSTRAINT CK_HabitChallenges_Days CHECK (Days IN (7, 30, 90)),
+        StartDate       DATE              NOT NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_HabitChallenges_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_HabitChallenges_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('habits.HabitChallenges') AND name = 'IX_HabitChallenges_Habit')
+    CREATE INDEX IX_HabitChallenges_Habit ON habits.HabitChallenges(HabitId, StartDate) WHERE IsDeleted = 0;
+GO
+
+-- Routines: named, ordered groups of build habits done together (Morning, Evening, Weekend), ticked in one go on My
+-- Day. A habit can be in more than one routine; the order inside a routine is SortOrder.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('habits.Routines'))
+BEGIN
+    CREATE TABLE habits.Routines
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Routines PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_Routines_Users REFERENCES shared.Users(Id),
+        Name            NVARCHAR(100)     NOT NULL CONSTRAINT CK_Routines_Name CHECK (LEN(Name) > 0),
+        SortOrder       INT               NOT NULL CONSTRAINT DF_Routines_SortOrder DEFAULT (0),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_Routines_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_Routines_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('habits.Routines') AND name = 'UX_Routines_User_Name')
+    CREATE UNIQUE INDEX UX_Routines_User_Name ON habits.Routines(UserId, Name) WHERE IsDeleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('habits.RoutineHabits'))
+BEGIN
+    CREATE TABLE habits.RoutineHabits
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_RoutineHabits PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_RoutineHabits_Users REFERENCES shared.Users(Id),
+        RoutineId       INT               NOT NULL CONSTRAINT FK_RoutineHabits_Routines REFERENCES habits.Routines(Id),
+        HabitId         INT               NOT NULL CONSTRAINT FK_RoutineHabits_Habits REFERENCES habits.Habits(Id),
+        SortOrder       INT               NOT NULL CONSTRAINT DF_RoutineHabits_SortOrder DEFAULT (0),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_RoutineHabits_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_RoutineHabits_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('habits.RoutineHabits') AND name = 'UX_RoutineHabits_Routine_Habit')
+    CREATE UNIQUE INDEX UX_RoutineHabits_Routine_Habit ON habits.RoutineHabits(RoutineId, HabitId) WHERE IsDeleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('habits.RoutineHabits') AND name = 'IX_RoutineHabits_Habit')
+    CREATE INDEX IX_RoutineHabits_Habit ON habits.RoutineHabits(HabitId) WHERE IsDeleted = 0;
+GO

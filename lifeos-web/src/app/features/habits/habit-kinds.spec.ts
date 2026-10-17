@@ -24,6 +24,7 @@ function habit(fields: Partial<Habit>): Habit {
     doneDates: [],
     values: {},
     slipDates: [],
+    challenges: [],
     ...fields,
   };
 }

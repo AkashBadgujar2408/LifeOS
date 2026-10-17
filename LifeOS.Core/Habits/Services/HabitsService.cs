@@ -260,6 +260,12 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
         await db.HabitTags
             .Where(t => t.HabitId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsDeleted, true).SetProperty(t => t.DeletedAt, now));
+        await db.HabitChallenges
+            .Where(c => c.HabitId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.IsDeleted, true).SetProperty(c => c.DeletedAt, now));
+        await db.RoutineHabits
+            .Where(r => r.HabitId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsDeleted, true).SetProperty(r => r.DeletedAt, now));
 
         habit.IsDeleted = true;
         habit.DeletedAt = now;
@@ -288,11 +294,18 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
                 .Select(e => new { e.HabitId, e.EntryDate, e.Value })
                 .ToListAsync())
             .ToLookup(e => e.HabitId, e => new LoggedDay(e.EntryDate, e.Value));
+        var challenges = (await db.HabitChallenges
+                .Where(c => habitIds.Contains(c.HabitId))
+                .Select(c => new ChallengeRow(c.Id, c.HabitId, c.Days, c.StartDate))
+                .ToListAsync())
+            .ToLookup(c => c.HabitId);
 
         foreach (var habit in habits)
         {
             var logged = entries[habit.Id].ToList();
             var inWindow = logged.Where(d => d.Date >= from && d.Date <= today).OrderBy(d => d.Date).ToList();
+            habit.Challenges = EvaluateChallenges(habit.Kind, habit.ScheduleDays, habit.StartDate, habit.TargetValue,
+                logged, challenges[habit.Id], today);
             if (habit.Kind == HabitKinds.Avoid)
             {
                 habit.CleanRun = HabitStreaks.CleanRuns(habit.StartDate, logged.Select(d => d.Date), today);
@@ -309,6 +322,104 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
             }
         }
     }
+
+    public async Task<OperationResult<List<HabitChallengeDto>>> StartChallengeAsync(int id, StartChallengeRequest request)
+    {
+        var habit = await db.Habits.FindAsync(id);
+        if (habit is null)
+        {
+            return OperationResult<List<HabitChallengeDto>>.Fail(NotFound);
+        }
+
+        var today = request.Today!.Value;
+        var start = request.StartDate ?? today;
+        if (!HabitChallenges.Lengths.Contains(request.Days))
+        {
+            return OperationResult<List<HabitChallengeDto>>.Fail("A challenge is 7, 30 or 90 days.");
+        }
+
+        if (habit.Status != HabitStatuses.Active)
+        {
+            return OperationResult<List<HabitChallengeDto>>.Fail("This habit is archived. Restore it to take on a challenge.");
+        }
+
+        if (start < habit.StartDate)
+        {
+            return OperationResult<List<HabitChallengeDto>>.Fail("A challenge can't start before the habit does.");
+        }
+
+        if (start > today)
+        {
+            return OperationResult<List<HabitChallengeDto>>.Fail("Start a challenge today, or on a day that's already been.");
+        }
+
+        var current = await ChallengesOfAsync(habit, today);
+        if (current.Any(c => c.State == ChallengeStates.Active))
+        {
+            return OperationResult<List<HabitChallengeDto>>.Fail("This habit already has a challenge under way.");
+        }
+
+        db.HabitChallenges.Add(new HabitChallenge { UserId = habit.UserId, HabitId = id, Days = request.Days, StartDate = start });
+        await db.SaveChangesAsync();
+        return OperationResult<List<HabitChallengeDto>>.Ok(await ChallengesOfAsync(habit, today));
+    }
+
+    public async Task<OperationResult<List<HabitChallengeDto>>> RemoveChallengeAsync(int id, int challengeId, DateOnly today)
+    {
+        var challenge = await db.HabitChallenges.Include(c => c.Habit).FirstOrDefaultAsync(c => c.Id == challengeId && c.HabitId == id);
+        if (challenge is null)
+        {
+            return await db.Habits.AnyAsync(h => h.Id == id)
+                ? OperationResult<List<HabitChallengeDto>>.Fail(HabitErrors.ChallengeNotFound)
+                : OperationResult<List<HabitChallengeDto>>.Fail(NotFound);
+        }
+
+        challenge.IsDeleted = true;
+        challenge.DeletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return OperationResult<List<HabitChallengeDto>>.Ok(await ChallengesOfAsync(challenge.Habit, today));
+    }
+
+    private async Task<List<HabitChallengeDto>> ChallengesOfAsync(Habit habit, DateOnly today)
+    {
+        var logged = await db.HabitEntries
+            .Where(e => e.HabitId == habit.Id)
+            .Select(e => new LoggedDay(e.EntryDate, e.Value))
+            .ToListAsync();
+        var challenges = await db.HabitChallenges
+            .Where(c => c.HabitId == habit.Id)
+            .Select(c => new ChallengeRow(c.Id, c.HabitId, c.Days, c.StartDate))
+            .ToListAsync();
+        return EvaluateChallenges(habit.Kind, habit.ScheduleDays, habit.StartDate, habit.TargetValue, logged, challenges, today);
+    }
+
+    /// <summary>Each challenge as of today, newest first: judged on the met days (build) or the slips (avoid).</summary>
+    private static List<HabitChallengeDto> EvaluateChallenges(string kind, byte scheduleDays, DateOnly habitStart,
+        decimal? target, IEnumerable<LoggedDay> logged, IEnumerable<ChallengeRow> challenges, DateOnly today)
+    {
+        var avoid = kind == HabitKinds.Avoid;
+        var days = (avoid ? logged : logged.Where(d => HabitStreaks.IsMet(d.Value, target))).Select(d => d.Date).ToHashSet();
+        return challenges
+            .OrderByDescending(c => c.StartDate).ThenByDescending(c => c.Id)
+            .Select(c =>
+            {
+                var progress = HabitChallenges.Evaluate(c.Days, c.StartDate, avoid, scheduleDays, habitStart, days, today);
+                return new HabitChallengeDto
+                {
+                    Id = c.Id,
+                    Days = c.Days,
+                    StartDate = c.StartDate,
+                    EndDate = progress.EndDate,
+                    State = progress.State,
+                    DaysDone = progress.DaysDone,
+                    DaysTotal = progress.DaysTotal,
+                    CompletedOn = progress.CompletedOn,
+                };
+            })
+            .ToList();
+    }
+
+    private sealed record ChallengeRow(int Id, int HabitId, int Days, DateOnly StartDate);
 
     private sealed record LoggedDay(DateOnly Date, decimal? Value);
 

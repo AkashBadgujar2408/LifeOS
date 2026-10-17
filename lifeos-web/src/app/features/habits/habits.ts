@@ -26,6 +26,7 @@ import { HabitDay } from './habit-day';
 import { openHabitEditor } from './habit-editor';
 import { entryChangeFor } from './habit-entry';
 import { openHabitLibrary } from './habit-library';
+import { openRoutinesDialog } from './routines-dialog';
 import {
   HabitDayState,
   WEEKDAY_NAMES,
@@ -167,6 +168,10 @@ export class Habits implements OnInit {
       this.statusFilter.set('Active');
       this.reload();
     }
+  }
+
+  protected async manageRoutines(): Promise<void> {
+    await openRoutinesDialog(this.modal, this.habits());
   }
 
   /** Library → a template → the editor filled in, with the template's category as a tag (found or made). */

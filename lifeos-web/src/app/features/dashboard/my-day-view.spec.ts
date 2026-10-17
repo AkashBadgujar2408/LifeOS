@@ -1,5 +1,6 @@
 import { MyDay, MyDayHabit, MyDayTask } from '../../core/services/dashboard.service';
 import {
+  groupByRoutine,
   balanceSummary,
   daySummary,
   daysBetween,
@@ -39,6 +40,23 @@ function habit(id: number, doneToday: boolean, dueToday: boolean): MyDayHabit {
     streak: { current: 0, longest: 0, doneToday, dueToday, lastMissed: null },
   };
 }
+
+describe('groupByRoutine', () => {
+  it('puts habits under their routines in the routine order, and the rest after', () => {
+    const habits = [habit(1, false, true), habit(2, true, true), habit(3, false, true)];
+    const groups = groupByRoutine(habits, [
+      { id: 10, habitIds: [3, 1] },
+      { id: 11, habitIds: [99] },
+      { id: 12, habitIds: [1] },
+    ]);
+
+    expect(groups.routines.map((g) => [g.routine.id, g.habits.map((h) => h.id)])).toEqual([
+      [10, [3, 1]],
+      [12, [1]],
+    ]);
+    expect(groups.others.map((h) => h.id)).toEqual([2]);
+  });
+});
 
 function myDay(overrides: Partial<MyDay>): MyDay {
   return {

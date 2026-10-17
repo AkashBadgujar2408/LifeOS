@@ -71,6 +71,7 @@ try
     builder.Services.AddScoped<IEventsService, EventsService>();
     builder.Services.AddScoped<IRemindersService, RemindersService>();
     builder.Services.AddScoped<IHabitsService, HabitsService>();
+    builder.Services.AddScoped<IRoutinesService, RoutinesService>();
     builder.Services.AddScoped<IJournalService, JournalService>();
     builder.Services.AddScoped<IDecisionsService, DecisionsService>();
     builder.Services.AddScoped<IDashboardService, DashboardService>();

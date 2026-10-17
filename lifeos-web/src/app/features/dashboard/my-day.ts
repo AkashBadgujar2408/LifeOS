@@ -24,7 +24,8 @@ import {
   MyDayHabit,
   MyDayTask,
 } from '../../core/services/dashboard.service';
-import { HabitsService } from '../../core/services/habits.service';
+import { HabitStreak, HabitsService } from '../../core/services/habits.service';
+import { Routine, RoutinesService } from '../../core/services/routines.service';
 import { INBOX_KINDS, InboxKind, InboxService } from '../../core/services/inbox.service';
 import { QuickAddService } from '../../core/services/quick-add.service';
 import { REMINDER_TARGET_LABELS, RemindersService } from '../../core/services/reminders.service';
@@ -40,6 +41,7 @@ import { expiryStatus } from '../documents/document-view';
 import {
   daySummary,
   daysBetween,
+  groupByRoutine,
   habitToday,
   habitsInOrder,
   laterToday,
@@ -152,6 +154,11 @@ export class MyDay {
   });
 
   protected readonly habits = computed(() => habitsInOrder(this.data()?.habits ?? []));
+  private readonly routines = signal<Routine[]>([]);
+  /** Habits grouped under their routines (Morning, Evening…), the rest after. */
+  protected readonly habitGroups = computed(() => groupByRoutine(this.habits(), this.routines()));
+  protected readonly busyRoutineId = signal<number | null>(null);
+  private readonly routinesService = inject(RoutinesService);
 
   protected readonly laterReminders = computed(() =>
     laterToday(
@@ -218,6 +225,11 @@ export class MyDay {
   }
 
   protected load(): void {
+    // Secondary to the day itself: without routines, habits simply show ungrouped.
+    this.routinesService
+      .list()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (routines) => this.routines.set(routines), error: () => undefined });
     this.dashboardService
       .getMyDay(this.today())
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -291,6 +303,43 @@ export class MyDay {
           }
         },
         error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the event.')),
+      });
+  }
+
+  /** "2 of 3" for a routine: its habits on today's schedule that are done. */
+  protected routineProgress(habits: readonly MyDayHabit[]): { done: number; due: number } {
+    const due = habits.filter((h) => habitToday(h) !== 'off');
+    return { done: due.filter((h) => habitToday(h) === 'done').length, due: due.length };
+  }
+
+  /** Ticks every habit in the routine due today that isn't done yet; patches in their new streaks. */
+  protected tickRoutine(routine: Routine): void {
+    this.busyRoutineId.set(routine.id);
+    this.routinesService
+      .setDone(routine.id, this.today(), true, this.today())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ results }) => {
+          this.busyRoutineId.set(null);
+          const streaks = new Map<number, HabitStreak>(
+            results.map((r) => [r.habitId, r.result.streak]),
+          );
+          this.loaded.update((data) =>
+            data
+              ? {
+                  ...data,
+                  habits: data.habits.map((h) =>
+                    streaks.has(h.id) ? { ...h, streak: streaks.get(h.id)! } : h,
+                  ),
+                }
+              : data,
+          );
+          this.toast.success(`${routine.name}: done.`);
+        },
+        error: (err) => {
+          this.busyRoutineId.set(null);
+          this.toast.error(apiErrorMessage(err, `Could not tick off ${routine.name}.`));
+        },
       });
   }
 

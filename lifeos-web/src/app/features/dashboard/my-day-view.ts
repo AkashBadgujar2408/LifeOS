@@ -19,6 +19,28 @@ export function habitToday(habit: MyDayHabit): HabitToday {
   return habit.streak.dueToday ? 'open' : 'off';
 }
 
+/**
+ * My Day's habits split by routine: each routine with its habits (in the routine's order, only those on My Day), then
+ * the habits in no routine. A habit in two routines shows in both; a routine with none of today's habits is left out.
+ */
+export function groupByRoutine<R extends { id: number; habitIds: readonly number[] }>(
+  habits: readonly MyDayHabit[],
+  routines: readonly R[],
+): { routines: { routine: R; habits: MyDayHabit[] }[]; others: MyDayHabit[] } {
+  const byId = new Map(habits.map((h) => [h.id, h]));
+  const inRoutine = new Set<number>();
+  const groups = routines
+    .map((routine) => {
+      const members = routine.habitIds
+        .map((id) => byId.get(id))
+        .filter((h): h is MyDayHabit => h !== undefined);
+      members.forEach((h) => inRoutine.add(h.id));
+      return { routine, habits: members };
+    })
+    .filter((group) => group.habits.length > 0);
+  return { routines: groups, others: habits.filter((h) => !inRoutine.has(h.id)) };
+}
+
 /** Still to do first, then done today, then the ones that aren't on today; the API's (title) order within each. */
 export function habitsInOrder(habits: readonly MyDayHabit[]): MyDayHabit[] {
   const rank: Record<HabitToday, number> = { open: 0, done: 1, off: 2 };
