@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
   FormBuilder,
@@ -25,6 +25,7 @@ import {
 } from '../../core/services/calendar.service';
 import { RECURRENCE_FREQUENCIES, RecurrenceFrequency } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
+import { LifeAreasService } from '../../core/services/life-areas.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { localDateTimeToUtc, utcToLocalParts } from './calendar-feed';
@@ -170,6 +171,7 @@ export class EventEditor {
   private readonly fb = inject(FormBuilder);
   private readonly calendarService = inject(CalendarService);
   private readonly toast = inject(ToastService);
+  protected readonly lifeAreas = toSignal(inject(LifeAreasService).list(), { initialValue: [] });
   protected readonly activeModal = inject(NgbActiveModal);
 
   protected readonly eventEntityType = EVENT_ENTITY_TYPE;
@@ -213,6 +215,7 @@ export class EventEditor {
       ]),
       until: this.fb.control<string | null>(null),
       remindBefore: this.fb.control<number | null>(null),
+      lifeAreaId: this.fb.control<number | null>(null),
       location: this.fb.nonNullable.control('', Validators.maxLength(200)),
       notes: this.fb.nonNullable.control('', Validators.maxLength(4000)),
     },
@@ -251,6 +254,7 @@ export class EventEditor {
         interval: e.recurrence?.interval ?? 1,
         until: e.recurrence?.until ?? null,
         remindBefore: e.reminderMinutesBefore,
+        lifeAreaId: e.lifeAreaId,
         location: e.location ?? '',
         notes: e.notes ?? '',
       });
@@ -267,6 +271,7 @@ export class EventEditor {
         interval: 1,
         until: null,
         remindBefore: null,
+        lifeAreaId: null,
         location: '',
         notes: '',
       });
@@ -386,6 +391,7 @@ export class EventEditor {
       timeZone: repeats && !v.isAllDay ? browserTimeZone() : null,
       // Only a timed series can remind before each occurrence; anything else leaves it off.
       reminderMinutesBefore: repeats && !v.isAllDay ? v.remindBefore : null,
+      lifeAreaId: v.lifeAreaId,
     };
 
     const existing = this.event();

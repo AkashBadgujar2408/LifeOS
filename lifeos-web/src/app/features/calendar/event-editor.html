@@ -254,22 +254,36 @@
       </div>
     }
 
-    <div>
-      <label class="form-label" for="event-location">
-        Location <span class="text-body-secondary small">(optional)</span>
-      </label>
-      <input
-        id="event-location"
-        type="text"
-        class="form-control"
-        [class.is-invalid]="fieldError('location')"
-        formControlName="location"
-        placeholder="e.g. City Dental, MG Road"
-        autocomplete="off"
-      />
-      @if (fieldError('location'); as error) {
-        <div class="invalid-feedback d-block">{{ error }}</div>
-      }
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="event-location">
+          Location <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <input
+          id="event-location"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('location')"
+          formControlName="location"
+          placeholder="e.g. City Dental, MG Road"
+          autocomplete="off"
+        />
+        @if (fieldError('location'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="event-life-area">
+          Life area <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <select id="event-life-area" class="form-select" formControlName="lifeAreaId">
+          <option [ngValue]="null">None</option>
+          @for (area of lifeAreas(); track area.id) {
+            <option [ngValue]="area.id">{{ area.name }}</option>
+          }
+        </select>
+        <div class="form-text">Blocks time for it; the week view adds up the hours.</div>
+      </div>
     </div>
 
     <div>

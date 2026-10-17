@@ -33,6 +33,8 @@ export interface CalendarFeedItem {
   isRecurring: boolean;
   /** Recurring events only: the day this occurrence starts — how the series names it. */
   occurrenceDate: string | null;
+  /** Events only: the life area the time is for (time blocking). */
+  lifeAreaId: number | null;
 }
 
 /** The feed's range: the user's local days, plus the same span as UTC instants (see calendar-feed.ts). */
@@ -61,6 +63,8 @@ export interface CalendarEvent {
   reminderMinutesBefore: number | null;
   /** Skipped occurrences of the series ("yyyy-MM-dd"), oldest first. */
   skippedDates: string[];
+  /** The life area the time is for (time blocking); null = none. */
+  lifeAreaId: number | null;
   createdAt: string;
 }
 
@@ -86,6 +90,24 @@ export interface CalendarEventPayload {
   timeZone: string | null;
   /** Timed repeating events only. */
   reminderMinutesBefore: number | null;
+  lifeAreaId: number | null;
+}
+
+/** New dates/times from a drag or resize (one of the two pairs, like the payload). */
+export interface EventSchedule {
+  isAllDay: boolean;
+  startDate: string | null;
+  endDate: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+}
+
+export type EventMoveScope = 'One' | 'Series';
+
+export interface EventMove extends EventSchedule {
+  /** Recurring events: the occurrence that was dragged, and whether only it moves. */
+  occurrenceDate: string | null;
+  scope: EventMoveScope | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -159,6 +181,16 @@ export class CalendarService {
           }
         }),
       );
+  }
+
+  /**
+   * A drag or resize. A one-off event just takes the new times; an occurrence of a series moves alone (it becomes a
+   * one-off, like "change just this one") or takes the whole series with it. Emits the event that now has them.
+   */
+  moveEvent(id: number, move: EventMove): Observable<CalendarEvent> {
+    return this.http
+      .put<ApiResponse<CalendarEvent>>(`/api/Calendar/Events/${id}/move`, move)
+      .pipe(map((response) => response.data!));
   }
 
   private occurrenceUrl(id: number, occurrenceDate: string): string {

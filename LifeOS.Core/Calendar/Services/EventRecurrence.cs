@@ -137,6 +137,46 @@ public static class EventRecurrence
         return null;
     }
 
+    /// <summary>
+    /// The series moved so that its occurrence on <paramref name="occurrenceDate"/> lands on the new dates/times (a
+    /// drag on the calendar with "every one" chosen). Every occurrence shifts by the same amount — whole days for an
+    /// all-day series, wall-clock time in the series' zone for a timed one (so a move from 09:00 to 10:30 is still
+    /// 10:30 after the clocks change) — and takes the new length. Until shifts by the same number of days, so the
+    /// series neither gains nor loses an occurrence at its end. Pass the all-day pair or the timed pair, matching the
+    /// series. Throws if the series has no occurrence on that day.
+    /// </summary>
+    public static EventSeries Shift(EventSeries series, DateOnly occurrenceDate,
+        DateOnly? startDate, DateOnly? endDate, DateTime? startsAt, DateTime? endsAt)
+    {
+        var occurrence = OccurrenceOn(series, occurrenceDate)
+            ?? throw new ArgumentException("The series has no occurrence on that day.", nameof(occurrenceDate));
+
+        if (series.IsAllDay)
+        {
+            var days = startDate!.Value.DayNumber - occurrence.StartDate!.Value.DayNumber;
+            var first = series.StartDate!.Value.AddDays(days);
+            return series with
+            {
+                StartDate = first,
+                EndDate = first.AddDays(endDate!.Value.DayNumber - startDate.Value.DayNumber),
+                Until = series.Until?.AddDays(days),
+            };
+        }
+
+        var zone = TimeZoneInfo.FindSystemTimeZoneById(series.TimeZone!);
+        var oldLocal = TimeZoneInfo.ConvertTimeFromUtc(occurrence.StartsAt!.Value, zone);
+        var newLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(startsAt!.Value, DateTimeKind.Utc), zone);
+        var firstLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(series.StartsAt!.Value, DateTimeKind.Utc), zone);
+        var firstStart = LocalToUtc(firstLocal + (newLocal - oldLocal), zone);
+        var dayShift = DateOnly.FromDateTime(newLocal).DayNumber - DateOnly.FromDateTime(oldLocal).DayNumber;
+        return series with
+        {
+            StartsAt = firstStart,
+            EndsAt = firstStart + (endsAt!.Value - startsAt.Value),
+            Until = series.Until?.AddDays(dayShift),
+        };
+    }
+
     /// <summary>The day the first occurrence starts — for a timed series, in its own zone.</summary>
     public static DateOnly FirstDate(EventSeries series) => Shape.Of(series).FirstDate;
 

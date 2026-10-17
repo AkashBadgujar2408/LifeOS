@@ -32,6 +32,8 @@ public class CalendarFeedItemDto
     public string? ParentTitle { get; init; }
     public string? Location { get; init; }
     /// <summary>Events only: this is one occurrence of a recurring series (SourceId is the series).</summary>
+    /// <summary>Events only: the life area the time is for (time blocking).</summary>
+    public int? LifeAreaId { get; init; }
     public bool IsRecurring { get; init; }
     /// <summary>Recurring events only: the day this occurrence starts, which identifies it within the series.</summary>
     public DateOnly? OccurrenceDate { get; init; }

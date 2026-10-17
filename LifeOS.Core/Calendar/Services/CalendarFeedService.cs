@@ -79,6 +79,7 @@ public class CalendarFeedService(AppDbContext db) : ICalendarFeedService
         StartsAt = occurrence.StartsAt,
         EndsAt = occurrence.EndsAt,
         Location = series.Location,
+        LifeAreaId = series.LifeAreaId,
         IsRecurring = true,
         OccurrenceDate = occurrence.OccurrenceDate,
     };
@@ -101,6 +102,7 @@ public class CalendarFeedService(AppDbContext db) : ICalendarFeedService
         public int? ParentId { get; init; }
         public string? ParentTitle { get; init; }
         public string? Location { get; init; }
+        public int? LifeAreaId { get; init; }
     }
 
     private static CalendarFeedItemDto ToDto(FeedRow row) => new()
@@ -118,6 +120,7 @@ public class CalendarFeedService(AppDbContext db) : ICalendarFeedService
         ParentId = row.ParentId,
         ParentTitle = row.ParentTitle,
         Location = row.Location,
+        LifeAreaId = row.LifeAreaId,
     };
 
     private static DateOnly? AsDate(DateTime? value) => value is null ? null : DateOnly.FromDateTime(value.Value);

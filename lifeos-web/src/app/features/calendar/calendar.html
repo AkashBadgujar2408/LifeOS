@@ -4,7 +4,7 @@
       <h1 class="h3 mb-1">Calendar</h1>
       <p class="text-body-secondary mb-0 small">
         Events, task due dates and goal milestones in one place. Drag across days or times to add an
-        event.
+        event; drag an event to move it, or its edge to change how long it is.
       </p>
     </div>
     <button type="button" class="btn btn-primary" (click)="newEvent()">
@@ -39,6 +39,35 @@
     <div class="mb-3">
       <app-load-error message="Couldn't load the calendar for these dates." (retry)="loadFeed()" />
     </div>
+  }
+
+  @if (weekByArea(); as areas) {
+    <section class="card mb-3" aria-labelledby="week-areas-heading">
+      <div class="card-body py-3">
+        <h2 id="week-areas-heading" class="h6 mb-2">This week by life area</h2>
+        @if (areas.length === 0) {
+          <p class="small text-body-secondary mb-0">
+            No timed events this week. Give an event a life area ("Deep work" for Career) to block
+            time for it.
+          </p>
+        } @else {
+          <ul
+            class="list-unstyled mb-0 lifeos-cal-areas"
+            aria-label="Hours of timed events per life area"
+          >
+            @for (area of areas; track area.key) {
+              <li class="lifeos-cal-area" [class.is-none]="area.isNone">
+                <span class="small text-truncate">{{ area.name }}</span>
+                <span class="lifeos-cal-area-track" aria-hidden="true">
+                  <span class="lifeos-cal-area-bar" [style.width.%]="area.percent"></span>
+                </span>
+                <span class="small fw-semibold text-end">{{ area.time }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </section>
   }
 
   <div class="card">

@@ -21,6 +21,12 @@ public interface IEventsService
     /// <summary>"Change just this one": the occurrence becomes a one-off event and the series skips that day. Returns the new event.</summary>
     Task<OperationResult<EventDto>> DetachOccurrenceAsync(int id, DateOnly occurrenceDate, EventRequest request);
 
+    /// <summary>
+    /// A drag/resize: new dates/times for a one-off event, or for an occurrence of a series — just that one (it becomes
+    /// a one-off) or the whole series shifted by the same amount. Returns the event that now holds those times.
+    /// </summary>
+    Task<OperationResult<EventDto>> MoveAsync(int id, EventMoveRequest move);
+
     /// <summary>"Delete this and following": the series ends the day before. True when that removed the whole series.</summary>
     Task<OperationResult<bool>> EndSeriesAsync(int id, DateOnly occurrenceDate);
 }

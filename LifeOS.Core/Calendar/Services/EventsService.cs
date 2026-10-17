@@ -39,6 +39,11 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
 
     public async Task<OperationResult<EventDto>> CreateAsync(EventRequest request)
     {
+        if (await LifeAreaErrorAsync(request.LifeAreaId) is { } areaError)
+        {
+            return OperationResult<EventDto>.Fail(areaError);
+        }
+
         var calendarEvent = new Event { UserId = db.CurrentUserId!.Value };
         var error = Apply(calendarEvent, request);
         if (error is not null)
@@ -57,6 +62,11 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
         if (calendarEvent is null)
         {
             return OperationResult<EventDto>.Fail(NotFound);
+        }
+
+        if (await LifeAreaErrorAsync(request.LifeAreaId) is { } areaError)
+        {
+            return OperationResult<EventDto>.Fail(areaError);
         }
 
         var scheduleBefore = ScheduleKey(calendarEvent);
@@ -179,6 +189,11 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
             return OperationResult<EventDto>.Fail("A changed occurrence is a one-off; it can't repeat.");
         }
 
+        if (await LifeAreaErrorAsync(request.LifeAreaId) is { } areaError)
+        {
+            return OperationResult<EventDto>.Fail(areaError);
+        }
+
         // The changed occurrence becomes its own one-off event and the series skips that day — one transaction, so
         // the day never shows twice or not at all.
         var oneOff = new Event { UserId = calendarEvent.UserId };
@@ -246,6 +261,97 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
         return OperationResult<bool>.Ok(false);
     }
 
+    public async Task<OperationResult<EventDto>> MoveAsync(int id, EventMoveRequest move)
+    {
+        var calendarEvent = await db.Events.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id);
+        if (calendarEvent is null)
+        {
+            return OperationResult<EventDto>.Fail(NotFound);
+        }
+
+        // Everything but the dates/times stays as it is, so a move goes through the same validation as an edit.
+        var moved = new EventRequest
+        {
+            Title = calendarEvent.Title,
+            Notes = calendarEvent.Notes,
+            Location = calendarEvent.Location,
+            LifeAreaId = calendarEvent.LifeAreaId,
+            IsAllDay = move.IsAllDay,
+            StartDate = move.IsAllDay ? move.StartDate : null,
+            EndDate = move.IsAllDay ? move.EndDate : null,
+            StartsAt = move.IsAllDay ? null : move.StartsAt,
+            EndsAt = move.IsAllDay ? null : move.EndsAt,
+        };
+
+        var series = SeriesOf(calendarEvent);
+        if (series is null)
+        {
+            return move.OccurrenceDate is null
+                ? await UpdateAsync(id, moved)
+                : OperationResult<EventDto>.Fail(NotRecurring);
+        }
+
+        if (move.OccurrenceDate is not { } occurrenceDate)
+        {
+            return OperationResult<EventDto>.Fail("Say which occurrence was moved.");
+        }
+
+        switch (move.Scope)
+        {
+            case EventMoveScopes.One:
+                // Exactly "change just this one" with the new times.
+                return await DetachOccurrenceAsync(id, occurrenceDate, moved);
+
+            case EventMoveScopes.Series:
+                if (move.IsAllDay != series.IsAllDay)
+                {
+                    return OperationResult<EventDto>.Fail(
+                        "A repeating event can't switch between all-day and timed by dragging. Open it to change that.");
+                }
+
+                var shapeError = ShapeError(moved);
+                if (shapeError is not null)
+                {
+                    return OperationResult<EventDto>.Fail(shapeError);
+                }
+
+                if (EventRecurrence.OccurrenceOn(series, occurrenceDate) is null
+                    || await db.EventExceptions.AnyAsync(x => x.EventId == id && x.OccurrenceDate == occurrenceDate))
+                {
+                    return OperationResult<EventDto>.Fail(NoOccurrence);
+                }
+
+                var shifted = EventRecurrence.Shift(series, occurrenceDate, moved.StartDate, moved.EndDate,
+                    moved.StartsAt?.ToUniversalTime(), moved.EndsAt?.ToUniversalTime());
+                return await UpdateAsync(id, new EventRequest
+                {
+                    Title = moved.Title,
+                    Notes = moved.Notes,
+                    Location = moved.Location,
+                    LifeAreaId = moved.LifeAreaId,
+                    IsAllDay = shifted.IsAllDay,
+                    StartDate = shifted.StartDate,
+                    EndDate = shifted.EndDate,
+                    StartsAt = shifted.StartsAt,
+                    EndsAt = shifted.EndsAt,
+                    Recurrence = new EventRecurrenceDto { Frequency = shifted.Frequency, Interval = shifted.Interval, Until = shifted.Until },
+                    TimeZone = shifted.TimeZone,
+                    ReminderMinutesBefore = calendarEvent.ReminderMinutesBefore,
+                });
+
+            default:
+                return OperationResult<EventDto>.Fail("Say whether to move just this one (One) or every one (Series).");
+        }
+    }
+
+    /// <summary>The dates/times checks alone (a request without a repeat rule only meets those): an error or null.</summary>
+    private static string? ShapeError(EventRequest request) => Apply(new Event(), request);
+
+    private async Task<string?> LifeAreaErrorAsync(int? lifeAreaId) =>
+        lifeAreaId is { } areaId && !await db.LifeAreas.AnyAsync(a => a.Id == areaId)
+            ? "Pick a life area from the list."
+            : null;
+
     /// <summary>The stored row as a series for EventRecurrence, or null for a one-off event.</summary>
     internal static EventSeries? SeriesOf(Event e) => e.RecurrenceFrequency is null
         ? null
@@ -282,6 +388,7 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
         TimeZone = e.TimeZone,
         ReminderMinutesBefore = e.ReminderMinutesBefore,
         SkippedDates = skipped,
+        LifeAreaId = e.LifeAreaId,
         CreatedAt = e.CreatedAt,
     };
 
@@ -354,6 +461,7 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
         calendarEvent.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
         calendarEvent.Location = string.IsNullOrWhiteSpace(request.Location) ? null : request.Location.Trim();
         calendarEvent.IsAllDay = request.IsAllDay;
+        calendarEvent.LifeAreaId = request.LifeAreaId;
         return null;
     }
 

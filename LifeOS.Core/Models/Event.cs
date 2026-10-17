@@ -43,7 +43,11 @@ public partial class Event
 
     public int? ReminderMinutesBefore { get; set; }
 
+    public int? LifeAreaId { get; set; }
+
     public virtual ICollection<EventException> EventExceptions { get; set; } = new List<EventException>();
+
+    public virtual LifeArea? LifeArea { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

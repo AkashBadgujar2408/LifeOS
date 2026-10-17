@@ -206,3 +206,13 @@ IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Events_Remin
         ReminderMinutesBefore IS NULL
         OR (ReminderMinutesBefore BETWEEN 0 AND 10080 AND IsAllDay = 0 AND RecurrenceFrequency IS NOT NULL));
 GO
+
+-- Time blocking (Session 35): an event can say which life area it's for ("Deep work — Career"), so the week view
+-- can total the hours given to each area. Optional, and the same fixed shared.LifeAreas taxonomy goals use.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('calendar.Events') AND name = 'LifeAreaId')
+    ALTER TABLE calendar.Events ADD LifeAreaId INT NULL CONSTRAINT FK_Events_LifeAreas REFERENCES shared.LifeAreas(Id);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('calendar.Events') AND name = 'IX_Events_LifeAreaId')
+    CREATE INDEX IX_Events_LifeAreaId ON calendar.Events(LifeAreaId) WHERE IsDeleted = 0 AND LifeAreaId IS NOT NULL;
+GO

@@ -26,6 +26,8 @@ public class EventDto
     public int? ReminderMinutesBefore { get; init; }
     /// <summary>Occurrences of the series that were skipped, oldest first.</summary>
     public List<DateOnly> SkippedDates { get; init; } = [];
+    /// <summary>The life area this time is for (time blocking); null = none.</summary>
+    public int? LifeAreaId { get; init; }
     public DateTime CreatedAt { get; init; }
 }
 
@@ -86,6 +88,36 @@ public class EventRequest
     /// <summary>Timed recurring events only: remind N minutes before each occurrence (0–10080); null = no.</summary>
     [Range(0, 10080, ErrorMessage = "Remind between 0 minutes and a week before.")]
     public int? ReminderMinutesBefore { get; init; }
+
+    /// <summary>Optional life area the time is for ("Deep work — Career").</summary>
+    public int? LifeAreaId { get; init; }
+}
+
+/// <summary>Which occurrences a drag on a recurring event moves.</summary>
+public static class EventMoveScopes
+{
+    public const string One = "One";
+    public const string Series = "Series";
+}
+
+/// <summary>
+/// A drag or resize on the calendar: the new dates/times (same shape rules as EventRequest). For an occurrence of a
+/// series, OccurrenceDate names it and Scope says whether only it moves (it becomes a one-off, as with "change just
+/// this one") or the whole series shifts by the same amount.
+/// </summary>
+public class EventMoveRequest
+{
+    public bool IsAllDay { get; init; }
+    public DateOnly? StartDate { get; init; }
+    public DateOnly? EndDate { get; init; }
+    public DateTime? StartsAt { get; init; }
+    public DateTime? EndsAt { get; init; }
+
+    /// <summary>Recurring events only: the occurrence that was dragged.</summary>
+    public DateOnly? OccurrenceDate { get; init; }
+
+    /// <summary>Recurring events only: One or Series.</summary>
+    public string? Scope { get; init; }
 }
 
 public static class EventErrors

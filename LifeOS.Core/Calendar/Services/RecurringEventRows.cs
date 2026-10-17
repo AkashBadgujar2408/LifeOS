@@ -18,6 +18,7 @@ internal sealed class EventSeriesRow
     public int RecurrenceInterval { get; init; }
     public DateTime? RecurrenceUntil { get; init; }
     public string? TimeZone { get; init; }
+    public int? LifeAreaId { get; init; }
 
     public EventSeries ToSeries() => new(
         IsAllDay,

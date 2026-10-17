@@ -679,3 +679,19 @@
 - UAT test data: `storyuser1` "Take out the recycling" (weekly Mondays 18:00 IST) and "Evening walk" (daily, 30 min before); `recuruser1` "Water plants", "Short run", events "Standup"/"Std2".
 
 - Next up: **Session 35 — Calendar: drag, resize, time blocks** (plan, Section 7).
+
+## Last session: 2026-10-17 — Session 35 — Calendar: drag, resize, time blocks
+- Shipped (backend):
+  - **Schema** (`04_calendar.sql`, ALTER block): `calendar.Events.LifeAreaId` (optional, `FK_Events_LifeAreas`, filtered `IX_Events_LifeAreaId`). UAT backed up first (`LifeOS_UAT_pre35.bak`). `calendar.GetCalendarFeed` returns `LifeAreaId` for one-off events (set 1, NULL for other sources) and series (set 2).
+  - **`PUT api/Calendar/Events/{id}/move`** (`EventMoveRequest`): new dates/times, validated exactly like an edit (it builds an `EventRequest` from the stored event). One-off: the times change (all-day ↔ timed allowed). Occurrence: `occurrenceDate` + `scope` — `One` = detach (a one-off + a skip, as "change just this one"), `Series` = the whole series shifted (refused when it would switch all-day/timed, or the day is skipped/has no occurrence).
+  - **`EventRecurrence.Shift`** (pure, 4 xUnit cases): moves a series so that one occurrence lands where it was dropped — whole days for all-day, wall-clock time in the series' zone for timed (DST-safe), new length, Until shifted by the same number of days.
+  - Events create/edit/detach take `lifeAreaId` ("Pick a life area from the list." for an unknown one).
+- Shipped (frontend): events drag/resize in month and week (`editable` only on Event items; long press on touch); occurrence dialog **Just this one / Every one / Leave it** (token-coloured buttons); failed or cancelled moves revert; event editor **Life area** picker; **This week by life area** card on the week view (`timeByLifeArea` + `formatMinutes`, bars scaled to the busiest area). Pure helpers `droppedSchedule`, `timeByLifeArea`, `formatMinutes` with specs.
+- Verified:
+  - curl (`moveuser1`/`moveuser2`): one-off moved to the next day and to a two-day all-day event; no timezone → 400; occurrence fields on a one-off → "This event doesn't repeat."; other user → 404; unknown life area → 400. Weekly London "Gym" (Mondays 09:00 from 5 Oct, until 30 Nov): its 2 Nov occurrence dragged to 10:30 with Every one → 19 Oct 09:30Z and 26 Oct 10:30Z (10:30 local either side of the clock change), Until kept; Just this one on 9 Nov → a one-off on 10 Nov and 9 Nov skipped; all-day switch / skipped day / missing scope / missing occurrence → readable 400s.
+  - Browser (`moveuser1`, IST): "Deep work" dragged Thu → Mon in the all-day row, then into Tuesday 10:00 (became 10:00–11:00, strip went Career 1h · Health 30m); Gym occurrence drag → dialog, Leave it reverted, Every one moved the series to Wednesdays 16:00 IST (API: 11:30 London every week, Until +2 days). 375px (iframe): strip and toolbar fit, no horizontal scroll. No console errors from the app.
+  - Fresh DB from `00`–`08` + all procs scaffolds identically (only the known `User.Username` position). `dotnet build` 0 warnings; `ng build`, lint, Prettier clean; tests **161 backend + 121 frontend**, `npm run test:tz` green in all six zones.
+- Decisions (mine — say if you want them changed): only events drag (a task's due date or a goal's target date is changed where it lives); moving a whole series to other days clears its skipped days, the same rule as editing it; a repeating event can switch between all-day and timed only for "just this one"; the strip counts timed events only and counts overlapping events twice (it's time *planned* per area, not wall-clock coverage).
+- UAT test data: `moveuser1` "Deep work" (Career, Tue 20 Oct 10:00 IST), "Gym" weekly series (Health, now Wednesdays) + its one-off on 10 Nov; `moveuser2` (empty).
+
+- Next up: **Session 36 — Global search** (plan, Section 7).

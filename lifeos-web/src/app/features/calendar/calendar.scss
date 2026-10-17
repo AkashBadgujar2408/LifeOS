@@ -43,3 +43,39 @@
 .lifeos-cal-filter-goal {
   --swatch: var(--lifeos-cal-goal);
 }
+
+// "This week by life area": one bar per area, scaled to the busiest (same reading as the Life balance card).
+.lifeos-cal-areas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 0.5rem 2rem;
+}
+
+.lifeos-cal-area {
+  display: grid;
+  grid-template-columns: minmax(0, 7.5rem) 1fr 4rem;
+  align-items: center;
+  gap: 0.75rem;
+
+  &.is-none {
+    color: var(--lifeos-text-secondary);
+
+    .lifeos-cal-area-bar {
+      background: var(--lifeos-text-secondary);
+    }
+  }
+}
+
+.lifeos-cal-area-track {
+  height: 0.5rem;
+  border-radius: 4px;
+  background: var(--lifeos-border);
+  overflow: hidden;
+}
+
+.lifeos-cal-area-bar {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--lifeos-cal-event);
+}

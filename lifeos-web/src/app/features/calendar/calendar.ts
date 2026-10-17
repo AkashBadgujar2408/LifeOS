@@ -6,12 +6,13 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
   CalendarOptions,
   DateSelectInfo,
   DatesSetInfo,
+  EventChangeInfo,
   EventClickInfo,
   FullCalendarModule,
 } from '@fullcalendar/angular';
@@ -21,18 +22,29 @@ import formaTheme from '@fullcalendar/angular/themes/forma';
 import timeGridPlugin from '@fullcalendar/angular/timegrid';
 import enGbLocale from 'fullcalendar/locales/en-gb';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import Swal from 'sweetalert2';
 import { Subscription } from 'rxjs';
 import { addDaysIso, todayIso, toLocalIsoDate } from '../../core/dates/today';
 import {
   CalendarFeedItem,
   CalendarService,
   CalendarSourceType,
+  EventMoveScope,
   FeedRange,
 } from '../../core/services/calendar.service';
+import { LifeAreasService } from '../../core/services/life-areas.service';
 import { TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { openTaskEditor } from '../tasks/task-editor';
-import { SOURCE_LABELS, SOURCE_TYPES, feedRange, toEventInput } from './calendar-feed';
+import {
+  SOURCE_LABELS,
+  SOURCE_TYPES,
+  droppedSchedule,
+  feedRange,
+  formatMinutes,
+  timeByLifeArea,
+  toEventInput,
+} from './calendar-feed';
 import { EventDraft, eventResultMessage, openEventEditor } from './event-editor';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { LoadError } from '../../shared/components/load-error/load-error';
@@ -68,7 +80,30 @@ export class Calendar {
       .map(toEventInput);
   });
 
-  private range: FeedRange | null = null;
+  private readonly lifeAreas = toSignal(inject(LifeAreasService).list(), { initialValue: [] });
+
+  /** What the calendar shows: the feed range, and whether it's the week's time grid. */
+  private readonly visible = signal<{ range: FeedRange; isWeek: boolean } | null>(null);
+
+  /** Week view only: hours of timed events per life area, for the "This week by life area" strip. */
+  protected readonly weekByArea = computed(() => {
+    const visible = this.visible();
+    if (!visible?.isWeek) {
+      return null;
+    }
+    const names = new Map(this.lifeAreas().map((area) => [area.id, area.name]));
+    const totals = timeByLifeArea(this.items(), visible.range.fromUtc, visible.range.toUtc);
+    const most = totals[0]?.minutes ?? 0;
+    return totals.map((total) => ({
+      key: total.lifeAreaId ?? 'none',
+      name:
+        total.lifeAreaId === null ? 'No life area' : (names.get(total.lifeAreaId) ?? 'Life area'),
+      time: formatMinutes(total.minutes),
+      percent: most > 0 ? (total.minutes / most) * 100 : 0,
+      isNone: total.lifeAreaId === null,
+    }));
+  });
+
   private feedSubscription: Subscription | null = null;
 
   protected readonly options: CalendarOptions = {
@@ -85,9 +120,14 @@ export class Calendar {
     dayMaxEvents: true,
     nowIndicator: true,
     selectable: true,
+    // Events (only — see toEventInput) can be dragged to another day/time and resized. On touch screens a drag
+    // starts after a long press, so scrolling the grid doesn't move anything.
+    eventDurationEditable: true,
     datesSet: (info) => this.onDatesSet(info),
     select: (info) => this.onSelect(info),
     eventClick: (info) => this.onEventClick(info),
+    eventDrop: (info) => void this.onEventChange(info),
+    eventResize: (info) => void this.onEventChange(info),
   };
 
   protected isHidden(source: CalendarSourceType): boolean {
@@ -111,8 +151,68 @@ export class Calendar {
   }
 
   private onDatesSet(info: DatesSetInfo): void {
-    this.range = feedRange(info.start, info.end);
+    this.visible.set({
+      range: feedRange(info.start, info.end),
+      isWeek: info.view.type === 'timeGridWeek',
+    });
     this.loadFeed();
+  }
+
+  /**
+   * A drag or resize. A one-off event just takes its new times; an occurrence of a series asks whether only it moves
+   * (it becomes a one-off, like "change just this one") or the whole series shifts. Anything but a save puts the
+   * event back where it was.
+   */
+  private async onEventChange(info: EventChangeInfo): Promise<void> {
+    const item = info.event.extendedProps['item'] as CalendarFeedItem;
+    const schedule = droppedSchedule(info.event.start!, info.event.end, info.event.allDay);
+
+    let scope: EventMoveScope | null = null;
+    if (item.occurrenceDate) {
+      const kindChanged = schedule.isAllDay !== item.isAllDay;
+      const choice = await Swal.fire({
+        title: `Move "${item.title}"?`,
+        text: kindChanged
+          ? 'It repeats. Only this one can switch between all-day and timed; it becomes a separate event.'
+          : 'It repeats. Move only this one (it becomes a separate event), or every one by the same amount?',
+        showCancelButton: true,
+        showDenyButton: !kindChanged,
+        confirmButtonText: 'Just this one',
+        denyButtonText: 'Every one',
+        cancelButtonText: 'Leave it',
+        // Neither choice is destructive: brand colours, not SweetAlert's purple/red defaults.
+        confirmButtonColor: 'var(--lifeos-teal)',
+        denyButtonColor: 'var(--lifeos-ink)',
+      });
+      if (choice.isConfirmed) {
+        scope = 'One';
+      } else if (choice.isDenied) {
+        scope = 'Series';
+      } else {
+        info.revert();
+        return;
+      }
+    }
+
+    this.calendarService
+      .moveEvent(item.sourceId, { ...schedule, occurrenceDate: item.occurrenceDate, scope })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.toast.success(
+            scope === 'Series'
+              ? 'Moved every one.'
+              : scope === 'One'
+                ? 'Moved just that one.'
+                : 'Event moved.',
+          );
+          this.loadFeed();
+        },
+        error: (err) => {
+          info.revert();
+          this.toast.error(apiErrorMessage(err, 'Could not move the event.'));
+        },
+      });
   }
 
   /** Dragging across days (month) or times (week) starts a new event over exactly that span. */
@@ -195,7 +295,8 @@ export class Calendar {
   }
 
   protected loadFeed(): void {
-    if (!this.range) {
+    const visible = this.visible();
+    if (!visible) {
       return;
     }
 
@@ -203,7 +304,7 @@ export class Calendar {
     this.feedSubscription?.unsubscribe();
     this.loading.set(true);
     this.feedSubscription = this.calendarService
-      .feed(this.range)
+      .feed(visible.range)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (items) => {

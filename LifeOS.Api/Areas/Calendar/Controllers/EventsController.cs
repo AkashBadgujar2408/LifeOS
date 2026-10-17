@@ -60,6 +60,11 @@ public class EventsController(IEventsService eventsService) : ControllerBase
         return Ok(ApiResponse<bool>.Ok(true));
     }
 
+    /// <summary>PUT api/Calendar/Events/5/move { new dates/times [, occurrenceDate, scope One|Series] } — drag/resize.</summary>
+    [HttpPut("{id:int}/move")]
+    public async Task<IActionResult> Move(int id, EventMoveRequest request) =>
+        Respond(await eventsService.MoveAsync(id, request));
+
     /// <summary>PUT api/Calendar/Events/5/occurrences/2026-10-20/skipped { "skipped": true } — returns the series.</summary>
     [HttpPut("{id:int}/occurrences/{date}/skipped")]
     public async Task<IActionResult> SetSkipped(int id, DateOnly date, EventOccurrenceSkipRequest request) =>

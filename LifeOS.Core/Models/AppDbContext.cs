@@ -106,6 +106,8 @@ public partial class AppDbContext : DbContext
         {
             entity.ToTable("Events", "calendar");
 
+            entity.HasIndex(e => e.LifeAreaId, "IX_Events_LifeAreaId").HasFilter("([IsDeleted]=(0) AND [LifeAreaId] IS NOT NULL)");
+
             entity.HasIndex(e => e.UserId, "IX_Events_User_Recurring").HasFilter("([IsDeleted]=(0) AND [RecurrenceFrequency] IS NOT NULL)");
 
             entity.HasIndex(e => new { e.UserId, e.StartDate }, "IX_Events_User_StartDate").HasFilter("([IsDeleted]=(0) AND [IsAllDay]=(1))");
@@ -117,6 +119,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RecurrenceFrequency).HasMaxLength(10);
             entity.Property(e => e.TimeZone).HasMaxLength(64);
             entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.Events)
+                .HasForeignKey(d => d.LifeAreaId)
+                .HasConstraintName("FK_Events_LifeAreas");
 
             entity.HasOne(d => d.User).WithMany(p => p.Events)
                 .HasForeignKey(d => d.UserId)

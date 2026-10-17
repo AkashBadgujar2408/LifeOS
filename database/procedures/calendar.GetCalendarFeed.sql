@@ -20,6 +20,8 @@ GO
 --                      computed by the client, which is the only side that knows the user's timezone — matched
 --                      against timed events. Half-open: [@FromUtc, @ToUtc).
 --
+-- Events carry their optional LifeAreaId (time blocking, Session 35); other sources return NULL there.
+--
 -- This runs outside EF Core, so the global soft-delete/user filters do NOT apply: every branch filters
 -- UserId = @UserId and IsDeleted = 0 itself, including on joined parents (a milestone of a deleted goal is gone).
 CREATE OR ALTER PROCEDURE calendar.GetCalendarFeed
@@ -49,7 +51,8 @@ BEGIN
         Priority    = CAST(NULL AS NVARCHAR(10)),
         ParentId    = CAST(NULL AS INT),
         ParentTitle = CAST(NULL AS NVARCHAR(200)),
-        Location    = e.Location
+        Location    = e.Location,
+        LifeAreaId  = e.LifeAreaId
     FROM calendar.Events e
     WHERE e.UserId = @UserId
       AND e.IsDeleted = 0
@@ -65,7 +68,7 @@ BEGIN
     SELECT
         N'Event', e.Id, e.Title, CAST(0 AS BIT),
         NULL, NULL, e.StartsAt, e.EndsAt,
-        CAST(0 AS BIT), NULL, NULL, NULL, e.Location
+        CAST(0 AS BIT), NULL, NULL, NULL, e.Location, e.LifeAreaId
     FROM calendar.Events e
     WHERE e.UserId = @UserId
       AND e.IsDeleted = 0
@@ -82,7 +85,7 @@ BEGIN
         N'Task', t.Id, t.Title, CAST(1 AS BIT),
         t.DueDate, t.DueDate, NULL, NULL,
         CAST(CASE WHEN t.Status = N'Done' THEN 1 ELSE 0 END AS BIT),
-        t.Priority, p.Id, p.Name, NULL
+        t.Priority, p.Id, p.Name, NULL, NULL
     FROM tasks.TaskItems t
     LEFT JOIN tasks.Projects p
         ON p.Id = t.ProjectId
@@ -99,7 +102,7 @@ BEGIN
         N'Milestone', m.Id, m.Title, CAST(1 AS BIT),
         m.TargetDate, m.TargetDate, NULL, NULL,
         CAST(CASE WHEN m.CompletedAt IS NOT NULL THEN 1 ELSE 0 END AS BIT),
-        NULL, g.Id, g.Title, NULL
+        NULL, g.Id, g.Title, NULL, NULL
     FROM goals.GoalMilestones m
     INNER JOIN goals.Goals g
         ON g.Id = m.GoalId
@@ -116,7 +119,7 @@ BEGIN
         N'Goal', g.Id, g.Title, CAST(1 AS BIT),
         g.TargetDate, g.TargetDate, NULL, NULL,
         CAST(CASE WHEN g.Status = N'Completed' THEN 1 ELSE 0 END AS BIT),
-        NULL, NULL, NULL, NULL
+        NULL, NULL, NULL, NULL, NULL
     FROM goals.Goals g
     WHERE g.UserId = @UserId
       AND g.IsDeleted = 0
@@ -135,7 +138,7 @@ BEGIN
     -- may start, so allow for the occurrence's own length (plus two days of timezone slack for timed series).
     SELECT
         e.Id, e.Title, e.IsAllDay, e.StartDate, e.EndDate, e.StartsAt, e.EndsAt, e.Location,
-        e.RecurrenceFrequency, e.RecurrenceInterval, e.RecurrenceUntil, e.TimeZone
+        e.RecurrenceFrequency, e.RecurrenceInterval, e.RecurrenceUntil, e.TimeZone, e.LifeAreaId
     FROM calendar.Events e
     WHERE e.UserId = @UserId
       AND e.IsDeleted = 0

@@ -4,6 +4,7 @@ import {
   CalendarFeedItem,
   CalendarSourceType,
   FeedRange,
+  EventSchedule,
 } from '../../core/services/calendar.service';
 
 export const SOURCE_TYPES: CalendarSourceType[] = ['Event', 'Task', 'Milestone', 'Goal'];
@@ -50,6 +51,8 @@ export function toEventInput(item: CalendarFeedItem): EventInput {
     className,
     // FullCalendar puts this into the event's --fc-event-color; the variables are defined in calendar.scss.
     color: `var(--lifeos-cal-${source})`,
+    // Only events move by dragging: a task due date or a goal target is changed where it lives.
+    editable: item.sourceType === 'Event',
     extendedProps: { item },
   };
 }
@@ -65,4 +68,77 @@ export function localDateTimeToUtc(isoDate: string, hour: number, minute: number
 export function utcToLocalParts(utc: string): { date: string; hour: number; minute: number } {
   const date = new Date(utc);
   return { date: toLocalIsoDate(date), hour: date.getHours(), minute: date.getMinutes() };
+}
+
+/**
+ * Where FullCalendar dropped (or resized) an event → the API's dates/times. FullCalendar's end is exclusive and
+ * can be null when an event changes kind: dragged from the all-day row into the time grid it has no end yet (an hour,
+ * FullCalendar's default length), dragged out of the grid into the all-day row it's one day.
+ */
+export function droppedSchedule(start: Date, end: Date | null, allDay: boolean): EventSchedule {
+  if (allDay) {
+    const startDate = toLocalIsoDate(start);
+    return {
+      isAllDay: true,
+      startDate,
+      endDate: end ? addDaysIso(toLocalIsoDate(end), -1) : startDate,
+      startsAt: null,
+      endsAt: null,
+    };
+  }
+  return {
+    isAllDay: false,
+    startDate: null,
+    endDate: null,
+    startsAt: start.toISOString(),
+    endsAt: (end ?? new Date(start.getTime() + 60 * 60000)).toISOString(),
+  };
+}
+
+/** Minutes of timed events given to one life area (null = events without one). */
+export interface LifeAreaTime {
+  lifeAreaId: number | null;
+  minutes: number;
+}
+
+/**
+ * Time blocking totals for the visible span: minutes of timed events per life area, the part of each event inside
+ * [fromUtc, toUtc) only, most first (then by area id; "no life area" last among equals). All-day events, tasks and
+ * goal dates aren't blocks of time, so they don't count.
+ */
+export function timeByLifeArea(
+  items: readonly CalendarFeedItem[],
+  fromUtc: string,
+  toUtc: string,
+): LifeAreaTime[] {
+  const from = Date.parse(fromUtc);
+  const to = Date.parse(toUtc);
+  const totals = new Map<number | null, number>();
+  for (const item of items) {
+    if (item.sourceType !== 'Event' || item.isAllDay) {
+      continue;
+    }
+    const start = Math.max(Date.parse(item.startsAt!), from);
+    const end = Math.min(Date.parse(item.endsAt!), to);
+    if (end > start) {
+      totals.set(item.lifeAreaId, (totals.get(item.lifeAreaId) ?? 0) + (end - start) / 60000);
+    }
+  }
+  return [...totals]
+    .map(([lifeAreaId, minutes]) => ({ lifeAreaId, minutes: Math.round(minutes) }))
+    .sort(
+      (a, b) =>
+        b.minutes - a.minutes ||
+        (a.lifeAreaId ?? Number.MAX_SAFE_INTEGER) - (b.lifeAreaId ?? Number.MAX_SAFE_INTEGER),
+    );
+}
+
+/** 90 → "1h 30m", 120 → "2h", 45 → "45m". */
+export function formatMinutes(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) {
+    return `${rest}m`;
+  }
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
 }

@@ -19,6 +19,8 @@ public partial class LifeArea
 
     public DateTime? DeletedAt { get; set; }
 
+    public virtual ICollection<Event> Events { get; set; } = new List<Event>();
+
     public virtual ICollection<Goal> Goals { get; set; } = new List<Goal>();
 
     public virtual ICollection<Habit> Habits { get; set; } = new List<Habit>();
