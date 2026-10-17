@@ -793,3 +793,12 @@
 - UAT test data: `journaluser1` (Europe/London; 15 Oct "Beach day", Great, tag family, photo beach.jpg, gratitude + 2 lessons; 16 Oct gratitude; decisions "Take the Berlin job" and "Start running before work" (reviewed, Better), "Move our beach trips to weekdays" (review 14 Nov); October reflection), `journaluser2` (empty).
 
 - Next up: **Session 43 — Habits follow-up 1** (plan, Section 7).
+
+## Last session: 2026-10-17 — Session 43 — Habits follow-up 1
+- Shipped (backend): schema (`05_habits.sql`: `Kind`, `TargetValue`/`Unit` with `CK_Habits_Target`, `CK_Habits_AvoidEveryDay`, `HabitEntries.Value`, `HabitTags`; UAT backed up first, `LifeOS_UAT_pre43.bak`); `HabitStreaks.IsMet` + `CleanRuns` (8 new xUnit cases); `HabitsService` (kinds, values, slips, tags, kind locked once logged); `HabitTemplates` + `GET api/Habits/Habits/templates`; the four procedures that count habit days now count only met days of build habits; My Day carries target/unit and leaves avoid habits out.
+- Shipped (frontend): `habitDayState` / `applyEntry` / `targetLabel` (spec), `entryChangeFor` amount prompt, day cells with amounts + partial / clean / slipped states, habits grid + detail page per kind, editor (kind, "Count an amount", tags, template prefill), `HabitLibrary` dialog, My Day target label.
+- Verified: see the plan row (curl + browser as `measureuser1`); fresh DB scaffolds identically; `dotnet build` (unsandboxed) 0 warnings; `ng build`, lint, Prettier clean; **236 backend + 148 frontend** tests, `npm run test:tz` green in all six zones.
+- Decisions (mine — say if you want them changed): a day logged without a value still counts after a target is added (so old ticks aren't lost); an avoid habit counts today as clean until a slip is logged; avoid habits aren't on My Day (not a to-do) and earn no life-area XP or achievements; ticking a measurable habit on My Day logs exactly the target; the library lives in code, not a table (it's the same for everyone).
+- UAT test data: `measureuser1` (Read — 20 pages, Learning tag; No smoking — slips 5 and 12 Oct; Walk — 30 minutes, 15 logged today), `measureuser2` (empty). Note: `habituser1/2` already existed with other passwords.
+
+- Next up: **Session 44 — Habits follow-up 2** (plan, Section 7).

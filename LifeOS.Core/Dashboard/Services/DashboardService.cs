@@ -144,6 +144,8 @@ public class DashboardService(AppDbContext db) : IDashboardService
                     ScheduleDays = h.ScheduleDays,
                     StartDate = startDate,
                     LifeAreaName = h.LifeAreaName,
+                    TargetValue = h.TargetValue,
+                    Unit = h.Unit,
                     Streak = HabitStreaks.Calculate(h.ScheduleDays, startDate, done, today),
                 };
             }).ToList(),
@@ -300,6 +302,8 @@ public class DashboardService(AppDbContext db) : IDashboardService
         public byte ScheduleDays { get; init; }
         public DateTime StartDate { get; init; }
         public string? LifeAreaName { get; init; }
+        public decimal? TargetValue { get; init; }
+        public string? Unit { get; init; }
     }
 
     private sealed class HabitEntryRow

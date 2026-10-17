@@ -75,6 +75,11 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
             Status = HabitStatuses.Active,
         };
         Apply(habit, request);
+        foreach (var tagId in request.TagIds.Distinct())
+        {
+            habit.HabitTags.Add(new HabitTag { UserId = habit.UserId, TagId = tagId });
+        }
+
         db.Habits.Add(habit);
 
         try
@@ -103,9 +108,29 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
             return OperationResult<HabitDto>.Fail(error);
         }
 
-        // Days already ticked stay as they are: a new schedule or a later start only changes which of them count.
+        // Its logged days mean different things for the two kinds (done vs slipped), so the kind is fixed once used.
+        if (request.Kind != habit.Kind && await db.HabitEntries.AnyAsync(e => e.HabitId == id))
+        {
+            return OperationResult<HabitDto>.Fail("A habit's kind can't change once days are logged. Start a new habit instead.");
+        }
+
+        // Days already ticked stay as they are: a new schedule, start or target only changes which of them count.
         Apply(habit, request);
         habit.UpdatedAt = DateTime.UtcNow;
+
+        var now = DateTime.UtcNow;
+        var wanted = request.TagIds.ToHashSet();
+        var current = await db.HabitTags.Where(t => t.HabitId == id).ToListAsync();
+        foreach (var tag in current.Where(t => !wanted.Contains(t.TagId)))
+        {
+            tag.IsDeleted = true;
+            tag.DeletedAt = now;
+        }
+
+        foreach (var tagId in wanted.Except(current.Select(t => t.TagId)))
+        {
+            db.HabitTags.Add(new HabitTag { UserId = habit.UserId, HabitId = id, TagId = tagId });
+        }
 
         try
         {
@@ -134,7 +159,7 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
         return await GetAsync(id, today, today.AddDays(1 - DefaultWindowDays));
     }
 
-    public async Task<OperationResult<HabitEntryResultDto>> SetEntryAsync(int id, DateOnly date, bool done, DateOnly today)
+    public async Task<OperationResult<HabitEntryResultDto>> SetEntryAsync(int id, DateOnly date, bool done, decimal? value, DateOnly today)
     {
         var habit = await db.Habits.FindAsync(id);
         if (habit is null)
@@ -152,49 +177,69 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
             return OperationResult<HabitEntryResultDto>.Fail("That day hasn't happened yet.");
         }
 
-        // Only ticking is restricted: a day ticked before the start date or schedule changed can still be un-ticked.
+        var avoid = habit.Kind == HabitKinds.Avoid;
+        // Logging 0 on a measurable habit is the same as clearing the day.
+        if (habit.TargetValue is not null && value == 0)
+        {
+            done = false;
+        }
+
+        // Only logging is restricted: a day logged before the start date or schedule changed can still be cleared.
         if (done && date < habit.StartDate)
         {
             return OperationResult<HabitEntryResultDto>.Fail("That's before the habit started.");
         }
 
-        if (done && !HabitStreaks.IsScheduled(habit.ScheduleDays, date))
+        // An avoid habit runs every day, so a slip can be logged on any day.
+        if (done && !avoid && !HabitStreaks.IsScheduled(habit.ScheduleDays, date))
         {
             return OperationResult<HabitEntryResultDto>.Fail("That day isn't on this habit's schedule.");
         }
 
+        // Plain and avoid habits store no value; a measurable one stores what was done (the target when not given).
+        decimal? stored = habit.TargetValue is null ? null : value ?? habit.TargetValue;
+
         var entry = await db.HabitEntries.FirstOrDefaultAsync(e => e.HabitId == id && e.EntryDate == date);
         if (done && entry is null)
         {
-            db.HabitEntries.Add(new HabitEntry { UserId = habit.UserId, HabitId = id, EntryDate = date });
+            db.HabitEntries.Add(new HabitEntry { UserId = habit.UserId, HabitId = id, EntryDate = date, Value = stored });
             try
             {
                 await db.SaveChangesAsync();
             }
             catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
             {
-                // Ticked by a concurrent request (a double click): the day is done either way.
+                // Logged by a concurrent request (a double click): the day is logged either way.
                 db.ChangeTracker.Clear();
             }
         }
+        else if (done && entry is not null && entry.Value != stored)
+        {
+            entry.Value = stored;
+            entry.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+        }
         else if (!done && entry is not null)
         {
-            // Un-ticking soft-deletes the row; the filtered unique index lets the day be ticked again later.
+            // Clearing soft-deletes the row; the filtered unique index lets the day be logged again later.
             entry.IsDeleted = true;
             entry.DeletedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
         }
 
-        var doneDates = await db.HabitEntries
+        var entries = await db.HabitEntries
             .Where(e => e.HabitId == id)
-            .Select(e => e.EntryDate)
+            .Select(e => new LoggedDay(e.EntryDate, e.Value))
             .ToListAsync();
+        var logged = entries.FirstOrDefault(e => e.Date == date);
 
         return OperationResult<HabitEntryResultDto>.Ok(new HabitEntryResultDto
         {
             EntryDate = date,
-            Done = done,
-            Streak = HabitStreaks.Calculate(habit.ScheduleDays, habit.StartDate, doneDates, today),
+            Done = logged is not null && (avoid || HabitStreaks.IsMet(logged.Value, habit.TargetValue)),
+            Value = logged?.Value,
+            Streak = avoid ? new HabitStreak(0, 0, false, false, null) : BuildStreak(habit, entries, today),
+            CleanRun = avoid ? HabitStreaks.CleanRuns(habit.StartDate, entries.Select(e => e.Date), today) : null,
         });
     }
 
@@ -212,6 +257,9 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
         await db.HabitEntries
             .Where(e => e.HabitId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(e => e.IsDeleted, true).SetProperty(e => e.DeletedAt, now));
+        await db.HabitTags
+            .Where(t => t.HabitId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsDeleted, true).SetProperty(t => t.DeletedAt, now));
 
         habit.IsDeleted = true;
         habit.DeletedAt = now;
@@ -237,17 +285,36 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
         var habitIds = habits.Select(h => h.Id).ToList();
         var entries = (await db.HabitEntries
                 .Where(e => habitIds.Contains(e.HabitId))
-                .Select(e => new { e.HabitId, e.EntryDate })
+                .Select(e => new { e.HabitId, e.EntryDate, e.Value })
                 .ToListAsync())
-            .ToLookup(e => e.HabitId, e => e.EntryDate);
+            .ToLookup(e => e.HabitId, e => new LoggedDay(e.EntryDate, e.Value));
 
         foreach (var habit in habits)
         {
-            var dates = entries[habit.Id].ToList();
-            habit.Streak = HabitStreaks.Calculate(habit.ScheduleDays, habit.StartDate, dates, today);
-            habit.DoneDates = dates.Where(d => d >= from && d <= today).Order().ToList();
+            var logged = entries[habit.Id].ToList();
+            var inWindow = logged.Where(d => d.Date >= from && d.Date <= today).OrderBy(d => d.Date).ToList();
+            if (habit.Kind == HabitKinds.Avoid)
+            {
+                habit.CleanRun = HabitStreaks.CleanRuns(habit.StartDate, logged.Select(d => d.Date), today);
+                habit.SlipDates = inWindow.Select(d => d.Date).ToList();
+                continue;
+            }
+
+            habit.Streak = HabitStreaks.Calculate(habit.ScheduleDays, habit.StartDate,
+                logged.Where(d => HabitStreaks.IsMet(d.Value, habit.TargetValue)).Select(d => d.Date), today);
+            habit.DoneDates = inWindow.Where(d => HabitStreaks.IsMet(d.Value, habit.TargetValue)).Select(d => d.Date).ToList();
+            if (habit.TargetValue is not null)
+            {
+                habit.Values = inWindow.Where(d => d.Value is not null).ToDictionary(d => d.Date, d => d.Value!.Value);
+            }
         }
     }
+
+    private sealed record LoggedDay(DateOnly Date, decimal? Value);
+
+    private static HabitStreak BuildStreak(Habit habit, IEnumerable<LoggedDay> logged, DateOnly today) =>
+        HabitStreaks.Calculate(habit.ScheduleDays, habit.StartDate,
+            logged.Where(d => HabitStreaks.IsMet(d.Value, habit.TargetValue)).Select(d => d.Date), today);
 
     private static string? ValidateWindow(DateOnly today, DateOnly from)
     {
@@ -279,6 +346,28 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
             return "Life area not found.";
         }
 
+        if (request.Kind is not (HabitKinds.Build or HabitKinds.Avoid))
+        {
+            return "Kind must be Build or Avoid.";
+        }
+
+        if (request.Kind == HabitKinds.Avoid && request.TargetValue is not null)
+        {
+            return "A habit you're avoiding has no target — each clean day counts.";
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Unit) && request.TargetValue is null)
+        {
+            return "A unit needs a target.";
+        }
+
+        // Tags go through the per-user filter, so another user's tag id counts as missing.
+        var tagIds = request.TagIds.Distinct().ToList();
+        if (tagIds.Count > 0 && await db.Tags.CountAsync(t => tagIds.Contains(t.Id)) != tagIds.Count)
+        {
+            return "Tag not found.";
+        }
+
         return null;
     }
 
@@ -287,7 +376,11 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
         habit.Title = request.Title.Trim();
         habit.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         habit.LifeAreaId = request.LifeAreaId;
-        habit.ScheduleDays = request.ScheduleDays;
+        habit.Kind = request.Kind;
+        // An avoid habit runs every day (CK_Habits_AvoidEveryDay): there's no day off from not smoking.
+        habit.ScheduleDays = request.Kind == HabitKinds.Avoid ? HabitStreaks.EveryDay : request.ScheduleDays;
         habit.StartDate = request.StartDate!.Value;
+        habit.TargetValue = request.Kind == HabitKinds.Build ? request.TargetValue : null;
+        habit.Unit = habit.TargetValue is null || string.IsNullOrWhiteSpace(request.Unit) ? null : request.Unit.Trim();
     }
 }

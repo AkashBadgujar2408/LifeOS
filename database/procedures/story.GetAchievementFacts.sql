@@ -42,17 +42,21 @@ BEGIN
     WHERE m.UserId = @UserId AND m.IsDeleted = 0
       AND m.CompletedAt IS NOT NULL;
 
+    -- Build habits only: an avoid habit's entries are slips, never days done (Session 43).
     SELECT h.Id, h.ScheduleDays, h.StartDate
     FROM habits.Habits h
-    WHERE h.UserId = @UserId AND h.IsDeleted = 0;
+    WHERE h.UserId = @UserId AND h.IsDeleted = 0 AND h.Kind = N'Build';
 
+    -- A measurable habit's day counts only once it met the target (HabitStreaks.IsMet).
     SELECT he.HabitId, h.LifeAreaId, he.EntryDate
     FROM habits.HabitEntries he
     INNER JOIN habits.Habits h
         ON h.Id = he.HabitId
        AND h.UserId = @UserId
        AND h.IsDeleted = 0
-    WHERE he.UserId = @UserId AND he.IsDeleted = 0;
+       AND h.Kind = N'Build'
+    WHERE he.UserId = @UserId AND he.IsDeleted = 0
+      AND (h.TargetValue IS NULL OR he.Value IS NULL OR he.Value >= h.TargetValue);
 
     SELECT je.LifeAreaId, je.EntryDate
     FROM journal.JournalEntries je

@@ -39,8 +39,12 @@ export function daysEnding(lastDay: string, count: number): string[] {
   return Array.from({ length: count }, (_, index) => addDaysIso(lastDay, index - count + 1));
 }
 
-/** What one grid cell can be for a habit on a day. */
-export type HabitDayState = 'done' | 'open' | 'missed' | 'off' | 'notStarted' | 'future';
+/**
+ * What one grid cell can be for a habit on a day. `partial` is a measurable day logged short of its target; `clean`
+ * and `slipped` are an avoid habit's days.
+ */
+export type HabitDayState =
+  'done' | 'partial' | 'open' | 'missed' | 'off' | 'notStarted' | 'future' | 'clean' | 'slipped';
 
 /**
  * How a day looks on the check-off grid. `open` is today, scheduled and not done yet — not a miss. `off` is a day
@@ -69,17 +73,76 @@ export function dayState(
   return day === today ? 'open' : 'missed';
 }
 
-/** Only these can be clicked: the API rejects ticks in the future, before the start and off schedule. */
-export function canToggle(state: HabitDayState): boolean {
-  return state === 'done' || state === 'open' || state === 'missed';
+/**
+ * How a day looks for any habit: an avoid habit's days are clean or slipped (it runs every day, today included once
+ * it's begun); a measurable day logged short of its target is `partial`; otherwise as `dayState`.
+ */
+export function habitDayState(
+  habit: Pick<Habit, 'kind' | 'scheduleDays' | 'startDate' | 'doneDates' | 'values' | 'slipDates'>,
+  day: string,
+  today: string,
+): HabitDayState {
+  if (habit.kind === 'Avoid') {
+    if (day > today) {
+      return 'future';
+    }
+    if (habit.slipDates.includes(day)) {
+      return 'slipped';
+    }
+    return day < habit.startDate ? 'notStarted' : 'clean';
+  }
+  const state = dayState(habit.scheduleDays, habit.startDate, new Set(habit.doneDates), day, today);
+  return (state === 'open' || state === 'missed') && habit.values[day] !== undefined
+    ? 'partial'
+    : state;
 }
 
-/** The habit after one day was ticked or un-ticked: that day in or out of its done days, and the API's new streak. */
+/** Only these can be clicked: the API rejects ticks in the future, before the start and off schedule. */
+export function canToggle(state: HabitDayState): boolean {
+  return (
+    state === 'done' ||
+    state === 'partial' ||
+    state === 'open' ||
+    state === 'missed' ||
+    state === 'clean' ||
+    state === 'slipped'
+  );
+}
+
+/** The habit after one day was logged or cleared: the day's done / value / slip, and the API's new figures. */
 export function applyEntry(habit: Habit, result: HabitEntryResult): Habit {
-  const others = habit.doneDates.filter((day) => day !== result.entryDate);
+  const day = result.entryDate;
+  if (habit.kind === 'Avoid') {
+    const others = habit.slipDates.filter((d) => d !== day);
+    return {
+      ...habit,
+      cleanRun: result.cleanRun,
+      slipDates: result.done ? [...others, day].sort() : others,
+    };
+  }
+  const others = habit.doneDates.filter((d) => d !== day);
+  const values = { ...habit.values };
+  if (result.value === null) {
+    delete values[day];
+  } else {
+    values[day] = result.value;
+  }
   return {
     ...habit,
     streak: result.streak,
-    doneDates: result.done ? [...others, result.entryDate].sort() : others,
+    doneDates: result.done ? [...others, day].sort() : others,
+    values: habit.targetValue === null ? habit.values : values,
   };
+}
+
+/** 20 → "20", 12.5 → "12.5" — values as people write them, no trailing zeros. */
+export function formatAmount(value: number): string {
+  return String(Math.round(value * 100) / 100);
+}
+
+/** "20 pages", "8 glasses", or just "20" without a unit. */
+export function targetLabel(habit: Pick<Habit, 'targetValue' | 'unit'>): string | null {
+  return habit.targetValue === null
+    ? null
+    : [formatAmount(habit.targetValue), habit.unit].filter(Boolean).join(' ');
 }

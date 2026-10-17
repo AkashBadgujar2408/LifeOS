@@ -15,8 +15,11 @@ public interface IHabitsService
     Task<OperationResult<HabitDto>> UpdateAsync(int id, HabitRequest request, DateOnly today);
     Task<OperationResult<HabitDto>> SetStatusAsync(int id, string status, DateOnly today);
 
-    /// <summary>Ticks (done) or un-ticks a day; ticking twice, or un-ticking a day that wasn't done, changes nothing.</summary>
-    Task<OperationResult<HabitEntryResultDto>> SetEntryAsync(int id, DateOnly date, bool done, DateOnly today);
+    /// <summary>
+    /// Ticks (done) or un-ticks a day — for a measurable habit, logs a value (the target when none is given); for an
+    /// avoid habit, logs or removes a slip. Ticking twice, or un-ticking a day that wasn't done, changes nothing.
+    /// </summary>
+    Task<OperationResult<HabitEntryResultDto>> SetEntryAsync(int id, DateOnly date, bool done, decimal? value, DateOnly today);
 
     /// <summary>Deletes the habit with its ticked days, links and reminders.</summary>
     Task<OperationResult<bool>> DeleteAsync(int id);

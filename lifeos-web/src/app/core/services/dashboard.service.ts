@@ -66,6 +66,9 @@ export interface MyDayHabit {
   scheduleDays: number;
   startDate: string;
   lifeAreaName: string | null;
+  /** Measurable habits: ticking from My Day logs exactly this. */
+  targetValue: number | null;
+  unit: string | null;
   streak: HabitStreak;
 }
 

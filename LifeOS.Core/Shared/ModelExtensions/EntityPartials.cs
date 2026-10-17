@@ -72,3 +72,5 @@ public partial class JournalNote : ISoftDeletable, IUserOwned;
 public partial class Decision : ISoftDeletable, IUserOwned;
 
 public partial class MonthlyReflection : ISoftDeletable, IUserOwned;
+
+public partial class HabitTag : ISoftDeletable, IUserOwned;

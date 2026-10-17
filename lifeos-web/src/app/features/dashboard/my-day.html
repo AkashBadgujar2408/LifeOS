@@ -149,6 +149,11 @@
                         [class.text-body-secondary]="state === 'done'"
                       >
                         {{ habit.title }}
+                        @if (habit.targetValue !== null) {
+                          <span class="small text-body-secondary">
+                            · {{ habit.targetValue }}{{ habit.unit ? ' ' + habit.unit : '' }}</span
+                          >
+                        }
                       </a>
                       @if (state === 'off') {
                         <span class="small text-body-secondary flex-shrink-0">Not today</span>

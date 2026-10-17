@@ -55,6 +55,8 @@ public partial class User
 
     public virtual ICollection<HabitEntry> HabitEntries { get; set; } = new List<HabitEntry>();
 
+    public virtual ICollection<HabitTag> HabitTags { get; set; } = new List<HabitTag>();
+
     public virtual ICollection<Habit> Habits { get; set; } = new List<Habit>();
 
     public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();

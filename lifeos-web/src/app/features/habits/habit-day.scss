@@ -52,6 +52,32 @@ button.habit-day {
   border-color: var(--lifeos-teal);
 }
 
+// Measurable, logged but short of the target: part-way there, in the same teal.
+.habit-day-partial {
+  color: var(--lifeos-ink);
+  border-color: var(--lifeos-teal);
+  background: color-mix(in srgb, var(--lifeos-teal) 22%, var(--lifeos-surface));
+}
+
+// The number logged on a measurable day, inside the circle.
+.habit-day-amount {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+// Avoid habits: a clean day is a quiet success, a slip is noted without alarm (amber, not red).
+.habit-day-clean {
+  border-color: color-mix(in srgb, var(--lifeos-green) 60%, transparent);
+  background: color-mix(in srgb, var(--lifeos-green) 14%, var(--lifeos-surface));
+}
+
+.habit-day-slipped {
+  color: var(--lifeos-amber);
+  border-color: color-mix(in srgb, var(--lifeos-amber) 60%, transparent);
+  background: color-mix(in srgb, var(--lifeos-amber) 12%, var(--lifeos-surface));
+}
+
 // Today, due and not done yet: an invitation, not a failure.
 .habit-day-open {
   border-color: var(--lifeos-teal);

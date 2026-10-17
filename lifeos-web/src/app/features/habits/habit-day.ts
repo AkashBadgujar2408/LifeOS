@@ -1,14 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { HabitDayState, canToggle } from './habit-schedule';
 
 const STATE_TEXT: Record<HabitDayState, string> = {
   done: 'done',
+  partial: 'some done, short of the target',
   open: 'not done yet',
   missed: 'missed',
   off: 'not scheduled',
   notStarted: 'before the habit started',
   future: 'still to come',
+  clean: 'clean',
+  slipped: 'slipped',
 };
 
 /**
@@ -18,7 +21,7 @@ const STATE_TEXT: Record<HabitDayState, string> = {
 @Component({
   selector: 'app-habit-day',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe],
+  imports: [DatePipe, NgTemplateOutlet],
   styleUrl: './habit-day.scss',
   template: `
     @if (clickable()) {
@@ -27,14 +30,12 @@ const STATE_TEXT: Record<HabitDayState, string> = {
         class="habit-day habit-day-{{ state() }}"
         [class.habit-day-sm]="small()"
         [disabled]="busy()"
-        [attr.aria-pressed]="state() === 'done'"
+        [attr.aria-pressed]="state() === 'done' || state() === 'slipped'"
         [attr.aria-label]="habitTitle() + ', ' + (day() | date) + ': ' + stateText()"
         [title]="(day() | date) + ' · ' + stateText()"
         (click)="toggled.emit(day())"
       >
-        @if (state() === 'done') {
-          <i class="bi bi-check-lg" aria-hidden="true"></i>
-        }
+        <ng-container *ngTemplateOutlet="mark" />
       </button>
     } @else {
       <span
@@ -43,11 +44,18 @@ const STATE_TEXT: Record<HabitDayState, string> = {
         [title]="(day() | date) + ' · ' + stateText()"
         aria-hidden="true"
       >
-        @if (state() === 'done') {
-          <i class="bi bi-check-lg"></i>
-        }
+        <ng-container *ngTemplateOutlet="mark" />
       </span>
     }
+    <ng-template #mark>
+      @if (amount() && !small()) {
+        <span class="habit-day-amount" aria-hidden="true">{{ amount() }}</span>
+      } @else if (state() === 'done') {
+        <i class="bi bi-check-lg" aria-hidden="true"></i>
+      } @else if (state() === 'slipped') {
+        <i class="bi bi-x-lg" aria-hidden="true"></i>
+      }
+    </ng-template>
   `,
 })
 export class HabitDay {
@@ -59,9 +67,15 @@ export class HabitDay {
   readonly busy = input(false);
   /** The compact size used by the detail page's 12-week history. */
   readonly small = input(false);
+  /** A measurable day's logged amount ("20"), shown inside the circle; included in the label. */
+  readonly amount = input<string | null>(null);
 
   readonly toggled = output<string>();
 
   protected readonly clickable = computed(() => !this.readonly() && canToggle(this.state()));
-  protected readonly stateText = computed(() => STATE_TEXT[this.state()]);
+  protected readonly stateText = computed(() =>
+    this.amount()
+      ? `${this.amount()} logged, ${STATE_TEXT[this.state()]}`
+      : STATE_TEXT[this.state()],
+  );
 }

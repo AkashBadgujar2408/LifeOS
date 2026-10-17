@@ -63,7 +63,10 @@ BEGIN
            AND hb.UserId = @UserId
            AND hb.IsDeleted = 0
            AND hb.LifeAreaId = la.Id
+           AND hb.Kind = N'Build'
         WHERE he.UserId = @UserId AND he.IsDeleted = 0
+          -- Days that count as done only (HabitStreaks.IsMet); avoid habits' slips earn nothing.
+          AND (hb.TargetValue IS NULL OR he.Value IS NULL OR he.Value >= hb.TargetValue)
     ) habitDays
     OUTER APPLY (
         SELECT Entries = COUNT(*), LastOn = MAX(je.EntryDate)

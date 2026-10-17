@@ -21,10 +21,13 @@ import { EntityReminders } from '../../shared/components/entity-reminders/entity
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { HabitDay } from './habit-day';
 import { openHabitEditor } from './habit-editor';
+import { entryChangeFor } from './habit-entry';
 import {
   WEEKDAY_NAMES,
   applyEntry,
-  dayState,
+  habitDayState,
+  formatAmount,
+  targetLabel,
   daysEnding,
   isoWeekdayIndex,
   scheduleLabel,
@@ -52,6 +55,7 @@ export class HabitDetail implements OnInit {
   protected readonly habitEntityType = HABIT_ENTITY_TYPE;
   protected readonly goalEntityType = GOAL_ENTITY_TYPE;
   protected readonly scheduleLabel = scheduleLabel;
+  protected readonly targetLabel = targetLabel;
   protected readonly weekdayNames = WEEKDAY_NAMES;
 
   protected readonly habit = signal<Habit | null>(null);
@@ -71,11 +75,11 @@ export class HabitDetail implements OnInit {
     if (!habit) {
       return [];
     }
-    const done = new Set(habit.doneDates);
     const lastDay = addDaysIso(this.historyStart(), 7 * HISTORY_WEEKS - 1);
     const days = daysEnding(lastDay, 7 * HISTORY_WEEKS).map((day) => ({
       day,
-      state: dayState(habit.scheduleDays, habit.startDate, done, day, this.today()),
+      state: habitDayState(habit, day, this.today()),
+      amount: habit.values[day] !== undefined ? formatAmount(habit.values[day]) : null,
     }));
     return Array.from({ length: HISTORY_WEEKS }, (_, week) => ({
       monday: days[week * 7].day,
@@ -84,6 +88,7 @@ export class HabitDetail implements OnInit {
   });
 
   protected readonly doneInHistory = computed(() => this.habit()?.doneDates.length ?? 0);
+  protected readonly slipsInHistory = computed(() => this.habit()?.slipDates.length ?? 0);
 
   private get habitId(): number {
     return Number(this.id());
@@ -93,15 +98,16 @@ export class HabitDetail implements OnInit {
     this.reload();
   }
 
-  protected toggle(day: string): void {
+  protected async toggle(day: string): Promise<void> {
     const habit = this.habit();
-    if (!habit) {
+    const change = habit ? await entryChangeFor(habit, day) : null;
+    if (!habit || !change) {
       return;
     }
 
     this.busyDay.set(day);
     this.habitsService
-      .setEntry(habit.id, day, !habit.doneDates.includes(day), this.today())
+      .setEntry(habit.id, day, change.done, this.today(), change.value)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
@@ -132,9 +138,16 @@ export class HabitDetail implements OnInit {
       .subscribe({
         next: (updated) => {
           this.changingStatus.set(false);
-          // The response only carries the last week of done days; keep the 12 weeks already shown.
+          // The response only carries the last week of logged days; keep the 12 weeks already shown.
           this.habit.update((current) =>
-            current ? { ...updated, doneDates: current.doneDates } : updated,
+            current
+              ? {
+                  ...updated,
+                  doneDates: current.doneDates,
+                  values: current.values,
+                  slipDates: current.slipDates,
+                }
+              : updated,
           );
           this.toast.success(archived ? 'Habit archived.' : 'Habit restored.');
         },

@@ -1,5 +1,6 @@
 using LifeOS.Core.Habits.DTOs;
 using LifeOS.Core.Habits.ServiceContracts;
+using LifeOS.Core.Habits.Services;
 using LifeOS.Core.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -84,7 +85,7 @@ public class HabitsController(IHabitsService habitsService) : ControllerBase
     [HttpPut("{id:int}/entries/{date}")]
     public async Task<IActionResult> SetEntry(int id, DateOnly date, SetHabitEntryRequest request)
     {
-        var result = await habitsService.SetEntryAsync(id, date, request.Done, request.Today ?? UtcToday());
+        var result = await habitsService.SetEntryAsync(id, date, request.Done, request.Value, request.Today ?? UtcToday());
         if (!result.Success)
         {
             return result.Error == HabitErrors.NotFound
@@ -94,6 +95,10 @@ public class HabitsController(IHabitsService habitsService) : ControllerBase
 
         return Ok(ApiResponse<HabitEntryResultDto>.Ok(result.Data));
     }
+
+    /// <summary>GET api/Habits/Habits/templates — the habit library.</summary>
+    [HttpGet("templates")]
+    public IActionResult Templates() => Ok(ApiResponse<IReadOnlyList<HabitTemplateDto>>.Ok(HabitTemplates.All));
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)

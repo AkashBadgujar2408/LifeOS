@@ -34,6 +34,8 @@ function habit(id: number, doneToday: boolean, dueToday: boolean): MyDayHabit {
     scheduleDays: 127,
     startDate: '2026-10-01',
     lifeAreaName: null,
+    targetValue: null,
+    unit: null,
     streak: { current: 0, longest: 0, doneToday, dueToday, lastMissed: null },
   };
 }

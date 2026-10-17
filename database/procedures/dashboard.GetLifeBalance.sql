@@ -71,8 +71,11 @@ BEGIN
                AND hb.UserId = @UserId
                AND hb.IsDeleted = 0
                AND hb.LifeAreaId = la.Id
+               AND hb.Kind = N'Build'
             WHERE he.UserId = @UserId AND he.IsDeleted = 0
               AND he.EntryDate BETWEEN @FromDate AND @ToDate
+              -- Only days that count as done (a measurable habit's met days; an avoid habit's slips never count).
+              AND (hb.TargetValue IS NULL OR he.Value IS NULL OR he.Value >= hb.TargetValue)
         ),
         JournalEntries = (
             SELECT COUNT(*)

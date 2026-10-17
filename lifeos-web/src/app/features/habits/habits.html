@@ -10,9 +10,14 @@
         }
       </p>
     </div>
-    <button type="button" class="btn btn-primary" (click)="newHabit()">
-      <i class="bi bi-plus-lg"></i> New habit
-    </button>
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-outline-primary" (click)="fromLibrary()">
+        <i class="bi bi-collection"></i> Library
+      </button>
+      <button type="button" class="btn btn-primary" (click)="newHabit()">
+        <i class="bi bi-plus-lg"></i> New habit
+      </button>
+    </div>
   </div>
 
   <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -76,9 +81,14 @@
             Start with one small thing you want to do most days: "Read 20 pages", "Walk after
             lunch", "No phone after 10 pm".
           </p>
-          <button type="button" class="btn btn-primary btn-sm" (click)="newHabit()">
-            Start a habit
-          </button>
+          <div class="d-flex justify-content-center gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" (click)="fromLibrary()">
+              Pick from the library
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" (click)="newHabit()">
+              Start a habit
+            </button>
+          </div>
         } @else {
           <p class="mt-2 mb-0 fw-semibold">No archived habits</p>
         }
@@ -117,7 +127,14 @@
                 {{ row.habit.title }}
               </a>
               <div class="small text-body-secondary">
-                {{ scheduleLabel(row.habit.scheduleDays) }}
+                @if (row.habit.kind === 'Avoid') {
+                  Breaking it
+                } @else {
+                  {{ scheduleLabel(row.habit.scheduleDays) }}
+                  @if (targetLabel(row.habit); as target) {
+                    · {{ target }}
+                  }
+                }
                 @if (row.habit.lifeAreaName) {
                   · {{ row.habit.lifeAreaName }}
                 }
@@ -136,6 +153,7 @@
                     [habitTitle]="row.habit.title"
                     [readonly]="row.habit.status === 'Archived'"
                     [busy]="busyCell() === row.habit.id + ':' + cell.day"
+                    [amount]="cell.amount"
                     (toggled)="toggle(row.habit, $event)"
                   />
                 </span>
@@ -143,22 +161,32 @@
             </div>
 
             <div class="text-md-end small" style="min-width: 5.5rem">
-              @if (row.habit.streak.current > 0) {
-                <span class="fw-semibold" [title]="'Current streak'">
-                  <i class="bi bi-fire text-warning"></i> {{ row.habit.streak.current }}
+              @if (row.habit.cleanRun; as run) {
+                <span class="fw-semibold" title="Days clean in a row">
+                  <i class="bi bi-shield-check text-success"></i>
+                  {{ run.current }} {{ run.current === 1 ? 'day' : 'days' }}
                 </span>
+                <div class="text-body-secondary">best {{ run.longest }}</div>
               } @else {
-                <span class="text-body-secondary">No streak</span>
+                @if (row.habit.streak.current > 0) {
+                  <span class="fw-semibold" [title]="'Current streak'">
+                    <i class="bi bi-fire text-warning"></i> {{ row.habit.streak.current }}
+                  </span>
+                } @else {
+                  <span class="text-body-secondary">No streak</span>
+                }
+                <div class="text-body-secondary">best {{ row.habit.streak.longest }}</div>
               }
-              <div class="text-body-secondary">best {{ row.habit.streak.longest }}</div>
             </div>
           </div>
         }
       </div>
     </div>
     <p class="small text-body-secondary mt-2 mb-0">
-      Tap a circle to tick a day off, tap again to undo. Dashed means today, still to do; a red tint
-      is a scheduled day that was missed.
+      Tap a circle to tick a day off, tap again to undo; for a habit with a target, enter how much
+      you did — a partly filled circle is short of the target. Dashed means today, still to do; a
+      red tint is a scheduled day that was missed. For a habit you're breaking, green days are clean
+      — tap a day to note a slip.
     </p>
   }
 </div>

@@ -13,8 +13,9 @@ GO
 --   2 Events         events on the user's day (all-day overlapping @Today, timed overlapping the day's UTC span)
 --   3 Reminders      not dismissed and due before the end of the day (includes ones already overdue)
 --   4 Goals          active goals: milestone counts, next open milestone, last activity
---   5 Habits         active habits that have started
---   6 HabitEntries   every day ticked for those habits (streaks are computed in C# by HabitStreaks, never stored)
+--   5 Habits         active build habits that have started (avoid habits aren't a daily to-do; Session 43)
+--   6 HabitEntries   every day done for those habits — a measurable one only where the value met its target, the same
+--                    rule as HabitStreaks.IsMet (streaks are computed in C# by HabitStreaks, never stored)
 --   7 Journal        the latest journal entry on or before @Today (zero or one row)
 --   8 EventSeries    recurring events that may occur today (Session 33; set 2 holds one-off events only)
 --   9 SkippedDates   skipped occurrences of those series — DashboardService expands 8 minus 9 with EventRecurrence
@@ -155,13 +156,16 @@ BEGIN
         hb.Title,
         hb.ScheduleDays,
         hb.StartDate,
-        LifeAreaName = la.Name
+        LifeAreaName = la.Name,
+        hb.TargetValue,
+        hb.Unit
     FROM habits.Habits hb
     LEFT JOIN shared.LifeAreas la
         ON la.Id = hb.LifeAreaId
     WHERE hb.UserId = @UserId
       AND hb.IsDeleted = 0
       AND hb.Status = N'Active'
+      AND hb.Kind = N'Build'
       AND hb.StartDate <= @Today
     ORDER BY hb.Title, hb.Id;
 
@@ -175,10 +179,12 @@ BEGIN
        AND hb.UserId = @UserId
        AND hb.IsDeleted = 0
        AND hb.Status = N'Active'
+       AND hb.Kind = N'Build'
        AND hb.StartDate <= @Today
     WHERE he.UserId = @UserId
       AND he.IsDeleted = 0
       AND he.EntryDate <= @Today
+      AND (hb.TargetValue IS NULL OR he.Value IS NULL OR he.Value >= hb.TargetValue)
     ORDER BY he.HabitId, he.EntryDate;
 
     -- 7 The latest journal entry up to today, with a short excerpt (the full text can be long).

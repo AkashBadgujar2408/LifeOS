@@ -29,7 +29,15 @@ public partial class Habit
 
     public DateTime? DeletedAt { get; set; }
 
+    public string Kind { get; set; } = null!;
+
+    public decimal? TargetValue { get; set; }
+
+    public string? Unit { get; set; }
+
     public virtual ICollection<HabitEntry> HabitEntries { get; set; } = new List<HabitEntry>();
+
+    public virtual ICollection<HabitTag> HabitTags { get; set; } = new List<HabitTag>();
 
     public virtual LifeArea? LifeArea { get; set; }
 

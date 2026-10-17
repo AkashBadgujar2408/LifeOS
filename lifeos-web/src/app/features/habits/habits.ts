@@ -19,18 +19,24 @@ import {
   HabitStatus,
   HabitsService,
 } from '../../core/services/habits.service';
+import { TagsService } from '../../core/services/tags.service';
 import { ToastService } from '../../core/services/toast.service';
+import { firstValueFrom } from 'rxjs';
 import { HabitDay } from './habit-day';
 import { openHabitEditor } from './habit-editor';
+import { entryChangeFor } from './habit-entry';
+import { openHabitLibrary } from './habit-library';
 import {
   HabitDayState,
   WEEKDAY_NAMES,
   applyEntry,
-  dayState,
   daysEnding,
+  formatAmount,
+  habitDayState,
   isScheduled,
   isoWeekdayIndex,
   scheduleLabel,
+  targetLabel,
 } from './habit-schedule';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { LoadError } from '../../shared/components/load-error/load-error';
@@ -39,7 +45,7 @@ const GRID_DAYS = 7;
 
 interface GridRow {
   habit: Habit;
-  cells: { day: string; state: HabitDayState }[];
+  cells: { day: string; state: HabitDayState; amount: string | null }[];
 }
 
 @Component({
@@ -52,10 +58,12 @@ export class Habits implements OnInit {
   private readonly habitsService = inject(HabitsService);
   private readonly toast = inject(ToastService);
   private readonly modal = inject(NgbModal);
+  private readonly tagsService = inject(TagsService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly statuses = HABIT_STATUSES;
   protected readonly scheduleLabel = scheduleLabel;
+  protected readonly targetLabel = targetLabel;
   protected readonly dayMonthFormat = APP_DAY_MONTH_FORMAT;
 
   protected readonly habits = signal<Habit[]>([]);
@@ -91,23 +99,22 @@ export class Habits implements OnInit {
   protected readonly rows = computed<GridRow[]>(() =>
     this.habits()
       .filter((habit) => habit.status === this.statusFilter())
-      .map((habit) => {
-        const done = new Set(habit.doneDates);
-        return {
-          habit,
-          cells: this.days().map((day) => ({
-            day,
-            state: dayState(habit.scheduleDays, habit.startDate, done, day, this.today()),
-          })),
-        };
-      }),
+      .map((habit) => ({
+        habit,
+        cells: this.days().map((day) => ({
+          day,
+          state: habitDayState(habit, day, this.today()),
+          amount: habit.values[day] !== undefined ? formatAmount(habit.values[day]) : null,
+        })),
+      })),
   );
 
-  /** "2 of 3 done today" across the active habits due today. */
+  /** "2 of 3 done today" across the active build habits due today. */
   protected readonly todaySummary = computed(() => {
     const due = this.habits().filter(
       (habit) =>
         habit.status === 'Active' &&
+        habit.kind === 'Build' &&
         habit.startDate <= this.today() &&
         isScheduled(habit.scheduleDays, this.today()),
     );
@@ -129,12 +136,15 @@ export class Habits implements OnInit {
     this.reload();
   }
 
-  protected toggle(habit: Habit, day: string): void {
+  protected async toggle(habit: Habit, day: string): Promise<void> {
+    const change = await entryChangeFor(habit, day);
+    if (!change) {
+      return;
+    }
     const key = `${habit.id}:${day}`;
-    const done = !habit.doneDates.includes(day);
     this.busyCell.set(key);
     this.habitsService
-      .setEntry(habit.id, day, done, this.today())
+      .setEntry(habit.id, day, change.done, this.today(), change.value)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
@@ -152,6 +162,30 @@ export class Habits implements OnInit {
 
   protected async newHabit(): Promise<void> {
     const saved = await openHabitEditor(this.modal);
+    if (saved) {
+      this.toast.success('Habit created.');
+      this.statusFilter.set('Active');
+      this.reload();
+    }
+  }
+
+  /** Library → a template → the editor filled in, with the template's category as a tag (found or made). */
+  protected async fromLibrary(): Promise<void> {
+    const template = await openHabitLibrary(this.modal);
+    if (!template) {
+      return;
+    }
+    let tagIds: number[] = [];
+    try {
+      const tags = await firstValueFrom(this.tagsService.list());
+      const existing = tags.find((t) => t.name.toLowerCase() === template.category.toLowerCase());
+      tagIds = [
+        existing?.id ?? (await firstValueFrom(this.tagsService.create(template.category))).id,
+      ];
+    } catch {
+      // The habit is still worth starting without its category tag.
+    }
+    const saved = await openHabitEditor(this.modal, undefined, { template, tagIds });
     if (saved) {
       this.toast.success('Habit created.');
       this.statusFilter.set('Active');

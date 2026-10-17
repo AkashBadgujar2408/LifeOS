@@ -7,6 +7,13 @@ namespace LifeOS.Core.Habits.Services;
 public record HabitStreak(int Current, int Longest, bool DoneToday, bool DueToday, DateOnly? LastMissed);
 
 /// <summary>
+/// An avoid habit's clean runs as of <c>today</c>: days in a row without a slip. Current counts today when there's
+/// been no slip today (the day so far is clean); Longest is the best run ever. Nothing about a slip is punitive —
+/// the longest run stays, and the next clean day starts a new run.
+/// </summary>
+public record HabitCleanRun(int Current, int Longest, bool SlippedToday, DateOnly? LastSlip);
+
+/// <summary>
 /// The one place streaks are worked out. Pure date math (no DB, no clock) so it can be unit-tested; "today" is passed
 /// in because it's the user's local date, which only the client knows. Streaks are never stored — they're always
 /// recomputed from the ticked days, so they can't drift from what was actually done.
@@ -15,6 +22,44 @@ public static class HabitStreaks
 {
     /// <summary>Every day of the week (Monday = 1 ... Sunday = 64, ISO order), matching CK_Habits_ScheduleDays.</summary>
     public const byte EveryDay = 127;
+
+    /// <summary>
+    /// Whether a logged day counts as done: always for a habit without a target, and for a measurable one when the
+    /// value reached it. A day logged without a value (ticked before a target was set) still counts. Same rule as
+    /// the procedures' "(TargetValue IS NULL OR Value IS NULL OR Value >= TargetValue)".
+    /// </summary>
+    public static bool IsMet(decimal? value, decimal? target) => target is null || value is null || value >= target;
+
+    /// <summary>
+    /// Clean runs of an avoid habit: every day from <paramref name="startDate"/> to <paramref name="today"/> is either
+    /// a slip or clean (avoid habits run every day). Slips before the start or after today are ignored.
+    /// </summary>
+    public static HabitCleanRun CleanRuns(DateOnly startDate, IEnumerable<DateOnly> slipDates, DateOnly today)
+    {
+        var slips = slipDates.Where(d => d >= startDate && d <= today).ToHashSet();
+        if (today < startDate)
+        {
+            return new HabitCleanRun(0, 0, false, null);
+        }
+
+        int run = 0, longest = 0;
+        DateOnly? lastSlip = null;
+        for (var day = startDate; day <= today; day = day.AddDays(1))
+        {
+            if (slips.Contains(day))
+            {
+                run = 0;
+                lastSlip = day;
+            }
+            else
+            {
+                run++;
+                longest = Math.Max(longest, run);
+            }
+        }
+
+        return new HabitCleanRun(run, longest, slips.Contains(today), lastSlip);
+    }
 
     /// <summary>Whether the habit is due on that day. Bit 0 is Monday; .NET's DayOfWeek starts at Sunday = 0.</summary>
     public static bool IsScheduled(byte scheduleDays, DateOnly day)

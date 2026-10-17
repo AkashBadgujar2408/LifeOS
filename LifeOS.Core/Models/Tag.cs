@@ -23,6 +23,8 @@ public partial class Tag
 
     public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
 
+    public virtual ICollection<HabitTag> HabitTags { get; set; } = new List<HabitTag>();
+
     public virtual ICollection<JournalEntryTag> JournalEntryTags { get; set; } = new List<JournalEntryTag>();
 
     public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();

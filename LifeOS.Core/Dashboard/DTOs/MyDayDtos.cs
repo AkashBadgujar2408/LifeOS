@@ -99,6 +99,9 @@ public class MyDayHabitDto
     public byte ScheduleDays { get; init; }
     public DateOnly StartDate { get; init; }
     public string? LifeAreaName { get; init; }
+    /// <summary>Measurable habits: what a day needs ("20" pages); ticking from My Day logs exactly that.</summary>
+    public decimal? TargetValue { get; init; }
+    public string? Unit { get; init; }
     public HabitStreak Streak { get; init; } = new(0, 0, false, false, null);
 }
 

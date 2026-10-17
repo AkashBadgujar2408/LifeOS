@@ -78,3 +78,58 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('habits.HabitEntries') AND name = 'IX_HabitEntries_User_Date')
     CREATE INDEX IX_HabitEntries_User_Date ON habits.HabitEntries(UserId, EntryDate) INCLUDE (HabitId) WHERE IsDeleted = 0;
 GO
+
+-- Session 43 (habits follow-up 1).
+-- Kind: Build = something to do (ticked days count towards a streak); Avoid = something to stop (each HabitEntries row
+--   is a slip — a day it happened — and what's shown is the clean run since the last one; nothing punitive is stored).
+--   An avoid habit runs every day (CK_Habits_AvoidEveryDay) and can't have a target.
+-- TargetValue/Unit: a measurable build habit ("Read 20 pages"): each entry carries the Value done that day, and the
+--   day counts only when Value >= TargetValue — everything that counts habit days (streaks, achievements, life-area
+--   stats, life balance, My Day) uses that same rule. A plain build habit has no target; its entries have no Value.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('habits.Habits') AND name = 'Kind')
+    ALTER TABLE habits.Habits ADD
+        Kind            NVARCHAR(10)      NOT NULL CONSTRAINT DF_Habits_Kind DEFAULT ('Build')
+                                                   CONSTRAINT CK_Habits_Kind CHECK (Kind IN ('Build', 'Avoid')),
+        TargetValue     DECIMAL(9, 2)     NULL,
+        Unit            NVARCHAR(30)      NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Habits_Target')
+    ALTER TABLE habits.Habits ADD CONSTRAINT CK_Habits_Target CHECK (
+        (TargetValue IS NULL AND Unit IS NULL)
+        OR (TargetValue > 0 AND Kind = 'Build'));
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Habits_AvoidEveryDay')
+    ALTER TABLE habits.Habits ADD CONSTRAINT CK_Habits_AvoidEveryDay CHECK (Kind = 'Build' OR ScheduleDays = 127);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('habits.HabitEntries') AND name = 'Value')
+    ALTER TABLE habits.HabitEntries ADD
+        Value           DECIMAL(9, 2)     NULL CONSTRAINT CK_HabitEntries_Value CHECK (Value IS NULL OR Value >= 0);
+GO
+
+-- Habit categories are tags (the library's templates come with one): the per-module join pattern.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('habits.HabitTags'))
+BEGIN
+    CREATE TABLE habits.HabitTags
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_HabitTags PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_HabitTags_Users REFERENCES shared.Users(Id),
+        HabitId         INT               NOT NULL CONSTRAINT FK_HabitTags_Habits REFERENCES habits.Habits(Id),
+        TagId           INT               NOT NULL CONSTRAINT FK_HabitTags_Tags REFERENCES shared.Tags(Id),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_HabitTags_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_HabitTags_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('habits.HabitTags') AND name = 'UX_HabitTags_Habit_Tag')
+    CREATE UNIQUE INDEX UX_HabitTags_Habit_Tag ON habits.HabitTags(HabitId, TagId) WHERE IsDeleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('habits.HabitTags') AND name = 'IX_HabitTags_Tag')
+    CREATE INDEX IX_HabitTags_Tag ON habits.HabitTags(TagId) WHERE IsDeleted = 0;
+GO

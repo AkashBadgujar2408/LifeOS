@@ -7,7 +7,18 @@
     <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-4">
       <div class="min-w-0">
         <div class="small text-body-secondary mb-1">
-          <i class="bi bi-arrow-repeat"></i> Habit · {{ scheduleLabel(habit.scheduleDays) }}
+          <i class="bi bi-arrow-repeat"></i>
+          @if (habit.kind === 'Avoid') {
+            Breaking a habit · every day
+          } @else {
+            Habit · {{ scheduleLabel(habit.scheduleDays) }}
+            @if (targetLabel(habit); as target) {
+              · {{ target }} a day
+            }
+          }
+          @for (tag of habit.tags; track tag.id) {
+            <span class="badge rounded-pill text-bg-light ms-1">{{ tag.name }}</span>
+          }
           @if (habit.lifeAreaName) {
             · {{ habit.lifeAreaName }}
           }
@@ -50,37 +61,65 @@
       <div class="col-lg-8 d-flex flex-column gap-3">
         <div class="card">
           <div class="card-body">
-            <div class="row text-center g-2">
-              <div class="col-4">
-                <div class="h3 mb-0">
-                  @if (habit.streak.current > 0) {
-                    <i class="bi bi-fire text-warning fs-5"></i>
-                  }
-                  {{ habit.streak.current }}
+            @if (habit.cleanRun; as run) {
+              <div class="row text-center g-2">
+                <div class="col-4">
+                  <div class="h3 mb-0">
+                    <i class="bi bi-shield-check text-success fs-5"></i> {{ run.current }}
+                  </div>
+                  <div class="small text-body-secondary">days clean now</div>
                 </div>
-                <div class="small text-body-secondary">current streak</div>
+                <div class="col-4">
+                  <div class="h3 mb-0">{{ run.longest }}</div>
+                  <div class="small text-body-secondary">longest clean run</div>
+                </div>
+                <div class="col-4">
+                  <div class="h3 mb-0">{{ slipsInHistory() }}</div>
+                  <div class="small text-body-secondary">slips in 12 weeks</div>
+                </div>
               </div>
-              <div class="col-4">
-                <div class="h3 mb-0">{{ habit.streak.longest }}</div>
-                <div class="small text-body-secondary">longest</div>
+              <p class="small text-body-secondary text-center mb-0 mt-3">
+                @if (run.slippedToday) {
+                  A slip today — tomorrow is a fresh start, and your longest run stays.
+                } @else if (run.lastSlip) {
+                  Clean since {{ run.lastSlip | date }}.
+                } @else {
+                  No slips since you started.
+                }
+              </p>
+            } @else {
+              <div class="row text-center g-2">
+                <div class="col-4">
+                  <div class="h3 mb-0">
+                    @if (habit.streak.current > 0) {
+                      <i class="bi bi-fire text-warning fs-5"></i>
+                    }
+                    {{ habit.streak.current }}
+                  </div>
+                  <div class="small text-body-secondary">current streak</div>
+                </div>
+                <div class="col-4">
+                  <div class="h3 mb-0">{{ habit.streak.longest }}</div>
+                  <div class="small text-body-secondary">longest</div>
+                </div>
+                <div class="col-4">
+                  <div class="h3 mb-0">{{ doneInHistory() }}</div>
+                  <div class="small text-body-secondary">days in 12 weeks</div>
+                </div>
               </div>
-              <div class="col-4">
-                <div class="h3 mb-0">{{ doneInHistory() }}</div>
-                <div class="small text-body-secondary">days in 12 weeks</div>
-              </div>
-            </div>
-            <p class="small text-body-secondary text-center mb-0 mt-3">
-              @if (!habit.streak.dueToday) {
-                Today isn't on the schedule.
-              } @else if (habit.streak.doneToday) {
-                Done today.
-              } @else {
-                Still to do today — the streak holds until the day is over.
-              }
-              @if (habit.streak.lastMissed) {
-                Last missed {{ habit.streak.lastMissed | date }}.
-              }
-            </p>
+              <p class="small text-body-secondary text-center mb-0 mt-3">
+                @if (!habit.streak.dueToday) {
+                  Today isn't on the schedule.
+                } @else if (habit.streak.doneToday) {
+                  Done today.
+                } @else {
+                  Still to do today — the streak holds until the day is over.
+                }
+                @if (habit.streak.lastMissed) {
+                  Last missed {{ habit.streak.lastMissed | date }}.
+                }
+              </p>
+            }
           </div>
         </div>
 
@@ -105,6 +144,7 @@
                       [readonly]="habit.status === 'Archived'"
                       [busy]="busyDay() === cell.day"
                       [small]="true"
+                      [amount]="cell.amount"
                       (toggled)="toggle($event)"
                     />
                   }
@@ -114,6 +154,11 @@
             <p class="small text-body-secondary mt-3 mb-0">
               @if (habit.status === 'Archived') {
                 Archived: the history stays, but days can't be ticked. Restore it to carry on.
+              } @else if (habit.kind === 'Avoid') {
+                Slipped on a day? Tap it to note it — tap again to take it back. Started counting
+                {{ habit.startDate | date }}.
+              } @else if (habit.targetValue !== null) {
+                Tap a day to log how much you did. Started counting {{ habit.startDate | date }}.
               } @else {
                 Forgot to tick a day? Tap it here. Started counting {{ habit.startDate | date }}.
               }

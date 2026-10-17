@@ -29,39 +29,116 @@
       }
     </div>
 
-    <div>
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <span class="form-label mb-0" id="habit-schedule-label">Which days</span>
-        <span class="d-flex gap-2">
-          @for (preset of presets; track preset.mask) {
-            <button
-              type="button"
-              class="btn btn-link btn-sm p-0"
-              (click)="setSchedule(preset.mask)"
-            >
-              {{ preset.label }}
-            </button>
-          }
-        </span>
-      </div>
-      <div class="d-flex flex-wrap gap-1" role="group" aria-labelledby="habit-schedule-label">
-        @for (day of weekdayNames; track day; let index = $index) {
-          <button
-            type="button"
-            class="btn btn-sm flex-fill"
-            [class.btn-primary]="hasDay(index)"
-            [class.btn-outline-secondary]="!hasDay(index)"
-            [attr.aria-pressed]="hasDay(index)"
-            (click)="toggleDay(index)"
-          >
-            {{ day }}
-          </button>
-        }
-      </div>
-      @if (fieldError('scheduleDays'); as error) {
-        <div class="invalid-feedback d-block">{{ error }}</div>
+    <div class="d-flex gap-2" role="group" aria-label="Kind of habit">
+      @for (kind of kinds; track kind.value) {
+        <button
+          type="button"
+          class="btn flex-fill text-start"
+          [class.btn-primary]="form.controls.kind.value === kind.value"
+          [class.btn-outline-secondary]="form.controls.kind.value !== kind.value"
+          [attr.aria-pressed]="form.controls.kind.value === kind.value"
+          [disabled]="habit() !== null && habit()!.kind !== kind.value"
+          (click)="setKind(kind.value)"
+        >
+          <span class="d-block fw-semibold">{{ kind.label }}</span>
+          <span class="d-block small">{{ kind.hint }}</span>
+        </button>
       }
     </div>
+    @if (habit()) {
+      <div class="form-text mt-n2">A habit's kind is fixed once it exists.</div>
+    }
+
+    @if (form.controls.kind.value === 'Build') {
+      <div>
+        <div class="form-check form-switch">
+          <input
+            id="habit-measured"
+            class="form-check-input"
+            type="checkbox"
+            role="switch"
+            formControlName="measured"
+          />
+          <label class="form-check-label" for="habit-measured">Count an amount each day</label>
+        </div>
+        @if (form.controls.measured.value) {
+          <div class="row g-2 mt-1">
+            <div class="col-5">
+              <label class="form-label small" for="habit-target">Daily target</label>
+              <input
+                id="habit-target"
+                type="number"
+                class="form-control"
+                min="0.01"
+                step="any"
+                [class.is-invalid]="fieldError('targetValue')"
+                formControlName="targetValue"
+                placeholder="e.g. 20"
+              />
+            </div>
+            <div class="col-7">
+              <label class="form-label small" for="habit-unit">
+                Unit <span class="text-body-secondary">(optional)</span>
+              </label>
+              <input
+                id="habit-unit"
+                type="text"
+                class="form-control"
+                [class.is-invalid]="fieldError('unit')"
+                formControlName="unit"
+                placeholder="e.g. pages, minutes, glasses"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          @if (fieldError('targetValue') ?? fieldError('unit'); as error) {
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          }
+          <div class="form-text">A day counts towards the streak once it reaches the target.</div>
+        }
+      </div>
+    } @else {
+      <p class="small text-body-secondary mb-0">
+        Every day counts. Log a slip on the day it happens — the clean run starts again, and your
+        longest run stays.
+      </p>
+    }
+
+    @if (form.controls.kind.value === 'Build') {
+      <div>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="form-label mb-0" id="habit-schedule-label">Which days</span>
+          <span class="d-flex gap-2">
+            @for (preset of presets; track preset.mask) {
+              <button
+                type="button"
+                class="btn btn-link btn-sm p-0"
+                (click)="setSchedule(preset.mask)"
+              >
+                {{ preset.label }}
+              </button>
+            }
+          </span>
+        </div>
+        <div class="d-flex flex-wrap gap-1" role="group" aria-labelledby="habit-schedule-label">
+          @for (day of weekdayNames; track day; let index = $index) {
+            <button
+              type="button"
+              class="btn btn-sm flex-fill"
+              [class.btn-primary]="hasDay(index)"
+              [class.btn-outline-secondary]="!hasDay(index)"
+              [attr.aria-pressed]="hasDay(index)"
+              (click)="toggleDay(index)"
+            >
+              {{ day }}
+            </button>
+          }
+        </div>
+        @if (fieldError('scheduleDays'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    }
 
     <div class="row g-3">
       <div class="col-sm-6">
@@ -108,6 +185,13 @@
           }
         </select>
       </div>
+    </div>
+
+    <div>
+      <span class="form-label d-block"
+        >Tags <span class="text-body-secondary small">(optional)</span></span
+      >
+      <app-tag-picker [selectedTagIds]="tagIds()" (selectedTagIdsChange)="tagIds.set($event)" />
     </div>
 
     <div>

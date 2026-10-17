@@ -21,6 +21,8 @@ public partial class HabitEntry
 
     public DateTime? DeletedAt { get; set; }
 
+    public decimal? Value { get; set; }
+
     public virtual Habit Habit { get; set; } = null!;
 
     public virtual User User { get; set; } = null!;

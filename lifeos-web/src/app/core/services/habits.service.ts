@@ -20,6 +20,17 @@ export interface HabitStreak {
   lastMissed: string | null;
 }
 
+/** Build = something to do; Avoid = something to stop (its logged days are slips). */
+export type HabitKind = 'Build' | 'Avoid';
+
+/** An avoid habit's days in a row without a slip (HabitStreaks.CleanRuns); today counts while it's clean. */
+export interface HabitCleanRun {
+  current: number;
+  longest: number;
+  slippedToday: boolean;
+  lastSlip: string | null;
+}
+
 export interface Habit {
   id: number;
   title: string;
@@ -31,10 +42,22 @@ export interface Habit {
   /** "yyyy-MM-dd". */
   startDate: string;
   status: HabitStatus;
+  kind: HabitKind;
+  /** Measurable build habits: what a day needs ("20" pages); null for a plain tick. */
+  targetValue: number | null;
+  unit: string | null;
+  tags: { id: number; name: string }[];
   createdAt: string;
+  /** Build habits only. */
   streak: HabitStreak;
-  /** Days done inside the requested window, "yyyy-MM-dd", oldest first. */
+  /** Avoid habits only. */
+  cleanRun: HabitCleanRun | null;
+  /** Build: days done inside the requested window (measurable: target met), "yyyy-MM-dd", oldest first. */
   doneDates: string[];
+  /** Measurable: the value logged per day of the window, including days short of the target. */
+  values: Record<string, number>;
+  /** Avoid: the slips inside the window, oldest first. */
+  slipDates: string[];
 }
 
 export interface HabitPayload {
@@ -43,12 +66,33 @@ export interface HabitPayload {
   lifeAreaId: number | null;
   scheduleDays: number;
   startDate: string;
+  kind: HabitKind;
+  targetValue: number | null;
+  unit: string | null;
+  tagIds: number[];
 }
 
 export interface HabitEntryResult {
   entryDate: string;
+  /** Build: the day counts. Avoid: the day is a slip. */
   done: boolean;
+  /** Measurable: what's now logged for the day (null when nothing is). */
+  value: number | null;
   streak: HabitStreak;
+  cleanRun: HabitCleanRun | null;
+}
+
+/** A ready-made habit from the library (HabitTemplates on the API). */
+export interface HabitTemplate {
+  key: string;
+  category: string;
+  title: string;
+  description: string;
+  kind: HabitKind;
+  targetValue: number | null;
+  unit: string | null;
+  scheduleDays: number;
+  lifeAreaName: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -90,11 +134,31 @@ export class HabitsService {
       .pipe(map((response) => response.data!));
   }
 
-  /** Ticks (done) or un-ticks one day; the result carries the habit's new streak. */
-  setEntry(id: number, date: string, done: boolean, today: string): Observable<HabitEntryResult> {
+  /**
+   * Ticks (done) or un-ticks one day — a measurable habit logs `value` (its target when left out; 0 clears the day),
+   * an avoid habit logs or removes a slip. The result carries the habit's new streak or clean run.
+   */
+  setEntry(
+    id: number,
+    date: string,
+    done: boolean,
+    today: string,
+    value: number | null = null,
+  ): Observable<HabitEntryResult> {
     return this.http
-      .put<ApiResponse<HabitEntryResult>>(`${this.baseUrl}/${id}/entries/${date}`, { done, today })
+      .put<ApiResponse<HabitEntryResult>>(`${this.baseUrl}/${id}/entries/${date}`, {
+        done,
+        today,
+        value,
+      })
       .pipe(map((response) => response.data!));
+  }
+
+  /** The habit library. */
+  templates(): Observable<HabitTemplate[]> {
+    return this.http
+      .get<ApiResponse<HabitTemplate[]>>(`${this.baseUrl}/templates`)
+      .pipe(map((response) => response.data ?? []));
   }
 
   /** Deletes the habit with its ticked days, links and reminders. */
