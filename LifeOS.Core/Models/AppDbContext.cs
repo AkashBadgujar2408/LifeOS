@@ -11,6 +11,8 @@ public partial class AppDbContext : DbContext
     {
     }
 
+    public virtual DbSet<Account> Accounts { get; set; }
+
     public virtual DbSet<ApplicationStageChange> ApplicationStageChanges { get; set; }
 
     public virtual DbSet<Attachment> Attachments { get; set; }
@@ -20,6 +22,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<BookNote> BookNotes { get; set; }
 
     public virtual DbSet<BookTag> BookTags { get; set; }
+
+    public virtual DbSet<Budget> Budgets { get; set; }
 
     public virtual DbSet<CareerAchievement> CareerAchievements { get; set; }
 
@@ -69,7 +73,13 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<HabitTag> HabitTags { get; set; }
 
+    public virtual DbSet<Holding> Holdings { get; set; }
+
+    public virtual DbSet<HoldingValuation> HoldingValuations { get; set; }
+
     public virtual DbSet<InboxItem> InboxItems { get; set; }
+
+    public virtual DbSet<InsurancePolicy> InsurancePolicies { get; set; }
 
     public virtual DbSet<Interview> Interviews { get; set; }
 
@@ -95,6 +105,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<LifeAreaRating> LifeAreaRatings { get; set; }
 
+    public virtual DbSet<Loan> Loans { get; set; }
+
     public virtual DbSet<MissionDebrief> MissionDebriefs { get; set; }
 
     public virtual DbSet<MissionPrerequisite> MissionPrerequisites { get; set; }
@@ -106,6 +118,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Project> Projects { get; set; }
 
     public virtual DbSet<RecoveryCode> RecoveryCodes { get; set; }
+
+    public virtual DbSet<RecurringTransaction> RecurringTransactions { get; set; }
+
+    public virtual DbSet<RecurringTransactionTag> RecurringTransactionTags { get; set; }
 
     public virtual DbSet<Reminder> Reminders { get; set; }
 
@@ -139,6 +155,12 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<TaskTag> TaskTags { get; set; }
 
+    public virtual DbSet<TaxItem> TaxItems { get; set; }
+
+    public virtual DbSet<Transaction> Transactions { get; set; }
+
+    public virtual DbSet<TransactionTag> TransactionTags { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserHiddenLifeArea> UserHiddenLifeAreas { get; set; }
@@ -151,6 +173,35 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Account>(entity =>
+        {
+            entity.ToTable("Accounts", "finance");
+
+            entity.HasIndex(e => new { e.UserId, e.Name }, "UX_Accounts_User_Name")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Accounts_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Institution).HasMaxLength(200);
+            entity.Property(e => e.Kind).HasMaxLength(10);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.NumberLast4)
+                .HasMaxLength(4)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.OpeningBalance).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Accounts)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Accounts_Users");
+        });
+
         modelBuilder.Entity<ApplicationStageChange>(entity =>
         {
             entity.ToTable("ApplicationStageChanges", "career");
@@ -269,6 +320,32 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BookTags_Users");
+        });
+
+        modelBuilder.Entity<Budget>(entity =>
+        {
+            entity.ToTable("Budgets", "finance");
+
+            entity.HasIndex(e => new { e.UserId, e.TagId, e.MonthStart }, "UX_Budgets_User_Tag_Month")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Budgets_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.Budgets)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Budgets_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Budgets)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Budgets_Users");
         });
 
         modelBuilder.Entity<CareerAchievement>(entity =>
@@ -848,6 +925,55 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_HabitTags_Users");
         });
 
+        modelBuilder.Entity<Holding>(entity =>
+        {
+            entity.ToTable("Holdings", "finance");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Holdings_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.InterestRate).HasColumnType("decimal(7, 4)");
+            entity.Property(e => e.InvestedAmount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Units).HasColumnType("decimal(19, 6)");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.Holdings)
+                .HasForeignKey(d => d.AccountId)
+                .HasConstraintName("FK_Holdings_Accounts");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Holdings)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Holdings_Users");
+        });
+
+        modelBuilder.Entity<HoldingValuation>(entity =>
+        {
+            entity.ToTable("HoldingValuations", "finance");
+
+            entity.HasIndex(e => new { e.HoldingId, e.ValuedOn }, "UX_HoldingValuations_Holding_Day")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_HoldingValuations_CreatedAt");
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.Value).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.Holding).WithMany(p => p.HoldingValuations)
+                .HasForeignKey(d => d.HoldingId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HoldingValuations_Holdings");
+
+            entity.HasOne(d => d.User).WithMany(p => p.HoldingValuations)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HoldingValuations_Users");
+        });
+
         modelBuilder.Entity<InboxItem>(entity =>
         {
             entity.ToTable("InboxItems", "shared");
@@ -862,6 +988,37 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_InboxItems_Users");
+        });
+
+        modelBuilder.Entity<InsurancePolicy>(entity =>
+        {
+            entity.ToTable("InsurancePolicies", "finance");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_InsurancePolicies_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Insurer).HasMaxLength(200);
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.PolicyNumberLast4)
+                .HasMaxLength(4)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Premium).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.PremiumFrequency).HasMaxLength(10);
+            entity.Property(e => e.SumAssured).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.InsurancePolicies)
+                .HasForeignKey(d => d.ContactId)
+                .HasConstraintName("FK_InsurancePolicies_Contacts");
+
+            entity.HasOne(d => d.User).WithMany(p => p.InsurancePolicies)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InsurancePolicies_Users");
         });
 
         modelBuilder.Entity<Interview>(entity =>
@@ -1134,6 +1291,40 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_LifeAreaRatings_Users");
         });
 
+        modelBuilder.Entity<Loan>(entity =>
+        {
+            entity.ToTable("Loans", "finance");
+
+            entity.Property(e => e.AnnualRate).HasColumnType("decimal(7, 4)");
+            entity.Property(e => e.Counterparty).HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Loans_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Direction)
+                .HasMaxLength(10)
+                .HasDefaultValue("Borrowed", "DF_Loans_Direction");
+            entity.Property(e => e.EmiAmount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Principal).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.Loans)
+                .HasForeignKey(d => d.AccountId)
+                .HasConstraintName("FK_Loans_Accounts");
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.Loans)
+                .HasForeignKey(d => d.ContactId)
+                .HasConstraintName("FK_Loans_Contacts");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Loans)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Loans_Users");
+        });
+
         modelBuilder.Entity<MissionDebrief>(entity =>
         {
             entity.ToTable("MissionDebriefs", "story");
@@ -1256,6 +1447,65 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RecoveryCodes_Users");
+        });
+
+        modelBuilder.Entity<RecurringTransaction>(entity =>
+        {
+            entity.ToTable("RecurringTransactions", "finance");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_RecurringTransactions_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.ExchangeRate).HasColumnType("decimal(19, 8)");
+            entity.Property(e => e.Kind).HasMaxLength(10);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.Payee).HasMaxLength(200);
+            entity.Property(e => e.RecurrenceFrequency).HasMaxLength(10);
+            entity.Property(e => e.RecurrenceInterval).HasDefaultValue(1, "DF_RecurringTransactions_Interval");
+            entity.Property(e => e.ToAmount).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.FromAccount).WithMany(p => p.RecurringTransactionFromAccounts)
+                .HasForeignKey(d => d.FromAccountId)
+                .HasConstraintName("FK_RecurringTransactions_FromAccount");
+
+            entity.HasOne(d => d.ToAccount).WithMany(p => p.RecurringTransactionToAccounts)
+                .HasForeignKey(d => d.ToAccountId)
+                .HasConstraintName("FK_RecurringTransactions_ToAccount");
+
+            entity.HasOne(d => d.User).WithMany(p => p.RecurringTransactions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RecurringTransactions_Users");
+        });
+
+        modelBuilder.Entity<RecurringTransactionTag>(entity =>
+        {
+            entity.ToTable("RecurringTransactionTags", "finance");
+
+            entity.HasIndex(e => new { e.RecurringTransactionId, e.TagId }, "UX_RecurringTransactionTags_Recurring_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_RecurringTransactionTags_CreatedAt");
+
+            entity.HasOne(d => d.RecurringTransaction).WithMany(p => p.RecurringTransactionTags)
+                .HasForeignKey(d => d.RecurringTransactionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RecurringTransactionTags_RecurringTransactions");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.RecurringTransactionTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RecurringTransactionTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.RecurringTransactionTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RecurringTransactionTags_Users");
         });
 
         modelBuilder.Entity<Reminder>(entity =>
@@ -1651,6 +1901,118 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_TaskTags_Users");
+        });
+
+        modelBuilder.Entity<TaxItem>(entity =>
+        {
+            entity.ToTable("TaxItems", "finance");
+
+            entity.HasIndex(e => new { e.UserId, e.DueOn }, "IX_TaxItems_User_Due").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_TaxItems_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.TaxYear).HasMaxLength(20);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Transaction).WithMany(p => p.TaxItems)
+                .HasForeignKey(d => d.TransactionId)
+                .HasConstraintName("FK_TaxItems_Transactions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.TaxItems)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TaxItems_Users");
+        });
+
+        modelBuilder.Entity<Transaction>(entity =>
+        {
+            entity.ToTable("Transactions", "finance");
+
+            entity.HasIndex(e => e.FromAccountId, "IX_Transactions_FromAccount").HasFilter("([IsDeleted]=(0) AND [FromAccountId] IS NOT NULL)");
+
+            entity.HasIndex(e => e.ToAccountId, "IX_Transactions_ToAccount").HasFilter("([IsDeleted]=(0) AND [ToAccountId] IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.UserId, e.OccurredOn }, "IX_Transactions_User_Day").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.RecurringTransactionId, e.OccurrenceDate }, "UX_Transactions_Occurrence")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [RecurringTransactionId] IS NOT NULL)");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Transactions_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.ExchangeRate).HasColumnType("decimal(19, 8)");
+            entity.Property(e => e.Kind).HasMaxLength(10);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.Payee).HasMaxLength(200);
+            entity.Property(e => e.Reference).HasMaxLength(100);
+            entity.Property(e => e.ToAmount).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.Employment).WithMany(p => p.Transactions)
+                .HasForeignKey(d => d.EmploymentId)
+                .HasConstraintName("FK_Transactions_Employments");
+
+            entity.HasOne(d => d.FromAccount).WithMany(p => p.TransactionFromAccounts)
+                .HasForeignKey(d => d.FromAccountId)
+                .HasConstraintName("FK_Transactions_FromAccount");
+
+            entity.HasOne(d => d.Loan).WithMany(p => p.Transactions)
+                .HasForeignKey(d => d.LoanId)
+                .HasConstraintName("FK_Transactions_Loans");
+
+            entity.HasOne(d => d.RecurringTransaction).WithMany(p => p.Transactions)
+                .HasForeignKey(d => d.RecurringTransactionId)
+                .HasConstraintName("FK_Transactions_RecurringTransactions");
+
+            entity.HasOne(d => d.SideIncomeSource).WithMany(p => p.Transactions)
+                .HasForeignKey(d => d.SideIncomeSourceId)
+                .HasConstraintName("FK_Transactions_SideIncomeSources");
+
+            entity.HasOne(d => d.ToAccount).WithMany(p => p.TransactionToAccounts)
+                .HasForeignKey(d => d.ToAccountId)
+                .HasConstraintName("FK_Transactions_ToAccount");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Transactions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Transactions_Users");
+        });
+
+        modelBuilder.Entity<TransactionTag>(entity =>
+        {
+            entity.ToTable("TransactionTags", "finance");
+
+            entity.HasIndex(e => e.TagId, "IX_TransactionTags_Tag").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.TransactionId, e.TagId }, "UX_TransactionTags_Transaction_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_TransactionTags_CreatedAt");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.TransactionTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TransactionTags_Tags");
+
+            entity.HasOne(d => d.Transaction).WithMany(p => p.TransactionTags)
+                .HasForeignKey(d => d.TransactionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TransactionTags_Transactions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.TransactionTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_TransactionTags_Users");
         });
 
         modelBuilder.Entity<User>(entity =>

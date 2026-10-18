@@ -29,6 +29,8 @@ public partial class User
 
     public string? LifeVision { get; set; }
 
+    public virtual ICollection<Account> Accounts { get; set; } = new List<Account>();
+
     public virtual ICollection<ApplicationStageChange> ApplicationStageChanges { get; set; } = new List<ApplicationStageChange>();
 
     public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
@@ -38,6 +40,8 @@ public partial class User
     public virtual ICollection<BookTag> BookTags { get; set; } = new List<BookTag>();
 
     public virtual ICollection<Book> Books { get; set; } = new List<Book>();
+
+    public virtual ICollection<Budget> Budgets { get; set; } = new List<Budget>();
 
     public virtual ICollection<CareerAchievement> CareerAchievements { get; set; } = new List<CareerAchievement>();
 
@@ -87,7 +91,13 @@ public partial class User
 
     public virtual ICollection<Habit> Habits { get; set; } = new List<Habit>();
 
+    public virtual ICollection<HoldingValuation> HoldingValuations { get; set; } = new List<HoldingValuation>();
+
+    public virtual ICollection<Holding> Holdings { get; set; } = new List<Holding>();
+
     public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();
+
+    public virtual ICollection<InsurancePolicy> InsurancePolicies { get; set; } = new List<InsurancePolicy>();
 
     public virtual ICollection<InterviewQuestionTag> InterviewQuestionTags { get; set; } = new List<InterviewQuestionTag>();
 
@@ -111,6 +121,8 @@ public partial class User
 
     public virtual ICollection<LifeAreaRating> LifeAreaRatings { get; set; } = new List<LifeAreaRating>();
 
+    public virtual ICollection<Loan> Loans { get; set; } = new List<Loan>();
+
     public virtual ICollection<MissionDebrief> MissionDebriefs { get; set; } = new List<MissionDebrief>();
 
     public virtual ICollection<MissionPrerequisite> MissionPrerequisites { get; set; } = new List<MissionPrerequisite>();
@@ -122,6 +134,10 @@ public partial class User
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
 
     public virtual ICollection<RecoveryCode> RecoveryCodes { get; set; } = new List<RecoveryCode>();
+
+    public virtual ICollection<RecurringTransactionTag> RecurringTransactionTags { get; set; } = new List<RecurringTransactionTag>();
+
+    public virtual ICollection<RecurringTransaction> RecurringTransactions { get; set; } = new List<RecurringTransaction>();
 
     public virtual ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
 
@@ -154,6 +170,12 @@ public partial class User
     public virtual ICollection<TaskItem> TaskItems { get; set; } = new List<TaskItem>();
 
     public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();
+
+    public virtual ICollection<TaxItem> TaxItems { get; set; } = new List<TaxItem>();
+
+    public virtual ICollection<TransactionTag> TransactionTags { get; set; } = new List<TransactionTag>();
+
+    public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
 
     public virtual ICollection<UserHiddenLifeArea> UserHiddenLifeAreas { get; set; } = new List<UserHiddenLifeArea>();
 

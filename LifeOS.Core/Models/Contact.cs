@@ -33,7 +33,11 @@ public partial class Contact
 
     public virtual ICollection<ContactTag> ContactTags { get; set; } = new List<ContactTag>();
 
+    public virtual ICollection<InsurancePolicy> InsurancePolicies { get; set; } = new List<InsurancePolicy>();
+
     public virtual ICollection<JobApplication> JobApplications { get; set; } = new List<JobApplication>();
+
+    public virtual ICollection<Loan> Loans { get; set; } = new List<Loan>();
 
     public virtual User User { get; set; } = null!;
 }

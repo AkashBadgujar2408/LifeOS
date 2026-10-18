@@ -1,0 +1,393 @@
+USE LifeOS_UAT;
+GO
+
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+GO
+
+-- Personal Finance (Phase 2, Sessions 55-59). Depends on 01_shared.sql (Users, Tags, Contacts) and 11_career.sql
+-- (Employments, SideIncomeSources — what an income was for).
+-- Where money sits (Accounts) and how it moves (Transactions, one row per movement — a transfer is one row with
+-- both accounts), what repeats (RecurringTransactions), what you mean to spend (Budgets, per tag per month), what
+-- you own and owe (Holdings with their valuations, Loans), what protects you (InsurancePolicies) and what the
+-- taxman needs (TaxItems). Balances, outstanding loan amounts, budget usage and net worth are always computed,
+-- never stored. Money is DECIMAL(19,4) + a 3-letter currency; reports use the user's BaseCurrency
+-- (shared.Users) with a manual ExchangeRate on anything in another currency — no live rates. Categories are tags.
+
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'finance')
+    EXEC('CREATE SCHEMA finance');
+GO
+
+-- A place money sits: a bank account, cash in hand, a wallet (UPI, PayPal), a card. OpeningBalance is what it
+-- held on OpeningDate, before the first transaction recorded here (negative for a card that already owed).
+-- NumberLast4 only — never a full account number. An archived account keeps its history but takes no new
+-- transactions.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.Accounts'))
+BEGIN
+    CREATE TABLE finance.Accounts
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Accounts PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_Accounts_Users REFERENCES shared.Users(Id),
+        Name            NVARCHAR(200)     NOT NULL CONSTRAINT CK_Accounts_Name CHECK (LEN(Name) > 0),
+        Kind            NVARCHAR(10)      NOT NULL CONSTRAINT CK_Accounts_Kind CHECK (Kind IN ('Bank', 'Cash', 'Wallet', 'Card')),
+        Institution     NVARCHAR(200)     NULL,
+        NumberLast4     CHAR(4)           NULL     CONSTRAINT CK_Accounts_NumberLast4
+                            CHECK (NumberLast4 COLLATE Latin1_General_BIN LIKE '[0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z]'),
+        Currency        CHAR(3)           NOT NULL CONSTRAINT CK_Accounts_Currency
+                            CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        OpeningBalance  DECIMAL(19, 4)    NOT NULL CONSTRAINT DF_Accounts_OpeningBalance DEFAULT (0),
+        OpeningDate     DATE              NOT NULL,
+        IsArchived      BIT               NOT NULL CONSTRAINT DF_Accounts_IsArchived DEFAULT (0),
+        Notes           NVARCHAR(2000)    NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_Accounts_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_Accounts_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Accounts') AND name = 'UX_Accounts_User_Name')
+    CREATE UNIQUE INDEX UX_Accounts_User_Name ON finance.Accounts(UserId, Name) WHERE IsDeleted = 0;
+GO
+
+-- A schedule that writes transactions: salary, rent, an EMI, a subscription. "Every RecurrenceInterval
+-- RecurrenceFrequency" counted from StartDate (the first occurrence); Until is the last day one may fall on.
+-- GeneratedThrough is the last day already written (Session 57 writes every occurrence after it up to today,
+-- then moves it), so deleting a generated transaction doesn't bring it back. The same kind/account rule as
+-- Transactions. A paused schedule writes nothing until resumed.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.RecurringTransactions'))
+BEGIN
+    CREATE TABLE finance.RecurringTransactions
+    (
+        Id                  INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_RecurringTransactions PRIMARY KEY,
+        UserId              INT               NOT NULL CONSTRAINT FK_RecurringTransactions_Users REFERENCES shared.Users(Id),
+        Name                NVARCHAR(200)     NOT NULL CONSTRAINT CK_RecurringTransactions_Name CHECK (LEN(Name) > 0),
+        Kind                NVARCHAR(10)      NOT NULL CONSTRAINT CK_RecurringTransactions_Kind CHECK (Kind IN ('Income', 'Expense', 'Transfer')),
+        Amount              DECIMAL(19, 4)    NOT NULL CONSTRAINT CK_RecurringTransactions_Amount CHECK (Amount > 0),
+        Currency            CHAR(3)           NOT NULL CONSTRAINT CK_RecurringTransactions_Currency
+                                CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        ExchangeRate        DECIMAL(19, 8)    NULL     CONSTRAINT CK_RecurringTransactions_ExchangeRate CHECK (ExchangeRate > 0),
+        ToAmount            DECIMAL(19, 4)    NULL,
+        FromAccountId       INT               NULL     CONSTRAINT FK_RecurringTransactions_FromAccount REFERENCES finance.Accounts(Id),
+        ToAccountId         INT               NULL     CONSTRAINT FK_RecurringTransactions_ToAccount REFERENCES finance.Accounts(Id),
+        Payee               NVARCHAR(200)     NULL,
+        Note                NVARCHAR(1000)    NULL,
+        RecurrenceFrequency NVARCHAR(10)      NOT NULL CONSTRAINT CK_RecurringTransactions_Frequency
+                                CHECK (RecurrenceFrequency IN ('Daily', 'Weekly', 'Monthly', 'Yearly')),
+        RecurrenceInterval  INT               NOT NULL CONSTRAINT DF_RecurringTransactions_Interval DEFAULT (1)
+                                CONSTRAINT CK_RecurringTransactions_Interval CHECK (RecurrenceInterval BETWEEN 1 AND 999),
+        StartDate           DATE              NOT NULL,
+        Until               DATE              NULL,
+        GeneratedThrough    DATE              NULL,
+        IsPaused            BIT               NOT NULL CONSTRAINT DF_RecurringTransactions_IsPaused DEFAULT (0),
+        CreatedAt           DATETIME2         NOT NULL CONSTRAINT DF_RecurringTransactions_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt           DATETIME2         NULL,
+        IsDeleted           BIT               NOT NULL CONSTRAINT DF_RecurringTransactions_IsDeleted DEFAULT (0),
+        DeletedAt           DATETIME2         NULL,
+        CONSTRAINT CK_RecurringTransactions_Accounts CHECK (
+            (Kind = 'Income' AND FromAccountId IS NULL AND ToAccountId IS NOT NULL)
+            OR (Kind = 'Expense' AND FromAccountId IS NOT NULL AND ToAccountId IS NULL)
+            OR (Kind = 'Transfer' AND FromAccountId IS NOT NULL AND ToAccountId IS NOT NULL AND FromAccountId <> ToAccountId)),
+        CONSTRAINT CK_RecurringTransactions_ToAmount CHECK (ToAmount IS NULL OR (Kind = 'Transfer' AND ToAmount > 0)),
+        CONSTRAINT CK_RecurringTransactions_Until CHECK (Until IS NULL OR Until >= StartDate)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.RecurringTransactionTags'))
+BEGIN
+    CREATE TABLE finance.RecurringTransactionTags
+    (
+        Id                      INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_RecurringTransactionTags PRIMARY KEY,
+        UserId                  INT               NOT NULL CONSTRAINT FK_RecurringTransactionTags_Users REFERENCES shared.Users(Id),
+        RecurringTransactionId  INT               NOT NULL CONSTRAINT FK_RecurringTransactionTags_RecurringTransactions REFERENCES finance.RecurringTransactions(Id),
+        TagId                   INT               NOT NULL CONSTRAINT FK_RecurringTransactionTags_Tags REFERENCES shared.Tags(Id),
+        CreatedAt               DATETIME2         NOT NULL CONSTRAINT DF_RecurringTransactionTags_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt               DATETIME2         NULL,
+        IsDeleted               BIT               NOT NULL CONSTRAINT DF_RecurringTransactionTags_IsDeleted DEFAULT (0),
+        DeletedAt               DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.RecurringTransactionTags') AND name = 'UX_RecurringTransactionTags_Recurring_Tag')
+    CREATE UNIQUE INDEX UX_RecurringTransactionTags_Recurring_Tag ON finance.RecurringTransactionTags(RecurringTransactionId, TagId) WHERE IsDeleted = 0;
+GO
+
+-- Something you own that changes value: shares, a mutual fund, gold, PPF, a fixed deposit. Units and what was
+-- put in are optional (a PPF has no units); its worth over time is HoldingValuations. DisposedOn: sold or
+-- matured — it leaves net worth from then on but keeps its history. AccountId: where it's held or paid out to.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.Holdings'))
+BEGIN
+    CREATE TABLE finance.Holdings
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Holdings PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_Holdings_Users REFERENCES shared.Users(Id),
+        Name            NVARCHAR(200)     NOT NULL CONSTRAINT CK_Holdings_Name CHECK (LEN(Name) > 0),
+        Kind            NVARCHAR(20)      NOT NULL CONSTRAINT CK_Holdings_Kind
+                            CHECK (Kind IN ('Stock', 'MutualFund', 'Gold', 'PPF', 'FD', 'Bond', 'Crypto', 'Property', 'Other')),
+        Currency        CHAR(3)           NOT NULL CONSTRAINT CK_Holdings_Currency
+                            CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        Units           DECIMAL(19, 6)    NULL     CONSTRAINT CK_Holdings_Units CHECK (Units > 0),
+        InvestedAmount  DECIMAL(19, 4)    NULL     CONSTRAINT CK_Holdings_InvestedAmount CHECK (InvestedAmount >= 0),
+        InterestRate    DECIMAL(7, 4)     NULL     CONSTRAINT CK_Holdings_InterestRate CHECK (InterestRate BETWEEN 0 AND 100),
+        AcquiredOn      DATE              NULL,
+        MaturesOn       DATE              NULL,
+        DisposedOn      DATE              NULL,
+        AccountId       INT               NULL     CONSTRAINT FK_Holdings_Accounts REFERENCES finance.Accounts(Id),
+        Notes           NVARCHAR(2000)    NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_Holdings_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_Holdings_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_Holdings_Matures CHECK (MaturesOn IS NULL OR AcquiredOn IS NULL OR MaturesOn >= AcquiredOn),
+        CONSTRAINT CK_Holdings_Disposed CHECK (DisposedOn IS NULL OR AcquiredOn IS NULL OR DisposedOn >= AcquiredOn)
+    );
+END
+GO
+
+-- What a holding was worth on a day (entered by hand). The latest on or before a day is its value then.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.HoldingValuations'))
+BEGIN
+    CREATE TABLE finance.HoldingValuations
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_HoldingValuations PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_HoldingValuations_Users REFERENCES shared.Users(Id),
+        HoldingId       INT               NOT NULL CONSTRAINT FK_HoldingValuations_Holdings REFERENCES finance.Holdings(Id),
+        ValuedOn        DATE              NOT NULL,
+        Value           DECIMAL(19, 4)    NOT NULL CONSTRAINT CK_HoldingValuations_Value CHECK (Value >= 0),
+        Note            NVARCHAR(1000)    NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_HoldingValuations_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_HoldingValuations_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.HoldingValuations') AND name = 'UX_HoldingValuations_Holding_Day')
+    CREATE UNIQUE INDEX UX_HoldingValuations_Holding_Day ON finance.HoldingValuations(HoldingId, ValuedOn) WHERE IsDeleted = 0;
+GO
+
+-- Money borrowed (a liability) or lent (an asset). Principal at AnnualRate % over TermMonths from StartDate;
+-- EmiAmount is the lender's figure when given (else Session 58 computes it). What's still outstanding comes from
+-- the amortisation schedule and the payments (transactions with this LoanId) — never stored. AccountId: where
+-- the instalments are paid from (or into, when lent).
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.Loans'))
+BEGIN
+    CREATE TABLE finance.Loans
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Loans PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_Loans_Users REFERENCES shared.Users(Id),
+        Name            NVARCHAR(200)     NOT NULL CONSTRAINT CK_Loans_Name CHECK (LEN(Name) > 0),
+        Kind            NVARCHAR(20)      NOT NULL CONSTRAINT CK_Loans_Kind
+                            CHECK (Kind IN ('Home', 'Vehicle', 'Personal', 'Education', 'Gold', 'CreditCard', 'Other')),
+        Direction       NVARCHAR(10)      NOT NULL CONSTRAINT DF_Loans_Direction DEFAULT ('Borrowed')
+                            CONSTRAINT CK_Loans_Direction CHECK (Direction IN ('Borrowed', 'Lent')),
+        Counterparty    NVARCHAR(200)     NULL,
+        ContactId       INT               NULL     CONSTRAINT FK_Loans_Contacts REFERENCES shared.Contacts(Id),
+        Principal       DECIMAL(19, 4)    NOT NULL CONSTRAINT CK_Loans_Principal CHECK (Principal > 0),
+        Currency        CHAR(3)           NOT NULL CONSTRAINT CK_Loans_Currency
+                            CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        AnnualRate      DECIMAL(7, 4)     NOT NULL CONSTRAINT CK_Loans_AnnualRate CHECK (AnnualRate BETWEEN 0 AND 100),
+        TermMonths      INT               NOT NULL CONSTRAINT CK_Loans_TermMonths CHECK (TermMonths BETWEEN 1 AND 600),
+        StartDate       DATE              NOT NULL,
+        EmiAmount       DECIMAL(19, 4)    NULL     CONSTRAINT CK_Loans_EmiAmount CHECK (EmiAmount > 0),
+        AccountId       INT               NULL     CONSTRAINT FK_Loans_Accounts REFERENCES finance.Accounts(Id),
+        ClosedOn        DATE              NULL,
+        Notes           NVARCHAR(2000)    NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_Loans_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_Loans_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_Loans_Closed CHECK (ClosedOn IS NULL OR ClosedOn >= StartDate)
+    );
+END
+GO
+
+-- One movement of money on OccurredOn (the user's local day). Income lands in ToAccountId, an expense leaves
+-- FromAccountId, a transfer is one row with both (different accounts) — so a transfer can never be half-recorded.
+-- Amount (> 0) is in Currency, the moving account's currency (From for expense/transfer, To for income); a
+-- transfer into an account in another currency also says what arrived (ToAmount). ExchangeRate = base-currency
+-- units per 1 unit of Currency, given when Currency isn't the user's base (the service checks; the base can
+-- change). An income may say what it was for (EmploymentId: salary; SideIncomeSourceId: a side income); any
+-- kind may belong to a loan (an EMI paid, a loan received). RecurringTransactionId + OccurrenceDate: written by
+-- a schedule for that day (one per schedule per day).
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.Transactions'))
+BEGIN
+    CREATE TABLE finance.Transactions
+    (
+        Id                      INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Transactions PRIMARY KEY,
+        UserId                  INT               NOT NULL CONSTRAINT FK_Transactions_Users REFERENCES shared.Users(Id),
+        Kind                    NVARCHAR(10)      NOT NULL CONSTRAINT CK_Transactions_Kind CHECK (Kind IN ('Income', 'Expense', 'Transfer')),
+        OccurredOn              DATE              NOT NULL,
+        Amount                  DECIMAL(19, 4)    NOT NULL CONSTRAINT CK_Transactions_Amount CHECK (Amount > 0),
+        Currency                CHAR(3)           NOT NULL CONSTRAINT CK_Transactions_Currency
+                                    CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        ExchangeRate            DECIMAL(19, 8)    NULL     CONSTRAINT CK_Transactions_ExchangeRate CHECK (ExchangeRate > 0),
+        ToAmount                DECIMAL(19, 4)    NULL,
+        FromAccountId           INT               NULL     CONSTRAINT FK_Transactions_FromAccount REFERENCES finance.Accounts(Id),
+        ToAccountId             INT               NULL     CONSTRAINT FK_Transactions_ToAccount REFERENCES finance.Accounts(Id),
+        Payee                   NVARCHAR(200)     NULL,
+        Note                    NVARCHAR(1000)    NULL,
+        Reference               NVARCHAR(100)     NULL,
+        EmploymentId            INT               NULL     CONSTRAINT FK_Transactions_Employments REFERENCES career.Employments(Id),
+        SideIncomeSourceId      INT               NULL     CONSTRAINT FK_Transactions_SideIncomeSources REFERENCES career.SideIncomeSources(Id),
+        LoanId                  INT               NULL     CONSTRAINT FK_Transactions_Loans REFERENCES finance.Loans(Id),
+        RecurringTransactionId  INT               NULL     CONSTRAINT FK_Transactions_RecurringTransactions REFERENCES finance.RecurringTransactions(Id),
+        OccurrenceDate          DATE              NULL,
+        CreatedAt               DATETIME2         NOT NULL CONSTRAINT DF_Transactions_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt               DATETIME2         NULL,
+        IsDeleted               BIT               NOT NULL CONSTRAINT DF_Transactions_IsDeleted DEFAULT (0),
+        DeletedAt               DATETIME2         NULL,
+        CONSTRAINT CK_Transactions_Accounts CHECK (
+            (Kind = 'Income' AND FromAccountId IS NULL AND ToAccountId IS NOT NULL)
+            OR (Kind = 'Expense' AND FromAccountId IS NOT NULL AND ToAccountId IS NULL)
+            OR (Kind = 'Transfer' AND FromAccountId IS NOT NULL AND ToAccountId IS NOT NULL AND FromAccountId <> ToAccountId)),
+        CONSTRAINT CK_Transactions_ToAmount CHECK (ToAmount IS NULL OR (Kind = 'Transfer' AND ToAmount > 0)),
+        CONSTRAINT CK_Transactions_IncomeSource CHECK (Kind = 'Income' OR (EmploymentId IS NULL AND SideIncomeSourceId IS NULL)),
+        CONSTRAINT CK_Transactions_OneIncomeSource CHECK (EmploymentId IS NULL OR SideIncomeSourceId IS NULL),
+        CONSTRAINT CK_Transactions_Occurrence CHECK (
+            (RecurringTransactionId IS NULL AND OccurrenceDate IS NULL)
+            OR (RecurringTransactionId IS NOT NULL AND OccurrenceDate IS NOT NULL))
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'IX_Transactions_User_Day')
+    CREATE INDEX IX_Transactions_User_Day ON finance.Transactions(UserId, OccurredOn) WHERE IsDeleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'IX_Transactions_FromAccount')
+    CREATE INDEX IX_Transactions_FromAccount ON finance.Transactions(FromAccountId) INCLUDE (Amount) WHERE IsDeleted = 0 AND FromAccountId IS NOT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'IX_Transactions_ToAccount')
+    CREATE INDEX IX_Transactions_ToAccount ON finance.Transactions(ToAccountId) INCLUDE (Amount, ToAmount) WHERE IsDeleted = 0 AND ToAccountId IS NOT NULL;
+GO
+
+-- A schedule writes at most one live transaction per occurrence (the safety net behind GeneratedThrough).
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'UX_Transactions_Occurrence')
+    CREATE UNIQUE INDEX UX_Transactions_Occurrence ON finance.Transactions(RecurringTransactionId, OccurrenceDate)
+        WHERE IsDeleted = 0 AND RecurringTransactionId IS NOT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.TransactionTags'))
+BEGIN
+    CREATE TABLE finance.TransactionTags
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_TransactionTags PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_TransactionTags_Users REFERENCES shared.Users(Id),
+        TransactionId   INT               NOT NULL CONSTRAINT FK_TransactionTags_Transactions REFERENCES finance.Transactions(Id),
+        TagId           INT               NOT NULL CONSTRAINT FK_TransactionTags_Tags REFERENCES shared.Tags(Id),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_TransactionTags_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_TransactionTags_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.TransactionTags') AND name = 'UX_TransactionTags_Transaction_Tag')
+    CREATE UNIQUE INDEX UX_TransactionTags_Transaction_Tag ON finance.TransactionTags(TransactionId, TagId) WHERE IsDeleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.TransactionTags') AND name = 'IX_TransactionTags_Tag')
+    CREATE INDEX IX_TransactionTags_Tag ON finance.TransactionTags(TagId) WHERE IsDeleted = 0;
+GO
+
+-- What you mean to spend on a tag ("Groceries") in a month, in the base currency. Keyed by the month's first
+-- day; one per tag per month (Session 57 copies a month's budgets forward on request rather than guessing).
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.Budgets'))
+BEGIN
+    CREATE TABLE finance.Budgets
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Budgets PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_Budgets_Users REFERENCES shared.Users(Id),
+        TagId           INT               NOT NULL CONSTRAINT FK_Budgets_Tags REFERENCES shared.Tags(Id),
+        MonthStart      DATE              NOT NULL CONSTRAINT CK_Budgets_MonthStart CHECK (DAY(MonthStart) = 1),
+        Amount          DECIMAL(19, 4)    NOT NULL CONSTRAINT CK_Budgets_Amount CHECK (Amount > 0),
+        Currency        CHAR(3)           NOT NULL CONSTRAINT CK_Budgets_Currency
+                            CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_Budgets_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_Budgets_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Budgets') AND name = 'UX_Budgets_User_Tag_Month')
+    CREATE UNIQUE INDEX UX_Budgets_User_Tag_Month ON finance.Budgets(UserId, TagId, MonthStart) WHERE IsDeleted = 0;
+GO
+
+-- A policy: life, health, vehicle, home, travel. Premium per PremiumFrequency (Single = paid once); RenewsOn is
+-- the next renewal (Session 59 owns its reminder, like document expiry). PolicyNumberLast4 only. ContactId: the
+-- agent. The policy document itself is a Documents item linked to it.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.InsurancePolicies'))
+BEGIN
+    CREATE TABLE finance.InsurancePolicies
+    (
+        Id                  INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_InsurancePolicies PRIMARY KEY,
+        UserId              INT               NOT NULL CONSTRAINT FK_InsurancePolicies_Users REFERENCES shared.Users(Id),
+        Name                NVARCHAR(200)     NOT NULL CONSTRAINT CK_InsurancePolicies_Name CHECK (LEN(Name) > 0),
+        Kind                NVARCHAR(20)      NOT NULL CONSTRAINT CK_InsurancePolicies_Kind
+                                CHECK (Kind IN ('Life', 'Health', 'Vehicle', 'Home', 'Travel', 'Other')),
+        Insurer             NVARCHAR(200)     NULL,
+        PolicyNumberLast4   CHAR(4)           NULL     CONSTRAINT CK_InsurancePolicies_PolicyNumberLast4
+                                CHECK (PolicyNumberLast4 COLLATE Latin1_General_BIN LIKE '[0-9A-Z][0-9A-Z][0-9A-Z][0-9A-Z]'),
+        Currency            CHAR(3)           NOT NULL CONSTRAINT CK_InsurancePolicies_Currency
+                                CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        SumAssured          DECIMAL(19, 4)    NULL     CONSTRAINT CK_InsurancePolicies_SumAssured CHECK (SumAssured > 0),
+        Premium             DECIMAL(19, 4)    NULL     CONSTRAINT CK_InsurancePolicies_Premium CHECK (Premium > 0),
+        PremiumFrequency    NVARCHAR(10)      NULL     CONSTRAINT CK_InsurancePolicies_PremiumFrequency
+                                CHECK (PremiumFrequency IN ('Monthly', 'Quarterly', 'HalfYearly', 'Yearly', 'Single')),
+        StartDate           DATE              NULL,
+        RenewsOn            DATE              NULL,
+        EndsOn              DATE              NULL,
+        ContactId           INT               NULL     CONSTRAINT FK_InsurancePolicies_Contacts REFERENCES shared.Contacts(Id),
+        Notes               NVARCHAR(2000)    NULL,
+        CreatedAt           DATETIME2         NOT NULL CONSTRAINT DF_InsurancePolicies_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt           DATETIME2         NULL,
+        IsDeleted           BIT               NOT NULL CONSTRAINT DF_InsurancePolicies_IsDeleted DEFAULT (0),
+        DeletedAt           DATETIME2         NULL,
+        CONSTRAINT CK_InsurancePolicies_PremiumPair CHECK ((Premium IS NULL AND PremiumFrequency IS NULL) OR (Premium IS NOT NULL AND PremiumFrequency IS NOT NULL)),
+        CONSTRAINT CK_InsurancePolicies_Ends CHECK (EndsOn IS NULL OR StartDate IS NULL OR EndsOn >= StartDate)
+    );
+END
+GO
+
+-- Something for the taxman: a filing deadline, a deduction to claim, a tax paid, a form to collect. TaxYear is the
+-- user's own label ("FY 2026-27") since tax years differ by country. DueOn goes on the calendar (Session 59);
+-- DoneOn marks it handled. TransactionId: the payment or deductible expense it's about.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.TaxItems'))
+BEGIN
+    CREATE TABLE finance.TaxItems
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_TaxItems PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_TaxItems_Users REFERENCES shared.Users(Id),
+        Title           NVARCHAR(200)     NOT NULL CONSTRAINT CK_TaxItems_Title CHECK (LEN(Title) > 0),
+        Kind            NVARCHAR(20)      NOT NULL CONSTRAINT CK_TaxItems_Kind
+                            CHECK (Kind IN ('Deadline', 'Deduction', 'Payment', 'Document', 'Other')),
+        TaxYear         NVARCHAR(20)      NULL,
+        DueOn           DATE              NULL,
+        Amount          DECIMAL(19, 4)    NULL     CONSTRAINT CK_TaxItems_Amount CHECK (Amount > 0),
+        Currency        CHAR(3)           NULL     CONSTRAINT CK_TaxItems_Currency
+                            CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        IsDeductible    BIT               NOT NULL CONSTRAINT DF_TaxItems_IsDeductible DEFAULT (0),
+        TransactionId   INT               NULL     CONSTRAINT FK_TaxItems_Transactions REFERENCES finance.Transactions(Id),
+        DoneOn          DATE              NULL,
+        Notes           NVARCHAR(2000)    NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_TaxItems_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_TaxItems_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_TaxItems_AmountPair CHECK ((Amount IS NULL AND Currency IS NULL) OR (Amount IS NOT NULL AND Currency IS NOT NULL))
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.TaxItems') AND name = 'IX_TaxItems_User_Due')
+    CREATE INDEX IX_TaxItems_User_Due ON finance.TaxItems(UserId, DueOn) WHERE IsDeleted = 0;
+GO

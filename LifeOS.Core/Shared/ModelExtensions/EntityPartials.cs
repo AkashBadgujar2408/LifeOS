@@ -140,3 +140,25 @@ public partial class InterviewQuestion : ISoftDeletable, IUserOwned;
 public partial class InterviewQuestionTag : ISoftDeletable, IUserOwned;
 
 public partial class SideIncomeSource : ISoftDeletable, IUserOwned;
+
+public partial class Account : ISoftDeletable, IUserOwned;
+
+public partial class Transaction : ISoftDeletable, IUserOwned;
+
+public partial class TransactionTag : ISoftDeletable, IUserOwned;
+
+public partial class RecurringTransaction : ISoftDeletable, IUserOwned;
+
+public partial class RecurringTransactionTag : ISoftDeletable, IUserOwned;
+
+public partial class Budget : ISoftDeletable, IUserOwned;
+
+public partial class Holding : ISoftDeletable, IUserOwned;
+
+public partial class HoldingValuation : ISoftDeletable, IUserOwned;
+
+public partial class Loan : ISoftDeletable, IUserOwned;
+
+public partial class InsurancePolicy : ISoftDeletable, IUserOwned;
+
+public partial class TaxItem : ISoftDeletable, IUserOwned;
