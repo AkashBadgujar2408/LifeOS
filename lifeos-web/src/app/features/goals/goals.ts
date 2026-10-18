@@ -22,11 +22,12 @@ import { LifeArea, LifeAreasService } from '../../core/services/life-areas.servi
 import { isOverdue } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { LoadError } from '../../shared/components/load-error/load-error';
+import { LifeVision } from './life-vision';
 
 @Component({
   selector: 'app-goals',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LoadError, DatePipe, RouterLink],
+  imports: [LoadError, DatePipe, RouterLink, LifeVision],
   templateUrl: './goals.html',
 })
 export class Goals implements OnInit {

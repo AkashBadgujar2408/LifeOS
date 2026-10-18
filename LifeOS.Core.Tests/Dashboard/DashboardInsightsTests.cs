@@ -131,4 +131,21 @@ public class DashboardInsightsTests
         // Six days to yesterday, today still open: current is 6, nothing to celebrate.
         Assert.Empty(Evaluate([Habit(HabitStreaks.EveryDay, 9, 10, 11, 12, 13, 14)], latestJournal: Today));
     }
+
+    [Fact]
+    public void Each_insight_keys_its_situation_so_a_dismissal_lasts_until_it_changes()
+    {
+        var broke = Assert.Single(Evaluate([Habit(HabitStreaks.EveryDay, 12, 13)]));
+        Assert.Equal("HabitStreakBroken:1:2026-10-14", broke.Key);
+
+        var goal = new InsightGoal(4, "Visit Japan", new DateTime(2026, 9, 20, 8, 30, 0, DateTimeKind.Utc));
+        var untouched = Assert.Single(Evaluate(goals: [goal]));
+        // The day count in the message grows, the key doesn't — until the goal moves.
+        Assert.Equal("GoalUntouched:4:2026-09-20T08:30:00", untouched.Key);
+        var moved = goal with { LastActivityAt = new DateTime(2026, 9, 25, 8, 0, 0, DateTimeKind.Utc) };
+        Assert.NotEqual(untouched.Key, Assert.Single(Evaluate(goals: [moved])).Key);
+
+        Assert.Equal("JournalGap:2026-10-08", Assert.Single(Evaluate(latestJournal: D(8))).Key);
+        Assert.Equal("OverdueTasks:4", Assert.Single(Evaluate(latestJournal: Today, overdue: 4)).Key);
+    }
 }

@@ -34,6 +34,7 @@ import { TaskRow } from '../tasks/task-row';
 import { sortTasks } from '../tasks/task-views';
 import { openProjectEditor } from './project-editor';
 import { apiErrorMessage } from '../../core/services/api-error';
+import { itemTitle } from '../../core/layout/item-title';
 
 interface StatusAction {
   status: ProjectStatus;
@@ -85,6 +86,7 @@ export class ProjectDetail implements OnInit {
   protected readonly today = todayIso();
 
   protected readonly project = signal<Project | null>(null);
+  private readonly titled = itemTitle(() => this.project()?.name);
   protected readonly openTasks = signal<TaskItem[]>([]);
   protected readonly doneTasks = signal<TaskItem[]>([]);
   protected readonly showDone = signal(false);

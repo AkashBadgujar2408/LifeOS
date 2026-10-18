@@ -25,6 +25,7 @@ import { pickableLifeAreas } from '../../core/settings/visibility';
 import { dateFieldError } from '../../core/dates/date-format';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
 import { apiErrorMessage } from '../../core/services/api-error';
+import { itemTitle } from '../../core/layout/item-title';
 
 const GOAL_TYPE_HINTS: Record<GoalType, string> = {
   ShortTerm: 'Weeks to a few months',
@@ -59,6 +60,12 @@ export class GoalForm implements OnInit {
   protected readonly tagIds = signal<number[]>([]);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
+  /** The goal being revised, for the tab title ("Revise Visit Japan | LifeOS"). */
+  private readonly revisedTitle = signal<string | null>(null);
+  private readonly titled = itemTitle(() => {
+    const title = this.revisedTitle();
+    return title ? `Revise ${title}` : null;
+  });
 
   protected readonly form = this.fb.group({
     title: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(200)]),
@@ -99,6 +106,7 @@ export class GoalForm implements OnInit {
               revisionNote: '',
             });
             this.tagIds.set(goal.tags.map((t) => t.id));
+            this.revisedTitle.set(goal.title);
             this.loading.set(false);
           },
           error: (err) => {

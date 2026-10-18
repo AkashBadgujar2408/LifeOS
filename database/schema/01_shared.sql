@@ -319,3 +319,9 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.VaultAccessLog') AND name = 'IX_VaultAccessLog_User_CreatedAt')
     CREATE INDEX IX_VaultAccessLog_User_CreatedAt ON shared.VaultAccessLog(UserId, CreatedAt DESC) WHERE IsDeleted = 0;
 GO
+
+-- Life vision (Session 46): one free-text statement of where the user is heading — the premise of their story,
+-- shown atop Goals and the Life Story. One per user, so a column rather than a table; NULL until written.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('shared.Users') AND name = 'LifeVision')
+    ALTER TABLE shared.Users ADD LifeVision NVARCHAR(2000) NULL;
+GO

@@ -17,6 +17,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Decision> Decisions { get; set; }
 
+    public virtual DbSet<DismissedInsight> DismissedInsights { get; set; }
+
     public virtual DbSet<Document> Documents { get; set; }
 
     public virtual DbSet<DocumentFile> DocumentFiles { get; set; }
@@ -54,6 +56,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<JournalEntryTag> JournalEntryTags { get; set; }
 
     public virtual DbSet<JournalNote> JournalNotes { get; set; }
+
+    public virtual DbSet<KpiTile> KpiTiles { get; set; }
 
     public virtual DbSet<LifeArea> LifeAreas { get; set; }
 
@@ -160,6 +164,23 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Decisions_Users");
+        });
+
+        modelBuilder.Entity<DismissedInsight>(entity =>
+        {
+            entity.ToTable("DismissedInsights", "dashboard");
+
+            entity.HasIndex(e => new { e.UserId, e.InsightKey }, "UX_DismissedInsights_User_Key")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_DismissedInsights_CreatedAt");
+            entity.Property(e => e.InsightKey).HasMaxLength(200);
+
+            entity.HasOne(d => d.User).WithMany(p => p.DismissedInsights)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DismissedInsights_Users");
         });
 
         modelBuilder.Entity<Document>(entity =>
@@ -616,6 +637,23 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_JournalNotes_Users");
         });
 
+        modelBuilder.Entity<KpiTile>(entity =>
+        {
+            entity.ToTable("KpiTiles", "dashboard");
+
+            entity.HasIndex(e => new { e.UserId, e.KpiKey }, "UX_KpiTiles_User_Key")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_KpiTiles_CreatedAt");
+            entity.Property(e => e.KpiKey).HasMaxLength(40);
+
+            entity.HasOne(d => d.User).WithMany(p => p.KpiTiles)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_KpiTiles_Users");
+        });
+
         modelBuilder.Entity<LifeArea>(entity =>
         {
             entity.ToTable("LifeAreas", "shared");
@@ -948,6 +986,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Users_CreatedAt");
             entity.Property(e => e.DisplayName).HasMaxLength(200);
             entity.Property(e => e.Email).HasMaxLength(256);
+            entity.Property(e => e.LifeVision).HasMaxLength(2000);
             entity.Property(e => e.PasswordHash).HasMaxLength(500);
             entity.Property(e => e.TimeZone).HasMaxLength(64);
             entity.Property(e => e.Username).HasMaxLength(100);

@@ -84,3 +84,7 @@ public partial class RoutineHabit : ISoftDeletable, IUserOwned;
 public partial class TaskDependency : ISoftDeletable, IUserOwned;
 
 public partial class FocusSession : ISoftDeletable, IUserOwned;
+
+public partial class KpiTile : ISoftDeletable, IUserOwned;
+
+public partial class DismissedInsight : ISoftDeletable, IUserOwned;

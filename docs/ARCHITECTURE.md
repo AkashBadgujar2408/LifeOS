@@ -45,7 +45,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Journal | `journal` | JournalEntries, WeeklyReflections | `Journal/` | `journal` |
 | Story Mode (Phase 2) | `story` | Chapters, MissionPrerequisites, MissionDebriefs, LifeAreaRatings | `Story/` — Chapters, Life Story (+ proc `story.GetLifeStory`, recap), Missions, life-area levels + monthly ratings (+ proc `story.GetLifeAreaStats`), achievements (+ proc `story.GetAchievementFacts`); pure `MissionKinds`/`MissionGraph`/`ChapterRules`/`LifeStoryBuilder`/`LifeAreaLevels`/`StoryRecap`/`Achievements` | `story` (`/story`, `/missions`, `/life-areas`, Mission passed dialog, goal-page Story card, `/achievements`, "Previously on…" card on My Day) |
 | Documents (Phase 2) | `documents` | Documents (kind, issuer, last 4 of the number, issued/expiry, vault flag), DocumentFiles (stored name, original name, type, size, SHA-256), DocumentTags | `Shared/` — `IFileStore`/`DiskFileStore` + pure `FileRules` (Session 38); `Documents/` — `DocumentsService`, `DocumentLinkableProvider`, pure `DocumentRules` (last 4, expiry reminder time) | `documents` (`/documents` library, `/documents/:id` with upload + preview, "Documents expiring" card on My Day) |
-| Dashboard & Insights | `dashboard` (procedures only) | — | `Dashboard/` (+ procs `dashboard.GetMyDay`, `dashboard.GetLifeBalance`) | `dashboard` (My Day) |
+| Dashboard & Insights | `dashboard` | KpiTiles, DismissedInsights (the user's choices only — figures are computed) | `Dashboard/` (+ procs `dashboard.GetMyDay`, `dashboard.GetLifeBalance`, `dashboard.GetKpiFacts`); pure `DashboardInsights` (each insight keyed by its situation), `LifeBalance`, `KpiFigures` | `dashboard` (My Day: insights with dismiss, "Your figures" KPI tiles) |
 
 Every module has the same server layout: `DTOs/` (request/response shapes, status constants), `ServiceContracts/`
 (interfaces), `Services/` (implementations and pure helpers), `AutoMapper/` (entity → DTO profiles). Controllers live
@@ -79,7 +79,7 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   moment comes, reading due reminders writes it as an ordinary reminder about the event (`OccurrenceDate` set,
   unique per occurrence), so done/snooze/history need no special cases.
 - **Computed, never stored:** goal progress (`GoalProgress`), habit streaks (`HabitStreaks`), the next occurrence of
-  a repeating task (`TaskRecurrence`), the occurrences of a recurring event (`EventRecurrence`), insights (`DashboardInsights`), life balance (`LifeBalance`). Each is a pure
+  a repeating task (`TaskRecurrence`), the occurrences of a recurring event (`EventRecurrence`), insights (`DashboardInsights`), life balance (`LifeBalance`), goal progress over time (`GoalProgressTrend`), KPI figures (`KpiFigures`). Each is a pure
   static class with xUnit tests, so it can't drift from the data it summarises.
 
 ## Cross-cutting features

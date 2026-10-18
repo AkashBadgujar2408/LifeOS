@@ -69,6 +69,7 @@ function myDay(overrides: Partial<MyDay>): MyDay {
     latestJournalEntry: null,
     expiringDocuments: [],
     insights: [],
+    hiddenInsightCount: 0,
     ...overrides,
   };
 }
@@ -161,7 +162,7 @@ describe('daySummary', () => {
 });
 
 describe('insightLink', () => {
-  const base = { kind: 'GoalUntouched' as const, tone: 'Nudge' as const, message: '' };
+  const base = { kind: 'GoalUntouched' as const, key: 'k', tone: 'Nudge' as const, message: '' };
 
   it('points habits and goals at their page, and page-level insights at the page', () => {
     expect(insightLink({ ...base, entityType: 'Goal', entityId: 7 })?.link).toEqual(['/goals', 7]);
@@ -218,6 +219,7 @@ describe('balanceSummary / joinNames', () => {
 describe('withoutHiddenModules', () => {
   const insight = (entityType: 'Habit' | 'Goal' | 'Journal' | 'Tasks' | null) => ({
     kind: 'GoalUntouched' as const,
+    key: String(entityType),
     tone: 'Nudge' as const,
     message: String(entityType),
     entityType,

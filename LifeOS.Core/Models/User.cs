@@ -27,11 +27,15 @@ public partial class User
 
     public string? BaseCurrency { get; set; }
 
+    public string? LifeVision { get; set; }
+
     public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
 
     public virtual Chapter? Chapter { get; set; }
 
     public virtual ICollection<Decision> Decisions { get; set; } = new List<Decision>();
+
+    public virtual ICollection<DismissedInsight> DismissedInsights { get; set; } = new List<DismissedInsight>();
 
     public virtual ICollection<DocumentFile> DocumentFiles { get; set; } = new List<DocumentFile>();
 
@@ -70,6 +74,8 @@ public partial class User
     public virtual ICollection<JournalEntryTag> JournalEntryTags { get; set; } = new List<JournalEntryTag>();
 
     public virtual ICollection<JournalNote> JournalNotes { get; set; } = new List<JournalNote>();
+
+    public virtual ICollection<KpiTile> KpiTiles { get; set; } = new List<KpiTile>();
 
     public virtual ICollection<LifeAreaRating> LifeAreaRatings { get; set; } = new List<LifeAreaRating>();
 

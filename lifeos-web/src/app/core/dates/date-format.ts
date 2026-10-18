@@ -12,6 +12,8 @@ export const APP_DATE_TIME_FORMAT = 'dd/MMM/yyyy, h:mm a';
 export const APP_DAY_MONTH_FORMAT = 'dd/MMM';
 /** The weekday name on its own ("Thursday"), for day headings above a full date. */
 export const APP_WEEKDAY_FORMAT = 'EEEE';
+/** A time on its own (chart ticks within a day). */
+export const APP_TIME_FORMAT = 'h:mm a';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 

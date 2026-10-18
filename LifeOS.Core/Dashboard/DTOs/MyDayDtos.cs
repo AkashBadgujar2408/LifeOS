@@ -23,8 +23,10 @@ public class MyDayDto
     public MyDayJournalDto? LatestJournalEntry { get; init; }
     /// <summary>Documents expiring within 60 days or expired in the last 30, soonest first.</summary>
     public List<MyDayDocumentDto> ExpiringDocuments { get; init; } = [];
-    /// <summary>Rule-based nudges and good news (DashboardInsights), nudges first.</summary>
+    /// <summary>Rule-based nudges and good news (DashboardInsights), nudges first — without the dismissed ones.</summary>
     public List<InsightDto> Insights { get; set; } = [];
+    /// <summary>How many of today's insights the user dismissed (they come back when their situation changes).</summary>
+    public int HiddenInsightCount { get; set; }
 }
 
 public class MyDayDocumentDto
@@ -140,6 +142,11 @@ public static class InsightTones
 public class InsightDto
 {
     public string Kind { get; init; } = string.Empty;
+    /// <summary>
+    /// The situation this insight is about ("HabitStreakBroken:7:2026-10-12"). Dismissing stores the key, so the
+    /// insight stays hidden until the situation — and with it the key — changes.
+    /// </summary>
+    public string Key { get; init; } = string.Empty;
     public string Tone { get; init; } = string.Empty;
     public string Message { get; init; } = string.Empty;
     public string? EntityType { get; init; }

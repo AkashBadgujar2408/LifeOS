@@ -1,5 +1,6 @@
 using LifeOS.Core.Dashboard.DTOs;
 using LifeOS.Core.Habits.Services;
+using static System.FormattableString;
 
 namespace LifeOS.Core.Dashboard.Services;
 
@@ -47,6 +48,7 @@ public static class DashboardInsights
                 insights.Add(new InsightDto
                 {
                     Kind = InsightKinds.HabitStreakBroken,
+                    Key = Invariant($"{InsightKinds.HabitStreakBroken}:{habit.Id}:{missedDay:yyyy-MM-dd}"),
                     Tone = InsightTones.Nudge,
                     Message = $"Your \"{habit.Title}\" streak broke on {missedDay.DayOfWeek}. Today is a good day to pick it back up.",
                     EntityType = "Habit",
@@ -63,6 +65,7 @@ public static class DashboardInsights
                 insights.Add(new InsightDto
                 {
                     Kind = InsightKinds.GoalUntouched,
+                    Key = Invariant($"{InsightKinds.GoalUntouched}:{goal.Id}:{goal.LastActivityAt:yyyy-MM-ddTHH:mm:ss}"),
                     Tone = InsightTones.Nudge,
                     Message = $"\"{goal.Title}\" hasn't moved in {idleDays} days. Add a next step, or postpone it honestly.",
                     EntityType = "Goal",
@@ -80,6 +83,7 @@ public static class DashboardInsights
                 insights.Add(new InsightDto
                 {
                     Kind = InsightKinds.JournalGap,
+                    Key = Invariant($"{InsightKinds.JournalGap}:{lastEntry:yyyy-MM-dd}"),
                     Tone = InsightTones.Nudge,
                     Message = $"No journal entry for {gap} days. A line or just a mood keeps the thread going.",
                     EntityType = "Journal",
@@ -92,6 +96,7 @@ public static class DashboardInsights
             insights.Add(new InsightDto
             {
                 Kind = InsightKinds.OverdueTasks,
+                Key = Invariant($"{InsightKinds.OverdueTasks}:{inputs.OverdueTaskCount}"),
                 Tone = InsightTones.Nudge,
                 Message = $"{inputs.OverdueTaskCount} tasks are overdue. Reschedule or drop a few so today's list means something.",
                 EntityType = "Tasks",
@@ -107,6 +112,7 @@ public static class DashboardInsights
             insights.Add(new InsightDto
             {
                 Kind = InsightKinds.DocumentExpiring,
+                Key = Invariant($"{InsightKinds.DocumentExpiring}:{document.Id}:{document.ExpiresOn:yyyy-MM-dd}"),
                 Tone = InsightTones.Nudge,
                 Message = DocumentExpiryMessage(document, inputs.Today),
                 EntityType = "Document",
@@ -119,6 +125,7 @@ public static class DashboardInsights
             insights.Add(new InsightDto
             {
                 Kind = InsightKinds.HabitStreakMilestone,
+                Key = Invariant($"{InsightKinds.HabitStreakMilestone}:{habit.Id}:{habit.Streak.Current}"),
                 Tone = InsightTones.Cheer,
                 Message = $"{habit.Streak.Current} in a row on \"{habit.Title}\". Nicely done.",
                 EntityType = "Habit",

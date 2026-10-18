@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  LOCALE_ID,
   computed,
   effect,
   inject,
@@ -11,12 +12,16 @@ import {
   viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { DatePipe } from '@angular/common';
+import { DatePipe, formatDate } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
-import { APP_DATE_TIME_FORMAT, APP_WEEKDAY_FORMAT } from '../../core/dates/date-format';
+import {
+  APP_DATE_FORMAT,
+  APP_DATE_TIME_FORMAT,
+  APP_WEEKDAY_FORMAT,
+} from '../../core/dates/date-format';
 import { addDaysIso, todayIso } from '../../core/dates/today';
 import {
   JOURNAL_ENTRY_ENTITY_TYPE,
@@ -38,6 +43,7 @@ import { DayNotes } from './day-notes';
 import { MOODS, moodMeta } from './journal-days';
 import { MoodTrend } from './mood-trend';
 import { apiErrorMessage } from '../../core/services/api-error';
+import { itemTitle } from '../../core/layout/item-title';
 
 /** How far back the recent list reaches. */
 const RECENT_DAYS = 30;
@@ -98,6 +104,11 @@ export class Journal {
     return date && ISO_DAY.test(date) && date <= this.today() ? date : this.today();
   });
   protected readonly isToday = computed(() => this.day() === this.today());
+  // A past day's page is titled by its date ("14/Oct/2026 · Journal | LifeOS"); today keeps "Journal".
+  private readonly locale = inject(LOCALE_ID);
+  private readonly titled = itemTitle(() =>
+    this.isToday() ? null : `${formatDate(this.day(), APP_DATE_FORMAT, this.locale)} · Journal`,
+  );
 
   protected readonly entry = signal<JournalEntry | null>(null);
   protected readonly loadingEntry = signal(true);

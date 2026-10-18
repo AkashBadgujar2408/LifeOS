@@ -18,6 +18,7 @@ import { Attachments } from '../../shared/components/attachments/attachments';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { openChapterEditor } from './chapter-editor';
 import { beatLink, beatText, chapterLength, gapHeading } from './story-view';
+import { LifeVision } from '../goals/life-vision';
 
 /**
  * Your life as a book: chapters you name, filled with what actually happened (goals set and passed, objectives,
@@ -26,7 +27,7 @@ import { beatLink, beatText, chapterLength, gapHeading } from './story-view';
 @Component({
   selector: 'app-story',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, LoadError, Attachments],
+  imports: [DatePipe, RouterLink, LoadError, Attachments, LifeVision],
   templateUrl: './story.html',
   styleUrl: './story.scss',
 })

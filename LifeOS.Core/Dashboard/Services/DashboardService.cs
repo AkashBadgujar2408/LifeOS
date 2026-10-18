@@ -8,6 +8,7 @@ using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Habits.Services;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
+using LifeOS.Core.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace LifeOS.Core.Dashboard.Services;
@@ -177,7 +178,42 @@ public class DashboardService(AppDbContext db) : IDashboardService
             myDay.Tasks.Count(t => !t.IsDone && t.DueDate < today),
             myDay.ExpiringDocuments.Select(d => new InsightDocument(d.Id, d.Title, d.ExpiresOn)).ToList()));
 
+        // Dismissed insights stay hidden while their situation (the key) is unchanged.
+        var keys = myDay.Insights.Select(i => i.Key).ToList();
+        var dismissed = keys.Count == 0 ? [] : (await db.DismissedInsights
+            .Where(d => keys.Contains(d.InsightKey))
+            .Select(d => d.InsightKey)
+            .ToListAsync()).ToHashSet(StringComparer.Ordinal);
+        myDay.HiddenInsightCount = myDay.Insights.Count(i => dismissed.Contains(i.Key));
+        myDay.Insights = myDay.Insights.Where(i => !dismissed.Contains(i.Key)).ToList();
+
         return OperationResult<MyDayDto>.Ok(myDay);
+    }
+
+    public async Task DismissInsightAsync(string key)
+    {
+        key = key.Trim();
+        if (await db.DismissedInsights.AnyAsync(d => d.InsightKey == key))
+        {
+            return;
+        }
+
+        db.DismissedInsights.Add(new DismissedInsight { UserId = db.CurrentUserId!.Value, InsightKey = key });
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueConstraintViolation())
+        {
+            // Dismissed twice at once: the other request already did it.
+        }
+    }
+
+    public async Task<int> RestoreInsightsAsync()
+    {
+        var now = DateTime.UtcNow;
+        return await db.DismissedInsights
+            .ExecuteUpdateAsync(s => s.SetProperty(d => d.IsDeleted, true).SetProperty(d => d.DeletedAt, now));
     }
 
     public async Task<OperationResult<LifeBalanceDto>> GetLifeBalanceAsync(

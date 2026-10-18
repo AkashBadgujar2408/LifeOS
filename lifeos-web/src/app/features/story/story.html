@@ -28,6 +28,10 @@
     </div>
   </header>
 
+  <div class="mb-4">
+    <app-life-vision heading="The premise" />
+  </div>
+
   @if (loadFailed() && !story()) {
     <app-load-error message="Couldn't load your story." (retry)="load()" />
   } @else if (!story()) {

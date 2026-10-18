@@ -49,10 +49,40 @@
       <section class="card mb-3" aria-labelledby="insights-heading">
         <div class="card-body p-4">
           <h2 id="insights-heading" class="h5 mb-3">Worth a look</h2>
-          <app-insights-list [insights]="day.insights" />
+          <app-insights-list
+            [insights]="day.insights"
+            [dismissible]="true"
+            (dismiss)="dismissInsight($event)"
+          />
+          @if (day.hiddenInsightCount > 0) {
+            <ng-container
+              *ngTemplateOutlet="hiddenInsights; context: { count: day.hiddenInsightCount }"
+            />
+          }
         </div>
       </section>
+    } @else if (day.hiddenInsightCount > 0) {
+      <div class="mb-3">
+        <ng-container
+          *ngTemplateOutlet="hiddenInsights; context: { count: day.hiddenInsightCount }"
+        />
+      </div>
     }
+
+    <ng-template #hiddenInsights let-count="count">
+      <p class="small text-body-secondary mb-0 mt-3">
+        {{ count }} {{ count === 1 ? 'note' : 'notes' }} hidden until things change ·
+        <button
+          type="button"
+          class="btn btn-link btn-sm p-0 align-baseline"
+          (click)="restoreInsights()"
+        >
+          Show {{ count === 1 ? 'it' : 'them' }}
+        </button>
+      </p>
+    </ng-template>
+
+    <app-kpi-tiles [today]="today()" />
 
     @if (!hidden().has('Story')) {
       <section class="card mb-3" aria-labelledby="recap-heading">

@@ -17,6 +17,7 @@ import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 import { todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
+import { itemTitle } from '../../core/layout/item-title';
 import {
   DOCUMENT_ENTITY_TYPE,
   DocumentFile,
@@ -77,6 +78,7 @@ export class DocumentDetail implements OnInit {
   protected readonly today = todayIso();
 
   protected readonly document = signal<LifeDocument | null>(null);
+  private readonly titled = itemTitle(() => this.document()?.title);
   protected readonly loadFailed = signal(false);
   protected readonly uploading = signal(false);
   protected readonly dragging = signal(false);

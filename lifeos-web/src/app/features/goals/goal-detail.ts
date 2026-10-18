@@ -29,6 +29,8 @@ import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { Attachments } from '../../shared/components/attachments/attachments';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { MissionLinks } from '../story/mission-links';
+import { GoalTrend } from './goal-trend';
+import { itemTitle } from '../../core/layout/item-title';
 import { openMissionPassed } from '../story/mission-passed';
 import {
   APP_DATE_FORMAT,
@@ -59,6 +61,7 @@ const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(20
     Attachments,
     EntityReminders,
     MissionLinks,
+    GoalTrend,
   ],
   templateUrl: './goal-detail.html',
 })
@@ -83,6 +86,14 @@ export class GoalDetail implements OnInit {
   protected readonly dateTimeFormat = APP_DATE_TIME_FORMAT;
 
   protected readonly goal = signal<GoalDetailModel | null>(null);
+  constructor() {
+    itemTitle(() => this.goal()?.title);
+  }
+
+  /** Changes whenever the goal's progress may have: milestones ticked, added or removed, or a status change. */
+  protected trendVersion(goal: GoalDetailModel): string {
+    return [goal.status, ...goal.milestones.map((m) => `${m.id}:${m.completedAt ?? ''}`)].join('|');
+  }
   protected readonly editingMilestoneId = signal<number | null>(null);
   /** Milestone currently being saved; its controls are disabled so a double click can't fire twice. */
   protected readonly busyMilestoneId = signal<number | null>(null);

@@ -140,3 +140,23 @@ public class ReorderMilestonesRequest
     [Required]
     public List<int> MilestoneIds { get; init; } = [];
 }
+
+/// <summary>A step in a goal's progress trend: from <see cref="At"/> on, the goal stood at <see cref="Percent"/>.</summary>
+public class GoalTrendPointDto
+{
+    public DateTime At { get; init; }
+    public int Percent { get; init; }
+}
+
+/// <summary>The user's life vision: the premise of their story, shown atop Goals and the Life Story.</summary>
+public class LifeVisionDto
+{
+    public string? Text { get; init; }
+}
+
+public class LifeVisionRequest
+{
+    /// <summary>Blank clears it.</summary>
+    [StringLength(2000)]
+    public string? Text { get; init; }
+}

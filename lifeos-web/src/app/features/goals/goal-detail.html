@@ -270,6 +270,13 @@
 
         <div class="card">
           <div class="card-body">
+            <h2 class="h6 mb-3">Progress over time</h2>
+            <app-goal-trend [goalId]="goal.id" [version]="trendVersion(goal)" />
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
             <h2 class="h6 mb-3">History</h2>
             <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
               @for (entry of goal.history; track entry.id) {

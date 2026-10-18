@@ -9,6 +9,10 @@
     <a routerLink="/goals/new" class="btn btn-primary"> <i class="bi bi-plus-lg"></i> New goal </a>
   </div>
 
+  <div class="mb-3">
+    <app-life-vision />
+  </div>
+
   <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
     <ul class="nav nav-pills gap-1">
       @for (status of statuses; track status) {

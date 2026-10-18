@@ -75,6 +75,8 @@ try
     builder.Services.AddScoped<IJournalService, JournalService>();
     builder.Services.AddScoped<IDecisionsService, DecisionsService>();
     builder.Services.AddScoped<IDashboardService, DashboardService>();
+    builder.Services.AddScoped<IKpisService, KpisService>();
+    builder.Services.AddScoped<ILifeVisionService, LifeVisionService>();
     builder.Services.AddScoped<IChaptersService, ChaptersService>();
     builder.Services.AddScoped<ILifeStoryService, LifeStoryService>();
     builder.Services.AddScoped<IMissionsService, MissionsService>();

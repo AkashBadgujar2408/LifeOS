@@ -85,6 +85,16 @@ export interface MilestonePayload {
   targetDate: string | null;
 }
 
+/** From this moment on (UTC, "…Z") the goal stood at this percent; the last point is "now". */
+export interface GoalTrendPoint {
+  at: string;
+  percent: number;
+}
+
+interface LifeVision {
+  text: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class GoalsService {
   private readonly http = inject(HttpClient);
@@ -164,5 +174,25 @@ export class GoalsService {
     return this.http
       .delete<ApiResponse<boolean>>(`${this.baseUrl}/${goalId}/Milestones/${id}`)
       .pipe(map(() => undefined));
+  }
+
+  /** Progress % over time, oldest first (rebuilt by the API from milestone and status history). */
+  trend(id: number): Observable<GoalTrendPoint[]> {
+    return this.http
+      .get<ApiResponse<GoalTrendPoint[]>>(`${this.baseUrl}/${id}/trend`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  getVision(): Observable<string | null> {
+    return this.http
+      .get<ApiResponse<LifeVision>>('/api/Goals/Vision')
+      .pipe(map((response) => response.data?.text ?? null));
+  }
+
+  /** Blank clears it. */
+  saveVision(text: string): Observable<string | null> {
+    return this.http
+      .put<ApiResponse<LifeVision>>('/api/Goals/Vision', { text })
+      .pipe(map((response) => response.data?.text ?? null));
   }
 }

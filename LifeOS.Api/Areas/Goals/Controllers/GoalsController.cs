@@ -31,6 +31,19 @@ public class GoalsController(IGoalsService goalsService) : ControllerBase
         return Ok(ApiResponse<GoalDetailDto>.Ok(result.Data));
     }
 
+    /// <summary>GET api/Goals/Goals/7/trend — progress % over time, oldest first.</summary>
+    [HttpGet("{id:int}/trend")]
+    public async Task<IActionResult> GetTrend(int id)
+    {
+        var result = await goalsService.GetTrendAsync(id);
+        if (!result.Success)
+        {
+            return NotFound(ApiResponse<List<GoalTrendPointDto>>.Fail(result.Error!));
+        }
+
+        return Ok(ApiResponse<List<GoalTrendPointDto>>.Ok(result.Data));
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(GoalRequest request)
     {

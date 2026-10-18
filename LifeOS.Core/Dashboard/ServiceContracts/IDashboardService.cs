@@ -17,4 +17,10 @@ public interface IDashboardService
     /// <paramref name="fromUtc"/>/<paramref name="toUtc"/> are the same span as UTC instants, defaulting to UTC midnights.
     /// </summary>
     Task<OperationResult<LifeBalanceDto>> GetLifeBalanceAsync(DateOnly from, DateOnly to, DateTime? fromUtc, DateTime? toUtc);
+
+    /// <summary>Hides an insight until its situation (its key) changes. Dismissing twice is fine.</summary>
+    Task DismissInsightAsync(string key);
+
+    /// <summary>Brings back every dismissed insight; returns how many dismissals were undone.</summary>
+    Task<int> RestoreInsightsAsync();
 }

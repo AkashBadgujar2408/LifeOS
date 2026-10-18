@@ -57,6 +57,31 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         return OperationResult<GoalDetailDto>.Ok(goal);
     }
 
+    public async Task<OperationResult<List<GoalTrendPointDto>>> GetTrendAsync(int id)
+    {
+        var goal = await db.Goals.Where(g => g.Id == id)
+            .Select(g => new { g.CreatedAt, g.Status, g.UserId })
+            .FirstOrDefaultAsync();
+        if (goal is null)
+        {
+            return OperationResult<List<GoalTrendPointDto>>.Fail(NotFound);
+        }
+
+        // Removed milestones still shaped the past, so read them too — IgnoreQueryFilters drops the user filter as
+        // well, hence the explicit UserId.
+        var milestones = await db.GoalMilestones.IgnoreQueryFilters()
+            .Where(m => m.GoalId == id && m.UserId == goal.UserId)
+            .Select(m => new TrendMilestone(m.CreatedAt, m.CompletedAt, m.IsDeleted ? m.DeletedAt ?? m.CreatedAt : null))
+            .ToListAsync();
+        var statusChanges = await db.GoalHistories
+            .Where(h => h.GoalId == id && h.EventType == GoalHistoryEvents.StatusChanged)
+            .Select(h => new TrendStatusChange(h.CreatedAt, h.FromStatus!, h.ToStatus!))
+            .ToListAsync();
+
+        return OperationResult<List<GoalTrendPointDto>>.Ok(
+            GoalProgressTrend.Build(goal.CreatedAt, goal.Status, milestones, statusChanges, DateTime.UtcNow));
+    }
+
     public async Task<OperationResult<GoalDetailDto>> CreateAsync(GoalRequest request)
     {
         var error = await ValidateAsync(request);

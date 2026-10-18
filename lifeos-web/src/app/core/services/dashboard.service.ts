@@ -2,7 +2,8 @@ import type { DocumentKind } from './documents.service';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { addDaysIso, localMidnight } from '../dates/today';
+import { addDaysIso, browserTimeZone, localMidnight } from '../dates/today';
+import type { ModuleKey } from './settings.service';
 import { ApiResponse } from './api-response';
 import { HabitStreak } from './habits.service';
 import { Mood } from './journal.service';
@@ -81,11 +82,18 @@ export interface MyDayJournalEntry {
 }
 
 export type InsightKind =
-  'HabitStreakBroken' | 'GoalUntouched' | 'JournalGap' | 'OverdueTasks' | 'HabitStreakMilestone';
+  | 'HabitStreakBroken'
+  | 'GoalUntouched'
+  | 'JournalGap'
+  | 'OverdueTasks'
+  | 'HabitStreakMilestone'
+  | 'DocumentExpiring';
 
 /** A rule-based observation (DashboardInsights on the API). Nudge = something slipping; Cheer = good news. */
 export interface Insight {
   kind: InsightKind;
+  /** The situation it's about; dismissing hides it until this changes. */
+  key: string;
   tone: 'Nudge' | 'Cheer';
   message: string;
   /** Where to act on it: Habit/Goal with an id, or a whole page (Journal, Tasks). */
@@ -131,8 +139,33 @@ export interface MyDay {
   latestJournalEntry: MyDayJournalEntry | null;
   /** Expiring within 60 days or expired in the last 30, soonest first. */
   expiringDocuments: MyDayDocument[];
-  /** Nudges first, then good news. */
+  /** Nudges first, then good news — without the ones dismissed. */
   insights: Insight[];
+  /** Today's insights the user dismissed (back once their situation changes, or on "Show"). */
+  hiddenInsightCount: number;
+}
+
+export type KpiUnit = 'Count' | 'Percent' | 'Minutes';
+
+/** A figure that can go on My Day (KpiFigures.All on the API); its module hides it with the module. */
+export interface KpiDefinition {
+  key: string;
+  label: string;
+  module: ModuleKey;
+  unit: KpiUnit;
+  comparedWith: string | null;
+}
+
+/** A chosen tile, worked out by the API for today. */
+export interface KpiTile extends KpiDefinition {
+  /** Null when there's nothing to measure yet. */
+  value: number | null;
+  previous: number | null;
+}
+
+export interface Kpis {
+  tiles: KpiTile[];
+  available: KpiDefinition[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -151,6 +184,35 @@ export class DashboardService {
     return this.http
       .get<ApiResponse<MyDay>>('/api/Dashboard/MyDay', { params })
       .pipe(map((response) => response.data!));
+  }
+
+  /** The chosen KPI tiles + the catalogue; the windows' local midnights follow the browser's zone. */
+  getKpis(today: string): Observable<Kpis> {
+    const params = new HttpParams().set('today', today).set('tz', browserTimeZone());
+    return this.http
+      .get<ApiResponse<Kpis>>('/api/Dashboard/Kpis', { params })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Replaces the chosen tiles, in this order (at most 6). */
+  saveKpis(keys: string[]): Observable<string[]> {
+    return this.http
+      .put<ApiResponse<string[]>>('/api/Dashboard/Kpis', { keys })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  /** Hides an insight until its situation changes. */
+  dismissInsight(key: string): Observable<void> {
+    return this.http
+      .post<ApiResponse<boolean>>('/api/Dashboard/Insights/dismissed', { key })
+      .pipe(map(() => undefined));
+  }
+
+  /** Brings back every dismissed insight. */
+  restoreInsights(): Observable<void> {
+    return this.http
+      .delete<ApiResponse<number>>('/api/Dashboard/Insights/dismissed')
+      .pipe(map(() => undefined));
   }
 
   /** Activity per life area over local days `from`..`to` (inclusive); the span goes along as UTC instants too. */

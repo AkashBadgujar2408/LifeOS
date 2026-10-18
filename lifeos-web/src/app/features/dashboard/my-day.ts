@@ -19,6 +19,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CalendarService } from '../../core/services/calendar.service';
 import {
   DashboardService,
+  Insight,
   MyDay as MyDayData,
   MyDayEvent,
   MyDayHabit,
@@ -50,6 +51,7 @@ import {
 } from './my-day-view';
 import { SettingsService } from '../../core/services/settings.service';
 import { InsightsList } from './insights-list';
+import { KpiTiles } from './kpi-tiles';
 import { LifeBalance } from './life-balance';
 import { StoryRecap } from '../story/story-recap';
 import { LoadError } from '../../shared/components/load-error/load-error';
@@ -86,6 +88,7 @@ const GOALS_SHOWN = 4;
     ReminderRow,
     HabitDay,
     InsightsList,
+    KpiTiles,
     LifeBalance,
     StoryRecap,
     LoadError,
@@ -239,6 +242,36 @@ export class MyDay {
           this.loadError.set(false);
         },
         error: () => this.loadError.set(true),
+      });
+  }
+
+  /** Hides an insight until its situation changes; it leaves the list at once and counts as hidden. */
+  protected dismissInsight(insight: Insight): void {
+    this.dashboardService
+      .dismissInsight(insight.key)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () =>
+          this.loaded.update((data) =>
+            data
+              ? {
+                  ...data,
+                  insights: data.insights.filter((i) => i.key !== insight.key),
+                  hiddenInsightCount: data.hiddenInsightCount + 1,
+                }
+              : data,
+          ),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not hide that.')),
+      });
+  }
+
+  protected restoreInsights(): void {
+    this.dashboardService
+      .restoreInsights()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.load(),
+        error: (err) => this.toast.error(apiErrorMessage(err, 'Could not show them again.')),
       });
   }
 

@@ -39,6 +39,7 @@ import {
   scheduleLabel,
 } from './habit-schedule';
 import { apiErrorMessage } from '../../core/services/api-error';
+import { itemTitle } from '../../core/layout/item-title';
 
 /** How many weeks of history the detail page shows, Monday-aligned, ending with this week. */
 const HISTORY_WEEKS = 12;
@@ -66,6 +67,7 @@ export class HabitDetail implements OnInit {
   protected readonly weekdayNames = WEEKDAY_NAMES;
 
   protected readonly habit = signal<Habit | null>(null);
+  private readonly titled = itemTitle(() => this.habit()?.title);
   protected readonly today = signal(todayIso());
   protected readonly busyDay = signal<string | null>(null);
   protected readonly changingStatus = signal(false);
