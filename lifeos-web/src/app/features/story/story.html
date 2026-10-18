@@ -148,6 +148,19 @@
                     @case ('AchievementUnlocked') {
                       <div class="small text-body-secondary">{{ beat.detail }}</div>
                     }
+                    @case ('NewRole') {
+                      <div class="small text-body-secondary">Career</div>
+                    }
+                    @default {
+                      @if (beat.kind.startsWith('Career')) {
+                        @if (beat.parentTitle) {
+                          <div class="small text-body-secondary">at {{ beat.parentTitle }}</div>
+                        }
+                        @if (beat.detail) {
+                          <p class="story-quote small mb-0">{{ beat.detail }}</p>
+                        }
+                      }
+                    }
                     @case ('JournalHighlight') {
                       @if (beat.detail) {
                         <p class="story-quote small mb-0">{{ beat.detail }}</p>

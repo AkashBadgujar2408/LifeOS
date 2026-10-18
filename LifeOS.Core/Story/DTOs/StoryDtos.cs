@@ -56,6 +56,14 @@ public static class StoryBeatKinds
     public const string JournalHighlight = "JournalHighlight";
     /// <summary>A journal day with photos (Session 42); its Mood is the day's, if any.</summary>
     public const string Memory = "Memory";
+    /// <summary>A role started (Session 52); ParentTitle is the organisation. Not shown when a promotion tells it.</summary>
+    public const string NewRole = "NewRole";
+    /// <summary>Career achievements: "Career" + the achievement's kind (CareerAchievements.Kind).</summary>
+    public const string CareerPromotion = "CareerPromotion";
+    public const string CareerProject = "CareerProject";
+    public const string CareerAward = "CareerAward";
+    public const string CareerContribution = "CareerContribution";
+    public const string CareerOther = "CareerOther";
     /// <summary>Not from the procedure: an achievement, on the day it was earned (Achievements.Evaluate).</summary>
     public const string AchievementUnlocked = "AchievementUnlocked";
 }

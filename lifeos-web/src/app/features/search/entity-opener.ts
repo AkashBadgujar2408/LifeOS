@@ -14,6 +14,10 @@ import { openCourseEditor } from '../learning/course-editor';
 import { openCertificationEditor } from '../learning/certification-editor';
 import { openNoteEditor } from '../learning/note-editor';
 import { LearningService } from '../../core/services/learning.service';
+import { CareerService } from '../../core/services/career.service';
+import { ContactsService } from '../../core/services/contacts.service';
+import { openAchievementEditor } from '../career/achievement-editor';
+import { openContactEditor } from '../contacts/contact-editor';
 import { apiErrorMessage } from '../../core/services/api-error';
 
 /**
@@ -33,9 +37,40 @@ export class EntityOpener {
   private readonly remindersService = inject(RemindersService);
   private readonly decisionsService = inject(DecisionsService);
   private readonly learningService = inject(LearningService);
+  private readonly careerService = inject(CareerService);
+  private readonly contactsService = inject(ContactsService);
 
   open(entityType: string, entityId: number): void {
     switch (entityType) {
+      case 'Employment':
+        void this.router.navigate(['/career']);
+        break;
+      case 'CareerAchievement':
+        this.careerService.achievement(entityId).subscribe({
+          next: async (achievement) => {
+            const result = await openAchievementEditor(this.modal, achievement);
+            if (result) {
+              this.remindersService.notifyChanged();
+              this.toast.success(
+                result.kind === 'saved' ? 'Achievement saved.' : 'Achievement deleted.',
+              );
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the achievement.')),
+        });
+        break;
+      case 'Contact':
+        this.contactsService.get(entityId).subscribe({
+          next: async (contact) => {
+            const result = await openContactEditor(this.modal, contact);
+            if (result) {
+              this.remindersService.notifyChanged();
+              this.toast.success(result.kind === 'saved' ? 'Contact saved.' : 'Contact deleted.');
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the contact.')),
+        });
+        break;
       case 'Decision':
         this.decisionsService.get(entityId).subscribe({
           next: async (decision) => {

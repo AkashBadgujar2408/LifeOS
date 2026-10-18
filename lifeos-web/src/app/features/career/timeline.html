@@ -1,0 +1,169 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+    <div>
+      <h1 class="h3 mb-1">Career</h1>
+      <p class="text-body-secondary mb-0 small">
+        Where you've worked, what you did there, and where you are now.
+      </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <button type="button" class="btn btn-outline-primary" (click)="editAchievement()">
+        <i class="bi bi-award"></i> Add achievement
+      </button>
+      <button type="button" class="btn btn-primary" (click)="editRole()">
+        <i class="bi bi-plus-lg"></i> Add role
+      </button>
+    </div>
+  </div>
+
+  @if (loadFailed() && !roles()) {
+    <app-load-error message="Couldn't load your career." (retry)="load()" />
+  } @else if (roles(); as roles) {
+    @if (roles.length === 0) {
+      <div class="card">
+        <div class="card-body p-4">
+          <h2 class="h5">Start with where you are</h2>
+          <p class="text-body-secondary mb-3">
+            Add your current role — then the ones before it. Promotions, pay and achievements hang
+            off them.
+          </p>
+          <button type="button" class="btn btn-primary" (click)="editRole()">
+            <i class="bi bi-plus-lg"></i> Add a role
+          </button>
+        </div>
+      </div>
+    } @else {
+      @for (role of current(); track role.id) {
+        <section class="card mb-4" [attr.aria-label]="'Now: ' + role.role">
+          <div class="card-body p-4 d-flex flex-wrap justify-content-between gap-3">
+            <div class="min-w-0">
+              <div class="small text-body-secondary text-uppercase fw-semibold mb-1">Now</div>
+              <h2 class="h4 mb-1 text-break">{{ role.role }}</h2>
+              <div class="text-body-secondary">
+                {{ role.organisation }} · since {{ role.startDate | date }} ·
+                {{ length(role.startDate, null) }}
+              </div>
+              @if (payFor(role); as pay) {
+                <div class="small mt-2">
+                  <a routerLink="/career/salary" class="link-body-emphasis">{{
+                    formatPay(pay.amount, pay.currency, pay.period)
+                  }}</a>
+                  <span class="text-body-secondary"> since {{ pay.effectiveOn | date }}</span>
+                </div>
+              }
+            </div>
+            <div class="d-flex flex-wrap align-items-start gap-2">
+              <button type="button" class="btn btn-sm btn-primary" (click)="promote(role)">
+                <i class="bi bi-arrow-up-circle"></i> Record a promotion
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                (click)="editRole(role)"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        </section>
+      }
+
+      <h2 class="h5 mb-3">Timeline</h2>
+      <ol class="list-unstyled d-flex flex-column gap-3 mb-4">
+        @for (stint of stints(); track stint.organisation + stint.startDate) {
+          <li class="card">
+            <div class="card-body">
+              <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                <h3 class="h6 mb-0 text-break">{{ stint.organisation }}</h3>
+                <span class="small text-body-secondary">
+                  {{ stint.startDate | date }} –
+                  {{ stint.endDate ? (stint.endDate | date) : 'now' }} ·
+                  {{ length(stint.startDate, stint.endDate) }}
+                </span>
+              </div>
+              <ol class="list-unstyled mb-0 d-flex flex-column gap-3 border-start ps-3">
+                @for (role of stint.roles; track role.id) {
+                  <li>
+                    <div class="d-flex flex-wrap justify-content-between gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-link p-0 fw-semibold text-start text-break link-body-emphasis text-decoration-none"
+                        (click)="editRole(role)"
+                      >
+                        {{ role.role }}
+                      </button>
+                      <span class="small text-body-secondary">
+                        {{ role.startDate | date }} –
+                        {{ role.endDate ? (role.endDate | date) : 'now' }}
+                      </span>
+                    </div>
+                    <div class="small text-body-secondary">
+                      {{ typeLabels[role.employmentType] }}
+                      @if (role.location) {
+                        · {{ role.location }}
+                      }
+                      · {{ length(role.startDate, role.endDate) }}
+                    </div>
+                    @if (role.description) {
+                      <p class="small mb-1 mt-1 text-break" style="white-space: pre-line">
+                        {{ role.description }}
+                      </p>
+                    }
+                    <ul class="list-unstyled small mb-0 mt-1 d-flex flex-column gap-1">
+                      @for (a of achievementsByRole().get(role.id) ?? []; track a.id) {
+                        <li>
+                          <button
+                            type="button"
+                            class="btn btn-link btn-sm p-0 text-start text-break"
+                            (click)="editAchievement(a)"
+                          >
+                            <i class="bi {{ kindIcons[a.kind] }}" aria-hidden="true"></i>
+                            {{ a.title }}
+                          </button>
+                          <span class="text-body-secondary"> · {{ a.achievedOn | date }}</span>
+                        </li>
+                      }
+                      <li>
+                        <button
+                          type="button"
+                          class="btn btn-link btn-sm p-0 text-body-secondary"
+                          (click)="editAchievement(undefined, role)"
+                        >
+                          + Achievement in this role
+                        </button>
+                      </li>
+                    </ul>
+                  </li>
+                }
+              </ol>
+            </div>
+          </li>
+        }
+      </ol>
+
+      @if (outsideRoles().length > 0) {
+        <section class="card" aria-labelledby="outside-heading">
+          <div class="card-body">
+            <h2 id="outside-heading" class="h6 mb-2">Outside a role</h2>
+            <ul class="list-unstyled small mb-0 d-flex flex-column gap-1">
+              @for (a of outsideRoles(); track a.id) {
+                <li>
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0 text-start text-break"
+                    (click)="editAchievement(a)"
+                  >
+                    <i class="bi {{ kindIcons[a.kind] }}" aria-hidden="true"></i> {{ a.title }}
+                  </button>
+                  <span class="text-body-secondary"> · {{ a.achievedOn | date }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        </section>
+      }
+    }
+  } @else {
+    <p class="text-body-secondary">Loading your career...</p>
+  }
+</div>

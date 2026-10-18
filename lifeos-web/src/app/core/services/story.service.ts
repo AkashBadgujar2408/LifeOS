@@ -43,7 +43,13 @@ export type StoryBeatKind =
   | 'HabitStarted'
   | 'JournalHighlight'
   | 'Memory'
-  | 'AchievementUnlocked';
+  | 'AchievementUnlocked'
+  | 'NewRole'
+  | 'CareerPromotion'
+  | 'CareerProject'
+  | 'CareerAward'
+  | 'CareerContribution'
+  | 'CareerOther';
 
 /** One thing that happened, on the user's local day (the API used their timezone). */
 export interface StoryBeat {
@@ -61,7 +67,7 @@ export interface StoryBeat {
   mood: Mood | null;
   fromDate: string | null;
   toDate: string | null;
-  entityType: 'Goal' | 'Habit' | 'JournalEntry' | null;
+  entityType: 'Goal' | 'Habit' | 'JournalEntry' | 'Employment' | 'CareerAchievement' | null;
   entityId: number | null;
   parentTitle: string | null;
 }

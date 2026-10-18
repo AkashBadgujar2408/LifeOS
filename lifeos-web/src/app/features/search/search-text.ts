@@ -47,6 +47,9 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   Roadmap: 'bi-signpost-split',
   Certification: 'bi-patch-check',
   KnowledgeNote: 'bi-lightbulb',
+  Contact: 'bi-person',
+  Employment: 'bi-briefcase',
+  CareerAchievement: 'bi-trophy',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -77,4 +80,7 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   Roadmap: 'Roadmaps',
   Certification: 'Certifications',
   KnowledgeNote: 'Notes',
+  Contact: 'Contacts',
+  Employment: 'Roles',
+  CareerAchievement: 'Career achievements',
 };

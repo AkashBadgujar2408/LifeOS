@@ -67,6 +67,19 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Career',
+    items: [
+      { label: 'Timeline', route: '/career', icon: 'bi-briefcase', exact: true, module: 'Career' },
+      { label: 'Salary', route: '/career/salary', icon: 'bi-cash-stack', module: 'Career' },
+      {
+        label: 'Achievements',
+        route: '/career/achievements',
+        icon: 'bi-trophy',
+        module: 'Career',
+      },
+    ],
+  },
+  {
     label: 'Wellbeing',
     items: [{ label: 'Journal', route: '/journal', icon: 'bi-journal-text', module: 'Journal' }],
   },

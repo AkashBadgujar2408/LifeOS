@@ -41,6 +41,23 @@ export function beatText(beat: StoryBeat): BeatText {
       return { icon: 'bi-arrow-repeat', tone: 'step', headline: `Started a habit: ${title}` };
     case 'AchievementUnlocked':
       return { icon: 'bi-award', tone: 'win', headline: `Achievement unlocked: ${title}` };
+    case 'NewRole':
+      return {
+        icon: 'bi-briefcase',
+        tone: 'step',
+        headline: `Started as ${title} at ${beat.parentTitle ?? 'a new place'}`,
+      };
+    case 'CareerPromotion':
+      return { icon: 'bi-arrow-up-circle', tone: 'win', headline: title };
+    case 'CareerProject':
+      // Achievement titles are written as sentences ("Shipped the payments rewrite"): the icon carries the kind.
+      return { icon: 'bi-rocket-takeoff', tone: 'win', headline: title };
+    case 'CareerAward':
+      return { icon: 'bi-award', tone: 'win', headline: title };
+    case 'CareerContribution':
+      return { icon: 'bi-people', tone: 'step', headline: title };
+    case 'CareerOther':
+      return { icon: 'bi-star', tone: 'step', headline: title };
     case 'Memory':
       return {
         icon: 'bi-camera',
@@ -77,6 +94,10 @@ export function beatLink(beat: StoryBeat): (string | number)[] | null {
       return ['/habits', beat.entityId];
     case 'JournalEntry':
       return ['/journal', beat.day];
+    case 'Employment':
+      return ['/career'];
+    case 'CareerAchievement':
+      return ['/career/achievements'];
     default:
       return null;
   }

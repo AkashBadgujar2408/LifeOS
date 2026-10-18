@@ -161,6 +161,22 @@ export const routes: Routes = [
           import('./features/learning/certifications').then((m) => m.Certifications),
       },
       {
+        path: 'career',
+        title: 'Career | LifeOS',
+        loadComponent: () => import('./features/career/timeline').then((m) => m.CareerTimeline),
+      },
+      {
+        path: 'career/salary',
+        title: 'Salary history | LifeOS',
+        loadComponent: () => import('./features/career/salary').then((m) => m.CareerSalary),
+      },
+      {
+        path: 'career/achievements',
+        title: 'Achievements | LifeOS',
+        loadComponent: () =>
+          import('./features/career/achievements').then((m) => m.CareerAchievements),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

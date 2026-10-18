@@ -12,6 +12,8 @@ using LifeOS.Core.Habits.ServiceContracts;
 using LifeOS.Core.Habits.Services;
 using LifeOS.Core.Journal.ServiceContracts;
 using LifeOS.Core.Journal.Services;
+using LifeOS.Core.Career.ServiceContracts;
+using LifeOS.Core.Career.Services;
 using LifeOS.Core.Learning.ServiceContracts;
 using LifeOS.Core.Learning.Services;
 using LifeOS.Core.Models;
@@ -97,6 +99,9 @@ try
     builder.Services.AddScoped<IVaultService, VaultService>();
     builder.Services.AddScoped<IAttachmentsService, AttachmentsService>();
     builder.Services.AddScoped<IContactsService, ContactsService>();
+    builder.Services.AddScoped<IEmploymentsService, EmploymentsService>();
+    builder.Services.AddScoped<ISalaryRecordsService, SalaryRecordsService>();
+    builder.Services.AddScoped<ICareerAchievementsService, CareerAchievementsService>();
     builder.Services.AddRecoveryRateLimit();
 
     // Files (document files, attachments) live on disk outside any web root, one folder per user (IFileStore).
@@ -132,6 +137,8 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, CertificationLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, KnowledgeNoteLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, ContactLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, EmploymentLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, CareerAchievementLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

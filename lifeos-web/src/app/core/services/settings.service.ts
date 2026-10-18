@@ -15,7 +15,8 @@ export type ModuleKey =
   | 'Journal'
   | 'Story'
   | 'Documents'
-  | 'Learning';
+  | 'Learning'
+  | 'Career';
 
 export interface ModuleInfo {
   key: ModuleKey;
@@ -36,6 +37,11 @@ export const MODULES: ModuleInfo[] = [
     key: 'Learning',
     label: 'Learning',
     hides: 'Skills, Courses, Reading, Roadmaps, Study, Notes and Certifications',
+  },
+  {
+    key: 'Career',
+    label: 'Career',
+    hides: 'the career timeline, salary history and achievements',
   },
   {
     key: 'Documents',

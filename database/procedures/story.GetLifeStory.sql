@@ -20,6 +20,11 @@ GO
 --   Memory           a journal day with photos attached (Session 42); carries the day's mood, so a great day with
 --                    photos is one Memory beat rather than a highlight and a memory. The client shows the photos
 --                    (attachments of that JournalEntry).
+--   NewRole          a role started (Employments.StartDate, Session 52), organisation as ParentTitle — left out when
+--                    a Promotion achievement of that role on that day already tells it
+--   CareerPromotion / CareerProject / CareerAward / CareerContribution / CareerOther
+--                    a career achievement ('Career' + its Kind) on its day, the description's start as Detail and the
+--                    role's organisation as ParentTitle. Depends on 11_career.sql.
 --
 -- Moments come back as UTC (OccurredAt); calendar days as DATE (OccurredOn). Exactly one is set per row. Turning a
 -- moment into the user's local day needs their timezone, which only the caller has — StoryService does it.
@@ -149,6 +154,28 @@ BEGIN
       AND je.IsDeleted = 0
       AND EXISTS (SELECT 1 FROM shared.Attachments a
                   WHERE a.UserId = @UserId AND a.IsDeleted = 0 AND a.EntityType = N'JournalEntry'
-                    AND a.EntityId = je.Id AND a.ContentType IN (N'image/jpeg', N'image/png', N'image/gif', N'image/webp'));
+                    AND a.EntityId = je.Id AND a.ContentType IN (N'image/jpeg', N'image/png', N'image/gif', N'image/webp'))
+
+    UNION ALL
+
+    SELECT
+        N'NewRole', e.StartDate, NULL, e.Role, NULL, NULL, NULL,
+        NULL, N'Career', NULL, NULL, NULL, N'Employment', e.Id, e.Organisation
+    FROM career.Employments e
+    WHERE e.UserId = @UserId
+      AND e.IsDeleted = 0
+      AND NOT EXISTS (SELECT 1 FROM career.CareerAchievements p
+                      WHERE p.UserId = @UserId AND p.IsDeleted = 0 AND p.Kind = N'Promotion'
+                        AND p.EmploymentId = e.Id AND p.AchievedOn = e.StartDate)
+
+    UNION ALL
+
+    SELECT
+        N'Career' + ca.Kind, ca.AchievedOn, NULL, ca.Title, LEFT(ca.Description, 280), NULL, NULL,
+        NULL, N'Career', NULL, NULL, NULL, N'CareerAchievement', ca.Id, e.Organisation
+    FROM career.CareerAchievements ca
+    LEFT JOIN career.Employments e ON e.Id = ca.EmploymentId AND e.UserId = @UserId AND e.IsDeleted = 0
+    WHERE ca.UserId = @UserId
+      AND ca.IsDeleted = 0;
 END
 GO
