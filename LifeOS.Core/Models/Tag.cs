@@ -19,6 +19,8 @@ public partial class Tag
 
     public DateTime? DeletedAt { get; set; }
 
+    public virtual ICollection<BookTag> BookTags { get; set; } = new List<BookTag>();
+
     public virtual ICollection<DocumentTag> DocumentTags { get; set; } = new List<DocumentTag>();
 
     public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
@@ -26,6 +28,10 @@ public partial class Tag
     public virtual ICollection<HabitTag> HabitTags { get; set; } = new List<HabitTag>();
 
     public virtual ICollection<JournalEntryTag> JournalEntryTags { get; set; } = new List<JournalEntryTag>();
+
+    public virtual ICollection<KnowledgeNoteTag> KnowledgeNoteTags { get; set; } = new List<KnowledgeNoteTag>();
+
+    public virtual ICollection<SkillTag> SkillTags { get; set; } = new List<SkillTag>();
 
     public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();
 

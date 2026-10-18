@@ -88,3 +88,29 @@ public partial class FocusSession : ISoftDeletable, IUserOwned;
 public partial class KpiTile : ISoftDeletable, IUserOwned;
 
 public partial class DismissedInsight : ISoftDeletable, IUserOwned;
+
+public partial class Skill : ISoftDeletable, IUserOwned;
+
+public partial class SkillLevelChange : ISoftDeletable, IUserOwned;
+
+public partial class SkillTag : ISoftDeletable, IUserOwned;
+
+public partial class Course : ISoftDeletable, IUserOwned;
+
+public partial class Book : ISoftDeletable, IUserOwned;
+
+public partial class BookTag : ISoftDeletable, IUserOwned;
+
+public partial class BookNote : ISoftDeletable, IUserOwned;
+
+public partial class Certification : ISoftDeletable, IUserOwned;
+
+public partial class StudySession : ISoftDeletable, IUserOwned;
+
+public partial class Roadmap : ISoftDeletable, IUserOwned;
+
+public partial class RoadmapStep : ISoftDeletable, IUserOwned;
+
+public partial class KnowledgeNote : ISoftDeletable, IUserOwned;
+
+public partial class KnowledgeNoteTag : ISoftDeletable, IUserOwned;

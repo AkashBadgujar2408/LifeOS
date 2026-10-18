@@ -829,3 +829,9 @@
 - UAT test data: `kpiuser1` (Kolkata; vision; "Visit Japan" with 3 of 3 milestones done, one removed; tasks done this week/last week, 4 overdue; focus sessions; "Stretch" daily since 10 Oct, missed the 13th; journal 15 + 17 Oct and 10 Sep; tiles Habit consistency, Tasks done, Days journaled, Focus time), `kpiuser2` (empty).
 
 - Next up: **Session 47 — Education 1: schema** (plan, Section 7).
+
+## Last session: 2026-10-18 — Session 47 — Education 1: schema
+- Shipped: `database/schema/10_learning.sql` (schema `learning`, 13 tables — Skills, SkillLevelChanges, SkillTags, Courses, Books, BookTags, BookNotes, Certifications, StudySessions, Roadmaps, RoadmapSteps, KnowledgeNotes, KnowledgeNoteTags; see the plan row for every CHECK); scaffolded; `ISoftDeletable, IUserOwned` partials for all 13. UAT backed up first (`LifeOS_UAT_pre47.bak`).
+- Verified: 37 constraint violations refused in SQL (script in a rolled-back transaction, nothing left behind), valid edge rows accepted, script re-runnable; fresh DB scaffolds identically (only the known `User.Username` position); `dotnet build` 0 warnings; 261 backend tests.
+- Decisions (mine — say if you want them changed): course statuses Planned / InProgress / Completed / Dropped; a Completed course is always 100%; ratings only once a book is finished or abandoned; a study session must be about something (a topic, or a skill/course/book); a roadmap step points at no more than one course, book or goal; review intervals live in C# (Session 49), the table only keeps the stage and the next day; skills, books and knowledge notes take tags (courses don't — their skill groups them).
+- Next up: **Session 48 — Education 2: skills, courses, books** (plan, Section 7).

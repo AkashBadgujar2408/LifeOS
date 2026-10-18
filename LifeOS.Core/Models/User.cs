@@ -31,7 +31,17 @@ public partial class User
 
     public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
 
+    public virtual ICollection<BookNote> BookNotes { get; set; } = new List<BookNote>();
+
+    public virtual ICollection<BookTag> BookTags { get; set; } = new List<BookTag>();
+
+    public virtual ICollection<Book> Books { get; set; } = new List<Book>();
+
+    public virtual ICollection<Certification> Certifications { get; set; } = new List<Certification>();
+
     public virtual Chapter? Chapter { get; set; }
+
+    public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
 
     public virtual ICollection<Decision> Decisions { get; set; } = new List<Decision>();
 
@@ -75,6 +85,10 @@ public partial class User
 
     public virtual ICollection<JournalNote> JournalNotes { get; set; } = new List<JournalNote>();
 
+    public virtual ICollection<KnowledgeNoteTag> KnowledgeNoteTags { get; set; } = new List<KnowledgeNoteTag>();
+
+    public virtual ICollection<KnowledgeNote> KnowledgeNotes { get; set; } = new List<KnowledgeNote>();
+
     public virtual ICollection<KpiTile> KpiTiles { get; set; } = new List<KpiTile>();
 
     public virtual ICollection<LifeAreaRating> LifeAreaRatings { get; set; } = new List<LifeAreaRating>();
@@ -91,9 +105,21 @@ public partial class User
 
     public virtual ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
 
+    public virtual ICollection<RoadmapStep> RoadmapSteps { get; set; } = new List<RoadmapStep>();
+
+    public virtual ICollection<Roadmap> Roadmaps { get; set; } = new List<Roadmap>();
+
     public virtual ICollection<RoutineHabit> RoutineHabits { get; set; } = new List<RoutineHabit>();
 
     public virtual ICollection<Routine> Routines { get; set; } = new List<Routine>();
+
+    public virtual ICollection<SkillLevelChange> SkillLevelChanges { get; set; } = new List<SkillLevelChange>();
+
+    public virtual ICollection<SkillTag> SkillTags { get; set; } = new List<SkillTag>();
+
+    public virtual ICollection<Skill> Skills { get; set; } = new List<Skill>();
+
+    public virtual ICollection<StudySession> StudySessions { get; set; } = new List<StudySession>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
 

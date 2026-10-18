@@ -13,7 +13,17 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Attachment> Attachments { get; set; }
 
+    public virtual DbSet<Book> Books { get; set; }
+
+    public virtual DbSet<BookNote> BookNotes { get; set; }
+
+    public virtual DbSet<BookTag> BookTags { get; set; }
+
+    public virtual DbSet<Certification> Certifications { get; set; }
+
     public virtual DbSet<Chapter> Chapters { get; set; }
+
+    public virtual DbSet<Course> Courses { get; set; }
 
     public virtual DbSet<Decision> Decisions { get; set; }
 
@@ -57,6 +67,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<JournalNote> JournalNotes { get; set; }
 
+    public virtual DbSet<KnowledgeNote> KnowledgeNotes { get; set; }
+
+    public virtual DbSet<KnowledgeNoteTag> KnowledgeNoteTags { get; set; }
+
     public virtual DbSet<KpiTile> KpiTiles { get; set; }
 
     public virtual DbSet<LifeArea> LifeAreas { get; set; }
@@ -75,9 +89,21 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Reminder> Reminders { get; set; }
 
+    public virtual DbSet<Roadmap> Roadmaps { get; set; }
+
+    public virtual DbSet<RoadmapStep> RoadmapSteps { get; set; }
+
     public virtual DbSet<Routine> Routines { get; set; }
 
     public virtual DbSet<RoutineHabit> RoutineHabits { get; set; }
+
+    public virtual DbSet<Skill> Skills { get; set; }
+
+    public virtual DbSet<SkillLevelChange> SkillLevelChanges { get; set; }
+
+    public virtual DbSet<SkillTag> SkillTags { get; set; }
+
+    public virtual DbSet<StudySession> StudySessions { get; set; }
 
     public virtual DbSet<Tag> Tags { get; set; }
 
@@ -123,6 +149,110 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_Attachments_Users");
         });
 
+        modelBuilder.Entity<Book>(entity =>
+        {
+            entity.ToTable("Books", "learning");
+
+            entity.HasIndex(e => new { e.UserId, e.Status }, "IX_Books_User_Status").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Author).HasMaxLength(200);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Books_CreatedAt");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("WantToRead", "DF_Books_Status");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.Books)
+                .HasForeignKey(d => d.LifeAreaId)
+                .HasConstraintName("FK_Books_LifeAreas");
+
+            entity.HasOne(d => d.Skill).WithMany(p => p.Books)
+                .HasForeignKey(d => d.SkillId)
+                .HasConstraintName("FK_Books_Skills");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Books)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Books_Users");
+        });
+
+        modelBuilder.Entity<BookNote>(entity =>
+        {
+            entity.ToTable("BookNotes", "learning");
+
+            entity.HasIndex(e => new { e.BookId, e.Page }, "IX_BookNotes_Book").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_BookNotes_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Text).HasMaxLength(4000);
+
+            entity.HasOne(d => d.Book).WithMany(p => p.BookNotes)
+                .HasForeignKey(d => d.BookId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BookNotes_Books");
+
+            entity.HasOne(d => d.User).WithMany(p => p.BookNotes)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BookNotes_Users");
+        });
+
+        modelBuilder.Entity<BookTag>(entity =>
+        {
+            entity.ToTable("BookTags", "learning");
+
+            entity.HasIndex(e => new { e.BookId, e.TagId }, "UX_BookTags_Book_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_BookTags_CreatedAt");
+
+            entity.HasOne(d => d.Book).WithMany(p => p.BookTags)
+                .HasForeignKey(d => d.BookId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BookTags_Books");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.BookTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BookTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.BookTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BookTags_Users");
+        });
+
+        modelBuilder.Entity<Certification>(entity =>
+        {
+            entity.ToTable("Certifications", "learning");
+
+            entity.HasIndex(e => new { e.UserId, e.ExpiresOn }, "IX_Certifications_User_ExpiresOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Certifications_CreatedAt");
+            entity.Property(e => e.CredentialId).HasMaxLength(100);
+            entity.Property(e => e.Issuer).HasMaxLength(200);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Url).HasMaxLength(500);
+
+            entity.HasOne(d => d.Course).WithMany(p => p.Certifications)
+                .HasForeignKey(d => d.CourseId)
+                .HasConstraintName("FK_Certifications_Courses");
+
+            entity.HasOne(d => d.RenewalReminder).WithMany(p => p.Certifications)
+                .HasForeignKey(d => d.RenewalReminderId)
+                .HasConstraintName("FK_Certifications_Reminders");
+
+            entity.HasOne(d => d.Skill).WithMany(p => p.Certifications)
+                .HasForeignKey(d => d.SkillId)
+                .HasConstraintName("FK_Certifications_Skills");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Certifications)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Certifications_Users");
+        });
+
         modelBuilder.Entity<Chapter>(entity =>
         {
             entity.ToTable("Chapters", "story");
@@ -142,6 +272,34 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey<Chapter>(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Chapters_Users");
+        });
+
+        modelBuilder.Entity<Course>(entity =>
+        {
+            entity.ToTable("Courses", "learning");
+
+            entity.HasIndex(e => new { e.UserId, e.Status }, "IX_Courses_User_Status").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Courses_CreatedAt");
+            entity.Property(e => e.Provider).HasMaxLength(200);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Planned", "DF_Courses_Status");
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Url).HasMaxLength(500);
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.Courses)
+                .HasForeignKey(d => d.LifeAreaId)
+                .HasConstraintName("FK_Courses_LifeAreas");
+
+            entity.HasOne(d => d.Skill).WithMany(p => p.Courses)
+                .HasForeignKey(d => d.SkillId)
+                .HasConstraintName("FK_Courses_Skills");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Courses)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Courses_Users");
         });
 
         modelBuilder.Entity<Decision>(entity =>
@@ -637,6 +795,51 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_JournalNotes_Users");
         });
 
+        modelBuilder.Entity<KnowledgeNote>(entity =>
+        {
+            entity.ToTable("KnowledgeNotes", "learning");
+
+            entity.HasIndex(e => new { e.UserId, e.NextReviewOn }, "IX_KnowledgeNotes_User_NextReview").HasFilter("([IsDeleted]=(0) AND [NextReviewOn] IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_KnowledgeNotes_CreatedAt");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Skill).WithMany(p => p.KnowledgeNotes)
+                .HasForeignKey(d => d.SkillId)
+                .HasConstraintName("FK_KnowledgeNotes_Skills");
+
+            entity.HasOne(d => d.User).WithMany(p => p.KnowledgeNotes)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_KnowledgeNotes_Users");
+        });
+
+        modelBuilder.Entity<KnowledgeNoteTag>(entity =>
+        {
+            entity.ToTable("KnowledgeNoteTags", "learning");
+
+            entity.HasIndex(e => new { e.KnowledgeNoteId, e.TagId }, "UX_KnowledgeNoteTags_Note_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_KnowledgeNoteTags_CreatedAt");
+
+            entity.HasOne(d => d.KnowledgeNote).WithMany(p => p.KnowledgeNoteTags)
+                .HasForeignKey(d => d.KnowledgeNoteId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_KnowledgeNoteTags_KnowledgeNotes");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.KnowledgeNoteTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_KnowledgeNoteTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.KnowledgeNoteTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_KnowledgeNoteTags_Users");
+        });
+
         modelBuilder.Entity<KpiTile>(entity =>
         {
             entity.ToTable("KpiTiles", "dashboard");
@@ -817,6 +1020,59 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_Reminders_Users");
         });
 
+        modelBuilder.Entity<Roadmap>(entity =>
+        {
+            entity.ToTable("Roadmaps", "learning");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Roadmaps_CreatedAt");
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Active", "DF_Roadmaps_Status");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Goal).WithMany(p => p.Roadmaps)
+                .HasForeignKey(d => d.GoalId)
+                .HasConstraintName("FK_Roadmaps_Goals");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Roadmaps)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Roadmaps_Users");
+        });
+
+        modelBuilder.Entity<RoadmapStep>(entity =>
+        {
+            entity.ToTable("RoadmapSteps", "learning");
+
+            entity.HasIndex(e => new { e.RoadmapId, e.SortOrder }, "IX_RoadmapSteps_Roadmap").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_RoadmapSteps_CreatedAt");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Book).WithMany(p => p.RoadmapSteps)
+                .HasForeignKey(d => d.BookId)
+                .HasConstraintName("FK_RoadmapSteps_Books");
+
+            entity.HasOne(d => d.Course).WithMany(p => p.RoadmapSteps)
+                .HasForeignKey(d => d.CourseId)
+                .HasConstraintName("FK_RoadmapSteps_Courses");
+
+            entity.HasOne(d => d.Goal).WithMany(p => p.RoadmapSteps)
+                .HasForeignKey(d => d.GoalId)
+                .HasConstraintName("FK_RoadmapSteps_Goals");
+
+            entity.HasOne(d => d.Roadmap).WithMany(p => p.RoadmapSteps)
+                .HasForeignKey(d => d.RoadmapId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RoadmapSteps_Roadmaps");
+
+            entity.HasOne(d => d.User).WithMany(p => p.RoadmapSteps)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RoadmapSteps_Users");
+        });
+
         modelBuilder.Entity<Routine>(entity =>
         {
             entity.ToTable("Routines", "habits");
@@ -860,6 +1116,102 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RoutineHabits_Users");
+        });
+
+        modelBuilder.Entity<Skill>(entity =>
+        {
+            entity.ToTable("Skills", "learning");
+
+            entity.HasIndex(e => new { e.UserId, e.Name }, "UX_Skills_User_Name")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Skills_CreatedAt");
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Name).HasMaxLength(200);
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.Skills)
+                .HasForeignKey(d => d.LifeAreaId)
+                .HasConstraintName("FK_Skills_LifeAreas");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Skills)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Skills_Users");
+        });
+
+        modelBuilder.Entity<SkillLevelChange>(entity =>
+        {
+            entity.ToTable("SkillLevelChanges", "learning");
+
+            entity.HasIndex(e => new { e.SkillId, e.ChangedOn }, "IX_SkillLevelChanges_Skill").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_SkillLevelChanges_CreatedAt");
+            entity.Property(e => e.Note).HasMaxLength(1000);
+
+            entity.HasOne(d => d.Skill).WithMany(p => p.SkillLevelChanges)
+                .HasForeignKey(d => d.SkillId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SkillLevelChanges_Skills");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SkillLevelChanges)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SkillLevelChanges_Users");
+        });
+
+        modelBuilder.Entity<SkillTag>(entity =>
+        {
+            entity.ToTable("SkillTags", "learning");
+
+            entity.HasIndex(e => new { e.SkillId, e.TagId }, "UX_SkillTags_Skill_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_SkillTags_CreatedAt");
+
+            entity.HasOne(d => d.Skill).WithMany(p => p.SkillTags)
+                .HasForeignKey(d => d.SkillId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SkillTags_Skills");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.SkillTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SkillTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SkillTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SkillTags_Users");
+        });
+
+        modelBuilder.Entity<StudySession>(entity =>
+        {
+            entity.ToTable("StudySessions", "learning");
+
+            entity.HasIndex(e => new { e.UserId, e.StudiedOn }, "IX_StudySessions_User_Day").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_StudySessions_CreatedAt");
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Topic).HasMaxLength(200);
+
+            entity.HasOne(d => d.Book).WithMany(p => p.StudySessions)
+                .HasForeignKey(d => d.BookId)
+                .HasConstraintName("FK_StudySessions_Books");
+
+            entity.HasOne(d => d.Course).WithMany(p => p.StudySessions)
+                .HasForeignKey(d => d.CourseId)
+                .HasConstraintName("FK_StudySessions_Courses");
+
+            entity.HasOne(d => d.Skill).WithMany(p => p.StudySessions)
+                .HasForeignKey(d => d.SkillId)
+                .HasConstraintName("FK_StudySessions_Skills");
+
+            entity.HasOne(d => d.User).WithMany(p => p.StudySessions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_StudySessions_Users");
         });
 
         modelBuilder.Entity<Tag>(entity =>

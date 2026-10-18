@@ -45,5 +45,9 @@ public partial class Goal
 
     public virtual ICollection<MissionPrerequisite> MissionPrerequisiteRequiresGoals { get; set; } = new List<MissionPrerequisite>();
 
+    public virtual ICollection<RoadmapStep> RoadmapSteps { get; set; } = new List<RoadmapStep>();
+
+    public virtual ICollection<Roadmap> Roadmaps { get; set; } = new List<Roadmap>();
+
     public virtual User User { get; set; } = null!;
 }
