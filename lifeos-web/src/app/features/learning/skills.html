@@ -1,0 +1,105 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+    <div>
+      <h1 class="h3 mb-1">Skills</h1>
+      <p class="text-body-secondary mb-0 small">
+        What you know, how well, and where you're taking it. Every change of level is kept.
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="add()">
+      <i class="bi bi-plus-lg"></i> New skill
+    </button>
+  </div>
+
+  @if (tags().length > 0) {
+    <div class="d-flex flex-wrap gap-1 mb-3" role="group" aria-label="Filter by tag">
+      <button
+        type="button"
+        class="btn btn-sm"
+        [class.btn-primary]="tagFilter() === null"
+        [class.btn-outline-secondary]="tagFilter() !== null"
+        (click)="tagFilter.set(null)"
+      >
+        All
+      </button>
+      @for (tag of tags(); track tag.id) {
+        <button
+          type="button"
+          class="btn btn-sm"
+          [class.btn-primary]="tagFilter() === tag.id"
+          [class.btn-outline-secondary]="tagFilter() !== tag.id"
+          (click)="tagFilter.set(tag.id)"
+        >
+          {{ tag.name }}
+        </button>
+      }
+    </div>
+  }
+
+  @if (loadFailed() && !skills()) {
+    <app-load-error message="Couldn't load your skills." (retry)="load()" />
+  } @else if (skills(); as skills) {
+    @if (skills.length === 0) {
+      <section class="card">
+        <div class="card-body p-4">
+          <h2 class="h5">No skills yet</h2>
+          <p class="text-body-secondary">
+            Start with one you're working on — a language, a framework, cooking. Say honestly where
+            you are (1 is fine), and set where you want to get.
+          </p>
+          <button type="button" class="btn btn-outline-primary" (click)="add()">
+            <i class="bi bi-plus-lg"></i> Add a skill
+          </button>
+        </div>
+      </section>
+    }
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+      @for (skill of shown(); track skill.id) {
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-body d-flex flex-column gap-2">
+              <a
+                [routerLink]="['/learning/skills', skill.id]"
+                class="stretched-link link-body-emphasis text-decoration-none fw-semibold text-break"
+              >
+                {{ skill.name }}
+              </a>
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <app-skill-level
+                  [proficiency]="skill.proficiency"
+                  [target]="skill.targetProficiency"
+                />
+                <span class="small text-body-secondary">{{ levelLabels[skill.proficiency] }}</span>
+              </div>
+              <div class="small text-body-secondary mt-auto">
+                @if (targetText(skill); as target) {
+                  {{ target }} ·
+                }
+                @if (skill.levelSince) {
+                  since {{ skill.levelSince | date }}
+                }
+                @if (skill.courseCount + skill.bookCount > 0) {
+                  · {{ skill.courseCount }} {{ skill.courseCount === 1 ? 'course' : 'courses' }},
+                  {{ skill.bookCount }} {{ skill.bookCount === 1 ? 'book' : 'books' }}
+                }
+              </div>
+              @if (skill.tags.length > 0) {
+                <div class="d-flex flex-wrap gap-1">
+                  @for (tag of skill.tags; track tag.id) {
+                    <span class="badge text-bg-light border fw-normal">{{ tag.name }}</span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      } @empty {
+        @if (skills.length > 0) {
+          <p class="text-body-secondary">No skills with that tag.</p>
+        }
+      }
+    </div>
+  } @else {
+    <p class="text-body-secondary">Loading skills...</p>
+  }
+</div>

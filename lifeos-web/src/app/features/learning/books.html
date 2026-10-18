@@ -1,0 +1,93 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+    <div>
+      <h1 class="h3 mb-1">Reading</h1>
+      <p class="text-body-secondary mb-0 small">
+        @if (finishedThisYear() > 0) {
+          {{ finishedThisYear() }} {{ finishedThisYear() === 1 ? 'book' : 'books' }} finished this
+          year.
+        }
+        Keep your place, and keep what each book left you.
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="add()">
+      <i class="bi bi-plus-lg"></i> Add a book
+    </button>
+  </div>
+
+  @if (loadFailed() && !books()) {
+    <app-load-error message="Couldn't load your reading list." (retry)="load()" />
+  } @else if (books(); as books) {
+    @if (books.length === 0) {
+      <section class="card">
+        <div class="card-body p-4">
+          <h2 class="h5">Your reading list is empty</h2>
+          <p class="text-body-secondary">
+            Add the book on your nightstand, or the ones you keep meaning to read. Notes and
+            highlights live with each book.
+          </p>
+          <button type="button" class="btn btn-outline-primary" (click)="add()">
+            <i class="bi bi-plus-lg"></i> Add a book
+          </button>
+        </div>
+      </section>
+    }
+    @for (group of groups(); track group.status) {
+      <section class="mb-4" [attr.aria-labelledby]="'books-' + group.status">
+        <h2 [id]="'books-' + group.status" class="h6 text-uppercase text-body-secondary small mb-2">
+          {{ statusLabels[group.status] }} · {{ group.items.length }}
+        </h2>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+          @for (book of group.items; track book.id) {
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-body d-flex flex-column gap-1">
+                  <a
+                    [routerLink]="['/learning/books', book.id]"
+                    class="stretched-link link-body-emphasis text-decoration-none fw-semibold text-break"
+                  >
+                    {{ book.title }}
+                  </a>
+                  @if (book.author) {
+                    <div class="small text-body-secondary text-break">{{ book.author }}</div>
+                  }
+                  @if (book.status === 'Reading' && book.progressPercent !== null) {
+                    <div
+                      class="progress mt-2"
+                      style="height: 0.4rem"
+                      role="progressbar"
+                      [attr.aria-label]="book.title + ' progress'"
+                      [attr.aria-valuenow]="book.progressPercent"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    >
+                      <div class="progress-bar" [style.width.%]="book.progressPercent"></div>
+                    </div>
+                  }
+                  <div class="small text-body-secondary mt-auto pt-1">
+                    @if (book.status === 'Finished' && book.finishedOn) {
+                      Finished {{ book.finishedOn | date }}
+                      @if (book.rating) {
+                        ·
+                        <span class="text-nowrap" [attr.aria-label]="book.rating + ' of 5 stars'">{{
+                          stars(book.rating)
+                        }}</span>
+                      }
+                    } @else if (pagesText(book); as pages) {
+                      {{ pages }}
+                    }
+                    @if (book.noteCount > 0) {
+                      · {{ book.noteCount }} {{ book.noteCount === 1 ? 'note' : 'notes' }}
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  } @else {
+    <p class="text-body-secondary">Loading your reading list...</p>
+  }
+</div>

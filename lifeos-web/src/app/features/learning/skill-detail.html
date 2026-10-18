@@ -1,0 +1,168 @@
+<div class="container py-4">
+  <a routerLink="/learning/skills" class="small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Skills
+  </a>
+
+  @if (loadFailed() && !skill()) {
+    <app-load-error message="Couldn't load this skill." (retry)="load()" />
+  } @else if (skill(); as skill) {
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-4">
+      <div class="min-w-0">
+        <div class="small text-body-secondary mb-1">
+          Skill
+          @if (skill.lifeAreaName) {
+            · {{ skill.lifeAreaName }}
+          }
+        </div>
+        <h1 class="h3 mb-2 text-break">{{ skill.name }}</h1>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <app-skill-level [proficiency]="skill.proficiency" [target]="skill.targetProficiency" />
+          <span class="text-body-secondary">
+            {{ skill.proficiency }} · {{ levelLabels[skill.proficiency] }}
+            @if (targetText(skill); as target) {
+              · {{ target }}
+            }
+          </span>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="edit(skill)">
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" (click)="remove(skill)">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-8 d-flex flex-column gap-3">
+        @if (skill.description) {
+          <div class="card">
+            <div class="card-body text-break" style="white-space: pre-line">
+              {{ skill.description }}
+            </div>
+          </div>
+        }
+
+        <section class="card" aria-labelledby="skill-history-heading">
+          <div class="card-body">
+            <h2 id="skill-history-heading" class="h6 mb-3">How it grew</h2>
+            <ol class="list-unstyled mb-0 d-flex flex-column gap-3">
+              @for (change of skill.history; track change.id) {
+                <li class="d-flex gap-3">
+                  <i
+                    class="bi fs-5 lh-1"
+                    [class.bi-flag]="change.fromProficiency === null"
+                    [class.bi-arrow-up-circle]="
+                      change.fromProficiency !== null &&
+                      change.toProficiency > change.fromProficiency
+                    "
+                    [class.bi-arrow-down-circle]="
+                      change.fromProficiency !== null &&
+                      change.toProficiency < change.fromProficiency
+                    "
+                    aria-hidden="true"
+                  ></i>
+                  <div class="min-w-0">
+                    <div>
+                      <span class="fw-semibold">{{ levelChangeText(change) }}</span>
+                      <span class="text-body-secondary small">
+                        · {{ change.changedOn | date }}</span
+                      >
+                    </div>
+                    @if (change.note) {
+                      <div class="small text-body-secondary text-break">{{ change.note }}</div>
+                    }
+                  </div>
+                </li>
+              }
+            </ol>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="skill-courses-heading">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <h2 id="skill-courses-heading" class="h6 mb-0">Courses</h2>
+              <button type="button" class="btn btn-link btn-sm p-0" (click)="addCourse(skill)">
+                <i class="bi bi-plus-lg"></i> Add a course
+              </button>
+            </div>
+            <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+              @for (course of skill.courses; track course.id) {
+                <li class="d-flex justify-content-between gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-link p-0 text-start text-break"
+                    (click)="openCourse(course)"
+                  >
+                    {{ course.title }}
+                  </button>
+                  <span class="small text-body-secondary flex-shrink-0">{{
+                    courseStatus(course)
+                  }}</span>
+                </li>
+              } @empty {
+                <li class="small text-body-secondary">No course for this skill yet.</li>
+              }
+            </ul>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="skill-books-heading">
+          <div class="card-body">
+            <h2 id="skill-books-heading" class="h6 mb-2">Books</h2>
+            <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+              @for (book of skill.books; track book.id) {
+                <li class="d-flex justify-content-between gap-2">
+                  <a [routerLink]="['/learning/books', book.id]" class="text-break">{{
+                    book.title
+                  }}</a>
+                  <span class="small text-body-secondary flex-shrink-0">{{
+                    bookStatus(book)
+                  }}</span>
+                </li>
+              } @empty {
+                <li class="small text-body-secondary">
+                  No book for this skill yet. Pick this skill when you add one to your reading list.
+                </li>
+              }
+            </ul>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-lg-4 d-flex flex-column gap-3">
+        @if (skill.tags.length > 0) {
+          <div class="card">
+            <div class="card-body">
+              <h2 class="h6 mb-2">Tags</h2>
+              <div class="d-flex flex-wrap gap-1">
+                @for (tag of skill.tags; track tag.id) {
+                  <span class="badge text-bg-light border fw-normal">{{ tag.name }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        }
+        <div class="card">
+          <div class="card-body">
+            <app-linked-items [entityType]="skillEntityType" [entityId]="skill.id" />
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <app-entity-reminders
+              entityType="Skill"
+              [entityId]="skill.id"
+              [entityTitle]="skill.name"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <p class="text-body-secondary">Loading...</p>
+  }
+</div>

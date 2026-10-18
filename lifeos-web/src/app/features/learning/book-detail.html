@@ -1,0 +1,278 @@
+<div class="container py-4">
+  <a routerLink="/learning/books" class="small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Reading
+  </a>
+
+  @if (loadFailed() && !book()) {
+    <app-load-error message="Couldn't load this book." (retry)="load()" />
+  } @else if (book(); as book) {
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-4">
+      <div class="min-w-0">
+        <div class="small text-body-secondary mb-1">
+          {{ statusLabels[book.status] }}
+          @if (book.skillName) {
+            · <a [routerLink]="['/learning/skills', book.skillId]">{{ book.skillName }}</a>
+          }
+        </div>
+        <h1 class="h3 mb-0 text-break">{{ book.title }}</h1>
+        @if (book.author) {
+          <div class="text-body-secondary">{{ book.author }}</div>
+        }
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="edit(book)">
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" (click)="remove(book)">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-8 d-flex flex-column gap-3">
+        <section class="card" aria-labelledby="book-progress-heading">
+          <div class="card-body">
+            <h2 id="book-progress-heading" class="h6 mb-2">Where you are</h2>
+            @if (book.progressPercent !== null) {
+              <div
+                class="progress mb-1"
+                style="height: 0.5rem"
+                role="progressbar"
+                [attr.aria-label]="book.title + ' progress'"
+                [attr.aria-valuenow]="book.progressPercent"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <div class="progress-bar" [style.width.%]="book.progressPercent"></div>
+              </div>
+            }
+            <div class="small text-body-secondary mb-3">
+              @if (pagesText(book); as pages) {
+                {{ pages }}
+              }
+              @if (book.progressPercent !== null) {
+                · {{ book.progressPercent }}%
+              }
+              @if (book.startedOn) {
+                · started {{ book.startedOn | date }}
+              }
+              @if (book.finishedOn) {
+                · finished {{ book.finishedOn | date }}
+              }
+            </div>
+            <form
+              [formGroup]="pageForm"
+              (ngSubmit)="savePage(book)"
+              class="d-flex flex-wrap align-items-start gap-2"
+              novalidate
+            >
+              <div>
+                <label class="visually-hidden" for="book-page">I'm on page</label>
+                <div class="input-group" style="max-width: 16rem">
+                  <span class="input-group-text">I'm on page</span>
+                  <input
+                    id="book-page"
+                    type="number"
+                    min="0"
+                    class="form-control"
+                    [class.is-invalid]="pageError()"
+                    formControlName="currentPage"
+                    placeholder="e.g. 120"
+                  />
+                </div>
+                @if (pageError(); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <button type="submit" class="btn btn-primary" [disabled]="savingPage()">Save</button>
+            </form>
+            @if (book.totalPages && book.status !== 'Finished') {
+              <div class="form-text">The last page ({{ book.totalPages }}) marks it finished.</div>
+            }
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="book-notes-heading">
+          <div class="card-body">
+            <h2 id="book-notes-heading" class="h6 mb-3">
+              Notes and highlights
+              @if (book.notes.length > 0) {
+                <span class="text-body-secondary fw-normal small"
+                  >· {{ highlights() }} {{ highlights() === 1 ? 'highlight' : 'highlights' }},
+                  {{ book.notes.length - highlights() }}
+                  {{ book.notes.length - highlights() === 1 ? 'note' : 'notes' }}</span
+                >
+              }
+            </h2>
+
+            <ul class="list-unstyled mb-3 d-flex flex-column gap-3">
+              @for (note of book.notes; track note.id) {
+                @if (editingNoteId() !== note.id) {
+                  <li class="d-flex gap-2 align-items-start">
+                    <div class="flex-grow-1 min-w-0">
+                      <div
+                        class="text-break"
+                        style="white-space: pre-line"
+                        [class.book-highlight]="note.kind === 'Highlight'"
+                      >
+                        {{ note.text }}
+                      </div>
+                      <div class="small text-body-secondary mt-1">
+                        {{ note.kind === 'Highlight' ? 'Highlight' : 'Note' }}
+                        @if (note.page) {
+                          · p. {{ note.page }}
+                        }
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link link-secondary p-0"
+                      [attr.aria-label]="'Edit this ' + note.kind.toLowerCase()"
+                      (click)="editNote(note)"
+                    >
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link link-danger p-0"
+                      [attr.aria-label]="'Delete this ' + note.kind.toLowerCase()"
+                      (click)="removeNote(book, note)"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </li>
+                }
+              } @empty {
+                <li class="small text-body-secondary">
+                  Nothing kept from this book yet. Paste a line worth remembering, or write what it
+                  made you think.
+                </li>
+              }
+            </ul>
+
+            <form
+              [formGroup]="noteForm"
+              (ngSubmit)="saveNote(book)"
+              class="border-top pt-3 d-flex flex-column gap-2"
+              novalidate
+            >
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Kind of note">
+                  <input
+                    type="radio"
+                    class="btn-check"
+                    id="note-kind-highlight"
+                    value="Highlight"
+                    formControlName="kind"
+                  />
+                  <label class="btn btn-outline-primary" for="note-kind-highlight">Highlight</label>
+                  <input
+                    type="radio"
+                    class="btn-check"
+                    id="note-kind-note"
+                    value="Note"
+                    formControlName="kind"
+                  />
+                  <label class="btn btn-outline-primary" for="note-kind-note">My note</label>
+                </div>
+                <span class="small text-body-secondary">
+                  {{ editingNoteId() ? 'Editing' : 'Add one' }}
+                </span>
+              </div>
+              <div>
+                <label class="visually-hidden" for="note-text">Text</label>
+                <textarea
+                  id="note-text"
+                  class="form-control"
+                  rows="3"
+                  [class.is-invalid]="noteError('text')"
+                  formControlName="text"
+                  [placeholder]="
+                    noteForm.controls.kind.value === 'Highlight'
+                      ? 'Paste the passage, word for word'
+                      : 'What it made you think, or want to try'
+                  "
+                ></textarea>
+                @if (noteError('text'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <div class="d-flex flex-wrap align-items-start gap-2">
+                <div>
+                  <label class="visually-hidden" for="note-page">Page</label>
+                  <input
+                    id="note-page"
+                    type="number"
+                    min="1"
+                    class="form-control"
+                    style="max-width: 9rem"
+                    [class.is-invalid]="noteError('page')"
+                    formControlName="page"
+                    placeholder="Page (optional)"
+                  />
+                  @if (noteError('page'); as error) {
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  }
+                </div>
+                <button type="submit" class="btn btn-primary" [disabled]="savingNote()">
+                  {{ editingNoteId() ? 'Save' : 'Add' }}
+                </button>
+                @if (editingNoteId()) {
+                  <button type="button" class="btn btn-outline-secondary" (click)="cancelNote()">
+                    Cancel
+                  </button>
+                }
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-lg-4 d-flex flex-column gap-3">
+        @if (book.rating || book.tags.length > 0) {
+          <div class="card">
+            <div class="card-body d-flex flex-column gap-2">
+              @if (book.rating) {
+                <div [attr.aria-label]="book.rating + ' of 5 stars'">
+                  @for (star of [1, 2, 3, 4, 5]; track star) {
+                    <i
+                      class="bi"
+                      style="color: var(--lifeos-amber)"
+                      [class.bi-star-fill]="book.rating >= star"
+                      [class.bi-star]="book.rating < star"
+                      aria-hidden="true"
+                    ></i>
+                  }
+                </div>
+              }
+              @if (book.tags.length > 0) {
+                <div class="d-flex flex-wrap gap-1">
+                  @for (tag of book.tags; track tag.id) {
+                    <span class="badge text-bg-light border fw-normal">{{ tag.name }}</span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+        <div class="card">
+          <div class="card-body">
+            <app-linked-items [entityType]="bookEntityType" [entityId]="book.id" />
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <app-entity-reminders
+              entityType="Book"
+              [entityId]="book.id"
+              [entityTitle]="book.title"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <p class="text-body-secondary">Loading...</p>
+  }
+</div>

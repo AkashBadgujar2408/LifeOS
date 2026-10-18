@@ -12,6 +12,8 @@ using LifeOS.Core.Habits.ServiceContracts;
 using LifeOS.Core.Habits.Services;
 using LifeOS.Core.Journal.ServiceContracts;
 using LifeOS.Core.Journal.Services;
+using LifeOS.Core.Learning.ServiceContracts;
+using LifeOS.Core.Learning.Services;
 using LifeOS.Core.Models;
 using LifeOS.Core.Tasks.ServiceContracts;
 using LifeOS.Core.Tasks.Services;
@@ -77,6 +79,9 @@ try
     builder.Services.AddScoped<IDashboardService, DashboardService>();
     builder.Services.AddScoped<IKpisService, KpisService>();
     builder.Services.AddScoped<ILifeVisionService, LifeVisionService>();
+    builder.Services.AddScoped<ISkillsService, SkillsService>();
+    builder.Services.AddScoped<ICoursesService, CoursesService>();
+    builder.Services.AddScoped<IBooksService, BooksService>();
     builder.Services.AddScoped<IChaptersService, ChaptersService>();
     builder.Services.AddScoped<ILifeStoryService, LifeStoryService>();
     builder.Services.AddScoped<IMissionsService, MissionsService>();
@@ -115,6 +120,9 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, JournalEntryLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, DocumentLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, DecisionLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, SkillLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, CourseLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, BookLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

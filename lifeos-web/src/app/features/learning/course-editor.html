@@ -1,0 +1,240 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="course-editor-heading" class="modal-title h5">
+      {{ course() ? 'Edit course' : 'New course' }}
+    </h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    <div class="row g-3">
+      <div class="col-sm-7">
+        <label class="form-label" for="course-title">Title</label>
+        <input
+          id="course-title"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('title')"
+          formControlName="title"
+          placeholder="e.g. Angular: The Complete Guide"
+          autocomplete="off"
+          ngbAutofocus
+        />
+        @if (fieldError('title'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-5">
+        <label class="form-label" for="course-provider">
+          Provider <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <input
+          id="course-provider"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('provider')"
+          formControlName="provider"
+          placeholder="e.g. Udemy, Coursera, a local college"
+          autocomplete="off"
+        />
+        @if (fieldError('provider'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="course-status">Status</label>
+        <select id="course-status" class="form-select" formControlName="status">
+          @for (status of statuses; track status) {
+            <option [ngValue]="status">{{ statusLabels[status] }}</option>
+          }
+        </select>
+      </div>
+      @if (form.controls.status.value !== 'Completed') {
+        <div class="col-sm-6">
+          <label class="form-label" for="course-progress">Progress (%)</label>
+          <input
+            id="course-progress"
+            type="number"
+            min="0"
+            max="100"
+            step="5"
+            class="form-control"
+            [class.is-invalid]="fieldError('progressPercent')"
+            formControlName="progressPercent"
+            placeholder="e.g. 40"
+          />
+          @if (fieldError('progressPercent'); as error) {
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="course-started">
+          Started <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <div class="input-group">
+          <input
+            id="course-started"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('startedOn')"
+            formControlName="startedOn"
+            placeholder="e.g. 01/Sep/2026"
+            autocomplete="off"
+            ngbDatepicker
+            #startedPicker="ngbDatepicker"
+            [minDate]="minDate"
+            [maxDate]="maxDate"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the start date"
+            (click)="startedPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('startedOn'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      @if (form.controls.status.value === 'Completed') {
+        <div class="col-sm-6">
+          <label class="form-label" for="course-completed">Completed</label>
+          <div class="input-group">
+            <input
+              id="course-completed"
+              type="text"
+              class="form-control"
+              [class.is-invalid]="fieldError('completedOn')"
+              formControlName="completedOn"
+              placeholder="Today if left empty"
+              autocomplete="off"
+              ngbDatepicker
+              #completedPicker="ngbDatepicker"
+              [minDate]="minDate"
+              [maxDate]="maxDate"
+              container="body"
+            />
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              aria-label="Pick the completion date"
+              (click)="completedPicker.toggle()"
+            >
+              <i class="bi bi-calendar3"></i>
+            </button>
+          </div>
+          @if (fieldError('completedOn'); as error) {
+            <div class="invalid-feedback d-block">{{ error }}</div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="course-skill">
+          Builds the skill <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <select id="course-skill" class="form-select" formControlName="skillId">
+          <option [ngValue]="null">No particular skill</option>
+          @for (skill of skills(); track skill.id) {
+            <option [ngValue]="skill.id" [selected]="skill.id === form.controls.skillId.value">
+              {{ skill.name }}
+            </option>
+          }
+        </select>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="course-life-area">
+          Life area <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <select id="course-life-area" class="form-select" formControlName="lifeAreaId">
+          <option [ngValue]="null">No particular area</option>
+          @for (
+            area of pickableLifeAreas(lifeAreas(), hiddenAreaIds(), form.controls.lifeAreaId.value);
+            track area.id
+          ) {
+            <option [ngValue]="area.id" [selected]="area.id === form.controls.lifeAreaId.value">
+              {{ area.name }}
+            </option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="form-label" for="course-url">
+        Link <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <input
+        id="course-url"
+        type="url"
+        class="form-control"
+        [class.is-invalid]="fieldError('url')"
+        formControlName="url"
+        placeholder="https://..."
+        autocomplete="off"
+      />
+      @if (fieldError('url'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <div>
+      <label class="form-label" for="course-notes">
+        Notes <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="course-notes"
+        class="form-control"
+        rows="3"
+        [class.is-invalid]="fieldError('notes')"
+        formControlName="notes"
+        placeholder="What you want out of it, where you left off"
+      ></textarea>
+      @if (fieldError('notes'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    @if (course(); as existing) {
+      <div class="border-top pt-3">
+        <app-linked-items [entityType]="courseEntityType" [entityId]="existing.id" />
+      </div>
+      <div class="border-top pt-3">
+        <app-entity-reminders
+          entityType="Course"
+          [entityId]="existing.id"
+          [entityTitle]="existing.title"
+        />
+      </div>
+    }
+  </div>
+
+  <div class="modal-footer">
+    @if (course()) {
+      <button type="button" class="btn btn-outline-danger me-auto" (click)="remove()">
+        <i class="bi bi-trash"></i> Delete
+      </button>
+    }
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">Save</button>
+  </div>
+</form>

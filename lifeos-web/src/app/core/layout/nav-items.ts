@@ -40,6 +40,14 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Learning',
+    items: [
+      { label: 'Skills', route: '/learning/skills', icon: 'bi-mortarboard', module: 'Learning' },
+      { label: 'Courses', route: '/learning/courses', icon: 'bi-easel', module: 'Learning' },
+      { label: 'Reading', route: '/learning/books', icon: 'bi-book-half', module: 'Learning' },
+    ],
+  },
+  {
     label: 'Wellbeing',
     items: [{ label: 'Journal', route: '/journal', icon: 'bi-journal-text', module: 'Journal' }],
   },

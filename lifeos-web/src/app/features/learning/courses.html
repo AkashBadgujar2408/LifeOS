@@ -1,0 +1,91 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+    <div>
+      <h1 class="h3 mb-1">Courses</h1>
+      <p class="text-body-secondary mb-0 small">
+        What you're taking, what's next, and what you've finished.
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="open()">
+      <i class="bi bi-plus-lg"></i> New course
+    </button>
+  </div>
+
+  @if (loadFailed() && !courses()) {
+    <app-load-error message="Couldn't load your courses." (retry)="load()" />
+  } @else if (courses(); as courses) {
+    @if (courses.length === 0) {
+      <section class="card">
+        <div class="card-body p-4">
+          <h2 class="h5">No courses yet</h2>
+          <p class="text-body-secondary">
+            Add the course you're on now, or one you mean to take. Link it to a skill and its
+            progress counts there too.
+          </p>
+          <button type="button" class="btn btn-outline-primary" (click)="open()">
+            <i class="bi bi-plus-lg"></i> Add a course
+          </button>
+        </div>
+      </section>
+    }
+    @for (group of groups(); track group.status) {
+      <section class="mb-4" [attr.aria-labelledby]="'courses-' + group.status">
+        <h2
+          [id]="'courses-' + group.status"
+          class="h6 text-uppercase text-body-secondary small mb-2"
+        >
+          {{ statusLabels[group.status] }} · {{ group.items.length }}
+        </h2>
+        <div class="row row-cols-1 row-cols-md-2 g-3">
+          @for (course of group.items; track course.id) {
+            <div class="col">
+              <div class="card h-100">
+                <div class="card-body">
+                  <button
+                    type="button"
+                    class="btn btn-link p-0 stretched-link link-body-emphasis text-decoration-none fw-semibold text-break text-start"
+                    (click)="open(course)"
+                  >
+                    {{ course.title }}
+                  </button>
+                  <div class="small text-body-secondary text-break">
+                    {{ course.provider ?? 'No provider' }}
+                    @if (course.skillName) {
+                      · <i class="bi bi-mortarboard" aria-hidden="true"></i> {{ course.skillName }}
+                    }
+                  </div>
+                  @if (course.status === 'InProgress' || course.status === 'Planned') {
+                    <div
+                      class="progress mt-2"
+                      style="height: 0.4rem"
+                      role="progressbar"
+                      [attr.aria-label]="course.title + ' progress'"
+                      [attr.aria-valuenow]="course.progressPercent"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    >
+                      <div class="progress-bar" [style.width.%]="course.progressPercent"></div>
+                    </div>
+                    <div class="small text-body-secondary mt-1">
+                      {{ course.progressPercent }}% done
+                      @if (course.startedOn) {
+                        · since {{ course.startedOn | date }}
+                      }
+                    </div>
+                  } @else if (course.completedOn) {
+                    <div class="small text-body-secondary mt-2">
+                      <i class="bi bi-check-circle" aria-hidden="true"></i> Completed
+                      {{ course.completedOn | date }}
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  } @else {
+    <p class="text-body-secondary">Loading courses...</p>
+  }
+</div>

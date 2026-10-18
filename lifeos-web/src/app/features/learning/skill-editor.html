@@ -1,0 +1,137 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="skill-editor-heading" class="modal-title h5">
+      {{ skill() ? 'Edit skill' : 'New skill' }}
+    </h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    <div>
+      <label class="form-label" for="skill-name">Skill</label>
+      <input
+        id="skill-name"
+        type="text"
+        class="form-control"
+        [class.is-invalid]="fieldError('name')"
+        formControlName="name"
+        placeholder="e.g. Spanish, Angular, Public speaking"
+        autocomplete="off"
+        ngbAutofocus
+      />
+      @if (fieldError('name'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+
+    <fieldset>
+      <legend class="form-label fs-6 mb-2">Where you are now</legend>
+      <div class="btn-group w-100" role="group">
+        @for (level of levels; track level) {
+          <input
+            type="radio"
+            class="btn-check"
+            [id]="'skill-level-' + level"
+            [value]="level"
+            formControlName="proficiency"
+          />
+          <label
+            class="btn btn-outline-primary"
+            [for]="'skill-level-' + level"
+            [title]="levelLabels[level]"
+            >{{ level }}</label
+          >
+        }
+      </div>
+      <div class="form-text">{{ levelLabels[form.controls.proficiency.value] }}</div>
+    </fieldset>
+
+    @if (levelChanging()) {
+      <div>
+        <label class="form-label" for="skill-level-note">
+          {{ skill() ? 'What moved it?' : 'How you got here' }}
+          <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <input
+          id="skill-level-note"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('levelNote')"
+          formControlName="levelNote"
+          placeholder="e.g. Passed the A2 exam"
+          autocomplete="off"
+        />
+        <div class="form-text">Kept in the skill's history with today's date.</div>
+        @if (fieldError('levelNote'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    }
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="skill-target">
+          Aiming for <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <select id="skill-target" class="form-select" formControlName="targetProficiency">
+          <option [ngValue]="null">No target</option>
+          @for (level of levels; track level) {
+            <option [ngValue]="level">{{ level }} · {{ levelLabels[level] }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="skill-life-area">
+          Life area <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <select id="skill-life-area" class="form-select" formControlName="lifeAreaId">
+          <option [ngValue]="null">No particular area</option>
+          @for (
+            area of pickableLifeAreas(lifeAreas(), hiddenAreaIds(), form.controls.lifeAreaId.value);
+            track area.id
+          ) {
+            <option [ngValue]="area.id" [selected]="area.id === form.controls.lifeAreaId.value">
+              {{ area.name }}
+            </option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <span class="form-label d-block"
+        >Tags <span class="text-body-secondary small">(optional)</span></span
+      >
+      <app-tag-picker [selectedTagIds]="tagIds()" (selectedTagIdsChange)="tagIds.set($event)" />
+    </div>
+
+    <div>
+      <label class="form-label" for="skill-description">
+        Notes <span class="text-body-secondary small">(optional)</span>
+      </label>
+      <textarea
+        id="skill-description"
+        class="form-control"
+        rows="2"
+        [class.is-invalid]="fieldError('description')"
+        formControlName="description"
+        placeholder="What it covers, why it matters to you"
+      ></textarea>
+      @if (fieldError('description'); as error) {
+        <div class="invalid-feedback d-block">{{ error }}</div>
+      }
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">Save</button>
+  </div>
+</form>

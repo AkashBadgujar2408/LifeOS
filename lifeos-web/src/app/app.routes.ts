@@ -107,6 +107,32 @@ export const routes: Routes = [
         title: 'Habits | LifeOS',
         loadComponent: () => import('./features/habits/habits').then((m) => m.Habits),
       },
+      { path: 'learning', redirectTo: 'learning/skills', pathMatch: 'full' },
+      {
+        path: 'learning/skills',
+        title: 'Skills | LifeOS',
+        loadComponent: () => import('./features/learning/skills').then((m) => m.Skills),
+      },
+      {
+        path: 'learning/skills/:id',
+        title: 'Skill | LifeOS',
+        loadComponent: () => import('./features/learning/skill-detail').then((m) => m.SkillDetail),
+      },
+      {
+        path: 'learning/courses',
+        title: 'Courses | LifeOS',
+        loadComponent: () => import('./features/learning/courses').then((m) => m.Courses),
+      },
+      {
+        path: 'learning/books',
+        title: 'Reading | LifeOS',
+        loadComponent: () => import('./features/learning/books').then((m) => m.Books),
+      },
+      {
+        path: 'learning/books/:id',
+        title: 'Book | LifeOS',
+        loadComponent: () => import('./features/learning/book-detail').then((m) => m.BookDetail),
+      },
       {
         path: 'documents',
         title: 'Documents | LifeOS',

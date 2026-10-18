@@ -10,6 +10,8 @@ import { DecisionsService } from '../../core/services/decisions.service';
 import { openEventEditor } from '../calendar/event-editor';
 import { openDecisionEditor } from '../journal/decision-editor';
 import { openTaskEditor } from '../tasks/task-editor';
+import { openCourseEditor } from '../learning/course-editor';
+import { LearningService } from '../../core/services/learning.service';
 import { apiErrorMessage } from '../../core/services/api-error';
 
 /**
@@ -28,6 +30,7 @@ export class EntityOpener {
   private readonly toast = inject(ToastService);
   private readonly remindersService = inject(RemindersService);
   private readonly decisionsService = inject(DecisionsService);
+  private readonly learningService = inject(LearningService);
 
   open(entityType: string, entityId: number): void {
     switch (entityType) {
@@ -56,6 +59,24 @@ export class EntityOpener {
         break;
       case 'Document':
         void this.router.navigate(['/documents', entityId]);
+        break;
+      case 'Skill':
+        void this.router.navigate(['/learning/skills', entityId]);
+        break;
+      case 'Book':
+        void this.router.navigate(['/learning/books', entityId]);
+        break;
+      case 'Course':
+        this.learningService.course(entityId).subscribe({
+          next: async (course) => {
+            const result = await openCourseEditor(this.modal, course);
+            if (result) {
+              this.remindersService.notifyChanged();
+              this.toast.success(result.kind === 'saved' ? 'Course saved.' : 'Course deleted.');
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the course.')),
+        });
         break;
       case 'JournalEntry':
         // Journal pages are addressed by day; only the entry's id is known here.

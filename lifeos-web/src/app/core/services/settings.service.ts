@@ -14,7 +14,8 @@ export type ModuleKey =
   | 'Habits'
   | 'Journal'
   | 'Story'
-  | 'Documents';
+  | 'Documents'
+  | 'Learning';
 
 export interface ModuleInfo {
   key: ModuleKey;
@@ -31,6 +32,7 @@ export const MODULES: ModuleInfo[] = [
   { key: 'Projects', label: 'Projects', hides: 'its page' },
   { key: 'Habits', label: 'Habits', hides: 'its page and the habits card on My Day' },
   { key: 'Journal', label: 'Journal', hides: 'its page and the journal card on My Day' },
+  { key: 'Learning', label: 'Learning', hides: 'Skills, Courses and Reading' },
   {
     key: 'Documents',
     label: 'Documents',
