@@ -6,6 +6,8 @@ import type {
 import {
   boardColumns,
   changeText,
+  contactedText,
+  networkOrder,
   currentRoles,
   filterQuestions,
   formatPay,
@@ -180,5 +182,28 @@ describe('filterQuestions', () => {
 
   it('narrows to a tag', () => {
     expect(filterQuestions(questions, { text: '', tagId: 7 }).map((q) => q.id)).toEqual([1]);
+  });
+});
+
+describe('contactedText and networkOrder', () => {
+  it('words how long ago you were in touch', () => {
+    expect(contactedText(null, '2026-10-18')).toBe('No contact recorded');
+    expect(contactedText('2026-10-18', '2026-10-18')).toBe('In touch today');
+    expect(contactedText('2026-10-17', '2026-10-18')).toBe('In touch yesterday');
+    expect(contactedText('2026-03-01', '2026-04-01')).toBe('Last in touch 31 days ago');
+  });
+
+  it('puts the longest out of touch first and flags them past 90 days', () => {
+    const ordered = networkOrder(
+      [
+        { name: 'Zoe', lastContactedOn: '2026-10-01' },
+        { name: 'Ann', lastContactedOn: null },
+        { name: 'Ben', lastContactedOn: '2026-07-19' },
+        { name: 'Cal', lastContactedOn: '2026-07-20' },
+      ],
+      '2026-10-18',
+    );
+    expect(ordered.map((c) => c.name)).toEqual(['Ann', 'Ben', 'Cal', 'Zoe']);
+    expect(ordered.map((c) => c.catchUp)).toEqual([true, true, false, false]);
   });
 });

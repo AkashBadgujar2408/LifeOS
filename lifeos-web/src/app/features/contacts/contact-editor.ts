@@ -11,6 +11,9 @@ import {
   ContactsService,
 } from '../../core/services/contacts.service';
 import { ToastService } from '../../core/services/toast.service';
+import { CareerService, JobApplication } from '../../core/services/career.service';
+import { Router } from '@angular/router';
+import { STAGE_LABELS } from '../career/career-view';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
@@ -194,6 +197,26 @@ export async function openContactEditor(
         </div>
 
         @if (contact(); as existing) {
+          @if (applications().length > 0) {
+            <div class="border-top pt-3">
+              <h3 class="h6">Career</h3>
+              <ul class="list-unstyled mb-0 d-flex flex-column gap-1">
+                @for (a of applications(); track a.id) {
+                  <li class="small">
+                    <i class="bi bi-kanban me-1 text-body-secondary" aria-hidden="true"></i>
+                    <button
+                      type="button"
+                      class="btn btn-link btn-sm p-0 align-baseline text-start"
+                      (click)="openApplication(a.id)"
+                    >
+                      {{ a.role }} at {{ a.organisation }}
+                    </button>
+                    <span class="text-body-secondary"> · {{ stageLabels[a.stage] }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
           <div class="border-top pt-3">
             <app-linked-items [entityType]="entityType" [entityId]="existing.id" />
           </div>
@@ -223,12 +246,17 @@ export async function openContactEditor(
 export class ContactEditor {
   private readonly fb = inject(FormBuilder);
   private readonly contactsService = inject(ContactsService);
+  private readonly careerService = inject(CareerService);
+  private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   protected readonly activeModal = inject(NgbActiveModal);
 
   protected readonly entityType = CONTACT_ENTITY_TYPE;
   protected readonly minDate = { year: 1960, month: 1, day: 1 };
   protected readonly contact = signal<Contact | null>(null);
+  /** Job applications this person is the recruiter or referrer on. */
+  protected readonly applications = signal<JobApplication[]>([]);
+  protected readonly stageLabels = STAGE_LABELS;
   protected readonly tagIds = signal<number[]>([]);
   protected readonly saving = signal(false);
 
@@ -242,8 +270,22 @@ export class ContactEditor {
     notes: this.fb.nonNullable.control('', Validators.maxLength(4000)),
   });
 
+  protected openApplication(id: number): void {
+    this.activeModal.dismiss();
+    void this.router.navigate(['/career/applications', id]);
+  }
+
   configure(contact?: Contact): void {
     this.contact.set(contact ?? null);
+    if (contact) {
+      this.careerService
+        .applications(contact.id)
+        // A side list: if it can't load, the section just stays hidden.
+        .subscribe({
+          next: (a) => this.applications.set(a),
+          error: () => this.applications.set([]),
+        });
+    }
     this.tagIds.set(contact?.tags.map((t) => t.id) ?? []);
     this.form.reset({
       name: contact?.name ?? '',

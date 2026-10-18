@@ -89,6 +89,25 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: 'bi-chat-square-quote',
         module: 'Career',
       },
+      {
+        label: 'Resumes',
+        route: '/career/resumes',
+        icon: 'bi-file-earmark-person',
+        module: 'Career',
+      },
+      {
+        label: 'Reviews',
+        route: '/career/reviews',
+        icon: 'bi-clipboard-check',
+        module: 'Career',
+      },
+      {
+        label: 'Side income',
+        route: '/career/side-income',
+        icon: 'bi-coin',
+        module: 'Career',
+      },
+      { label: 'Network', route: '/career/network', icon: 'bi-people', module: 'Career' },
     ],
   },
   {

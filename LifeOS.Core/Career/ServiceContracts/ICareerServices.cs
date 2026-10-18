@@ -37,8 +37,8 @@ public interface ICareerAchievementsService
 
 public interface IJobApplicationsService
 {
-    /// <summary>Every application, most recently changed first.</summary>
-    Task<List<JobApplicationDto>> GetAllAsync();
+    /// <summary>Every application (or only those with this recruiter/referrer), most recently changed first.</summary>
+    Task<List<JobApplicationDto>> GetAllAsync(int? contactId = null);
     /// <summary>With its stage history and interview rounds.</summary>
     Task<OperationResult<JobApplicationDetailDto>> GetAsync(int id);
     /// <summary>Starts at the request's stage, logged as the first stage change.</summary>
@@ -70,5 +70,34 @@ public interface IInterviewQuestionsService
     Task<OperationResult<InterviewQuestionDto>> UpdateAsync(int id, InterviewQuestionRequest request);
     /// <summary>Sets the last practised day to the client's today.</summary>
     Task<OperationResult<InterviewQuestionDto>> PractisedAsync(int id, DateOnly today);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+public interface IResumeVersionsService
+{
+    /// <summary>Newest first, each with its file count and the applications it went with.</summary>
+    Task<List<ResumeVersionDto>> GetAllAsync();
+    Task<OperationResult<ResumeVersionDto>> GetAsync(int id);
+    Task<OperationResult<ResumeVersionDto>> CreateAsync(ResumeVersionRequest request);
+    Task<OperationResult<ResumeVersionDto>> UpdateAsync(int id, ResumeVersionRequest request);
+    /// <summary>Its files go too; applications sent with it keep everything but the reference.</summary>
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+public interface IPerformanceReviewsService
+{
+    /// <summary>Latest first.</summary>
+    Task<List<PerformanceReviewDto>> GetAllAsync();
+    Task<OperationResult<PerformanceReviewDto>> CreateAsync(PerformanceReviewRequest request);
+    Task<OperationResult<PerformanceReviewDto>> UpdateAsync(int id, PerformanceReviewRequest request);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+public interface ISideIncomeSourcesService
+{
+    /// <summary>Active, paused, then ended.</summary>
+    Task<List<SideIncomeSourceDto>> GetAllAsync();
+    Task<OperationResult<SideIncomeSourceDto>> CreateAsync(SideIncomeSourceRequest request);
+    Task<OperationResult<SideIncomeSourceDto>> UpdateAsync(int id, SideIncomeSourceRequest request);
     Task<OperationResult<bool>> DeleteAsync(int id);
 }

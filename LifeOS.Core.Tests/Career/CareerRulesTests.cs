@@ -38,10 +38,10 @@ public class CareerRulesTests
     [Fact]
     public void Pay_for_a_role_falls_inside_its_dates()
     {
-        Assert.Null(CareerRules.CheckSalaryDay(Start, Start, null));
-        Assert.NotNull(CareerRules.CheckSalaryDay(Start.AddDays(-1), Start, null));
-        Assert.NotNull(CareerRules.CheckSalaryDay(Start.AddDays(31), Start, Start.AddDays(30)));
-        Assert.Null(CareerRules.CheckSalaryDay(Start, null, null));
+        Assert.Null(CareerRules.CheckDayInRole(Start, Start, null));
+        Assert.NotNull(CareerRules.CheckDayInRole(Start.AddDays(-1), Start, null));
+        Assert.NotNull(CareerRules.CheckDayInRole(Start.AddDays(31), Start, Start.AddDays(30)));
+        Assert.Null(CareerRules.CheckDayInRole(Start, null, null));
     }
 
     [Fact]

@@ -33,8 +33,26 @@ public static partial class CareerRules
         : on <= currentStart ? "The promotion has to come after the role started."
         : null;
 
-    /// <summary>A salary record about a role falls within that role's dates.</summary>
-    public static string? CheckSalaryDay(DateOnly effectiveOn, DateOnly? roleStart, DateOnly? roleEnd) =>
+    /// <summary>A link someone can open: an absolute http(s) address (blank is fine — there's none).</summary>
+    public static bool IsWebAddress(string? url) =>
+        string.IsNullOrWhiteSpace(url)
+        || (Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps));
+
+    /// <summary>
+    /// A side income source: a known kind and status, started no later than today, an end day only once it has
+    /// Ended (CK_SideIncomeSources_Ended) and not before it started, nor after today.
+    /// </summary>
+    public static string? CheckSideIncome(string kind, string status, DateOnly? startedOn, DateOnly? endedOn, DateOnly today) =>
+        !SideIncomeKinds.All.Contains(kind) ? "Unknown kind of side income."
+        : !SideIncomeStatuses.All.Contains(status) ? "Unknown status."
+        : startedOn is { } s && s > today ? "It can't start in the future."
+        : endedOn is not null && status != SideIncomeStatuses.Ended ? "Only an ended source has an end day."
+        : endedOn is { } e && e > today ? "It can't end in the future."
+        : startedOn is { } start && endedOn is { } end && end < start ? "It can't end before it started."
+        : null;
+
+    /// <summary>Something dated in a role (a pay record, a review) falls within that role's dates.</summary>
+    public static string? CheckDayInRole(DateOnly effectiveOn, DateOnly? roleStart, DateOnly? roleEnd) =>
         roleStart is { } start && effectiveOn < start ? "That's before the role started."
         : roleEnd is { } end && effectiveOn > end ? "That's after the role ended."
         : null;

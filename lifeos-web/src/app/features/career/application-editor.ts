@@ -167,6 +167,22 @@ export async function openApplicationEditor(
           </div>
         </div>
         <div>
+          <label class="form-label" for="application-resume">
+            Resume sent <span class="text-body-secondary small">(optional)</span>
+          </label>
+          <select id="application-resume" class="form-select" formControlName="resumeVersionId">
+            <option [ngValue]="null">None recorded</option>
+            @for (resume of resumes(); track resume.id) {
+              <option
+                [ngValue]="resume.id"
+                [selected]="resume.id === form.controls.resumeVersionId.value"
+              >
+                {{ resume.name }}
+              </option>
+            }
+          </select>
+        </div>
+        <div>
           <label class="form-label" for="application-url">
             Job posting <span class="text-body-secondary small">(optional)</span>
           </label>
@@ -226,6 +242,10 @@ export class ApplicationEditor {
     this.contactsService.list().pipe(catchError(() => of([]))),
     { initialValue: [] },
   );
+  protected readonly resumes = toSignal(
+    this.careerService.resumes().pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
   protected readonly application = signal<JobApplication | null>(null);
   protected readonly saving = signal(false);
 
@@ -236,6 +256,7 @@ export class ApplicationEditor {
     stageOn: this.fb.control<string | null>(todayIso(), Validators.required),
     source: this.fb.nonNullable.control('', Validators.maxLength(200)),
     contactId: this.fb.control<number | null>(null),
+    resumeVersionId: this.fb.control<number | null>(null),
     url: this.fb.nonNullable.control('', [
       Validators.maxLength(2000),
       Validators.pattern(/^\s*(https?:\/\/\S+)?\s*$/i),
@@ -252,6 +273,7 @@ export class ApplicationEditor {
       stageOn: todayIso(),
       source: application?.source ?? '',
       contactId: application?.contactId ?? null,
+      resumeVersionId: application?.resumeVersionId ?? null,
       url: application?.url ?? '',
       notes: application?.notes ?? '',
     });
@@ -301,7 +323,7 @@ export class ApplicationEditor {
         source: v.source.trim() || null,
         url: v.url.trim() || null,
         contactId: v.contactId,
-        resumeVersionId: existing?.resumeVersionId ?? null,
+        resumeVersionId: v.resumeVersionId,
         notes: v.notes.trim() || null,
         ...(existing ? {} : { stage: v.stage, stageOn: v.stageOn }),
         today: todayIso(),

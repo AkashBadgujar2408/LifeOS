@@ -52,6 +52,7 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   CareerAchievement: 'bi-trophy',
   JobApplication: 'bi-kanban',
   InterviewQuestion: 'bi-chat-square-quote',
+  ResumeVersion: 'bi-file-earmark-person',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -87,4 +88,5 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   CareerAchievement: 'Career achievements',
   JobApplication: 'Job applications',
   InterviewQuestion: 'Interview questions',
+  ResumeVersion: 'Resume versions',
 };

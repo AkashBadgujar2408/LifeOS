@@ -60,6 +60,9 @@ export class EntityOpener {
           error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the achievement.')),
         });
         break;
+      case 'ResumeVersion':
+        void this.router.navigate(['/career/resumes'], { fragment: `resume-${entityId}` });
+        break;
       case 'JobApplication':
         void this.router.navigate(['/career/applications', entityId]);
         break;

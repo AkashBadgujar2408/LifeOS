@@ -93,6 +93,25 @@ public class ContactsService(AppDbContext db, IEntityLinksService entityLinksSer
         return await GetAsync(id);
     }
 
+    public async Task<OperationResult<ContactDto>> ContactedAsync(int id, DateOnly today)
+    {
+        if (today == default)
+        {
+            return OperationResult<ContactDto>.Fail("Today's date is required.");
+        }
+
+        var contact = await db.Contacts.FindAsync(id);
+        if (contact is null)
+        {
+            return OperationResult<ContactDto>.Fail(NotFound);
+        }
+
+        contact.LastContactedOn = today;
+        contact.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        return await GetAsync(id);
+    }
+
     public async Task<OperationResult<bool>> DeleteAsync(int id)
     {
         var contact = await db.Contacts.FindAsync(id);

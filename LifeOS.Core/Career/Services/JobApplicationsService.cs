@@ -19,10 +19,16 @@ public class JobApplicationsService(AppDbContext db, IEntityLinksService entityL
 {
     private const string NotFound = "Application not found.";
 
-    public async Task<List<JobApplicationDto>> GetAllAsync()
+    public async Task<List<JobApplicationDto>> GetAllAsync(int? contactId = null)
     {
         var now = DateTime.UtcNow;
-        return await db.JobApplications
+        var query = db.JobApplications.AsQueryable();
+        if (contactId is { } contact)
+        {
+            query = query.Where(a => a.ContactId == contact);
+        }
+
+        return await query
             .OrderByDescending(a => a.UpdatedAt ?? a.CreatedAt).ThenByDescending(a => a.Id)
             .Select(ToDto(now))
             .ToListAsync();
@@ -232,7 +238,7 @@ public class JobApplicationsService(AppDbContext db, IEntityLinksService entityL
         }
 
         var url = Clean(request.Url);
-        if (url is not null && !(Uri.TryCreate(url, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)))
+        if (!CareerRules.IsWebAddress(url))
         {
             return "The link has to be a web address (https://…).";
         }

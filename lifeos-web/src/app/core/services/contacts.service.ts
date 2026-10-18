@@ -54,6 +54,13 @@ export class ContactsService {
       .pipe(map((response) => response.data!));
   }
 
+  /** "We were in touch today." */
+  contacted(id: number, today: string): Observable<Contact> {
+    return this.http
+      .put<ApiResponse<Contact>>(`${this.base}/${id}/contacted`, { today })
+      .pipe(map((response) => response.data!));
+  }
+
   save(id: number | null, payload: ContactPayload): Observable<Contact> {
     const request = id
       ? this.http.put<ApiResponse<Contact>>(`${this.base}/${id}`, payload)

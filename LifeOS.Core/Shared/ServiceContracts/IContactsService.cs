@@ -10,6 +10,8 @@ public interface IContactsService
     Task<OperationResult<ContactDto>> GetAsync(int id);
     Task<OperationResult<ContactDto>> CreateAsync(ContactRequest request);
     Task<OperationResult<ContactDto>> UpdateAsync(int id, ContactRequest request);
+    /// <summary>Sets "last contacted" to the client's today.</summary>
+    Task<OperationResult<ContactDto>> ContactedAsync(int id, DateOnly today);
     /// <summary>Soft-deletes the contact with its tags, links and reminders; whatever pointed at it keeps going without it.</summary>
     Task<OperationResult<bool>> DeleteAsync(int id);
 }

@@ -16,6 +16,12 @@ public class ContactDto
     public List<TagDto> Tags { get; init; } = [];
 }
 
+/// <summary>"We were in touch today."</summary>
+public class ContactedRequest
+{
+    public DateOnly Today { get; init; }
+}
+
 public class ContactRequest
 {
     [Required]

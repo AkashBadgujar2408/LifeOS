@@ -129,7 +129,7 @@ public class SalaryRecordsService(AppDbContext db) : ISalaryRecordsService
                 return "Role not found.";
             }
 
-            var dayError = CareerRules.CheckSalaryDay(request.EffectiveOn, role.StartDate, role.EndDate);
+            var dayError = CareerRules.CheckDayInRole(request.EffectiveOn, role.StartDate, role.EndDate);
             if (dayError is not null)
             {
                 return dayError;

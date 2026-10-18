@@ -29,6 +29,11 @@ public class ContactsController(IContactsService contactsService) : ControllerBa
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, ContactRequest request) => Result(await contactsService.UpdateAsync(id, request));
 
+    /// <summary>PUT api/Shared/Contacts/{id}/contacted — you were in touch today.</summary>
+    [HttpPut("{id:int}/contacted")]
+    public async Task<IActionResult> Contacted(int id, ContactedRequest request) =>
+        Result(await contactsService.ContactedAsync(id, request.Today));
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

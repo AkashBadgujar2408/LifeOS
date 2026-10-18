@@ -1,5 +1,7 @@
 import type {
   ApplicationStage,
+  SideIncomeKind,
+  SideIncomeStatus,
   InterviewQuestion,
   JobApplication,
   CareerAchievementKind,
@@ -202,20 +204,18 @@ export function boardColumns(applications: readonly JobApplication[]): BoardColu
   return columns;
 }
 
+/** Whole calendar days from one ISO day to another (no clock, so no DST drift). */
+export function daysBetween(from: string, to: string): number {
+  const utc = (d: string) => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+  return Math.round((utc(to) - utc(from)) / 86_400_000);
+}
+
 /** "Practised today", "Practised 3 days ago", "Not practised yet". */
 export function practisedText(lastPractisedOn: string | null, today: string): string {
   if (!lastPractisedOn) {
     return 'Not practised yet';
   }
-  const days = Math.round(
-    (Date.UTC(+today.slice(0, 4), +today.slice(5, 7) - 1, +today.slice(8, 10)) -
-      Date.UTC(
-        +lastPractisedOn.slice(0, 4),
-        +lastPractisedOn.slice(5, 7) - 1,
-        +lastPractisedOn.slice(8, 10),
-      )) /
-      86_400_000,
-  );
+  const days = daysBetween(lastPractisedOn, today);
   return days <= 0
     ? 'Practised today'
     : days === 1
@@ -241,4 +241,62 @@ export function filterQuestions(
       .toLocaleLowerCase();
     return words.every((w) => haystack.includes(w));
   });
+}
+
+export const SIDE_INCOME_KIND_LABELS: Record<SideIncomeKind, string> = {
+  Freelance: 'Freelance',
+  Content: 'Content',
+  Consulting: 'Consulting',
+  Teaching: 'Teaching',
+  Other: 'Other',
+};
+
+export const SIDE_INCOME_KIND_ICONS: Record<SideIncomeKind, string> = {
+  Freelance: 'bi-laptop',
+  Content: 'bi-camera-video',
+  Consulting: 'bi-chat-left-text',
+  Teaching: 'bi-easel',
+  Other: 'bi-coin',
+};
+
+export const SIDE_INCOME_STATUS_LABELS: Record<SideIncomeStatus, string> = {
+  Active: 'Going',
+  Paused: 'Paused',
+  Ended: 'Ended',
+};
+
+/** How long it's been since you were last in touch with someone before it's worth a nudge on the network page. */
+export const CATCH_UP_DAYS = 90;
+
+/** "In touch today", "Last in touch 12 days ago", "Not in touch yet". */
+export function contactedText(lastContactedOn: string | null, today: string): string {
+  if (!lastContactedOn) {
+    return 'No contact recorded';
+  }
+  const days = daysBetween(lastContactedOn, today);
+  return days <= 0
+    ? 'In touch today'
+    : days === 1
+      ? 'In touch yesterday'
+      : `Last in touch ${days} days ago`;
+}
+
+/**
+ * The network, longest out of touch first (never recorded counts as longest), names breaking ties — so the people
+ * worth catching up with come up top. `catchUp` marks those over CATCH_UP_DAYS (or never recorded).
+ */
+export function networkOrder<T extends { name: string; lastContactedOn: string | null }>(
+  contacts: readonly T[],
+  today: string,
+): (T & { catchUp: boolean })[] {
+  return [...contacts]
+    .sort(
+      (a, b) =>
+        (a.lastContactedOn ?? '').localeCompare(b.lastContactedOn ?? '') ||
+        a.name.localeCompare(b.name),
+    )
+    .map((c) => ({
+      ...c,
+      catchUp: !c.lastContactedOn || daysBetween(c.lastContactedOn, today) > CATCH_UP_DAYS,
+    }));
 }

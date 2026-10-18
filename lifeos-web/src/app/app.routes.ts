@@ -194,6 +194,27 @@ export const routes: Routes = [
         loadComponent: () => import('./features/career/questions').then((m) => m.CareerQuestions),
       },
       {
+        path: 'career/resumes',
+        title: 'Resumes | LifeOS',
+        loadComponent: () => import('./features/career/resumes').then((m) => m.CareerResumes),
+      },
+      {
+        path: 'career/reviews',
+        title: 'Performance reviews | LifeOS',
+        loadComponent: () => import('./features/career/reviews').then((m) => m.CareerReviews),
+      },
+      {
+        path: 'career/side-income',
+        title: 'Side income | LifeOS',
+        loadComponent: () =>
+          import('./features/career/side-income').then((m) => m.CareerSideIncome),
+      },
+      {
+        path: 'career/network',
+        title: 'Network | LifeOS',
+        loadComponent: () => import('./features/career/network').then((m) => m.CareerNetwork),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

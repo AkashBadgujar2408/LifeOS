@@ -1,3 +1,4 @@
+using LifeOS.Core.Career.Services;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Journal.Services;
 using LifeOS.Core.Models;
@@ -18,7 +19,8 @@ public class AttachmentsService(AppDbContext db, IFileStore fileStore, IEnumerab
     /// here together with that call.
     /// </summary>
     public static readonly IReadOnlySet<string> AttachableTypes = new HashSet<string>(
-        [GoalLinkableProvider.Type, TaskLinkableProvider.Type, JournalEntryLinkableProvider.Type], StringComparer.Ordinal);
+        [GoalLinkableProvider.Type, TaskLinkableProvider.Type, JournalEntryLinkableProvider.Type, ResumeVersionLinkableProvider.Type],
+        StringComparer.Ordinal);
 
     public async Task<OperationResult<List<AttachmentDto>>> ListAsync(string entityType, int entityId)
     {

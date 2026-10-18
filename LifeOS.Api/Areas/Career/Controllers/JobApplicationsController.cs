@@ -13,10 +13,10 @@ namespace LifeOS.Api.Areas.Career.Controllers;
 public class JobApplicationsController(IJobApplicationsService applicationsService, IInterviewsService interviewsService)
     : ControllerBase
 {
-    /// <summary>GET api/Career/JobApplications — most recently changed first.</summary>
+    /// <summary>GET api/Career/JobApplications[?contactId=] — most recently changed first.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll() =>
-        Ok(ApiResponse<List<JobApplicationDto>>.Ok(await applicationsService.GetAllAsync()));
+    public async Task<IActionResult> GetAll(int? contactId) =>
+        Ok(ApiResponse<List<JobApplicationDto>>.Ok(await applicationsService.GetAllAsync(contactId)));
 
     /// <summary>GET api/Career/JobApplications/{id} — with its stage history and interview rounds.</summary>
     [HttpGet("{id:int}")]

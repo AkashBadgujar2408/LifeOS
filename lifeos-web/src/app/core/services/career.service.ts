@@ -243,9 +243,94 @@ export interface InterviewQuestionPayload {
   tagIds: number[];
 }
 
+export const RESUME_VERSION_ENTITY_TYPE = 'ResumeVersion';
+
+export const SIDE_INCOME_KINDS = [
+  'Freelance',
+  'Content',
+  'Consulting',
+  'Teaching',
+  'Other',
+] as const;
+export type SideIncomeKind = (typeof SIDE_INCOME_KINDS)[number];
+
+export const SIDE_INCOME_STATUSES = ['Active', 'Paused', 'Ended'] as const;
+export type SideIncomeStatus = (typeof SIDE_INCOME_STATUSES)[number];
+
+/** A resume version; its file is an attachment on it (type ResumeVersion). */
+export interface ResumeVersion {
+  id: number;
+  name: string;
+  targetRole: string | null;
+  notes: string | null;
+  fileCount: number;
+  createdAt: string;
+  /** The applications it was sent with. */
+  applications: {
+    id: number;
+    role: string;
+    organisation: string;
+    stage: ApplicationStage;
+    appliedOn: string | null;
+  }[];
+}
+
+export interface ResumeVersionPayload {
+  name: string;
+  targetRole: string | null;
+  notes: string | null;
+}
+
+export interface PerformanceReview {
+  id: number;
+  employmentId: number | null;
+  organisation: string | null;
+  role: string | null;
+  reviewedOn: string;
+  periodLabel: string | null;
+  rating: string | null;
+  strengths: string | null;
+  improvements: string | null;
+  notes: string | null;
+}
+
+export interface PerformanceReviewPayload {
+  employmentId: number | null;
+  reviewedOn: string;
+  periodLabel: string | null;
+  rating: string | null;
+  strengths: string | null;
+  improvements: string | null;
+  notes: string | null;
+  today: string;
+}
+
+export interface SideIncomeSource {
+  id: number;
+  name: string;
+  kind: SideIncomeKind;
+  status: SideIncomeStatus;
+  startedOn: string | null;
+  endedOn: string | null;
+  url: string | null;
+  notes: string | null;
+}
+
+export interface SideIncomeSourcePayload {
+  name: string;
+  kind: SideIncomeKind;
+  status: SideIncomeStatus;
+  startedOn: string | null;
+  /** Only for an Ended source. */
+  endedOn: string | null;
+  url: string | null;
+  notes: string | null;
+  today: string;
+}
+
 /**
  * The Career API: roles (with promotions), salary history, professional achievements, job applications with their
- * interview rounds, and the interview question bank.
+ * interview rounds, the interview question bank, resume versions, performance reviews and side income.
  */
 @Injectable({ providedIn: 'root' })
 export class CareerService {
@@ -344,9 +429,11 @@ export class CareerService {
 
   // ---- Applications ----
 
-  applications(): Observable<JobApplication[]> {
+  /** Every application, or only those with this recruiter/referrer. */
+  applications(contactId?: number): Observable<JobApplication[]> {
+    const params = contactId ? new HttpParams().set('contactId', contactId) : undefined;
     return this.http
-      .get<ApiResponse<JobApplication[]>>(`${this.base}/JobApplications`)
+      .get<ApiResponse<JobApplication[]>>(`${this.base}/JobApplications`, { params })
       .pipe(map((response) => response.data ?? []));
   }
 
@@ -462,5 +549,85 @@ export class CareerService {
       map(() => undefined),
       tap(() => this.remindersService.notifyChanged()),
     );
+  }
+
+  // ---- Resume versions ----
+
+  resumes(): Observable<ResumeVersion[]> {
+    return this.http
+      .get<ApiResponse<ResumeVersion[]>>(`${this.base}/ResumeVersions`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  resume(id: number): Observable<ResumeVersion> {
+    return this.http
+      .get<ApiResponse<ResumeVersion>>(`${this.base}/ResumeVersions/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  saveResume(id: number | null, payload: ResumeVersionPayload): Observable<ResumeVersion> {
+    const request = id
+      ? this.http.put<ApiResponse<ResumeVersion>>(`${this.base}/ResumeVersions/${id}`, payload)
+      : this.http.post<ApiResponse<ResumeVersion>>(`${this.base}/ResumeVersions`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  /** Its files go too; applications sent with it lose only the reference. */
+  removeResume(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/ResumeVersions/${id}`).pipe(
+      map(() => undefined),
+      tap(() => this.remindersService.notifyChanged()),
+    );
+  }
+
+  // ---- Performance reviews ----
+
+  reviews(): Observable<PerformanceReview[]> {
+    return this.http
+      .get<ApiResponse<PerformanceReview[]>>(`${this.base}/PerformanceReviews`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  saveReview(id: number | null, payload: PerformanceReviewPayload): Observable<PerformanceReview> {
+    const request = id
+      ? this.http.put<ApiResponse<PerformanceReview>>(
+          `${this.base}/PerformanceReviews/${id}`,
+          payload,
+        )
+      : this.http.post<ApiResponse<PerformanceReview>>(`${this.base}/PerformanceReviews`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  removeReview(id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.base}/PerformanceReviews/${id}`)
+      .pipe(map(() => undefined));
+  }
+
+  // ---- Side income ----
+
+  sideIncome(): Observable<SideIncomeSource[]> {
+    return this.http
+      .get<ApiResponse<SideIncomeSource[]>>(`${this.base}/SideIncomeSources`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  saveSideIncome(
+    id: number | null,
+    payload: SideIncomeSourcePayload,
+  ): Observable<SideIncomeSource> {
+    const request = id
+      ? this.http.put<ApiResponse<SideIncomeSource>>(
+          `${this.base}/SideIncomeSources/${id}`,
+          payload,
+        )
+      : this.http.post<ApiResponse<SideIncomeSource>>(`${this.base}/SideIncomeSources`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  removeSideIncome(id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.base}/SideIncomeSources/${id}`)
+      .pipe(map(() => undefined));
   }
 }
