@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map, tap } from 'rxjs';
 import { ApiResponse } from './api-response';
 import { RemindersService } from './reminders.service';
+import { Tag } from './tags.service';
 
 export const EMPLOYMENT_ENTITY_TYPE = 'Employment';
 export const CAREER_ACHIEVEMENT_ENTITY_TYPE = 'CareerAchievement';
@@ -123,7 +124,129 @@ export interface CareerAchievementPayload {
   today: string;
 }
 
-/** The Career API: roles (with promotions), salary history and professional achievements. */
+export const JOB_APPLICATION_ENTITY_TYPE = 'JobApplication';
+export const INTERVIEW_QUESTION_ENTITY_TYPE = 'InterviewQuestion';
+
+export const APPLICATION_STAGES = [
+  'Saved',
+  'Applied',
+  'Interview',
+  'Offer',
+  'Accepted',
+  'Rejected',
+  'Withdrawn',
+] as const;
+export type ApplicationStage = (typeof APPLICATION_STAGES)[number];
+
+export const INTERVIEW_OUTCOMES = ['Passed', 'Failed'] as const;
+export type InterviewOutcome = (typeof INTERVIEW_OUTCOMES)[number];
+
+export interface JobApplication {
+  id: number;
+  organisation: string;
+  role: string;
+  stage: ApplicationStage;
+  appliedOn: string | null;
+  closedOn: string | null;
+  /** The day it reached its current stage. */
+  stageSince: string | null;
+  source: string | null;
+  url: string | null;
+  contactId: number | null;
+  contactName: string | null;
+  resumeVersionId: number | null;
+  resumeVersionName: string | null;
+  notes: string | null;
+  interviewCount: number;
+  /** The earliest scheduled round that hasn't ended (UTC). */
+  nextInterviewAt: string | null;
+}
+
+export interface ApplicationStageChange {
+  id: number;
+  fromStage: ApplicationStage | null;
+  toStage: ApplicationStage;
+  changedOn: string;
+  note: string | null;
+}
+
+export interface JobApplicationDetail extends JobApplication {
+  /** Oldest first. */
+  history: ApplicationStageChange[];
+  interviews: Interview[];
+}
+
+export interface JobApplicationPayload {
+  organisation: string;
+  role: string;
+  source: string | null;
+  url: string | null;
+  contactId: number | null;
+  resumeVersionId: number | null;
+  notes: string | null;
+  /** Create only: where it starts and the day it got there. */
+  stage?: ApplicationStage;
+  stageOn?: string | null;
+  today: string;
+}
+
+export interface Interview {
+  id: number;
+  jobApplicationId: number;
+  title: string;
+  /** Its calendar entry; null while unscheduled. */
+  eventId: number | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  location: string | null;
+  prepNotes: string | null;
+  reviewNotes: string | null;
+  outcome: InterviewOutcome | null;
+}
+
+/** Both times (UTC) to put it on the calendar, neither to leave it unscheduled. */
+export interface InterviewPayload {
+  title: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  location: string | null;
+  prepNotes: string | null;
+  reviewNotes: string | null;
+  outcome: InterviewOutcome | null;
+}
+
+export interface StageMovePayload {
+  stage: ApplicationStage;
+  on: string;
+  note: string | null;
+  /** Only with a move to Interview: its first round. */
+  interview: InterviewPayload | null;
+  today: string;
+}
+
+export interface InterviewQuestion {
+  id: number;
+  question: string;
+  answer: string | null;
+  reviewNotes: string | null;
+  lastPractisedOn: string | null;
+  jobApplicationId: number | null;
+  applicationTitle: string | null;
+  tags: Tag[];
+}
+
+export interface InterviewQuestionPayload {
+  question: string;
+  answer: string | null;
+  reviewNotes: string | null;
+  jobApplicationId: number | null;
+  tagIds: number[];
+}
+
+/**
+ * The Career API: roles (with promotions), salary history, professional achievements, job applications with their
+ * interview rounds, and the interview question bank.
+ */
 @Injectable({ providedIn: 'root' })
 export class CareerService {
   private readonly http = inject(HttpClient);
@@ -214,6 +337,128 @@ export class CareerService {
 
   removeAchievement(id: number): Observable<void> {
     return this.http.delete<ApiResponse<boolean>>(`${this.base}/CareerAchievements/${id}`).pipe(
+      map(() => undefined),
+      tap(() => this.remindersService.notifyChanged()),
+    );
+  }
+
+  // ---- Applications ----
+
+  applications(): Observable<JobApplication[]> {
+    return this.http
+      .get<ApiResponse<JobApplication[]>>(`${this.base}/JobApplications`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  application(id: number): Observable<JobApplicationDetail> {
+    return this.http
+      .get<ApiResponse<JobApplicationDetail>>(`${this.base}/JobApplications/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  saveApplication(
+    id: number | null,
+    payload: JobApplicationPayload,
+  ): Observable<JobApplicationDetail> {
+    const request = id
+      ? this.http.put<ApiResponse<JobApplicationDetail>>(
+          `${this.base}/JobApplications/${id}`,
+          payload,
+        )
+      : this.http.post<ApiResponse<JobApplicationDetail>>(`${this.base}/JobApplications`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  /** Moves it to another stage (logged); a move to Interview can schedule its first round. */
+  moveApplication(id: number, payload: StageMovePayload): Observable<JobApplicationDetail> {
+    return this.http
+      .put<ApiResponse<JobApplicationDetail>>(`${this.base}/JobApplications/${id}/stage`, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  removeApplication(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/JobApplications/${id}`).pipe(
+      map(() => undefined),
+      tap(() => this.remindersService.notifyChanged()),
+    );
+  }
+
+  // ---- Interview rounds ----
+
+  saveInterview(
+    id: number | null,
+    applicationId: number,
+    payload: InterviewPayload,
+  ): Observable<Interview> {
+    const request = id
+      ? this.http.put<ApiResponse<Interview>>(
+          `${this.base}/JobApplications/interviews/${id}`,
+          payload,
+        )
+      : this.http.post<ApiResponse<Interview>>(
+          `${this.base}/JobApplications/${applicationId}/interviews`,
+          payload,
+        );
+    return request.pipe(map((response) => response.data!));
+  }
+
+  /** Its calendar entry goes too (and that entry's reminders). */
+  removeInterview(id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.base}/JobApplications/interviews/${id}`)
+      .pipe(
+        map(() => undefined),
+        tap(() => this.remindersService.notifyChanged()),
+      );
+  }
+
+  // ---- Question bank ----
+
+  questions(
+    filter: { tagId?: number; applicationId?: number } = {},
+  ): Observable<InterviewQuestion[]> {
+    let params = new HttpParams();
+    if (filter.tagId) {
+      params = params.set('tagId', filter.tagId);
+    }
+    if (filter.applicationId) {
+      params = params.set('applicationId', filter.applicationId);
+    }
+    return this.http
+      .get<ApiResponse<InterviewQuestion[]>>(`${this.base}/InterviewQuestions`, { params })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  question(id: number): Observable<InterviewQuestion> {
+    return this.http
+      .get<ApiResponse<InterviewQuestion>>(`${this.base}/InterviewQuestions/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  saveQuestion(
+    id: number | null,
+    payload: InterviewQuestionPayload,
+  ): Observable<InterviewQuestion> {
+    const request = id
+      ? this.http.put<ApiResponse<InterviewQuestion>>(
+          `${this.base}/InterviewQuestions/${id}`,
+          payload,
+        )
+      : this.http.post<ApiResponse<InterviewQuestion>>(`${this.base}/InterviewQuestions`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  /** "I went over it today." */
+  practised(id: number, today: string): Observable<InterviewQuestion> {
+    return this.http
+      .put<ApiResponse<InterviewQuestion>>(`${this.base}/InterviewQuestions/${id}/practised`, {
+        today,
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  removeQuestion(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/InterviewQuestions/${id}`).pipe(
       map(() => undefined),
       tap(() => this.remindersService.notifyChanged()),
     );

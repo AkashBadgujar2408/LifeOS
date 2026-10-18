@@ -50,6 +50,8 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   Contact: 'bi-person',
   Employment: 'bi-briefcase',
   CareerAchievement: 'bi-trophy',
+  JobApplication: 'bi-kanban',
+  InterviewQuestion: 'bi-chat-square-quote',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -83,4 +85,6 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   Contact: 'Contacts',
   Employment: 'Roles',
   CareerAchievement: 'Career achievements',
+  JobApplication: 'Job applications',
+  InterviewQuestion: 'Interview questions',
 };

@@ -1,0 +1,231 @@
+<div class="container py-4">
+  <a routerLink="/career/applications" class="small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Applications
+  </a>
+
+  @if (loadFailed() && !application()) {
+    <app-load-error message="Couldn't load this application." (retry)="load()" />
+  } @else if (application(); as a) {
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-4">
+      <div class="min-w-0">
+        <div class="small text-body-secondary mb-1">Job application · {{ a.organisation }}</div>
+        <h1 class="h3 mb-2 text-break">{{ a.role }}</h1>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <span class="badge rounded-pill text-bg-light border fs-6 fw-normal">
+            <i class="bi {{ stageIcons[a.stage] }} me-1"></i>{{ stageLabels[a.stage] }}
+          </span>
+          @if (a.stageSince) {
+            <span class="text-body-secondary small">since {{ a.stageSince | date }}</span>
+          }
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <div ngbDropdown placement="bottom-end">
+          <button type="button" class="btn btn-primary btn-sm" ngbDropdownToggle>Move it</button>
+          <div ngbDropdownMenu>
+            @for (stage of stages; track stage) {
+              @if (stage !== a.stage) {
+                <button type="button" ngbDropdownItem (click)="move(a, stage)">
+                  <i class="bi {{ stageIcons[stage] }} me-2"></i>{{ moveLabels[stage] }}
+                </button>
+              }
+            }
+          </div>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="edit(a)">
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" (click)="remove(a)">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-8 d-flex flex-column gap-3">
+        <section class="card" aria-labelledby="rounds-heading">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+              <h2 id="rounds-heading" class="h6 mb-0">Interview rounds</h2>
+              <button type="button" class="btn btn-outline-primary btn-sm" (click)="openRound(a)">
+                <i class="bi bi-plus-lg"></i> Add a round
+              </button>
+            </div>
+            @for (round of a.interviews; track round.id) {
+              <div class="border-top py-3">
+                <div class="d-flex flex-wrap align-items-baseline gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-link p-0 fw-semibold link-body-emphasis text-decoration-none text-start text-break"
+                    (click)="openRound(a, round)"
+                  >
+                    {{ round.title }}
+                  </button>
+                  @if (round.outcome === 'Passed') {
+                    <span class="badge rounded-pill text-bg-light border fw-normal">
+                      <i class="bi bi-check2 me-1"></i>Went through
+                    </span>
+                  } @else if (round.outcome === 'Failed') {
+                    <span class="badge rounded-pill text-bg-light border fw-normal">
+                      <i class="bi bi-x me-1"></i>Didn't go through
+                    </span>
+                  }
+                </div>
+                <div class="small text-body-secondary">
+                  @if (round.startsAt) {
+                    <i class="bi bi-calendar-event me-1"></i>
+                    {{ round.startsAt | date: dateTimeFormat }}
+                    @if (round.endsAt) {
+                      – {{ round.endsAt | date: (sameDay(round) ? timeFormat : dateTimeFormat) }}
+                    }
+                    @if (round.location) {
+                      · {{ round.location }}
+                    }
+                  } @else {
+                    Not scheduled
+                  }
+                </div>
+                @if (round.prepNotes) {
+                  <div class="small mt-2 text-break" style="white-space: pre-line">
+                    <span class="text-body-secondary">Prep:</span> {{ round.prepNotes }}
+                  </div>
+                }
+                @if (round.reviewNotes) {
+                  <div class="small mt-1 text-break" style="white-space: pre-line">
+                    <span class="text-body-secondary">Looking back:</span> {{ round.reviewNotes }}
+                  </div>
+                }
+              </div>
+            } @empty {
+              <p class="small text-body-secondary mb-0">
+                No rounds yet. Moving it to Interviewing asks for the first one.
+              </p>
+            }
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="questions-heading">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+              <h2 id="questions-heading" class="h6 mb-0">Questions asked</h2>
+              <button type="button" class="btn btn-outline-primary btn-sm" (click)="openQuestion()">
+                <i class="bi bi-plus-lg"></i> Add a question
+              </button>
+            </div>
+            <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+              @for (q of questions(); track q.id) {
+                <li>
+                  <button
+                    type="button"
+                    class="btn btn-link p-0 link-body-emphasis text-decoration-none text-start text-break"
+                    (click)="openQuestion(q)"
+                  >
+                    {{ q.question }}
+                  </button>
+                  <div class="small text-body-secondary">
+                    {{ q.answer ? 'Answer written' : 'No answer yet' }} ·
+                    {{ practisedText(q.lastPractisedOn, today) }}
+                  </div>
+                </li>
+              } @empty {
+                <li class="small text-body-secondary">
+                  Write down what they asked while it's fresh — it goes into your
+                  <a routerLink="/career/questions">question bank</a>.
+                </li>
+              }
+            </ul>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="history-heading">
+          <div class="card-body">
+            <h2 id="history-heading" class="h6 mb-3">How it went</h2>
+            <ol class="list-unstyled mb-0 d-flex flex-column gap-3">
+              @for (step of a.history; track step.id) {
+                <li class="d-flex gap-3">
+                  <i class="bi {{ stageIcons[step.toStage] }} fs-5 lh-1" aria-hidden="true"></i>
+                  <div class="min-w-0">
+                    <div>
+                      <span class="fw-semibold">{{ stepText(step.fromStage, step.toStage) }}</span>
+                      <span class="text-body-secondary small"> · {{ step.changedOn | date }}</span>
+                    </div>
+                    @if (step.note) {
+                      <div class="small text-body-secondary text-break">{{ step.note }}</div>
+                    }
+                  </div>
+                </li>
+              }
+            </ol>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-lg-4 d-flex flex-column gap-3">
+        <section class="card" aria-label="Details">
+          <div class="card-body small d-flex flex-column gap-2">
+            @if (a.appliedOn) {
+              <div><span class="text-body-secondary">Applied</span> {{ a.appliedOn | date }}</div>
+            }
+            @if (a.closedOn) {
+              <div><span class="text-body-secondary">Closed</span> {{ a.closedOn | date }}</div>
+            }
+            @if (a.source) {
+              <div class="text-break">
+                <span class="text-body-secondary">Found through</span> {{ a.source }}
+              </div>
+            }
+            @if (a.contactId && a.contactName) {
+              <div>
+                <span class="text-body-secondary">Contact</span>
+                <button
+                  type="button"
+                  class="btn btn-link btn-sm p-0 align-baseline"
+                  (click)="openContact(a.contactId)"
+                >
+                  {{ a.contactName }}
+                </button>
+              </div>
+            }
+            @if (a.resumeVersionName) {
+              <div class="text-break">
+                <span class="text-body-secondary">Resume sent</span>
+                <a routerLink="/career/resumes">{{ a.resumeVersionName }}</a>
+              </div>
+            }
+            @if (a.url) {
+              <div class="text-break">
+                <a [href]="a.url" target="_blank" rel="noopener noreferrer">
+                  <i class="bi bi-box-arrow-up-right me-1"></i>Job posting
+                </a>
+              </div>
+            }
+            @if (a.notes) {
+              <div class="text-break border-top pt-2" style="white-space: pre-line">
+                {{ a.notes }}
+              </div>
+            }
+            @if (!a.appliedOn && !a.source && !a.contactName && !a.url && !a.notes && !a.closedOn) {
+              <div class="text-body-secondary">No details yet.</div>
+            }
+          </div>
+        </section>
+        <section class="card">
+          <div class="card-body">
+            <app-linked-items [entityType]="entityType" [entityId]="a.id" />
+          </div>
+        </section>
+        <section class="card">
+          <div class="card-body">
+            <app-entity-reminders
+              entityType="JobApplication"
+              [entityId]="a.id"
+              [entityTitle]="a.role + ' at ' + a.organisation"
+            />
+          </div>
+        </section>
+      </div>
+    </div>
+  } @else {
+    <p class="text-body-secondary">Loading...</p>
+  }
+</div>

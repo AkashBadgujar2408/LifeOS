@@ -1,5 +1,17 @@
-import type { Employment } from '../../core/services/career.service';
-import { changeText, currentRoles, formatPay, stints } from './career-view';
+import type {
+  Employment,
+  InterviewQuestion,
+  JobApplication,
+} from '../../core/services/career.service';
+import {
+  boardColumns,
+  changeText,
+  currentRoles,
+  filterQuestions,
+  formatPay,
+  practisedText,
+  stints,
+} from './career-view';
 
 function role(
   id: number,
@@ -68,5 +80,105 @@ describe('formatPay + changeText', () => {
     expect(changeText(0)).toBe('No change');
     expect(changeText(25)).toBe('+25%');
     expect(changeText(-6.7)).toBe('−6.7%');
+  });
+});
+
+function application(
+  id: number,
+  stage: JobApplication['stage'],
+  stageSince: string,
+  nextInterviewAt: string | null = null,
+): JobApplication {
+  return {
+    id,
+    organisation: `Org ${id}`,
+    role: 'Engineer',
+    stage,
+    appliedOn: null,
+    closedOn: null,
+    stageSince,
+    source: null,
+    url: null,
+    contactId: null,
+    contactName: null,
+    resumeVersionId: null,
+    resumeVersionName: null,
+    notes: null,
+    interviewCount: nextInterviewAt ? 1 : 0,
+    nextInterviewAt,
+  };
+}
+
+describe('boardColumns', () => {
+  it('puts each open stage in its column and every closed one under Closed', () => {
+    const columns = boardColumns([
+      application(1, 'Saved', '2026-10-01'),
+      application(2, 'Rejected', '2026-10-02'),
+      application(3, 'Accepted', '2026-10-03'),
+      application(4, 'Offer', '2026-10-04'),
+    ]);
+    expect(columns.map((c) => c.key)).toEqual(['Saved', 'Applied', 'Interview', 'Offer', 'Closed']);
+    expect(columns[0].applications.map((a) => a.id)).toEqual([1]);
+    expect(columns[3].applications.map((a) => a.id)).toEqual([4]);
+    expect(columns[4].applications.map((a) => a.id)).toEqual([3, 2]);
+  });
+
+  it('puts a round coming up first, soonest first, then the most recent moves', () => {
+    const columns = boardColumns([
+      application(1, 'Interview', '2026-10-10'),
+      application(2, 'Interview', '2026-10-01', '2026-10-25T09:00:00Z'),
+      application(3, 'Interview', '2026-10-12'),
+      application(4, 'Interview', '2026-10-02', '2026-10-20T09:00:00Z'),
+    ]);
+    expect(columns[2].applications.map((a) => a.id)).toEqual([4, 2, 3, 1]);
+  });
+});
+
+describe('practisedText', () => {
+  it('counts calendar days', () => {
+    expect(practisedText(null, '2026-10-18')).toBe('Not practised yet');
+    expect(practisedText('2026-10-18', '2026-10-18')).toBe('Practised today');
+    expect(practisedText('2026-10-17', '2026-10-18')).toBe('Practised yesterday');
+    // Across the end of DST in Europe/US: still whole days.
+    expect(practisedText('2026-10-20', '2026-11-03')).toBe('Practised 14 days ago');
+  });
+});
+
+describe('filterQuestions', () => {
+  const questions: InterviewQuestion[] = [
+    {
+      id: 1,
+      question: 'Design a rate limiter',
+      answer: 'Token bucket per key',
+      reviewNotes: null,
+      lastPractisedOn: null,
+      jobApplicationId: null,
+      applicationTitle: null,
+      tags: [{ id: 7, name: 'System design' }],
+    },
+    {
+      id: 2,
+      question: 'Tell me about a conflict',
+      answer: null,
+      reviewNotes: 'Use the payments story',
+      lastPractisedOn: null,
+      jobApplicationId: null,
+      applicationTitle: null,
+      tags: [],
+    },
+  ];
+
+  it('matches every word anywhere in the question, answer or notes', () => {
+    expect(
+      filterQuestions(questions, { text: 'TOKEN limiter', tagId: null }).map((q) => q.id),
+    ).toEqual([1]);
+    expect(filterQuestions(questions, { text: 'payments', tagId: null }).map((q) => q.id)).toEqual([
+      2,
+    ]);
+    expect(filterQuestions(questions, { text: '', tagId: null })).toHaveLength(2);
+  });
+
+  it('narrows to a tag', () => {
+    expect(filterQuestions(questions, { text: '', tagId: 7 }).map((q) => q.id)).toEqual([1]);
   });
 });

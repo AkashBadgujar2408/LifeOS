@@ -34,3 +34,41 @@ public interface ICareerAchievementsService
     Task<OperationResult<CareerAchievementDto>> UpdateAsync(int id, CareerAchievementRequest request);
     Task<OperationResult<bool>> DeleteAsync(int id);
 }
+
+public interface IJobApplicationsService
+{
+    /// <summary>Every application, most recently changed first.</summary>
+    Task<List<JobApplicationDto>> GetAllAsync();
+    /// <summary>With its stage history and interview rounds.</summary>
+    Task<OperationResult<JobApplicationDetailDto>> GetAsync(int id);
+    /// <summary>Starts at the request's stage, logged as the first stage change.</summary>
+    Task<OperationResult<JobApplicationDetailDto>> CreateAsync(JobApplicationRequest request);
+    /// <summary>Details only — the stage moves through <see cref="MoveAsync"/>.</summary>
+    Task<OperationResult<JobApplicationDetailDto>> UpdateAsync(int id, JobApplicationRequest request);
+    /// <summary>Logs the move; a move to Interview can schedule its first round on the calendar.</summary>
+    Task<OperationResult<JobApplicationDetailDto>> MoveAsync(int id, ApplicationStageRequest request);
+    /// <summary>Its rounds (and their calendar entries) and history go too; its questions stay in the bank.</summary>
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+public interface IInterviewsService
+{
+    /// <summary>A round of the application; with times, it's put on the calendar.</summary>
+    Task<OperationResult<InterviewDto>> CreateAsync(int applicationId, InterviewRequest request);
+    /// <summary>Keeps the calendar entry in step: created, moved, or removed when the times are cleared.</summary>
+    Task<OperationResult<InterviewDto>> UpdateAsync(int id, InterviewRequest request);
+    /// <summary>Its calendar entry goes too.</summary>
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+public interface IInterviewQuestionsService
+{
+    /// <summary>Most recently changed first, optionally only one tag's or one application's.</summary>
+    Task<List<InterviewQuestionDto>> GetAllAsync(int? tagId, int? applicationId);
+    Task<OperationResult<InterviewQuestionDto>> GetAsync(int id);
+    Task<OperationResult<InterviewQuestionDto>> CreateAsync(InterviewQuestionRequest request);
+    Task<OperationResult<InterviewQuestionDto>> UpdateAsync(int id, InterviewQuestionRequest request);
+    /// <summary>Sets the last practised day to the client's today.</summary>
+    Task<OperationResult<InterviewQuestionDto>> PractisedAsync(int id, DateOnly today);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}

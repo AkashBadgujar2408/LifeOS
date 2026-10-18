@@ -77,6 +77,18 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: 'bi-trophy',
         module: 'Career',
       },
+      {
+        label: 'Applications',
+        route: '/career/applications',
+        icon: 'bi-kanban',
+        module: 'Career',
+      },
+      {
+        label: 'Interview prep',
+        route: '/career/questions',
+        icon: 'bi-chat-square-quote',
+        module: 'Career',
+      },
     ],
   },
   {

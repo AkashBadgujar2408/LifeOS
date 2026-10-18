@@ -17,6 +17,7 @@ import { LearningService } from '../../core/services/learning.service';
 import { CareerService } from '../../core/services/career.service';
 import { ContactsService } from '../../core/services/contacts.service';
 import { openAchievementEditor } from '../career/achievement-editor';
+import { openQuestionEditor } from '../career/question-editor';
 import { openContactEditor } from '../contacts/contact-editor';
 import { apiErrorMessage } from '../../core/services/api-error';
 
@@ -57,6 +58,21 @@ export class EntityOpener {
             }
           },
           error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the achievement.')),
+        });
+        break;
+      case 'JobApplication':
+        void this.router.navigate(['/career/applications', entityId]);
+        break;
+      case 'InterviewQuestion':
+        this.careerService.question(entityId).subscribe({
+          next: async (question) => {
+            const result = await openQuestionEditor(this.modal, question);
+            if (result) {
+              this.remindersService.notifyChanged();
+              this.toast.success(result.kind === 'saved' ? 'Question saved.' : 'Question deleted.');
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the question.')),
         });
         break;
       case 'Contact':

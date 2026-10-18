@@ -102,6 +102,9 @@ try
     builder.Services.AddScoped<IEmploymentsService, EmploymentsService>();
     builder.Services.AddScoped<ISalaryRecordsService, SalaryRecordsService>();
     builder.Services.AddScoped<ICareerAchievementsService, CareerAchievementsService>();
+    builder.Services.AddScoped<IJobApplicationsService, JobApplicationsService>();
+    builder.Services.AddScoped<IInterviewsService, InterviewsService>();
+    builder.Services.AddScoped<IInterviewQuestionsService, InterviewQuestionsService>();
     builder.Services.AddRecoveryRateLimit();
 
     // Files (document files, attachments) live on disk outside any web root, one folder per user (IFileStore).
@@ -139,6 +142,8 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, ContactLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, EmploymentLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, CareerAchievementLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, JobApplicationLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, InterviewQuestionLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

@@ -108,6 +108,9 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
         calendarEvent.IsDeleted = true;
         calendarEvent.DeletedAt = now;
         await SoftDeleteSkipsAsync(id, now);
+        // An interview round scheduled by this event stays, unscheduled.
+        await db.Interviews.Where(i => i.EventId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.EventId, (int?)null).SetProperty(i => i.UpdatedAt, now));
         await db.SaveChangesAsync();
         await entityLinksService.RemoveAllForEntityAsync(EventLinkableProvider.Type, id);
         // A reminder about a deleted event would surface something that no longer exists.

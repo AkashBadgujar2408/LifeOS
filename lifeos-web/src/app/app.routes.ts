@@ -177,6 +177,23 @@ export const routes: Routes = [
           import('./features/career/achievements').then((m) => m.CareerAchievements),
       },
       {
+        path: 'career/applications',
+        title: 'Applications | LifeOS',
+        loadComponent: () =>
+          import('./features/career/applications').then((m) => m.CareerApplications),
+      },
+      {
+        path: 'career/applications/:id',
+        title: 'Application | LifeOS',
+        loadComponent: () =>
+          import('./features/career/application-detail').then((m) => m.ApplicationDetail),
+      },
+      {
+        path: 'career/questions',
+        title: 'Interview prep | LifeOS',
+        loadComponent: () => import('./features/career/questions').then((m) => m.CareerQuestions),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),
