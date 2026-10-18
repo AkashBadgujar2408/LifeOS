@@ -1,0 +1,226 @@
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <div class="modal-header">
+    <h2 id="certification-editor-heading" class="modal-title h5">
+      {{ certification() ? 'Edit certification' : 'New certification' }}
+    </h2>
+    <button
+      type="button"
+      class="btn-close"
+      aria-label="Close"
+      (click)="activeModal.dismiss()"
+    ></button>
+  </div>
+
+  <div class="modal-body d-flex flex-column gap-3">
+    <div class="row g-3">
+      <div class="col-sm-7">
+        <label class="form-label" for="cert-name">Certification</label>
+        <input
+          id="cert-name"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('name')"
+          formControlName="name"
+          placeholder="e.g. AWS Solutions Architect Associate"
+          autocomplete="off"
+          ngbAutofocus
+        />
+        @if (fieldError('name'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-5">
+        <label class="form-label" for="cert-issuer">
+          Issued by <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <input
+          id="cert-issuer"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('issuer')"
+          formControlName="issuer"
+          placeholder="e.g. Amazon Web Services"
+          autocomplete="off"
+        />
+        @if (fieldError('issuer'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="cert-issued">Issued on</label>
+        <div class="input-group">
+          <input
+            id="cert-issued"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('issuedOn')"
+            formControlName="issuedOn"
+            placeholder="e.g. 20/Nov/2024"
+            autocomplete="off"
+            ngbDatepicker
+            #issuedPicker="ngbDatepicker"
+            [minDate]="minDate"
+            [maxDate]="maxDate"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the issue date"
+            (click)="issuedPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('issuedOn'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="cert-expires">
+          Expires on <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <div class="input-group">
+          <input
+            id="cert-expires"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="fieldError('expiresOn')"
+            formControlName="expiresOn"
+            placeholder="e.g. 20/Nov/2027"
+            autocomplete="off"
+            ngbDatepicker
+            #expiresPicker="ngbDatepicker"
+            [minDate]="minDate"
+            [maxDate]="maxDate"
+            container="body"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            aria-label="Pick the expiry date"
+            (click)="expiresPicker.toggle()"
+          >
+            <i class="bi bi-calendar3"></i>
+          </button>
+        </div>
+        @if (fieldError('expiresOn'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    </div>
+
+    @if (form.controls.expiresOn.value) {
+      <div>
+        <label class="form-label" for="cert-reminder">Remind me to renew</label>
+        <select
+          id="cert-reminder"
+          class="form-select w-auto"
+          formControlName="renewalReminderDays"
+          aria-describedby="cert-reminder-help"
+        >
+          @for (option of reminderOptions; track option.label) {
+            <option [ngValue]="option.days">{{ option.label }}</option>
+          }
+        </select>
+        <div id="cert-reminder-help" class="form-text">
+          A reminder at 9:00 that morning; it moves if you change the expiry date.
+        </div>
+      </div>
+    }
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="cert-credential">
+          Credential ID <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <input
+          id="cert-credential"
+          type="text"
+          class="form-control"
+          [class.is-invalid]="fieldError('credentialId')"
+          formControlName="credentialId"
+          placeholder="e.g. AWS-SAA-123456"
+          autocomplete="off"
+        />
+        @if (fieldError('credentialId'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="cert-url">
+          Verification link <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <input
+          id="cert-url"
+          type="url"
+          class="form-control"
+          [class.is-invalid]="fieldError('url')"
+          formControlName="url"
+          placeholder="https://..."
+          autocomplete="off"
+        />
+        @if (fieldError('url'); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-sm-6">
+        <label class="form-label" for="cert-skill">
+          Proves the skill <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <select id="cert-skill" class="form-select" formControlName="skillId">
+          <option [ngValue]="null">No particular skill</option>
+          @for (skill of skills(); track skill.id) {
+            <option [ngValue]="skill.id" [selected]="skill.id === form.controls.skillId.value">
+              {{ skill.name }}
+            </option>
+          }
+        </select>
+      </div>
+      <div class="col-sm-6">
+        <label class="form-label" for="cert-course">
+          From the course <span class="text-body-secondary small">(optional)</span>
+        </label>
+        <select id="cert-course" class="form-select" formControlName="courseId">
+          <option [ngValue]="null">No particular course</option>
+          @for (course of courses(); track course.id) {
+            <option [ngValue]="course.id" [selected]="course.id === form.controls.courseId.value">
+              {{ course.title }}
+            </option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (certification(); as existing) {
+      <div class="border-top pt-3">
+        <app-linked-items [entityType]="entityType" [entityId]="existing.id" />
+      </div>
+      <div class="border-top pt-3">
+        <app-entity-reminders
+          entityType="Certification"
+          [entityId]="existing.id"
+          [entityTitle]="existing.name"
+        />
+      </div>
+    }
+  </div>
+
+  <div class="modal-footer">
+    @if (certification()) {
+      <button type="button" class="btn btn-outline-danger me-auto" (click)="remove()">
+        <i class="bi bi-trash"></i> Delete
+      </button>
+    }
+    <button type="button" class="btn btn-outline-secondary" (click)="activeModal.dismiss()">
+      Cancel
+    </button>
+    <button type="submit" class="btn btn-primary" [disabled]="saving()">Save</button>
+  </div>
+</form>

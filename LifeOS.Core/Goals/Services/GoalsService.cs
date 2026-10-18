@@ -227,6 +227,13 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         await db.MissionDebriefs
             .Where(d => d.GoalId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(d => d.IsDeleted, true).SetProperty(d => d.DeletedAt, now));
+        // Learning roadmaps (and their steps) that served the goal carry on without it.
+        await db.Roadmaps
+            .Where(r => r.GoalId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.GoalId, (int?)null).SetProperty(r => r.UpdatedAt, now));
+        await db.RoadmapSteps
+            .Where(r => r.GoalId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.GoalId, (int?)null).SetProperty(r => r.UpdatedAt, now));
 
         goal.IsDeleted = true;
         goal.DeletedAt = now;

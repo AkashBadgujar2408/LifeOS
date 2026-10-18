@@ -44,6 +44,8 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   Skill: 'bi-mortarboard',
   Course: 'bi-easel',
   Book: 'bi-book-half',
+  Roadmap: 'bi-signpost-split',
+  Certification: 'bi-patch-check',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -71,4 +73,6 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   Skill: 'Skills',
   Course: 'Courses',
   Book: 'Books',
+  Roadmap: 'Roadmaps',
+  Certification: 'Certifications',
 };

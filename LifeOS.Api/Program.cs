@@ -82,6 +82,10 @@ try
     builder.Services.AddScoped<ISkillsService, SkillsService>();
     builder.Services.AddScoped<ICoursesService, CoursesService>();
     builder.Services.AddScoped<IBooksService, BooksService>();
+    builder.Services.AddScoped<IRoadmapsService, RoadmapsService>();
+    builder.Services.AddScoped<IStudySessionsService, StudySessionsService>();
+    builder.Services.AddScoped<ICertificationsService, CertificationsService>();
+    builder.Services.AddScoped<IKnowledgeNotesService, KnowledgeNotesService>();
     builder.Services.AddScoped<IChaptersService, ChaptersService>();
     builder.Services.AddScoped<ILifeStoryService, LifeStoryService>();
     builder.Services.AddScoped<IMissionsService, MissionsService>();
@@ -123,6 +127,8 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, SkillLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, CourseLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, BookLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, RoadmapLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, CertificationLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

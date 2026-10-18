@@ -1,0 +1,244 @@
+<div class="container py-4">
+  <a routerLink="/learning/roadmaps" class="small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Roadmaps
+  </a>
+
+  @if (loadFailed() && !roadmap()) {
+    <app-load-error message="Couldn't load this roadmap." (retry)="load()" />
+  } @else if (roadmap(); as roadmap) {
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+      <div class="min-w-0">
+        <div class="small text-body-secondary mb-1">
+          Roadmap · {{ statusLabels[roadmap.status] }}
+          @if (roadmap.goalTitle) {
+            · <i class="bi bi-flag" aria-hidden="true"></i>
+            <a [routerLink]="['/goals', roadmap.goalId]">{{ roadmap.goalTitle }}</a>
+          }
+        </div>
+        <h1 class="h3 mb-0 text-break">{{ roadmap.title }}</h1>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="edit(roadmap)">
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" (click)="remove(roadmap)">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-8 d-flex flex-column gap-3">
+        <section class="card" aria-labelledby="roadmap-steps-heading">
+          <div class="card-body">
+            <div
+              class="progress mb-1"
+              style="height: 0.5rem"
+              role="progressbar"
+              [attr.aria-label]="roadmap.title + ' progress'"
+              [attr.aria-valuenow]="roadmap.progressPercent"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              <div class="progress-bar" [style.width.%]="roadmap.progressPercent"></div>
+            </div>
+            <div class="d-flex justify-content-between small text-body-secondary mb-3">
+              <span>
+                {{ roadmap.completedStepCount }} of {{ roadmap.stepCount }} steps
+                @if (roadmap.nextStepTitle) {
+                  · next: {{ roadmap.nextStepTitle }}
+                }
+              </span>
+              <span class="fw-semibold">{{ roadmap.progressPercent }}%</span>
+            </div>
+
+            <h2 id="roadmap-steps-heading" class="h6 mb-2">Steps</h2>
+            <ol class="list-unstyled mb-3 d-flex flex-column gap-2">
+              @for (step of roadmap.steps; track step.id; let first = $first; let last = $last) {
+                @if (editingStepId() !== step.id) {
+                  <li class="d-flex align-items-start gap-2">
+                    <input
+                      type="checkbox"
+                      class="form-check-input mt-1 flex-shrink-0"
+                      [id]="'step-' + step.id"
+                      [checked]="step.completedAt !== null"
+                      [disabled]="busyStepId() === step.id"
+                      (change)="toggle(roadmap, step)"
+                    />
+                    <div class="flex-grow-1 min-w-0">
+                      <label
+                        class="form-check-label text-break"
+                        [for]="'step-' + step.id"
+                        [class.text-decoration-line-through]="step.completedAt !== null"
+                        [class.text-body-secondary]="step.completedAt !== null"
+                        >{{ step.title }}</label
+                      >
+                      @if (step.targetType) {
+                        <div class="small text-body-secondary">
+                          @if (step.targetTitle) {
+                            {{ step.targetType }}:
+                            <button
+                              type="button"
+                              class="btn btn-link btn-sm p-0 align-baseline text-break text-start"
+                              (click)="openTarget(step)"
+                            >
+                              {{ step.targetTitle }}
+                            </button>
+                            @if (step.targetStatus) {
+                              · {{ targetStatusLabels[step.targetStatus] ?? step.targetStatus }}
+                            }
+                          } @else {
+                            {{ step.targetType }} since removed
+                          }
+                        </div>
+                      }
+                    </div>
+                    <div class="d-flex gap-1 flex-shrink-0">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-link link-secondary p-0"
+                        [disabled]="first"
+                        [attr.aria-label]="'Move ' + step.title + ' up'"
+                        (click)="move(roadmap, step, -1)"
+                      >
+                        <i class="bi bi-arrow-up"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-link link-secondary p-0"
+                        [disabled]="last"
+                        [attr.aria-label]="'Move ' + step.title + ' down'"
+                        (click)="move(roadmap, step, 1)"
+                      >
+                        <i class="bi bi-arrow-down"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-link link-secondary p-0"
+                        [attr.aria-label]="'Edit ' + step.title"
+                        (click)="editStep(step)"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-link link-danger p-0"
+                        [attr.aria-label]="'Remove ' + step.title"
+                        (click)="removeStep(roadmap, step)"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </li>
+                }
+              } @empty {
+                <li class="small text-body-secondary">
+                  No steps yet. Add the first thing to do — it can be a course or book you've added,
+                  a goal, or just a name.
+                </li>
+              }
+            </ol>
+
+            <form
+              [formGroup]="stepForm"
+              (ngSubmit)="saveStep(roadmap)"
+              class="border-top pt-3 d-flex flex-column gap-2"
+              novalidate
+            >
+              <div class="small fw-semibold text-body-secondary">
+                {{ editingStepId() ? 'Edit step' : 'Add a step' }}
+              </div>
+              <div class="row g-2">
+                <div class="col-sm-4">
+                  <label class="visually-hidden" for="step-target-type">Points at</label>
+                  <select id="step-target-type" class="form-select" formControlName="targetType">
+                    <option [ngValue]="null">Just a step</option>
+                    <option ngValue="Course">A course</option>
+                    <option ngValue="Book">A book</option>
+                    <option ngValue="Goal">A goal</option>
+                  </select>
+                </div>
+                @if (stepForm.controls.targetType.value) {
+                  <div class="col-sm-8">
+                    <label class="visually-hidden" for="step-target">Which one</label>
+                    <select
+                      id="step-target"
+                      class="form-select"
+                      [class.is-invalid]="stepError('targetId')"
+                      formControlName="targetId"
+                    >
+                      <option [ngValue]="null">Choose…</option>
+                      @for (option of targetOptions(); track option.id) {
+                        <option
+                          [ngValue]="option.id"
+                          [selected]="option.id === stepForm.controls.targetId.value"
+                        >
+                          {{ option.title }}
+                        </option>
+                      }
+                    </select>
+                    @if (stepError('targetId'); as error) {
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    }
+                  </div>
+                }
+              </div>
+              <div>
+                <label class="visually-hidden" for="step-title">Step</label>
+                <input
+                  id="step-title"
+                  type="text"
+                  class="form-control"
+                  [class.is-invalid]="stepError('title')"
+                  formControlName="title"
+                  placeholder="e.g. Finish the A2 course"
+                  autocomplete="off"
+                />
+                @if (stepError('title'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary" [disabled]="savingStep()">
+                  {{ editingStepId() ? 'Save' : 'Add' }}
+                </button>
+                @if (editingStepId()) {
+                  <button type="button" class="btn btn-outline-secondary" (click)="cancelStep()">
+                    Cancel
+                  </button>
+                }
+              </div>
+            </form>
+          </div>
+        </section>
+
+        @if (roadmap.description) {
+          <div class="card">
+            <div class="card-body text-break" style="white-space: pre-line">
+              {{ roadmap.description }}
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="col-lg-4 d-flex flex-column gap-3">
+        <div class="card">
+          <div class="card-body">
+            <app-linked-items [entityType]="roadmapEntityType" [entityId]="roadmap.id" />
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <app-entity-reminders
+              entityType="Roadmap"
+              [entityId]="roadmap.id"
+              [entityTitle]="roadmap.title"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <p class="text-body-secondary">Loading...</p>
+  }
+</div>

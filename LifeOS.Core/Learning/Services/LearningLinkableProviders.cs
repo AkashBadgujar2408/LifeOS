@@ -93,3 +93,58 @@ public class BookLinkableProvider(AppDbContext db) : ILinkableEntityProvider
             .ToListAsync();
     }
 }
+
+public class RoadmapLinkableProvider(AppDbContext db) : ILinkableEntityProvider
+{
+    public const string Type = "Roadmap";
+
+    public string EntityType => Type;
+
+    public string DisplayName => "Roadmap";
+
+    public async Task<Dictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> ids) =>
+        await db.Roadmaps.Where(r => ids.Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => r.Title);
+
+    public async Task<List<LinkableItemDto>> SearchAsync(string? search, int take)
+    {
+        var query = db.Roadmaps.AsQueryable();
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(r => r.Title.Contains(search) || r.RoadmapSteps.Any(s => s.Title.Contains(search)));
+        }
+
+        return await query
+            .OrderBy(r => r.Status != RoadmapStatuses.Active)
+            .ThenBy(r => r.Title)
+            .Take(take)
+            .Select(r => new LinkableItemDto { EntityType = Type, EntityId = r.Id, Title = r.Title })
+            .ToListAsync();
+    }
+}
+
+public class CertificationLinkableProvider(AppDbContext db) : ILinkableEntityProvider
+{
+    public const string Type = "Certification";
+
+    public string EntityType => Type;
+
+    public string DisplayName => "Certification";
+
+    public async Task<Dictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> ids) =>
+        await db.Certifications.Where(c => ids.Contains(c.Id)).ToDictionaryAsync(c => c.Id, c => c.Name);
+
+    public async Task<List<LinkableItemDto>> SearchAsync(string? search, int take)
+    {
+        var query = db.Certifications.AsQueryable();
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(c => c.Name.Contains(search) || (c.Issuer != null && c.Issuer.Contains(search)));
+        }
+
+        return await query
+            .OrderBy(c => c.Name)
+            .Take(take)
+            .Select(c => new LinkableItemDto { EntityType = Type, EntityId = c.Id, Title = c.Name })
+            .ToListAsync();
+    }
+}

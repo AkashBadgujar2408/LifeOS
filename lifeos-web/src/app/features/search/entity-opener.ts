@@ -11,6 +11,7 @@ import { openEventEditor } from '../calendar/event-editor';
 import { openDecisionEditor } from '../journal/decision-editor';
 import { openTaskEditor } from '../tasks/task-editor';
 import { openCourseEditor } from '../learning/course-editor';
+import { openCertificationEditor } from '../learning/certification-editor';
 import { LearningService } from '../../core/services/learning.service';
 import { apiErrorMessage } from '../../core/services/api-error';
 
@@ -65,6 +66,24 @@ export class EntityOpener {
         break;
       case 'Book':
         void this.router.navigate(['/learning/books', entityId]);
+        break;
+      case 'Roadmap':
+        void this.router.navigate(['/learning/roadmaps', entityId]);
+        break;
+      case 'Certification':
+        this.learningService.certification(entityId).subscribe({
+          next: async (certification) => {
+            const result = await openCertificationEditor(this.modal, certification);
+            if (result) {
+              this.remindersService.notifyChanged();
+              this.toast.success(
+                result.kind === 'saved' ? 'Certification saved.' : 'Certification deleted.',
+              );
+            }
+          },
+          error: (err) =>
+            this.toast.error(apiErrorMessage(err, 'Could not open the certification.')),
+        });
         break;
       case 'Course':
         this.learningService.course(entityId).subscribe({

@@ -45,6 +45,25 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Skills', route: '/learning/skills', icon: 'bi-mortarboard', module: 'Learning' },
       { label: 'Courses', route: '/learning/courses', icon: 'bi-easel', module: 'Learning' },
       { label: 'Reading', route: '/learning/books', icon: 'bi-book-half', module: 'Learning' },
+      {
+        label: 'Roadmaps',
+        route: '/learning/roadmaps',
+        icon: 'bi-signpost-split',
+        module: 'Learning',
+      },
+      { label: 'Study', route: '/learning/study', icon: 'bi-stopwatch', module: 'Learning' },
+      {
+        label: 'Notes & review',
+        route: '/learning/notes',
+        icon: 'bi-card-text',
+        module: 'Learning',
+      },
+      {
+        label: 'Certifications',
+        route: '/learning/certifications',
+        icon: 'bi-patch-check',
+        module: 'Learning',
+      },
     ],
   },
   {

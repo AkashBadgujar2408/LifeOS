@@ -134,6 +134,33 @@ export const routes: Routes = [
         loadComponent: () => import('./features/learning/book-detail').then((m) => m.BookDetail),
       },
       {
+        path: 'learning/roadmaps',
+        title: 'Roadmaps | LifeOS',
+        loadComponent: () => import('./features/learning/roadmaps').then((m) => m.Roadmaps),
+      },
+      {
+        path: 'learning/roadmaps/:id',
+        title: 'Roadmap | LifeOS',
+        loadComponent: () =>
+          import('./features/learning/roadmap-detail').then((m) => m.RoadmapDetail),
+      },
+      {
+        path: 'learning/study',
+        title: 'Study | LifeOS',
+        loadComponent: () => import('./features/learning/study').then((m) => m.Study),
+      },
+      {
+        path: 'learning/notes',
+        title: 'Notes & review | LifeOS',
+        loadComponent: () => import('./features/learning/notes').then((m) => m.Notes),
+      },
+      {
+        path: 'learning/certifications',
+        title: 'Certifications | LifeOS',
+        loadComponent: () =>
+          import('./features/learning/certifications').then((m) => m.Certifications),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

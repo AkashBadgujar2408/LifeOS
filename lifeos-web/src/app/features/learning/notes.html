@@ -1,0 +1,130 @@
+<div class="container py-4">
+  <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
+    <div>
+      <h1 class="h3 mb-1">Notes &amp; review</h1>
+      <p class="text-body-secondary mb-0 small">
+        Keep what you learn, and see it again just before you'd forget it.
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary" (click)="open()">
+      <i class="bi bi-plus-lg"></i> New note
+    </button>
+  </div>
+
+  @if (loadFailed() && !notes()) {
+    <app-load-error message="Couldn't load your notes." (retry)="load()" />
+  } @else if (notes(); as notes) {
+    <section class="card mb-4" aria-labelledby="due-heading">
+      <div class="card-body p-4">
+        <h2 id="due-heading" class="h5 mb-3">
+          Due for review
+          @if (due().length > 0) {
+            <span class="badge rounded-pill text-bg-light border fw-normal">{{
+              due().length
+            }}</span>
+          }
+        </h2>
+        @if (due().length === 0) {
+          <p class="text-body-secondary mb-0">
+            @if (notes.length === 0) {
+              Nothing to review yet. Add a note and switch on "Review it on a schedule".
+            } @else {
+              Nothing due today. Come back tomorrow.
+            }
+          </p>
+        }
+        <ul class="list-unstyled mb-0 d-flex flex-column gap-3">
+          @for (note of due(); track note.id) {
+            <li class="border rounded p-3">
+              <div class="d-flex flex-wrap justify-content-between gap-2">
+                <div class="fw-semibold text-break">{{ note.title }}</div>
+                <span class="small text-body-secondary">
+                  {{ reviewText(note, today()) }}
+                  @if (note.skillName) {
+                    · {{ note.skillName }}
+                  }
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0 ms-1 align-baseline"
+                    [attr.aria-label]="'Edit ' + note.title"
+                    (click)="open(note)"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                </span>
+              </div>
+              @if (revealed().has(note.id)) {
+                @if (note.content) {
+                  <div class="text-break mt-2" style="white-space: pre-line">
+                    {{ note.content }}
+                  </div>
+                }
+                <div class="d-flex flex-wrap gap-2 mt-3">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary"
+                    [disabled]="busyId() === note.id"
+                    (click)="review(note, true)"
+                  >
+                    <i class="bi bi-check-lg"></i> I remembered it
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    [disabled]="busyId() === note.id"
+                    (click)="review(note, false)"
+                  >
+                    Not this time
+                  </button>
+                </div>
+              } @else {
+                <p class="small text-body-secondary mb-2 mt-1">Try to recall it first.</p>
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="reveal(note)">
+                  <i class="bi bi-eye"></i> Show the note
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      </div>
+    </section>
+
+    <h2 class="h5 mb-3">All notes</h2>
+    @if (others().length === 0 && due().length === 0) {
+      <p class="text-body-secondary">No notes yet.</p>
+    }
+    <div class="row row-cols-1 row-cols-md-2 g-3">
+      @for (note of others(); track note.id) {
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-body d-flex flex-column gap-1">
+              <button
+                type="button"
+                class="btn btn-link p-0 stretched-link link-body-emphasis text-decoration-none fw-semibold text-break text-start"
+                (click)="open(note)"
+              >
+                {{ note.title }}
+              </button>
+              @if (note.content) {
+                <div class="small text-body-secondary note-excerpt text-break">
+                  {{ note.content }}
+                </div>
+              }
+              <div class="small text-body-secondary mt-auto pt-1">
+                {{ reviewText(note, today()) }}
+                @if (note.lastReviewedOn) {
+                  · last reviewed {{ note.lastReviewedOn | date }}
+                }
+                @if (note.skillName) {
+                  · {{ note.skillName }}
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <p class="text-body-secondary">Loading notes...</p>
+  }
+</div>
