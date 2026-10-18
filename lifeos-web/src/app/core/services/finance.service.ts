@@ -1,10 +1,11 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, catchError, map, of, shareReplay, switchMap, tap } from 'rxjs';
 import { todayIso } from '../dates/today';
 import { ApiResponse } from './api-response';
 import { RemindersService } from './reminders.service';
 import { Tag } from './tags.service';
+import { RecurrenceFrequency } from './tasks.service';
 
 export const ACCOUNT_KINDS = ['Bank', 'Cash', 'Wallet', 'Card'] as const;
 export type AccountKind = (typeof ACCOUNT_KINDS)[number];
@@ -112,19 +113,124 @@ export interface LedgerFilter {
   kind: TransactionKind | null;
 }
 
-/** The Finance API: accounts with computed balances, and the ledger. */
+/** A repeating transaction; it writes into the ledger when due (from `startDate`, every N units). */
+export interface RecurringTransaction {
+  id: number;
+  name: string;
+  kind: TransactionKind;
+  amount: number;
+  currency: string;
+  exchangeRate: number | null;
+  toAmount: number | null;
+  fromAccountId: number | null;
+  fromAccountName: string | null;
+  toAccountId: number | null;
+  toAccountName: string | null;
+  toCurrency: string | null;
+  payee: string | null;
+  note: string | null;
+  recurrenceFrequency: RecurrenceFrequency;
+  recurrenceInterval: number;
+  startDate: string;
+  until: string | null;
+  /** The last day already written (null: nothing yet). */
+  generatedThrough: string | null;
+  isPaused: boolean;
+  /** The next day it will write (null: paused or finished). */
+  nextOn: string | null;
+  generatedCount: number;
+  tags: Tag[];
+}
+
+export interface RecurringTransactionPayload {
+  name: string;
+  kind: TransactionKind;
+  amount: number;
+  exchangeRate: number | null;
+  toAmount: number | null;
+  fromAccountId: number | null;
+  toAccountId: number | null;
+  payee: string | null;
+  note: string | null;
+  recurrenceFrequency: RecurrenceFrequency;
+  recurrenceInterval: number;
+  startDate: string;
+  until: string | null;
+  isPaused: boolean;
+  tagIds: number[];
+  today: string;
+}
+
+export interface BudgetLine {
+  tagId: number;
+  tagName: string;
+  budget: number | null;
+  budgetCurrency: string | null;
+  spent: number;
+  transactionCount: number;
+  unconverted: number;
+  /** Budget − spent (negative when over); null without a comparable budget. */
+  remaining: number | null;
+  percentUsed: number | null;
+  isOver: boolean;
+}
+
+/** A month's budgets against spending, and its totals, in the base currency. */
+export interface MonthSummary {
+  monthStart: string;
+  currency: string | null;
+  income: number;
+  spending: number;
+  untaggedSpending: number;
+  unconverted: number;
+  lines: BudgetLine[];
+}
+
+/** The Finance API: accounts with computed balances, the ledger, repeating transactions and budgets. */
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
   private readonly http = inject(HttpClient);
   private readonly remindersService = inject(RemindersService);
   private readonly base = '/api/Finance';
 
+  /** Today's run of the repeating transactions, shared by every Finance read until the day (or a schedule) changes. */
+  private written: { day: string; run: Observable<number> } | null = null;
+
+  /**
+   * Writes the repeating transactions due by today before anything is read, so balances, the ledger and budgets
+   * include them. Once per day per session (again after a schedule changes); a failure doesn't block the read.
+   */
+  private dueWritten(): Observable<number> {
+    const day = todayIso();
+    if (this.written?.day !== day) {
+      this.written = {
+        day,
+        run: this.http
+          .post<ApiResponse<number>>(`${this.base}/RecurringTransactions/generate`, { today: day })
+          .pipe(
+            map((response) => response.data ?? 0),
+            catchError(() => {
+              this.written = null;
+              return of(0);
+            }),
+            shareReplay(1),
+          ),
+      };
+    }
+    return this.written.run;
+  }
+
   // ---- Accounts ----
 
   accounts(): Observable<Account[]> {
-    return this.http
-      .get<ApiResponse<Account[]>>(`${this.base}/Accounts`, { params: { today: todayIso() } })
-      .pipe(map((response) => response.data ?? []));
+    return this.dueWritten().pipe(
+      switchMap(() =>
+        this.http.get<ApiResponse<Account[]>>(`${this.base}/Accounts`, {
+          params: { today: todayIso() },
+        }),
+      ),
+      map((response) => response.data ?? []),
+    );
   }
 
   saveAccount(id: number | null, payload: AccountPayload): Observable<Account> {
@@ -151,9 +257,10 @@ export class FinanceService {
         params = params.set(key, String(value));
       }
     }
-    return this.http
-      .get<ApiResponse<Ledger>>(`${this.base}/Transactions`, { params })
-      .pipe(map((response) => response.data!));
+    return this.dueWritten().pipe(
+      switchMap(() => this.http.get<ApiResponse<Ledger>>(`${this.base}/Transactions`, { params })),
+      map((response) => response.data!),
+    );
   }
 
   transaction(id: number): Observable<Transaction> {
@@ -174,5 +281,67 @@ export class FinanceService {
       tap(() => this.remindersService.notifyChanged()),
       map(() => undefined),
     );
+  }
+
+  // ---- Repeating transactions ----
+
+  recurring(): Observable<RecurringTransaction[]> {
+    return this.dueWritten().pipe(
+      switchMap(() =>
+        this.http.get<ApiResponse<RecurringTransaction[]>>(`${this.base}/RecurringTransactions`),
+      ),
+      map((response) => response.data ?? []),
+    );
+  }
+
+  saveRecurring(
+    id: number | null,
+    payload: RecurringTransactionPayload,
+  ): Observable<RecurringTransaction> {
+    const request = id
+      ? this.http.put<ApiResponse<RecurringTransaction>>(
+          `${this.base}/RecurringTransactions/${id}`,
+          payload,
+        )
+      : this.http.post<ApiResponse<RecurringTransaction>>(
+          `${this.base}/RecurringTransactions`,
+          payload,
+        );
+    // The next read writes whatever the new or changed schedule has due.
+    return request.pipe(
+      tap(() => (this.written = null)),
+      map((response) => response.data!),
+    );
+  }
+
+  removeRecurring(id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.base}/RecurringTransactions/${id}`)
+      .pipe(map(() => undefined));
+  }
+
+  // ---- Budgets ----
+
+  /** A month (its first day, "yyyy-MM-01"): budgets per tag against spending, and the month's totals. */
+  month(monthStart: string): Observable<MonthSummary> {
+    return this.dueWritten().pipe(
+      switchMap(() =>
+        this.http.get<ApiResponse<MonthSummary>>(`${this.base}/Budgets/${monthStart}`),
+      ),
+      map((response) => response.data!),
+    );
+  }
+
+  /** Sets a tag's budget for the month; null removes it. Returns the month as it now stands. */
+  setBudget(monthStart: string, tagId: number, amount: number | null): Observable<MonthSummary> {
+    return this.http
+      .put<ApiResponse<MonthSummary>>(`${this.base}/Budgets/${monthStart}/${tagId}`, { amount })
+      .pipe(map((response) => response.data!));
+  }
+
+  copyPreviousBudgets(monthStart: string): Observable<MonthSummary> {
+    return this.http
+      .post<ApiResponse<MonthSummary>>(`${this.base}/Budgets/${monthStart}/copy`, {})
+      .pipe(map((response) => response.data!));
   }
 }

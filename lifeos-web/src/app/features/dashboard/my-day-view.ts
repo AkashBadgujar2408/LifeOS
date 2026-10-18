@@ -117,6 +117,8 @@ export function insightLink(insight: Insight): { link: (string | number)[]; labe
       return insight.entityId
         ? { link: ['/documents', insight.entityId], label: 'Open document' }
         : null;
+    case 'Budgets':
+      return { link: ['/finance/budgets'], label: 'Open budgets' };
     default:
       return null;
   }
@@ -151,6 +153,7 @@ const INSIGHT_MODULES: Record<string, ModuleKey> = {
   Journal: 'Journal',
   Tasks: 'Tasks',
   Document: 'Documents',
+  Budgets: 'Finance',
 };
 
 /**

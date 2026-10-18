@@ -22,3 +22,25 @@ public interface ITransactionsService
     Task<OperationResult<TransactionDto>> UpdateAsync(int id, TransactionRequest request);
     Task<OperationResult<bool>> DeleteAsync(int id);
 }
+
+/// <summary>Repeating transactions and writing the ones that are due.</summary>
+public interface IRecurringTransactionsService
+{
+    Task<List<RecurringTransactionDto>> GetAllAsync();
+    Task<OperationResult<RecurringTransactionDto>> GetAsync(int id);
+    Task<OperationResult<RecurringTransactionDto>> CreateAsync(RecurringTransactionRequest request);
+    Task<OperationResult<RecurringTransactionDto>> UpdateAsync(int id, RecurringTransactionRequest request);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+
+    /// <summary>Writes every occurrence due by the client's today that isn't written yet; returns how many.</summary>
+    Task<int> GenerateDueAsync(DateOnly today);
+}
+
+/// <summary>Budgets per tag per month against spending.</summary>
+public interface IBudgetsService
+{
+    Task<OperationResult<MonthSummaryDto>> GetMonthAsync(DateOnly monthStart);
+    Task<List<BudgetLineDto>> OverBudgetAsync(DateOnly today);
+    Task<OperationResult<MonthSummaryDto>> SetAsync(DateOnly monthStart, int tagId, decimal? amount);
+    Task<OperationResult<MonthSummaryDto>> CopyPreviousAsync(DateOnly monthStart);
+}

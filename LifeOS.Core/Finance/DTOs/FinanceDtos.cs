@@ -159,3 +159,120 @@ public class LedgerTotalsDto
     /// <summary>Incomes/expenses left out because they're in another currency with no rate (e.g. after the base changed).</summary>
     public int Unconverted { get; init; }
 }
+
+// ---- Repeating transactions ----
+
+public class RecurringTransactionDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Kind { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    public decimal? ExchangeRate { get; init; }
+    public decimal? ToAmount { get; init; }
+    public int? FromAccountId { get; init; }
+    public string? FromAccountName { get; init; }
+    public int? ToAccountId { get; init; }
+    public string? ToAccountName { get; init; }
+    public string? ToCurrency { get; init; }
+    public string? Payee { get; init; }
+    public string? Note { get; init; }
+    public string RecurrenceFrequency { get; init; } = string.Empty;
+    public int RecurrenceInterval { get; init; }
+    public DateOnly StartDate { get; init; }
+    public DateOnly? Until { get; init; }
+    /// <summary>The last day already written into the ledger (null: nothing yet).</summary>
+    public DateOnly? GeneratedThrough { get; init; }
+    public bool IsPaused { get; init; }
+    /// <summary>The next day it will write a transaction (null: finished).</summary>
+    public DateOnly? NextOn { get; set; }
+    public int GeneratedCount { get; init; }
+    public List<TagDto> Tags { get; init; } = [];
+}
+
+public class RecurringTransactionRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    public decimal Amount { get; init; }
+
+    public decimal? ExchangeRate { get; init; }
+
+    public decimal? ToAmount { get; init; }
+
+    public int? FromAccountId { get; init; }
+
+    public int? ToAccountId { get; init; }
+
+    [StringLength(200)]
+    public string? Payee { get; init; }
+
+    [StringLength(1000)]
+    public string? Note { get; init; }
+
+    [Required]
+    public string RecurrenceFrequency { get; init; } = string.Empty;
+
+    public int RecurrenceInterval { get; init; } = 1;
+
+    public DateOnly StartDate { get; init; }
+
+    public DateOnly? Until { get; init; }
+
+    public bool IsPaused { get; init; }
+
+    [Required]
+    public List<int> TagIds { get; init; } = [];
+
+    /// <summary>The client's today: resuming a paused schedule carries on from here instead of catching up.</summary>
+    public DateOnly Today { get; init; }
+}
+
+public class GenerateRequest
+{
+    public DateOnly Today { get; init; }
+}
+
+// ---- Budgets ----
+
+/// <summary>A month's budgets against spending, and the month's totals, in the base currency.</summary>
+public class MonthSummaryDto
+{
+    public DateOnly MonthStart { get; init; }
+    /// <summary>The base currency (null: none chosen, so nothing could be compared).</summary>
+    public string? Currency { get; init; }
+    public decimal Income { get; init; }
+    public decimal Spending { get; init; }
+    public decimal UntaggedSpending { get; init; }
+    public int Unconverted { get; init; }
+    /// <summary>Budgeted tags first (fullest first), then tags spent on without a budget (biggest first).</summary>
+    public List<BudgetLineDto> Lines { get; init; } = [];
+}
+
+public class BudgetLineDto
+{
+    public int TagId { get; init; }
+    public string TagName { get; init; } = string.Empty;
+    public decimal? Budget { get; init; }
+    public string? BudgetCurrency { get; init; }
+    public decimal Spent { get; init; }
+    public int TransactionCount { get; init; }
+    public int Unconverted { get; init; }
+    /// <summary>Budget − spent (negative when over); null without a comparable budget.</summary>
+    public decimal? Remaining { get; init; }
+    /// <summary>Spent as a whole % of the budget (can pass 100); null without a comparable budget.</summary>
+    public int? PercentUsed { get; init; }
+    public bool IsOver { get; init; }
+}
+
+public class BudgetRequest
+{
+    /// <summary>The month's budget for the tag; null removes it.</summary>
+    public decimal? Amount { get; init; }
+}

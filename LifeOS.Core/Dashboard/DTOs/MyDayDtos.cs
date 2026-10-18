@@ -125,6 +125,7 @@ public static class InsightKinds
     public const string OverdueTasks = "OverdueTasks";
     public const string HabitStreakMilestone = "HabitStreakMilestone";
     public const string DocumentExpiring = "DocumentExpiring";
+    public const string OverBudget = "OverBudget";
 }
 
 public static class InsightTones

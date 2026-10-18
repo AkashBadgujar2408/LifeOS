@@ -125,3 +125,42 @@ export function totalsByCurrency(
     .map(([currency, total]) => ({ currency, total: Math.round(total * 10000) / 10000 }))
     .sort((a, b) => a.currency.localeCompare(b.currency));
 }
+
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/** "October 2026" for a month's first day ("2026-10-01"). */
+export function monthLabel(monthStart: string): string {
+  const [year, month] = monthStart.split('-').map(Number);
+  return `${MONTH_NAMES[month - 1]} ${year}`;
+}
+
+/** The first day of the month `delta` months away, on year/month numbers (never `Date`). */
+export function shiftMonth(monthStart: string, delta: number): string {
+  const [year, month] = monthStart.split('-').map(Number);
+  const index = year * 12 + (month - 1) + delta;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, '0')}-01`;
+}
+
+/**
+ * How full a budget bar is drawn (0–100) and whether it's past the budget. Past 100% the bar is full and the
+ * overspend is said in words — the bar never grows beyond its track.
+ */
+export function budgetBar(line: { percentUsed: number | null; isOver: boolean }): {
+  width: number;
+  over: boolean;
+} {
+  return { width: Math.min(100, Math.max(0, line.percentUsed ?? 0)), over: line.isOver };
+}

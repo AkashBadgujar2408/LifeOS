@@ -1,8 +1,11 @@
 import type { Transaction } from '../../core/services/finance.service';
 import {
   accountLine,
+  budgetBar,
   formatMoney,
+  monthLabel,
   monthRange,
+  shiftMonth,
   signedAmount,
   signedMoney,
   totalsByCurrency,
@@ -98,5 +101,21 @@ describe('finance view', () => {
       { currency: 'INR', total: 67199.5 },
       { currency: 'USD', total: 90 },
     ]);
+  });
+});
+
+describe('finance months and budget bars', () => {
+  it('names and moves months without Date', () => {
+    expect(monthLabel('2026-10-01')).toBe('October 2026');
+    expect(shiftMonth('2026-10-01', 1)).toBe('2026-11-01');
+    expect(shiftMonth('2026-12-01', 1)).toBe('2027-01-01');
+    expect(shiftMonth('2026-01-01', -1)).toBe('2025-12-01');
+    expect(shiftMonth('2026-03-01', -14)).toBe('2025-01-01');
+  });
+
+  it('caps the bar at its track and flags the overspend', () => {
+    expect(budgetBar({ percentUsed: 110, isOver: true })).toEqual({ width: 100, over: true });
+    expect(budgetBar({ percentUsed: 45, isOver: false })).toEqual({ width: 45, over: false });
+    expect(budgetBar({ percentUsed: null, isOver: false })).toEqual({ width: 0, over: false });
   });
 });

@@ -120,6 +120,13 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: 'bi-receipt',
         module: 'Finance',
       },
+      {
+        label: 'Repeating',
+        route: '/finance/recurring',
+        icon: 'bi-arrow-repeat',
+        module: 'Finance',
+      },
+      { label: 'Budgets', route: '/finance/budgets', icon: 'bi-pie-chart', module: 'Finance' },
     ],
   },
   {

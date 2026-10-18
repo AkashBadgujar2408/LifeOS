@@ -3,6 +3,7 @@ using Dapper;
 using LifeOS.Core.Calendar.Services;
 using LifeOS.Core.Dashboard.DTOs;
 using LifeOS.Core.Dashboard.ServiceContracts;
+using LifeOS.Core.Finance.ServiceContracts;
 using LifeOS.Core.Goals.DTOs;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Habits.Services;
@@ -19,7 +20,7 @@ namespace LifeOS.Core.Dashboard.Services;
 /// user/soft-delete filtering; this class only turns rows into DTOs and works out what's computed, never stored
 /// (goal progress via GoalProgress, habit streaks via HabitStreaks).
 /// </summary>
-public class DashboardService(AppDbContext db) : IDashboardService
+public class DashboardService(AppDbContext db, IBudgetsService budgetsService) : IDashboardService
 {
     // A local day is 23-25 hours (DST); anything much longer means the client sent the wrong span.
     private static readonly TimeSpan MaxDayLength = TimeSpan.FromHours(26);
@@ -40,6 +41,9 @@ public class DashboardService(AppDbContext db) : IDashboardService
         {
             return OperationResult<MyDayDto>.Fail("The day's span can be at most 26 hours.");
         }
+
+        // Before the My Day reader opens: one connection runs one command at a time.
+        var overBudget = await budgetsService.OverBudgetAsync(today);
 
         var parameters = new DynamicParameters();
         parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
@@ -176,7 +180,8 @@ public class DashboardService(AppDbContext db) : IDashboardService
             myDay.Goals.Select(g => new InsightGoal(g.Id, g.Title, g.LastActivityAt)).ToList(),
             myDay.LatestJournalEntry?.EntryDate,
             myDay.Tasks.Count(t => !t.IsDone && t.DueDate < today),
-            myDay.ExpiringDocuments.Select(d => new InsightDocument(d.Id, d.Title, d.ExpiresOn)).ToList()));
+            myDay.ExpiringDocuments.Select(d => new InsightDocument(d.Id, d.Title, d.ExpiresOn)).ToList(),
+            overBudget.Select(b => new InsightBudget(b.TagId, b.TagName, b.Spent, b.Budget!.Value, b.BudgetCurrency!)).ToList()));
 
         // Dismissed insights stay hidden while their situation (the key) is unchanged.
         var keys = myDay.Insights.Select(i => i.Key).ToList();

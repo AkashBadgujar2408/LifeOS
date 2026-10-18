@@ -12,13 +12,17 @@ public record InsightInputs(
     IReadOnlyList<InsightGoal> Goals,
     DateOnly? LatestJournalDate,
     int OverdueTaskCount,
-    IReadOnlyList<InsightDocument>? ExpiringDocuments = null);
+    IReadOnlyList<InsightDocument>? ExpiringDocuments = null,
+    IReadOnlyList<InsightBudget>? OverBudgets = null);
 
 public record InsightHabit(int Id, string Title, byte ScheduleDays, DateOnly StartDate, IReadOnlyCollection<DateOnly> DoneDates, HabitStreak Streak);
 
 public record InsightGoal(int Id, string Title, DateTime LastActivityAt);
 
 public record InsightDocument(int Id, string Title, DateOnly ExpiresOn);
+
+/// <summary>A tag past its budget this month (spent and budget in the same currency).</summary>
+public record InsightBudget(int TagId, string TagName, decimal Spent, decimal Budget, string Currency);
 
 /// <summary>
 /// The lightweight, deterministic "insights" (plan, Section 2 #6 — no AI): a handful of plain rules over data the
@@ -120,6 +124,19 @@ public static class DashboardInsights
             });
         }
 
+        // The fullest first; keyed by the month, so it clears itself when the budget is raised or the month turns.
+        foreach (var budget in (inputs.OverBudgets ?? []).OrderByDescending(b => b.Spent / b.Budget))
+        {
+            insights.Add(new InsightDto
+            {
+                Kind = InsightKinds.OverBudget,
+                Key = Invariant($"{InsightKinds.OverBudget}:{budget.TagId}:{inputs.Today:yyyy-MM}"),
+                Tone = InsightTones.Nudge,
+                Message = OverBudgetMessage(budget, inputs.Today),
+                EntityType = "Budgets",
+            });
+        }
+
         foreach (var habit in inputs.Habits.Where(h => h.Streak.DoneToday && StreakMilestones.Contains(h.Streak.Current)))
         {
             insights.Add(new InsightDto
@@ -135,6 +152,18 @@ public static class DashboardInsights
 
         return insights;
     }
+
+    /// <summary>"Groceries has gone past its October budget: 9,250 INR of 8,000. Worth a look before the month is out."</summary>
+    public static string OverBudgetMessage(InsightBudget budget, DateOnly today)
+    {
+        var month = today.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture);
+        return Invariant(
+            $"\"{budget.TagName}\" has gone past its {month} budget: {Amount(budget.Spent)} {budget.Currency} of {Amount(budget.Budget)}. Worth a look before the month is out.");
+    }
+
+    /// <summary>"9,250" for a whole amount, "1,650.50" otherwise (invariant, like every insight).</summary>
+    private static string Amount(decimal value) =>
+        value.ToString(value == decimal.Truncate(value) ? "#,0" : "#,0.00", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>The nudge for a document close to (or just past) its expiry.</summary>
     public static string DocumentExpiryMessage(InsightDocument document, DateOnly today)

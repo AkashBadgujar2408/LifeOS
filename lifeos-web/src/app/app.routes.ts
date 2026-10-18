@@ -225,6 +225,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/finance/ledger').then((m) => m.FinanceLedger),
       },
       {
+        path: 'finance/recurring',
+        title: 'Repeating | LifeOS',
+        loadComponent: () => import('./features/finance/recurring').then((m) => m.FinanceRecurring),
+      },
+      {
+        path: 'finance/budgets',
+        title: 'Budgets | LifeOS',
+        loadComponent: () => import('./features/finance/budgets').then((m) => m.FinanceBudgets),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

@@ -112,6 +112,8 @@ try
     builder.Services.AddScoped<ISideIncomeSourcesService, SideIncomeSourcesService>();
     builder.Services.AddScoped<IAccountsService, AccountsService>();
     builder.Services.AddScoped<ITransactionsService, TransactionsService>();
+    builder.Services.AddScoped<IRecurringTransactionsService, RecurringTransactionsService>();
+    builder.Services.AddScoped<IBudgetsService, BudgetsService>();
     builder.Services.AddRecoveryRateLimit();
 
     // Files (document files, attachments) live on disk outside any web root, one folder per user (IFileStore).
