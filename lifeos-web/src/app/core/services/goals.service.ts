@@ -35,6 +35,9 @@ export interface GoalSummary {
   /** Calculated by the API (GoalProgress); not re-derived here. */
   progressPercent: number;
   nextMilestoneTitle: string | null;
+  /** A savings goal's amount to reach (both or neither); progress comes from linked accounts/investments. */
+  targetAmount: number | null;
+  targetCurrency: string | null;
   tags: Tag[];
 }
 
@@ -76,6 +79,9 @@ export interface GoalPayload {
   goalType: GoalType;
   targetDate: string | null;
   tagIds: number[];
+  /** Makes it a savings goal (both or neither). */
+  targetAmount: number | null;
+  targetCurrency: string | null;
   /** Edit only: why the goal is being revised (logged to its history). */
   revisionNote?: string | null;
 }

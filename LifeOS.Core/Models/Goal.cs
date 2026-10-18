@@ -31,6 +31,10 @@ public partial class Goal
 
     public DateTime? DeletedAt { get; set; }
 
+    public decimal? TargetAmount { get; set; }
+
+    public string? TargetCurrency { get; set; }
+
     public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();
 
     public virtual ICollection<GoalMilestone> GoalMilestones { get; set; } = new List<GoalMilestone>();

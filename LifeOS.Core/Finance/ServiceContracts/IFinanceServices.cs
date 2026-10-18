@@ -44,3 +44,34 @@ public interface IBudgetsService
     Task<OperationResult<MonthSummaryDto>> SetAsync(DateOnly monthStart, int tagId, decimal? amount);
     Task<OperationResult<MonthSummaryDto>> CopyPreviousAsync(DateOnly monthStart);
 }
+
+/// <summary>Investments and their hand-entered valuations.</summary>
+public interface IHoldingsService
+{
+    Task<List<HoldingDto>> GetAllAsync(DateOnly today);
+    Task<OperationResult<HoldingDto>> GetAsync(int id, DateOnly today);
+    Task<OperationResult<HoldingDto>> CreateAsync(HoldingRequest request);
+    Task<OperationResult<HoldingDto>> UpdateAsync(int id, HoldingRequest request);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+    Task<OperationResult<HoldingDto>> SetValuationAsync(int holdingId, HoldingValuationRequest request);
+    Task<OperationResult<HoldingDto>> DeleteValuationAsync(int holdingId, int valuationId, DateOnly today);
+}
+
+/// <summary>Loans borrowed and lent, with their instalment schedules.</summary>
+public interface ILoansService
+{
+    Task<List<LoanDto>> GetAllAsync(DateOnly today);
+    Task<OperationResult<LoanDetailDto>> GetAsync(int id, DateOnly today);
+    Task<OperationResult<LoanDetailDto>> CreateAsync(LoanRequest request);
+    Task<OperationResult<LoanDetailDto>> UpdateAsync(int id, LoanRequest request);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+/// <summary>Net worth (now and month by month) and savings goals' progress.</summary>
+public interface IWealthService
+{
+    Task<NetWorthDto> GetNetWorthAsync(DateOnly today);
+
+    /// <summary>Null data when the goal has no amount target.</summary>
+    Task<OperationResult<SavingsProgressDto?>> GetSavingsAsync(int goalId, DateOnly today);
+}

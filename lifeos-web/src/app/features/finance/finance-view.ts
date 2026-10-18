@@ -1,5 +1,8 @@
 import type {
   AccountKind,
+  HoldingKind,
+  LoanKind,
+  NetWorthPoint,
   Transaction,
   TransactionKind,
 } from '../../core/services/finance.service';
@@ -163,4 +166,44 @@ export function budgetBar(line: { percentUsed: number | null; isOver: boolean })
   over: boolean;
 } {
   return { width: Math.min(100, Math.max(0, line.percentUsed ?? 0)), over: line.isOver };
+}
+
+export const HOLDING_KIND_LABELS: Record<HoldingKind, string> = {
+  Stock: 'Shares',
+  MutualFund: 'Mutual fund',
+  Gold: 'Gold',
+  PPF: 'PPF',
+  FD: 'Fixed deposit',
+  Bond: 'Bond',
+  Crypto: 'Crypto',
+  Property: 'Property',
+  Other: 'Other',
+};
+
+export const LOAN_KIND_LABELS: Record<LoanKind, string> = {
+  Home: 'Home loan',
+  Vehicle: 'Vehicle loan',
+  Personal: 'Personal loan',
+  Education: 'Education loan',
+  Gold: 'Gold loan',
+  CreditCard: 'Card loan',
+  Other: 'Other',
+};
+
+/**
+ * Net worth's move over the history in words: "Up ₹12,400.00 since 31/Oct/2025" style parts — the change from the
+ * oldest point to the latest (null with fewer than two points).
+ */
+export function netWorthChange(history: NetWorthPoint[]): { change: number; since: string } | null {
+  if (history.length < 2) {
+    return null;
+  }
+  const first = history[0];
+  const last = history[history.length - 1];
+  return { change: Math.round((last.net - first.net) * 100) / 100, since: first.day };
+}
+
+/** "3 of 240 paid" share of a loan's instalments, as a whole % (0 when it has none). */
+export function loanPaidPercent(paid: number, count: number): number {
+  return count === 0 ? 0 : Math.floor((paid * 100) / count);
 }

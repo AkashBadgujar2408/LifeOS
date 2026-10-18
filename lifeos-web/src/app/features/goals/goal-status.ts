@@ -76,6 +76,7 @@ const FIELD_LABELS: Record<string, string> = {
   Description: 'description',
   LifeArea: 'life area',
   GoalType: 'kind of goal',
+  TargetAmount: 'amount to save',
   Tags: 'tags',
 };
 

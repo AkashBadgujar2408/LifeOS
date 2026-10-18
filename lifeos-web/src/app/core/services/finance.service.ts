@@ -186,6 +186,173 @@ export interface MonthSummary {
   lines: BudgetLine[];
 }
 
+export const HOLDING_KINDS = [
+  'Stock',
+  'MutualFund',
+  'Gold',
+  'PPF',
+  'FD',
+  'Bond',
+  'Crypto',
+  'Property',
+  'Other',
+] as const;
+export type HoldingKind = (typeof HOLDING_KINDS)[number];
+
+export interface HoldingValuation {
+  id: number;
+  valuedOn: string;
+  value: number;
+  note: string | null;
+}
+
+/** An investment; its worth is the latest valuation, else what was put in (null once sold/matured). */
+export interface Holding {
+  id: number;
+  name: string;
+  kind: HoldingKind;
+  currency: string;
+  units: number | null;
+  investedAmount: number | null;
+  interestRate: number | null;
+  acquiredOn: string | null;
+  maturesOn: string | null;
+  disposedOn: string | null;
+  accountId: number | null;
+  accountName: string | null;
+  notes: string | null;
+  currentValue: number | null;
+  gain: number | null;
+  /** Newest first. */
+  valuations: HoldingValuation[];
+}
+
+export interface HoldingPayload {
+  name: string;
+  kind: HoldingKind;
+  currency: string;
+  units: number | null;
+  investedAmount: number | null;
+  interestRate: number | null;
+  acquiredOn: string | null;
+  maturesOn: string | null;
+  disposedOn: string | null;
+  accountId: number | null;
+  notes: string | null;
+  today: string;
+}
+
+export const LOAN_KINDS = [
+  'Home',
+  'Vehicle',
+  'Personal',
+  'Education',
+  'Gold',
+  'CreditCard',
+  'Other',
+] as const;
+export type LoanKind = (typeof LOAN_KINDS)[number];
+export type LoanDirection = 'Borrowed' | 'Lent';
+
+/** A loan borrowed or lent; its instalment and what's owed are computed from the schedule. */
+export interface Loan {
+  id: number;
+  name: string;
+  kind: LoanKind;
+  direction: LoanDirection;
+  counterparty: string | null;
+  contactId: number | null;
+  contactName: string | null;
+  principal: number;
+  currency: string;
+  annualRate: number;
+  termMonths: number;
+  startDate: string;
+  emiAmount: number | null;
+  accountId: number | null;
+  accountName: string | null;
+  closedOn: string | null;
+  notes: string | null;
+  emi: number;
+  outstanding: number;
+  instalmentsPaid: number;
+  instalmentCount: number;
+  nextDueOn: string | null;
+  lastDueOn: string | null;
+  totalInterest: number;
+}
+
+export interface LoanInstalment {
+  number: number;
+  dueOn: string;
+  payment: number;
+  interest: number;
+  principal: number;
+  balance: number;
+}
+
+export interface LoanDetail {
+  loan: Loan;
+  schedule: LoanInstalment[];
+}
+
+export interface LoanPayload {
+  name: string;
+  kind: LoanKind;
+  direction: LoanDirection;
+  counterparty: string | null;
+  contactId: number | null;
+  principal: number;
+  currency: string;
+  annualRate: number;
+  termMonths: number;
+  startDate: string;
+  emiAmount: number | null;
+  accountId: number | null;
+  closedOn: string | null;
+  notes: string | null;
+  today: string;
+}
+
+export type WealthItemType = 'FinanceAccount' | 'Holding' | 'Loan';
+
+/** One thing in net worth: positive = an asset, negative = owed; `inBase` null = no rate, not counted. */
+export interface WealthItem {
+  type: WealthItemType;
+  id: number;
+  name: string;
+  currency: string;
+  amount: number;
+  inBase: number | null;
+}
+
+export interface NetWorthPoint {
+  day: string;
+  assets: number;
+  liabilities: number;
+  net: number;
+}
+
+export interface NetWorth {
+  currency: string | null;
+  day: string;
+  assets: number;
+  liabilities: number;
+  net: number;
+  items: WealthItem[];
+  /** Month ends, oldest first, then today. */
+  history: NetWorthPoint[];
+}
+
+export interface SavingsProgress {
+  targetAmount: number;
+  targetCurrency: string;
+  saved: number;
+  percent: number;
+  /** The linked accounts/investments; `inBase` is what counted, in the goal's currency (null: not comparable). */
+  items: WealthItem[];
+}
+
 /** The Finance API: accounts with computed balances, the ledger, repeating transactions and budgets. */
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
@@ -343,5 +510,106 @@ export class FinanceService {
     return this.http
       .post<ApiResponse<MonthSummary>>(`${this.base}/Budgets/${monthStart}/copy`, {})
       .pipe(map((response) => response.data!));
+  }
+
+  // ---- Investments ----
+
+  holdings(): Observable<Holding[]> {
+    return this.http
+      .get<ApiResponse<Holding[]>>(`${this.base}/Holdings`, { params: { today: todayIso() } })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  saveHolding(id: number | null, payload: HoldingPayload): Observable<Holding> {
+    const request = id
+      ? this.http.put<ApiResponse<Holding>>(`${this.base}/Holdings/${id}`, payload)
+      : this.http.post<ApiResponse<Holding>>(`${this.base}/Holdings`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  removeHolding(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Holdings/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  /** What it was worth on a day (replaces that day's); returns the holding as it now stands. */
+  setValuation(
+    id: number,
+    valuedOn: string,
+    value: number,
+    note: string | null,
+  ): Observable<Holding> {
+    return this.http
+      .put<ApiResponse<Holding>>(`${this.base}/Holdings/${id}/valuations`, {
+        valuedOn,
+        value,
+        note,
+        today: todayIso(),
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  removeValuation(id: number, valuationId: number): Observable<Holding> {
+    return this.http
+      .delete<ApiResponse<Holding>>(`${this.base}/Holdings/${id}/valuations/${valuationId}`, {
+        params: { today: todayIso() },
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  // ---- Loans ----
+
+  loans(): Observable<Loan[]> {
+    return this.http
+      .get<ApiResponse<Loan[]>>(`${this.base}/Loans`, { params: { today: todayIso() } })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  loan(id: number): Observable<LoanDetail> {
+    return this.http
+      .get<ApiResponse<LoanDetail>>(`${this.base}/Loans/${id}`, { params: { today: todayIso() } })
+      .pipe(map((response) => response.data!));
+  }
+
+  saveLoan(id: number | null, payload: LoanPayload): Observable<LoanDetail> {
+    const request = id
+      ? this.http.put<ApiResponse<LoanDetail>>(`${this.base}/Loans/${id}`, payload)
+      : this.http.post<ApiResponse<LoanDetail>>(`${this.base}/Loans`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  removeLoan(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Loans/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  // ---- Net worth + savings goals ----
+
+  netWorth(): Observable<NetWorth> {
+    return this.dueWritten().pipe(
+      switchMap(() =>
+        this.http.get<ApiResponse<NetWorth>>(`${this.base}/NetWorth`, {
+          params: { today: todayIso() },
+        }),
+      ),
+      map((response) => response.data!),
+    );
+  }
+
+  /** A savings goal's progress; null when the goal has no amount target. */
+  savings(goalId: number): Observable<SavingsProgress | null> {
+    return this.dueWritten().pipe(
+      switchMap(() =>
+        this.http.get<ApiResponse<SavingsProgress | null>>(
+          `${this.base}/NetWorth/savings/${goalId}`,
+          { params: { today: todayIso() } },
+        ),
+      ),
+      map((response) => response.data ?? null),
+    );
   }
 }

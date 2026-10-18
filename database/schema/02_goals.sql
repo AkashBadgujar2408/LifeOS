@@ -128,3 +128,18 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('goals.GoalHistory') AND name = 'IX_GoalHistory_Goal')
     CREATE INDEX IX_GoalHistory_Goal ON goals.GoalHistory(GoalId, CreatedAt) WHERE IsDeleted = 0;
 GO
+
+-- Session 58 (Finance 4): a savings goal is an ordinary goal with an amount to reach. TargetAmount in TargetCurrency
+-- (both or neither); how far along it is comes from the finance accounts and investments linked to the goal
+-- (EntityLinks), worked out per request in C# — never stored.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('goals.Goals') AND name = 'TargetAmount')
+    ALTER TABLE goals.Goals ADD
+        TargetAmount    DECIMAL(19, 4)    NULL CONSTRAINT CK_Goals_TargetAmount CHECK (TargetAmount > 0),
+        TargetCurrency  CHAR(3)           NULL CONSTRAINT CK_Goals_TargetCurrency
+                            CHECK (TargetCurrency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Goals_TargetPair')
+    ALTER TABLE goals.Goals ADD CONSTRAINT CK_Goals_TargetPair
+        CHECK ((TargetAmount IS NULL AND TargetCurrency IS NULL) OR (TargetAmount IS NOT NULL AND TargetCurrency IS NOT NULL));
+GO

@@ -3,8 +3,10 @@ import {
   accountLine,
   budgetBar,
   formatMoney,
+  loanPaidPercent,
   monthLabel,
   monthRange,
+  netWorthChange,
   shiftMonth,
   signedAmount,
   signedMoney,
@@ -117,5 +119,23 @@ describe('finance months and budget bars', () => {
     expect(budgetBar({ percentUsed: 110, isOver: true })).toEqual({ width: 100, over: true });
     expect(budgetBar({ percentUsed: 45, isOver: false })).toEqual({ width: 45, over: false });
     expect(budgetBar({ percentUsed: null, isOver: false })).toEqual({ width: 0, over: false });
+  });
+});
+
+describe('net worth and loans in words', () => {
+  it('measures the change from the oldest point to now', () => {
+    expect(netWorthChange([])).toBeNull();
+    expect(
+      netWorthChange([
+        { day: '2025-10-31', assets: 50000, liabilities: 0, net: 50000 },
+        { day: '2026-10-18', assets: 222320, liabilities: 992732.43, net: -770412.43 },
+      ]),
+    ).toEqual({ change: -820412.43, since: '2025-10-31' });
+  });
+
+  it('counts instalments paid as a share', () => {
+    expect(loanPaidPercent(9, 240)).toBe(3);
+    expect(loanPaidPercent(0, 0)).toBe(0);
+    expect(loanPaidPercent(240, 240)).toBe(100);
   });
 });

@@ -268,6 +268,18 @@
           </div>
         </div>
 
+        @if (goal.targetAmount !== null) {
+          <div class="card">
+            <div class="card-body">
+              <h2 class="h6 mb-3">Savings</h2>
+              <app-savings-progress
+                [goalId]="goal.id"
+                [version]="goal.targetAmount + ' ' + goal.targetCurrency"
+              />
+            </div>
+          </div>
+        }
+
         <div class="card">
           <div class="card-body">
             <h2 class="h6 mb-3">Progress over time</h2>

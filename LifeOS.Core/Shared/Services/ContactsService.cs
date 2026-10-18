@@ -126,6 +126,10 @@ public class ContactsService(AppDbContext db, IEntityLinksService entityLinksSer
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsDeleted, true).SetProperty(t => t.DeletedAt, now));
         await db.JobApplications.Where(a => a.ContactId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(a => a.ContactId, (int?)null).SetProperty(a => a.UpdatedAt, now));
+        await db.Loans.Where(l => l.ContactId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(l => l.ContactId, (int?)null).SetProperty(l => l.UpdatedAt, now));
+        await db.InsurancePolicies.Where(p => p.ContactId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.ContactId, (int?)null).SetProperty(p => p.UpdatedAt, now));
         contact.IsDeleted = true;
         contact.DeletedAt = now;
         await db.SaveChangesAsync();

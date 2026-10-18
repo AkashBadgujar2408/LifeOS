@@ -737,6 +737,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValue("Active", "DF_Goals_Status");
+            entity.Property(e => e.TargetAmount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.TargetCurrency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
             entity.Property(e => e.Title).HasMaxLength(200);
 
             entity.HasOne(d => d.LifeArea).WithMany(p => p.Goals)

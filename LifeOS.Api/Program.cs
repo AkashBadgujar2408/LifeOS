@@ -114,6 +114,9 @@ try
     builder.Services.AddScoped<ITransactionsService, TransactionsService>();
     builder.Services.AddScoped<IRecurringTransactionsService, RecurringTransactionsService>();
     builder.Services.AddScoped<IBudgetsService, BudgetsService>();
+    builder.Services.AddScoped<IHoldingsService, HoldingsService>();
+    builder.Services.AddScoped<ILoansService, LoansService>();
+    builder.Services.AddScoped<IWealthService, WealthService>();
     builder.Services.AddRecoveryRateLimit();
 
     // Files (document files, attachments) live on disk outside any web root, one folder per user (IFileStore).
@@ -156,6 +159,8 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, ResumeVersionLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, AccountLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, TransactionLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, HoldingLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, LoanLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

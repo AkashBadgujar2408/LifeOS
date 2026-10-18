@@ -235,6 +235,27 @@ export const routes: Routes = [
         loadComponent: () => import('./features/finance/budgets').then((m) => m.FinanceBudgets),
       },
       {
+        path: 'finance/net-worth',
+        title: 'Net worth | LifeOS',
+        loadComponent: () => import('./features/finance/net-worth').then((m) => m.FinanceNetWorth),
+      },
+      {
+        path: 'finance/investments',
+        title: 'Investments | LifeOS',
+        loadComponent: () =>
+          import('./features/finance/investments').then((m) => m.FinanceInvestments),
+      },
+      {
+        path: 'finance/loans',
+        title: 'Loans | LifeOS',
+        loadComponent: () => import('./features/finance/loans').then((m) => m.FinanceLoans),
+      },
+      {
+        path: 'finance/loans/:id',
+        title: 'Loan | LifeOS',
+        loadComponent: () => import('./features/finance/loan-detail').then((m) => m.LoanDetail),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

@@ -127,6 +127,19 @@ export const NAV_GROUPS: NavGroup[] = [
         module: 'Finance',
       },
       { label: 'Budgets', route: '/finance/budgets', icon: 'bi-pie-chart', module: 'Finance' },
+      {
+        label: 'Net worth',
+        route: '/finance/net-worth',
+        icon: 'bi-graph-up',
+        module: 'Finance',
+      },
+      {
+        label: 'Investments',
+        route: '/finance/investments',
+        icon: 'bi-graph-up-arrow',
+        module: 'Finance',
+      },
+      { label: 'Loans', route: '/finance/loans', icon: 'bi-bank2', module: 'Finance' },
     ],
   },
   {

@@ -55,6 +55,8 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   ResumeVersion: 'bi-file-earmark-person',
   FinanceAccount: 'bi-bank',
   Transaction: 'bi-receipt',
+  Holding: 'bi-graph-up-arrow',
+  Loan: 'bi-bank2',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -93,4 +95,6 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   ResumeVersion: 'Resume versions',
   FinanceAccount: 'Accounts',
   Transaction: 'Transactions',
+  Holding: 'Investments',
+  Loan: 'Loans',
 };

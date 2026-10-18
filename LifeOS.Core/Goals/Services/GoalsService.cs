@@ -1,5 +1,6 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using LifeOS.Core.Career.Services;
 using LifeOS.Core.Goals.DTOs;
 using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Calendar.ServiceContracts;
@@ -265,6 +266,21 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
             return "Tag not found.";
         }
 
+        if ((request.TargetAmount is null) != string.IsNullOrWhiteSpace(request.TargetCurrency))
+        {
+            return "A savings target needs both an amount and its currency.";
+        }
+
+        if (request.TargetAmount is <= 0 or > 999_999_999_999_999m)
+        {
+            return "The amount to save has to be more than zero.";
+        }
+
+        if (request.TargetCurrency is not null && CareerRules.Currency(request.TargetCurrency) is null)
+        {
+            return "Use a 3-letter currency code such as INR.";
+        }
+
         return null;
     }
 
@@ -297,6 +313,11 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
             changed.Add(nameof(Goal.TargetDate));
         }
 
+        if (goal.TargetAmount != request.TargetAmount || goal.TargetCurrency != TargetCurrency(request))
+        {
+            changed.Add(nameof(Goal.TargetAmount));
+        }
+
         if (tagsChanged)
         {
             changed.Add("Tags");
@@ -314,5 +335,10 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         goal.LifeAreaId = request.LifeAreaId;
         goal.GoalType = request.GoalType;
         goal.TargetDate = request.TargetDate;
+        goal.TargetAmount = request.TargetAmount;
+        goal.TargetCurrency = TargetCurrency(request);
     }
+
+    private static string? TargetCurrency(GoalRequest request) =>
+        request.TargetAmount is null ? null : CareerRules.Currency(request.TargetCurrency);
 }

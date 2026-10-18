@@ -7,7 +7,8 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { catchError, of } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
@@ -54,7 +55,12 @@ export class GoalForm implements OnInit {
   protected readonly typeLabels = GOAL_TYPE_LABELS;
   protected readonly typeHints = GOAL_TYPE_HINTS;
 
-  protected readonly hiddenAreaIds = inject(SettingsService).hiddenLifeAreaIds;
+  private readonly settingsService = inject(SettingsService);
+  protected readonly hiddenAreaIds = this.settingsService.hiddenLifeAreaIds;
+  protected readonly currencies = toSignal(
+    this.settingsService.currencies().pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
   protected readonly pickableLifeAreas = pickableLifeAreas;
   protected readonly lifeAreas = signal<LifeArea[]>([]);
   protected readonly tagIds = signal<number[]>([]);
@@ -72,9 +78,18 @@ export class GoalForm implements OnInit {
     lifeAreaId: this.fb.control<number | null>(null, Validators.required),
     goalType: this.fb.nonNullable.control<GoalType>('ShortTerm'),
     targetDate: this.fb.control<string | null>(null),
+    targetAmount: this.fb.control<number | null>(null, [
+      Validators.min(0.01),
+      Validators.max(999_999_999_999_999),
+    ]),
+    targetCurrency: this.fb.nonNullable.control(''),
     description: this.fb.nonNullable.control('', Validators.maxLength(4000)),
     revisionNote: this.fb.nonNullable.control('', Validators.maxLength(1000)),
   });
+
+  private baseCurrency(): string {
+    return this.settingsService.settings()?.baseCurrency ?? '';
+  }
 
   protected get isEdit(): boolean {
     return !!this.id();
@@ -102,6 +117,8 @@ export class GoalForm implements OnInit {
               lifeAreaId: goal.lifeAreaId,
               goalType: goal.goalType,
               targetDate: goal.targetDate,
+              targetAmount: goal.targetAmount,
+              targetCurrency: goal.targetCurrency ?? this.baseCurrency(),
               description: goal.description ?? '',
               revisionNote: '',
             });
@@ -118,11 +135,26 @@ export class GoalForm implements OnInit {
   }
 
   protected fieldError(
-    name: 'title' | 'lifeAreaId' | 'targetDate' | 'description' | 'revisionNote',
+    name:
+      | 'title'
+      | 'lifeAreaId'
+      | 'targetDate'
+      | 'targetAmount'
+      | 'targetCurrency'
+      | 'description'
+      | 'revisionNote',
   ): string | null {
     const control = this.form.controls[name];
     if (!control.touched || !control.errors) {
       return null;
+    }
+
+    if (name === 'targetAmount') {
+      return 'The amount to save has to be more than zero.';
+    }
+
+    if (name === 'targetCurrency') {
+      return 'Choose the currency you are saving in.';
     }
 
     if (name === 'targetDate') {
@@ -149,6 +181,14 @@ export class GoalForm implements OnInit {
   protected submit(): void {
     const title = this.form.controls.title;
     title.setValue(title.value.trim());
+    // An amount to save needs its currency: the base one unless another is picked.
+    const currency = this.form.controls.targetCurrency;
+    if (this.form.controls.targetAmount.value !== null && !currency.value) {
+      currency.setValue(this.baseCurrency());
+      if (!currency.value) {
+        currency.setErrors({ required: true });
+      }
+    }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -160,6 +200,8 @@ export class GoalForm implements OnInit {
       lifeAreaId: value.lifeAreaId!,
       goalType: value.goalType,
       targetDate: value.targetDate || null,
+      targetAmount: value.targetAmount,
+      targetCurrency: value.targetAmount === null ? null : value.targetCurrency,
       description: value.description.trim() || null,
       tagIds: this.tagIds(),
       revisionNote: value.revisionNote.trim() || null,

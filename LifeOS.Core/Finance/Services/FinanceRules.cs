@@ -185,3 +185,41 @@ public static class FinanceRules
             ? $"There are transactions before that day — the opening date can be {first.ToString("dd'/'MMM'/'yyyy", CultureInfo.InvariantCulture)} at the latest."
         : null;
 }
+
+/// <summary>Investments and loans, mirroring CK_Holdings_* / CK_Loans_* (pure, unit-tested).</summary>
+public static class WealthRules
+{
+    public static string? CheckHolding(
+        string kind, string? currency, decimal? units, decimal? invested, decimal? rate, DateOnly? acquired, DateOnly? matures, DateOnly? disposed, DateOnly today) =>
+        !HoldingKinds.All.Contains(kind) ? "Unknown kind of investment."
+        : currency is null ? "Choose its currency."
+        : units is <= 0 ? "Units have to be more than zero (leave it blank if it has none)."
+        : invested is < 0 || invested > FinanceRules.MaxAmount ? "What was put in can't be negative or that large."
+        : rate is < 0 or > 100 ? "The interest rate is a % between 0 and 100."
+        : acquired is { } a && a > today ? "It can't be bought in the future."
+        : acquired is { } a2 && matures is { } m && m < a2 ? "It can't mature before it was bought."
+        : disposed is { } d && d > today ? "It can't be sold or closed in the future."
+        : acquired is { } a3 && disposed is { } d2 && d2 < a3 ? "It can't be sold before it was bought."
+        : null;
+
+    public static string? CheckValuation(DateOnly valuedOn, decimal value, DateOnly? acquired, DateOnly today) =>
+        valuedOn == default ? "Say which day it was worth that."
+        : valuedOn > today ? "A valuation can't be in the future."
+        : acquired is { } a && valuedOn < a ? "That's before it was bought."
+        : value < 0 || value > FinanceRules.MaxAmount ? "The value can't be negative or that large."
+        : null;
+
+    public static string? CheckLoan(
+        string kind, string direction, string? currency, decimal principal, decimal rate, int months, DateOnly start, decimal? emi, DateOnly? closed, DateOnly today) =>
+        !LoanKinds.All.Contains(kind) ? "Unknown kind of loan."
+        : direction is not (LoanKinds.Borrowed or LoanKinds.Lent) ? "Say whether you borrowed or lent it."
+        : currency is null ? "Choose its currency."
+        : principal <= 0 || principal > FinanceRules.MaxAmount ? "The amount has to be more than zero."
+        : rate is < 0 or > 100 ? "The interest rate is a % between 0 and 100."
+        : months is < 1 or > 600 ? "The term is 1 to 600 months."
+        : start == default ? "Say when it started."
+        : emi is <= 0 ? "The instalment has to be more than zero (leave it blank to work it out)."
+        : closed is { } c && c < start ? "It can't close before it started."
+        : closed is { } c2 && c2 > today ? "It can't be closed in the future."
+        : LoanSchedule.CheckEmi(principal, rate, emi);
+}

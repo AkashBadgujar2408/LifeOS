@@ -87,6 +87,56 @@
               </div>
             </div>
 
+            <div class="row g-3">
+              <div class="col-sm-6">
+                <label class="form-label" for="goal-target-amount">
+                  Amount to save <span class="text-body-secondary small">(savings goals)</span>
+                </label>
+                <input
+                  id="goal-target-amount"
+                  type="number"
+                  step="1"
+                  min="0"
+                  class="form-control"
+                  [class.is-invalid]="fieldError('targetAmount')"
+                  formControlName="targetAmount"
+                  placeholder="e.g. 300000 for an emergency fund"
+                />
+                @if (fieldError('targetAmount'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              @if (form.controls.targetAmount.value !== null) {
+                <div class="col-sm-6">
+                  <label class="form-label" for="goal-target-currency">In</label>
+                  <select
+                    id="goal-target-currency"
+                    class="form-select"
+                    [class.is-invalid]="fieldError('targetCurrency')"
+                    formControlName="targetCurrency"
+                  >
+                    <option [ngValue]="''" [selected]="!form.controls.targetCurrency.value">
+                      My base currency
+                    </option>
+                    @for (c of currencies(); track c.code) {
+                      <option
+                        [ngValue]="c.code"
+                        [selected]="c.code === form.controls.targetCurrency.value"
+                      >
+                        {{ c.code }} — {{ c.name }}
+                      </option>
+                    }
+                  </select>
+                  @if (fieldError('targetCurrency'); as error) {
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  }
+                </div>
+              }
+              <div class="col-12 form-text mt-1">
+                Progress comes from the accounts and investments you link to the goal.
+              </div>
+            </div>
+
             <div>
               <span class="form-label d-block" id="goal-type-label">Kind of goal</span>
               <div class="btn-group w-100" role="radiogroup" aria-labelledby="goal-type-label">

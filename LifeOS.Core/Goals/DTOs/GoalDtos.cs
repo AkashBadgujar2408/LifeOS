@@ -34,6 +34,9 @@ public class GoalSummaryDto
     public int CompletedMilestoneCount { get; init; }
     public int ProgressPercent { get; set; }
     public string? NextMilestoneTitle { get; init; }
+    /// <summary>A savings goal's amount to reach (both or neither); progress comes from linked accounts and investments.</summary>
+    public decimal? TargetAmount { get; init; }
+    public string? TargetCurrency { get; init; }
     public List<TagDto> Tags { get; init; } = [];
 }
 
@@ -115,6 +118,11 @@ public class GoalRequest
     public DateOnly? TargetDate { get; init; }
 
     public List<int> TagIds { get; init; } = [];
+
+    /// <summary>Makes it a savings goal: the amount to reach, in TargetCurrency (both or neither).</summary>
+    public decimal? TargetAmount { get; init; }
+
+    public string? TargetCurrency { get; init; }
 
     /// <summary>Edit only (ignored on create): why the goal is being revised.</summary>
     [StringLength(1000)]

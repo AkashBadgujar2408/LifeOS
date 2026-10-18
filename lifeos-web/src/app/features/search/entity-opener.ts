@@ -66,6 +66,12 @@ export class EntityOpener {
       case 'ResumeVersion':
         void this.router.navigate(['/career/resumes'], { fragment: `resume-${entityId}` });
         break;
+      case 'Holding':
+        void this.router.navigate(['/finance/investments']);
+        break;
+      case 'Loan':
+        void this.router.navigate(['/finance/loans', entityId]);
+        break;
       case 'FinanceAccount':
         void this.router.navigate(['/finance/transactions'], {
           queryParams: { accountId: entityId },

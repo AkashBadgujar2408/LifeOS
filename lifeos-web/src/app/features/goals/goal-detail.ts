@@ -30,6 +30,7 @@ import { Attachments } from '../../shared/components/attachments/attachments';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { MissionLinks } from '../story/mission-links';
 import { GoalTrend } from './goal-trend';
+import { SavingsProgress } from '../finance/savings-progress';
 import { itemTitle } from '../../core/layout/item-title';
 import { openMissionPassed } from '../story/mission-passed';
 import {
@@ -62,6 +63,7 @@ const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(20
     EntityReminders,
     MissionLinks,
     GoalTrend,
+    SavingsProgress,
   ],
   templateUrl: './goal-detail.html',
 })

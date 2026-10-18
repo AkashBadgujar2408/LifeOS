@@ -276,3 +276,220 @@ public class BudgetRequest
     /// <summary>The month's budget for the tag; null removes it.</summary>
     public decimal? Amount { get; init; }
 }
+
+// ---- Investments ----
+
+/// <summary>Matches CK_Holdings_Kind.</summary>
+public static class HoldingKinds
+{
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(
+        ["Stock", "MutualFund", "Gold", "PPF", "FD", "Bond", "Crypto", "Property", "Other"], StringComparer.Ordinal);
+}
+
+public class HoldingDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Kind { get; init; } = string.Empty;
+    public string Currency { get; init; } = string.Empty;
+    public decimal? Units { get; init; }
+    public decimal? InvestedAmount { get; init; }
+    public decimal? InterestRate { get; init; }
+    public DateOnly? AcquiredOn { get; init; }
+    public DateOnly? MaturesOn { get; init; }
+    public DateOnly? DisposedOn { get; init; }
+    public int? AccountId { get; init; }
+    public string? AccountName { get; init; }
+    public string? Notes { get; init; }
+    /// <summary>Worth at the end of the day asked for: the latest valuation, else what was put in (null once disposed).</summary>
+    public decimal? CurrentValue { get; set; }
+    /// <summary>Current value − invested (null when either is unknown).</summary>
+    public decimal? Gain { get; set; }
+    /// <summary>Newest first.</summary>
+    public List<HoldingValuationDto> Valuations { get; init; } = [];
+}
+
+public class HoldingValuationDto
+{
+    public int Id { get; init; }
+    public DateOnly ValuedOn { get; init; }
+    public decimal Value { get; init; }
+    public string? Note { get; init; }
+}
+
+public class HoldingRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    [Required]
+    public string Currency { get; init; } = string.Empty;
+
+    public decimal? Units { get; init; }
+    public decimal? InvestedAmount { get; init; }
+    public decimal? InterestRate { get; init; }
+    public DateOnly? AcquiredOn { get; init; }
+    public DateOnly? MaturesOn { get; init; }
+    public DateOnly? DisposedOn { get; init; }
+    public int? AccountId { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    public DateOnly Today { get; init; }
+}
+
+public class HoldingValuationRequest
+{
+    public DateOnly ValuedOn { get; init; }
+    public decimal Value { get; init; }
+
+    [StringLength(1000)]
+    public string? Note { get; init; }
+
+    public DateOnly Today { get; init; }
+}
+
+// ---- Loans ----
+
+/// <summary>Matches CK_Loans_Kind / CK_Loans_Direction.</summary>
+public static class LoanKinds
+{
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(
+        ["Home", "Vehicle", "Personal", "Education", "Gold", "CreditCard", "Other"], StringComparer.Ordinal);
+
+    public const string Borrowed = "Borrowed";
+    public const string Lent = "Lent";
+}
+
+public class LoanDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Kind { get; init; } = string.Empty;
+    public string Direction { get; init; } = string.Empty;
+    public string? Counterparty { get; init; }
+    public int? ContactId { get; init; }
+    public string? ContactName { get; init; }
+    public decimal Principal { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    public decimal AnnualRate { get; init; }
+    public int TermMonths { get; init; }
+    public DateOnly StartDate { get; init; }
+    /// <summary>The lender's own instalment, if given (else <see cref="Emi"/> is computed).</summary>
+    public decimal? EmiAmount { get; init; }
+    public int? AccountId { get; init; }
+    public string? AccountName { get; init; }
+    public DateOnly? ClosedOn { get; init; }
+    public string? Notes { get; init; }
+    /// <summary>The monthly instalment the schedule uses.</summary>
+    public decimal Emi { get; set; }
+    /// <summary>Still owed at the end of the day asked for, if every instalment due by then was paid.</summary>
+    public decimal Outstanding { get; set; }
+    public int InstalmentsPaid { get; set; }
+    public int InstalmentCount { get; set; }
+    public DateOnly? NextDueOn { get; set; }
+    public DateOnly? LastDueOn { get; set; }
+    public decimal TotalInterest { get; set; }
+}
+
+public class LoanInstalmentDto
+{
+    public int Number { get; init; }
+    public DateOnly DueOn { get; init; }
+    public decimal Payment { get; init; }
+    public decimal Interest { get; init; }
+    public decimal Principal { get; init; }
+    public decimal Balance { get; init; }
+}
+
+public class LoanDetailDto
+{
+    public LoanDto Loan { get; init; } = new();
+    public List<LoanInstalmentDto> Schedule { get; init; } = [];
+}
+
+public class LoanRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    [Required]
+    public string Direction { get; init; } = string.Empty;
+
+    [StringLength(200)]
+    public string? Counterparty { get; init; }
+
+    public int? ContactId { get; init; }
+    public decimal Principal { get; init; }
+
+    [Required]
+    public string Currency { get; init; } = string.Empty;
+
+    public decimal AnnualRate { get; init; }
+    public int TermMonths { get; init; }
+    public DateOnly StartDate { get; init; }
+    public decimal? EmiAmount { get; init; }
+    public int? AccountId { get; init; }
+    public DateOnly? ClosedOn { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    public DateOnly Today { get; init; }
+}
+
+// ---- Net worth + savings goals ----
+
+public class WealthItemDto
+{
+    /// <summary>FinanceAccount / Holding / Loan.</summary>
+    public string Type { get; init; } = string.Empty;
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Currency { get; init; } = string.Empty;
+    /// <summary>In its own currency: positive = an asset, negative = owed.</summary>
+    public decimal Amount { get; init; }
+    /// <summary>In the base currency (null: no rate for its currency yet, so not counted).</summary>
+    public decimal? InBase { get; init; }
+}
+
+public class NetWorthPointDto
+{
+    public DateOnly Day { get; init; }
+    public decimal Assets { get; init; }
+    public decimal Liabilities { get; init; }
+    public decimal Net { get; init; }
+}
+
+public class NetWorthDto
+{
+    /// <summary>The base currency (null: none chosen — nothing else is filled).</summary>
+    public string? Currency { get; init; }
+    public DateOnly Day { get; init; }
+    public decimal Assets { get; init; }
+    public decimal Liabilities { get; init; }
+    public decimal Net { get; init; }
+    public List<WealthItemDto> Items { get; init; } = [];
+    /// <summary>Month ends, oldest first, then today.</summary>
+    public List<NetWorthPointDto> History { get; init; } = [];
+}
+
+/// <summary>A savings goal's progress: the accounts and investments linked to it, against its target.</summary>
+public class SavingsProgressDto
+{
+    public decimal TargetAmount { get; init; }
+    public string TargetCurrency { get; init; } = string.Empty;
+    public decimal Saved { get; init; }
+    /// <summary>Whole %, capped at 100.</summary>
+    public int Percent { get; init; }
+    public List<WealthItemDto> Items { get; init; } = [];
+}
