@@ -11,6 +11,15 @@
   --lifeos-amber: #b7791f;
   --lifeos-violet: #8a4fbf;
   --lifeos-red: #c0392b;
+  // Categorical chart series (Session 50), in this fixed order — validated with the dataviz skill's checker
+  // (lightness, chroma, colour-blind separation); three sit under 3:1 on white, so charts using them also show
+  // a legend with values or a table. "Other" (smaller things folded together) is a neutral grey.
+  --lifeos-series-1: #2a78d6;
+  --lifeos-series-2: #eb6834;
+  --lifeos-series-3: #1baf7a;
+  --lifeos-series-4: #eda100;
+  --lifeos-series-5: #e87ba4;
+  --lifeos-series-other: #a3adab;
   --lifeos-gradient: linear-gradient(
     135deg,
     var(--lifeos-ink) 0%,

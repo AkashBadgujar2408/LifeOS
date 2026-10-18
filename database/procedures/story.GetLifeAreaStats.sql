@@ -7,12 +7,14 @@ GO
 
 -- Story Mode's life-area stats: everything ever finished in each life area, all time, for LifeAreaLevels to turn into
 -- XP and a level (computed on every request, never stored; nothing decays — a missed week takes nothing away).
--- One row per life area, including areas with nothing yet. Depends on 01_shared.sql to 06_journal.sql.
+-- One row per life area, including areas with nothing yet. Depends on 01_shared.sql to 10_learning.sql.
 --
 --   GoalsCompleted       goals currently Completed in the area (a reopened goal stops counting until passed again)
 --   MilestonesCompleted  milestones ticked on the area's goals
 --   HabitDays            habit days done on the area's habits (archived habits still count: the days were done)
 --   JournalEntries       journal entries filed under the area
+--   StudyMinutes         minutes studied (Session 50): a session counts in its skill's area, else its course's, else
+--                        its book's; a session about a topic only (or about items with no area) counts under Learning
 --   LastActivityOn       the latest DATE of any of those (UTC date for the CompletedAt moments — only used to say
 --                        "last moved on", so a day's drift across timezones doesn't matter)
 --
@@ -31,9 +33,10 @@ BEGIN
         MilestonesCompleted = milestones.Completed,
         HabitDays = habitDays.Done,
         JournalEntries = journal.Entries,
+        StudyMinutes = study.Minutes,
         LastActivityOn = (
             SELECT MAX(d)
-            FROM (VALUES (goals.LastOn), (milestones.LastOn), (habitDays.LastOn), (journal.LastOn)) AS latest(d)
+            FROM (VALUES (goals.LastOn), (milestones.LastOn), (habitDays.LastOn), (journal.LastOn), (study.LastOn)) AS latest(d)
         )
     FROM shared.LifeAreas la
     -- One OUTER APPLY per measure, each aggregating its own table: nothing fans out.
@@ -74,6 +77,17 @@ BEGIN
         WHERE je.UserId = @UserId AND je.IsDeleted = 0
           AND je.LifeAreaId = la.Id
     ) journal
+    OUTER APPLY (
+        SELECT Minutes = ISNULL(SUM(ss.Minutes), 0), LastOn = MAX(ss.StudiedOn)
+        FROM learning.StudySessions ss
+        -- Parents are only read for their life area; a deleted one no longer gives the session its area.
+        LEFT JOIN learning.Skills sk ON sk.Id = ss.SkillId AND sk.UserId = @UserId AND sk.IsDeleted = 0
+        LEFT JOIN learning.Courses c ON c.Id = ss.CourseId AND c.UserId = @UserId AND c.IsDeleted = 0
+        LEFT JOIN learning.Books b ON b.Id = ss.BookId AND b.UserId = @UserId AND b.IsDeleted = 0
+        WHERE ss.UserId = @UserId AND ss.IsDeleted = 0
+          AND COALESCE(sk.LifeAreaId, c.LifeAreaId, b.LifeAreaId,
+                       (SELECT TOP (1) l.Id FROM shared.LifeAreas l WHERE l.Name = N'Learning' AND l.IsDeleted = 0)) = la.Id
+    ) study
     WHERE la.IsDeleted = 0
     ORDER BY la.SortOrder, la.Id;
 END

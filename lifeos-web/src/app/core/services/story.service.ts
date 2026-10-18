@@ -143,6 +143,8 @@ export interface LifeAreaStats {
   milestonesCompleted: number;
   habitDays: number;
   journalEntries: number;
+  /** Minutes studied in the area (10 XP per full hour). */
+  studyMinutes: number;
   lastActivityOn: string | null;
   xp: number;
   level: number;

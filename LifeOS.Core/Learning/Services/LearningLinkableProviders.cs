@@ -148,3 +148,33 @@ public class CertificationLinkableProvider(AppDbContext db) : ILinkableEntityPro
             .ToListAsync();
     }
 }
+
+/// <summary>The knowledge base: notes are found by their title, their text or a tag's name.</summary>
+public class KnowledgeNoteLinkableProvider(AppDbContext db) : ILinkableEntityProvider
+{
+    public const string Type = "KnowledgeNote";
+
+    public string EntityType => Type;
+
+    public string DisplayName => "Note";
+
+    public async Task<Dictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> ids) =>
+        await db.KnowledgeNotes.Where(n => ids.Contains(n.Id)).ToDictionaryAsync(n => n.Id, n => n.Title);
+
+    public async Task<List<LinkableItemDto>> SearchAsync(string? search, int take)
+    {
+        var query = db.KnowledgeNotes.AsQueryable();
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(n => n.Title.Contains(search)
+                || (n.Content != null && n.Content.Contains(search))
+                || n.KnowledgeNoteTags.Any(t => t.Tag.Name.Contains(search)));
+        }
+
+        return await query
+            .OrderByDescending(n => n.UpdatedAt ?? n.CreatedAt)
+            .Take(take)
+            .Select(n => new LinkableItemDto { EntityType = Type, EntityId = n.Id, Title = n.Title })
+            .ToListAsync();
+    }
+}

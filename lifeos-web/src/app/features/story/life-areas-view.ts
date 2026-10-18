@@ -56,6 +56,7 @@ export function statsLine(stats: LifeAreaStats): string {
     [stats.milestonesCompleted, 'objective', 'objectives'],
     [stats.habitDays, 'habit day', 'habit days'],
     [stats.journalEntries, 'journal entry', 'journal entries'],
+    [Math.floor(stats.studyMinutes / 60), 'hour studied', 'hours studied'],
   ] as const;
   const text = parts
     .filter(([count]) => count > 0)

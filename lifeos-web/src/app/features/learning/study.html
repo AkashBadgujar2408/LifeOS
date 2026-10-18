@@ -156,6 +156,12 @@
     </div>
   </div>
 
+  <section class="card mb-4" aria-labelledby="study-chart-heading">
+    <div class="card-body">
+      <app-study-chart [version]="version()" />
+    </div>
+  </section>
+
   <h2 class="h5 mb-3">The last 90 days</h2>
   @if (loadFailed() && !sessions()) {
     <app-load-error message="Couldn't load your study log." (retry)="load()" />

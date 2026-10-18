@@ -17,6 +17,7 @@ function stats(overrides: Partial<LifeAreaStats> = {}): LifeAreaStats {
     milestonesCompleted: 0,
     habitDays: 0,
     journalEntries: 0,
+    studyMinutes: 0,
     lastActivityOn: null,
     xp: 0,
     level: 1,
@@ -79,5 +80,8 @@ describe('life-areas-view', () => {
     expect(statsLine(stats({ milestonesCompleted: 1, journalEntries: 2 }))).toBe(
       '1 objective · 2 journal entries',
     );
+    // Only full hours earn XP, so only full hours are counted here.
+    expect(statsLine(stats({ studyMinutes: 59 }))).toBe('Nothing finished here yet');
+    expect(statsLine(stats({ studyMinutes: 155 }))).toBe('2 hours studied');
   });
 });

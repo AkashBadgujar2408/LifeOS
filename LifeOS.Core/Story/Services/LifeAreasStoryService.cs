@@ -27,7 +27,7 @@ public class LifeAreasStoryService(AppDbContext db) : ILifeAreasStoryService
 
         return rows.Select(r =>
         {
-            var level = LifeAreaLevels.For(LifeAreaLevels.Xp(r.GoalsCompleted, r.MilestonesCompleted, r.HabitDays, r.JournalEntries));
+            var level = LifeAreaLevels.For(LifeAreaLevels.Xp(r.GoalsCompleted, r.MilestonesCompleted, r.HabitDays, r.JournalEntries, r.StudyMinutes));
             return new LifeAreaStatsDto
             {
                 LifeAreaId = r.LifeAreaId,
@@ -36,6 +36,7 @@ public class LifeAreasStoryService(AppDbContext db) : ILifeAreasStoryService
                 MilestonesCompleted = r.MilestonesCompleted,
                 HabitDays = r.HabitDays,
                 JournalEntries = r.JournalEntries,
+                StudyMinutes = r.StudyMinutes,
                 LastActivityOn = r.LastActivityOn is { } last ? DateOnly.FromDateTime(last) : null,
                 Xp = level.Xp,
                 Level = level.Level,
@@ -162,6 +163,7 @@ public class LifeAreasStoryService(AppDbContext db) : ILifeAreasStoryService
         public int MilestonesCompleted { get; init; }
         public int HabitDays { get; init; }
         public int JournalEntries { get; init; }
+        public int StudyMinutes { get; init; }
         public DateTime? LastActivityOn { get; init; }
     }
 }

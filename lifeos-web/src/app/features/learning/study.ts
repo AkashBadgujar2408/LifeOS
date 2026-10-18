@@ -20,6 +20,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { formatMinutes } from '../calendar/calendar-feed';
 import { sessionSubject, sessionsByDay, studyTotals } from './learning-plan-view';
+import { StudyChart } from './study-chart';
 import { StudySubject, StudyTimer } from './study-timer';
 
 /** How far back the log shows. */
@@ -34,7 +35,7 @@ type SubjectKind = 'Skill' | 'Course' | 'Book';
 @Component({
   selector: 'app-study',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, NgbInputDatepicker, LoadError, StudyTimer],
+  imports: [DatePipe, ReactiveFormsModule, NgbInputDatepicker, LoadError, StudyTimer, StudyChart],
   templateUrl: './study.html',
 })
 export class Study {
@@ -44,6 +45,8 @@ export class Study {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly formatMinutes = formatMinutes;
+  /** Bumped whenever the log reloads, so the chart follows. */
+  protected readonly version = signal(0);
   protected readonly sessionSubject = sessionSubject;
   protected readonly dateTimeFormat = APP_DATE_TIME_FORMAT;
   protected readonly today = signal(todayIso());
@@ -131,6 +134,10 @@ export class Study {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (sessions) => {
+          // A reload after a change: the chart reads again too (its own first read needs no nudge).
+          if (this.sessions() !== null) {
+            this.version.update((v) => v + 1);
+          }
           this.sessions.set(sessions);
           this.loadFailed.set(false);
         },

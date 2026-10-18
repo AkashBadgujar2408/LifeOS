@@ -16,6 +16,15 @@ public class LifeAreaLevelsTests
         Assert.Equal(2 * 50 + 3 * 30 + 7 * 10 + 4 * 10, LifeAreaLevels.Xp(2, 3, 7, 4));
     }
 
+    [Fact]
+    public void Study_earns_ten_xp_per_full_hour_across_all_sessions()
+    {
+        Assert.Equal(0, LifeAreaLevels.Xp(0, 0, 0, 0, 59));
+        Assert.Equal(10, LifeAreaLevels.Xp(0, 0, 0, 0, 60));
+        Assert.Equal(20, LifeAreaLevels.Xp(0, 0, 0, 0, 155));
+        Assert.Equal(50 + 30, LifeAreaLevels.Xp(1, 0, 0, 0, 180));
+    }
+
     [Theory]
     [InlineData(1, 0)]
     [InlineData(2, 100)]

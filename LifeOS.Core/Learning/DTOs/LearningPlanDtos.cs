@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using LifeOS.Core.Shared.DTOs;
 
 namespace LifeOS.Core.Learning.DTOs;
 
@@ -121,6 +122,36 @@ public class StudySessionDto
     public string? Notes { get; init; }
 }
 
+/// <summary>Hours by subject over time (StudyAnalytics): one series per subject, one value per week.</summary>
+public class StudyAnalyticsDto
+{
+    /// <summary>The Mondays of the weeks shown, oldest first.</summary>
+    public List<DateOnly> Weeks { get; init; } = [];
+    /// <summary>Most studied first; past the top few, the rest are one "Everything else" series.</summary>
+    public List<StudySubjectSeriesDto> Subjects { get; init; } = [];
+    public int TotalMinutes { get; init; }
+}
+
+public class StudySubjectSeriesDto
+{
+    /// <summary>Skill / Course / Book / Topic, or Other (the rest folded together).</summary>
+    public string Kind { get; init; } = string.Empty;
+    public int? Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public int TotalMinutes { get; init; }
+    /// <summary>Minutes per week, in step with <see cref="StudyAnalyticsDto.Weeks"/>.</summary>
+    public List<int> MinutesByWeek { get; init; } = [];
+}
+
+public static class StudySubjectKinds
+{
+    public const string Skill = "Skill";
+    public const string Course = "Course";
+    public const string Book = "Book";
+    public const string Topic = "Topic";
+    public const string Other = "Other";
+}
+
 public class StudySessionRequest
 {
     public DateOnly StudiedOn { get; init; }
@@ -208,6 +239,7 @@ public class KnowledgeNoteDto
     public DateOnly? NextReviewOn { get; init; }
     public DateOnly? LastReviewedOn { get; init; }
     public DateTime UpdatedAt { get; init; }
+    public List<TagDto> Tags { get; init; } = [];
 }
 
 public class KnowledgeNoteRequest
@@ -225,6 +257,9 @@ public class KnowledgeNoteRequest
     public bool Review { get; init; }
 
     public DateOnly Today { get; init; }
+
+    /// <summary>The note's tags, replaced as a whole on every save.</summary>
+    public List<int> TagIds { get; init; } = [];
 }
 
 public class ReviewNoteRequest

@@ -14,12 +14,13 @@ import { apiErrorMessage } from '../../core/services/api-error';
 import { KnowledgeNote, LearningService } from '../../core/services/learning.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
-import { isDue, reviewText } from './learning-plan-view';
+import { filterNotes, isDue, reviewText } from './learning-plan-view';
 import { openNoteEditor } from './note-editor';
 
 /**
- * Notes worth keeping, and the revision planner on top: the ones due today (or missed) to go through — open one,
- * try to recall it, then say whether it came back. Everything else below, newest change first.
+ * The knowledge base, with the revision planner on top: the notes due today (or missed) to go through — open one,
+ * try to recall it, then say whether it came back. Everything else below, newest change first, narrowed by words,
+ * a tag or a skill (filterNotes, client-side — the list is already here).
  */
 @Component({
   selector: 'app-notes',
@@ -58,6 +59,53 @@ export class Notes {
   protected readonly others = computed(() =>
     (this.notes() ?? []).filter((n) => !isDue(n, this.today())),
   );
+
+  /** The knowledge-base filter (words, a tag, a skill). */
+  protected readonly query = signal('');
+  protected readonly tagId = signal<number | null>(null);
+  protected readonly skillId = signal<number | null>(null);
+  protected readonly filtering = computed(
+    () => this.query().trim() !== '' || this.tagId() !== null || this.skillId() !== null,
+  );
+  /** All notes while nothing is chosen (due ones are above); every match, due or not, while filtering. */
+  protected readonly listed = computed(() =>
+    this.filtering()
+      ? filterNotes(this.notes() ?? [], {
+          text: this.query(),
+          tagId: this.tagId(),
+          skillId: this.skillId(),
+        })
+      : this.others(),
+  );
+  /** Only the tags and skills some note actually has, by name. */
+  protected readonly tagOptions = computed(() => {
+    const tags = new Map<number, string>();
+    (this.notes() ?? []).forEach((n) => n.tags.forEach((t) => tags.set(t.id, t.name)));
+    return [...tags]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
+  protected readonly skillOptions = computed(() => {
+    const skills = new Map<number, string>();
+    (this.notes() ?? []).forEach((n) => n.skillId && skills.set(n.skillId, n.skillName ?? ''));
+    return [...skills]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  protected pickTag(value: string): void {
+    this.tagId.set(value ? Number(value) : null);
+  }
+
+  protected pickSkill(value: string): void {
+    this.skillId.set(value ? Number(value) : null);
+  }
+
+  protected clearFilter(): void {
+    this.query.set('');
+    this.tagId.set(null);
+    this.skillId.set(null);
+  }
 
   constructor() {
     this.load();

@@ -131,6 +131,38 @@
             </ul>
           </div>
         </section>
+
+        <section class="card" aria-labelledby="skill-notes-heading">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+              <h2 id="skill-notes-heading" class="h6 mb-0">Notes</h2>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="openNote()">
+                <i class="bi bi-plus-lg"></i> Add a note
+              </button>
+            </div>
+            <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+              @for (note of notes(); track note.id) {
+                <li class="d-flex justify-content-between gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-link p-0 text-start text-break"
+                    (click)="openNote(note)"
+                  >
+                    {{ note.title }}
+                  </button>
+                  @if (note.tags.length > 0) {
+                    <span class="small text-body-secondary text-end">{{ tagNames(note) }}</span>
+                  }
+                </li>
+              } @empty {
+                <li class="small text-body-secondary">
+                  Nothing written down for this skill yet. Notes you keep here can go into spaced
+                  review.
+                </li>
+              }
+            </ul>
+          </div>
+        </section>
       </div>
 
       <div class="col-lg-4 d-flex flex-column gap-3">

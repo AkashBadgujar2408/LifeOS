@@ -1,4 +1,5 @@
 import {
+  filterNotes,
   isDue,
   reviewText,
   sessionSubject,
@@ -63,5 +64,47 @@ describe('sessionSubject', () => {
       'Signals in depth',
     );
     expect(sessionSubject(none)).toBe('Something since removed');
+  });
+});
+
+describe('filterNotes', () => {
+  const notes = [
+    {
+      title: 'Ser vs estar',
+      content: 'Permanent vs temporary',
+      skillId: 1,
+      skillName: 'Spanish',
+      tags: [{ id: 7, name: 'Grammar' }],
+    },
+    { title: 'Signals', content: null, skillId: 2, skillName: 'Angular', tags: [] },
+    {
+      title: 'Stoicism',
+      content: 'Control what you can',
+      skillId: null,
+      skillName: null,
+      tags: [],
+    },
+  ];
+  const none = { text: '', tagId: null, skillId: null };
+
+  it('keeps everything when nothing is chosen', () => {
+    expect(filterNotes(notes, none).length).toBe(3);
+  });
+
+  it('needs every word, anywhere in the note, any order and case', () => {
+    expect(filterNotes(notes, { ...none, text: 'ESTAR ser' }).map((n) => n.title)).toEqual([
+      'Ser vs estar',
+    ]);
+    expect(filterNotes(notes, { ...none, text: 'grammar temporary' }).length).toBe(1);
+    expect(filterNotes(notes, { ...none, text: 'angular' }).map((n) => n.title)).toEqual([
+      'Signals',
+    ]);
+    expect(filterNotes(notes, { ...none, text: 'signals spanish' })).toEqual([]);
+  });
+
+  it('narrows by tag and by skill', () => {
+    expect(filterNotes(notes, { ...none, tagId: 7 }).length).toBe(1);
+    expect(filterNotes(notes, { ...none, skillId: 2 }).map((n) => n.title)).toEqual(['Signals']);
+    expect(filterNotes(notes, { ...none, skillId: 2, tagId: 7 })).toEqual([]);
   });
 });

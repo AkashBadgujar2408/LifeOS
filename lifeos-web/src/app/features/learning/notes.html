@@ -89,12 +89,66 @@
       </div>
     </section>
 
-    <h2 class="h5 mb-3">All notes</h2>
-    @if (others().length === 0 && due().length === 0) {
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+      <h2 class="h5 mb-0">{{ filtering() ? 'Matching notes' : 'All notes' }}</h2>
+      @if (filtering()) {
+        <button type="button" class="btn btn-link btn-sm p-0" (click)="clearFilter()">
+          Clear the filter
+        </button>
+      }
+    </div>
+    @if (notes.length > 0) {
+      <div class="row g-2 mb-3" role="search" aria-label="Filter notes">
+        <div class="col-md-6">
+          <label class="visually-hidden" for="notes-query">Search notes</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+            <input
+              id="notes-query"
+              type="search"
+              class="form-control"
+              placeholder="Words from a title, the text or a tag"
+              autocomplete="off"
+              [value]="query()"
+              (input)="query.set($any($event.target).value)"
+            />
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="visually-hidden" for="notes-tag">Tag</label>
+          <select id="notes-tag" class="form-select" (change)="pickTag($any($event.target).value)">
+            <option value="" [selected]="tagId() === null">Any tag</option>
+            @for (tag of tagOptions(); track tag.id) {
+              <option [value]="tag.id" [selected]="tag.id === tagId()">{{ tag.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-6 col-md-3">
+          <label class="visually-hidden" for="notes-skill">Skill</label>
+          <select
+            id="notes-skill"
+            class="form-select"
+            (change)="pickSkill($any($event.target).value)"
+          >
+            <option value="" [selected]="skillId() === null">Any skill</option>
+            @for (skill of skillOptions(); track skill.id) {
+              <option [value]="skill.id" [selected]="skill.id === skillId()">
+                {{ skill.name }}
+              </option>
+            }
+          </select>
+        </div>
+      </div>
+    }
+    @if (notes.length === 0) {
       <p class="text-body-secondary">No notes yet.</p>
+    } @else if (listed().length === 0) {
+      <p class="text-body-secondary">
+        {{ filtering() ? 'No note matches.' : 'Every note is due for review above.' }}
+      </p>
     }
     <div class="row row-cols-1 row-cols-md-2 g-3">
-      @for (note of others(); track note.id) {
+      @for (note of listed(); track note.id) {
         <div class="col">
           <div class="card h-100">
             <div class="card-body d-flex flex-column gap-1">
@@ -119,6 +173,15 @@
                   · {{ note.skillName }}
                 }
               </div>
+              @if (note.tags.length > 0) {
+                <div class="d-flex flex-wrap gap-1">
+                  @for (tag of note.tags; track tag.id) {
+                    <span class="badge rounded-pill text-bg-light border fw-normal">{{
+                      tag.name
+                    }}</span>
+                  }
+                </div>
+              }
             </div>
           </div>
         </div>

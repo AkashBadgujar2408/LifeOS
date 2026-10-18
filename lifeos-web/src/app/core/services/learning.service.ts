@@ -277,6 +277,7 @@ export interface KnowledgeNote {
   nextReviewOn: string | null;
   lastReviewedOn: string | null;
   updatedAt: string;
+  tags: Tag[];
 }
 
 export interface KnowledgeNotePayload {
@@ -286,6 +287,28 @@ export interface KnowledgeNotePayload {
   /** Keep it in the revision planner (turning it on asks for it tomorrow). */
   review: boolean;
   today: string;
+  /** Replaced as a whole on every save. */
+  tagIds: number[];
+}
+
+/** Skill / Course / Book / Topic, or Other ("Everything else" — the smaller subjects folded together). */
+export type StudySubjectKind = 'Skill' | 'Course' | 'Book' | 'Topic' | 'Other';
+
+export interface StudySubjectSeries {
+  kind: StudySubjectKind;
+  id: number | null;
+  name: string;
+  totalMinutes: number;
+  /** In step with `StudyAnalytics.weeks`. */
+  minutesByWeek: number[];
+}
+
+/** Hours by subject over time: most studied first, the rest folded into one "Everything else" series. */
+export interface StudyAnalytics {
+  /** Mondays, oldest first. */
+  weeks: string[];
+  subjects: StudySubjectSeries[];
+  totalMinutes: number;
 }
 
 /** The Learning API: skills (with level history), courses, and the reading list with notes. */
@@ -488,6 +511,14 @@ export class LearningService {
     return request.pipe(map((response) => response.data!));
   }
 
+  /** Minutes by subject per week, for the `weeks` weeks up to the one holding `today`. */
+  studyAnalytics(today: string, weeks: number): Observable<StudyAnalytics> {
+    const params = new HttpParams().set('today', today).set('weeks', weeks);
+    return this.http
+      .get<ApiResponse<StudyAnalytics>>(`${this.base}/StudySessions/analytics`, { params })
+      .pipe(map((response) => response.data!));
+  }
+
   removeStudySession(id: number): Observable<void> {
     return this.http
       .delete<ApiResponse<boolean>>(`${this.base}/StudySessions/${id}`)
@@ -528,10 +559,18 @@ export class LearningService {
 
   // ---- Knowledge notes + revision planner ----
 
-  knowledgeNotes(): Observable<KnowledgeNote[]> {
+  /** Every note, newest change first — or only the ones about one skill. */
+  knowledgeNotes(skillId?: number): Observable<KnowledgeNote[]> {
+    const params = skillId ? new HttpParams().set('skillId', skillId) : undefined;
     return this.http
-      .get<ApiResponse<KnowledgeNote[]>>(`${this.base}/KnowledgeNotes`)
+      .get<ApiResponse<KnowledgeNote[]>>(`${this.base}/KnowledgeNotes`, { params })
       .pipe(map((response) => response.data ?? []));
+  }
+
+  knowledgeNote(id: number): Observable<KnowledgeNote> {
+    return this.http
+      .get<ApiResponse<KnowledgeNote>>(`${this.base}/KnowledgeNotes/${id}`)
+      .pipe(map((response) => response.data!));
   }
 
   saveKnowledgeNote(id: number | null, payload: KnowledgeNotePayload): Observable<KnowledgeNote> {
@@ -552,8 +591,9 @@ export class LearningService {
   }
 
   removeKnowledgeNote(id: number): Observable<void> {
-    return this.http
-      .delete<ApiResponse<boolean>>(`${this.base}/KnowledgeNotes/${id}`)
-      .pipe(map(() => undefined));
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/KnowledgeNotes/${id}`).pipe(
+      map(() => undefined),
+      tap(() => this.remindersService.notifyChanged()),
+    );
   }
 }

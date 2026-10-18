@@ -129,6 +129,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, BookLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, RoadmapLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, CertificationLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, KnowledgeNoteLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

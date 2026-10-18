@@ -92,3 +92,40 @@ export function sessionSubject(
   ].filter((p): p is string => !!p);
   return parts.length ? parts.join(' · ') : 'Something since removed';
 }
+
+/** What the knowledge base is narrowed to: words, a tag and/or a skill (null = any). */
+export interface NoteFilter {
+  text: string;
+  tagId: number | null;
+  skillId: number | null;
+}
+
+/**
+ * The notes matching a filter. Every word typed must appear somewhere in the note — its title, text, skill or a
+ * tag — in any order and any case, so "estar ser" finds "Ser vs estar".
+ */
+export function filterNotes<
+  T extends Pick<KnowledgeNote, 'title' | 'content' | 'skillId' | 'skillName' | 'tags'>,
+>(notes: readonly T[], filter: NoteFilter): T[] {
+  const words = filter.text.toLocaleLowerCase().split(/\s+/).filter(Boolean);
+  return notes.filter((note) => {
+    if (filter.skillId !== null && note.skillId !== filter.skillId) {
+      return false;
+    }
+    if (filter.tagId !== null && !note.tags.some((t) => t.id === filter.tagId)) {
+      return false;
+    }
+    if (words.length === 0) {
+      return true;
+    }
+    const haystack = [
+      note.title,
+      note.content ?? '',
+      note.skillName ?? '',
+      ...note.tags.map((t) => t.name),
+    ]
+      .join('\n')
+      .toLocaleLowerCase();
+    return words.every((word) => haystack.includes(word));
+  });
+}

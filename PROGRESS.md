@@ -853,3 +853,12 @@
 - UAT test data: `learnuser1` — roadmap "Become fluent in Spanish" (Pass DELE B1 ✓, Finish A2 course ✓, Read a novel ✓, Angular Signals in depth open — 75%); study sessions 17 Oct 45m, 18 Oct 30m + 40m + 1m (timer); AWS SAA certification expiring 20 Nov 2026 with a reminder on 21 Oct 09:00; note "Ser vs estar" (stage 2, next review 25 Oct — its earlier dates were set in SQL for the test). `learnuser2` empty.
 
 - Next up: **Session 50 — Education 4: knowledge base + analytics** (plan, Section 7).
+
+## Last session: 2026-10-18 — Session 50 — Education 4: knowledge base + analytics
+- Shipped (backend): knowledge notes take tags and `?skillId=`; `KnowledgeNoteLinkableProvider` (links, reminders, search) and delete cleanup; proc `learning.GetStudyBySubject` + pure `StudyAnalytics` + `GET api/Learning/StudySessions/analytics`; `story.GetLifeAreaStats` gains `StudyMinutes` and `LifeAreaLevels` 10 XP per full hour. 5 new xUnit cases. No schema change (procedures only).
+- Shipped (frontend): note editor tags + links + reminders; notes page filter (`filterNotes`, spec); skill page "Notes" card; `<app-study-chart>` on the Study page (`study-chart-view.ts`: `assignSlots`, `subjectKey`, `toHours`; spec) with `--lifeos-series-*` tokens; KnowledgeNote in search, `EntityOpener`, reminder labels; "N hours studied" on Life areas.
+- Verified: see the plan row (curl + browser as `learnuser1`); `dotnet build` (unsandboxed) 0 warnings; `ng build`, lint, Prettier clean; **280 backend + 181 frontend** tests, `npm run test:tz` green in all six zones.
+- Decisions (mine — say if you want them changed): a session counts under the skill it serves (its own, else its course's or book's skill), so a course and its book add up under one skill; topics group case-insensitively; past five subjects the rest are "Everything else" (never just one folded); weeks are Monday–Sunday; study XP is 10 per full hour summed per area (a habit day's worth), and topic-only sessions count under Learning; the notes filter is client-side (the list is already loaded) while global search covers notes server-side; notes don't take attachments.
+- UAT test data: `learnuser1` adds tags Grammar + Languages on "Ser vs estar", a 60m "Stoicism" topic session on 16 Oct, course "Negotiation basics" (Career area, 10%) with a 125m session on 9 Oct; a deleted note "Throwaway".
+
+- Next up: **Session 51 — Career 1: schema + shared Contacts** (plan, Section 7).

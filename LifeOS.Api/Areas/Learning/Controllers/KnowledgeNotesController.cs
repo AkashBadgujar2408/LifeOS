@@ -13,9 +13,10 @@ namespace LifeOS.Api.Areas.Learning.Controllers;
 [Authorize]
 public class KnowledgeNotesController(IKnowledgeNotesService knowledgeNotesService) : ControllerBase
 {
+    /// <summary>GET api/Learning/KnowledgeNotes[?skillId=3] — every note, or the ones about one skill.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll() =>
-        Ok(ApiResponse<List<KnowledgeNoteDto>>.Ok(await knowledgeNotesService.GetAllAsync()));
+    public async Task<IActionResult> GetAll([FromQuery] int? skillId) =>
+        Ok(ApiResponse<List<KnowledgeNoteDto>>.Ok(await knowledgeNotesService.GetAllAsync(skillId)));
 
     /// <summary>GET api/Learning/KnowledgeNotes/due?today=2026-10-18 — the revision planner's "due today".</summary>
     [HttpGet("due")]

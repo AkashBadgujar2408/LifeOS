@@ -58,6 +58,8 @@ public interface IStudySessionsService
 {
     /// <summary>Sessions on local days <paramref name="from"/>..<paramref name="to"/>, newest first.</summary>
     Task<OperationResult<List<StudySessionDto>>> GetRangeAsync(DateOnly from, DateOnly to);
+    /// <summary>Minutes by subject for the <paramref name="weeks"/> weeks up to the one holding <paramref name="today"/> (learning.GetStudyBySubject → StudyAnalytics).</summary>
+    Task<OperationResult<StudyAnalyticsDto>> GetAnalyticsAsync(DateOnly today, int weeks);
     Task<OperationResult<StudySessionDto>> CreateAsync(StudySessionRequest request);
     Task<OperationResult<StudySessionDto>> UpdateAsync(int id, StudySessionRequest request);
     Task<OperationResult<bool>> DeleteAsync(int id);
@@ -76,8 +78,8 @@ public interface ICertificationsService
 
 public interface IKnowledgeNotesService
 {
-    /// <summary>Most recently changed first.</summary>
-    Task<List<KnowledgeNoteDto>> GetAllAsync();
+    /// <summary>Most recently changed first; only the notes about one skill when <paramref name="skillId"/> is given.</summary>
+    Task<List<KnowledgeNoteDto>> GetAllAsync(int? skillId);
     /// <summary>Notes due for review on or before <paramref name="today"/>, longest overdue first.</summary>
     Task<List<KnowledgeNoteDto>> GetDueAsync(DateOnly today);
     Task<OperationResult<KnowledgeNoteDto>> GetAsync(int id);

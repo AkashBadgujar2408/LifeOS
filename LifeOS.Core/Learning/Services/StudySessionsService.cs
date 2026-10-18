@@ -1,3 +1,5 @@
+using System.Data;
+using Dapper;
 using LifeOS.Core.Learning.DTOs;
 using LifeOS.Core.Learning.ServiceContracts;
 using LifeOS.Core.Models;
@@ -49,6 +51,41 @@ public class StudySessionsService(AppDbContext db) : IStudySessionsService
             })
             .ToListAsync();
         return OperationResult<List<StudySessionDto>>.Ok(sessions);
+    }
+
+    public async Task<OperationResult<StudyAnalyticsDto>> GetAnalyticsAsync(DateOnly today, int weeks)
+    {
+        if (today == default)
+        {
+            return OperationResult<StudyAnalyticsDto>.Fail("Today's date is required.");
+        }
+
+        if (weeks is < StudyAnalytics.MinWeeks or > StudyAnalytics.MaxWeeks)
+        {
+            return OperationResult<StudyAnalyticsDto>.Fail($"Ask for {StudyAnalytics.MinWeeks} to {StudyAnalytics.MaxWeeks} weeks.");
+        }
+
+        var weekStarts = StudyAnalytics.WeekStarts(today, weeks);
+        var parameters = new DynamicParameters();
+        parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
+        parameters.Add("From", weekStarts[0].ToDateTime(TimeOnly.MinValue), DbType.Date);
+        // The whole current week: a session can't be on a later day than the client's today anyway.
+        parameters.Add("To", weekStarts[^1].AddDays(6).ToDateTime(TimeOnly.MinValue), DbType.Date);
+        var rows = await db.Database.GetDbConnection().QueryAsync<WeekRow>(
+            "learning.GetStudyBySubject", parameters, commandType: CommandType.StoredProcedure);
+
+        return OperationResult<StudyAnalyticsDto>.Ok(StudyAnalytics.Build(weekStarts, rows.Select(r =>
+            new StudyWeekRow(DateOnly.FromDateTime(r.WeekStart), r.SubjectKind, r.SubjectId, r.SubjectName, r.Minutes))));
+    }
+
+    // ADO.NET shapes as they come (DATE → DateTime).
+    private sealed class WeekRow
+    {
+        public DateTime WeekStart { get; init; }
+        public string SubjectKind { get; init; } = string.Empty;
+        public int? SubjectId { get; init; }
+        public string? SubjectName { get; init; }
+        public int Minutes { get; init; }
     }
 
     public async Task<OperationResult<StudySessionDto>> CreateAsync(StudySessionRequest request)

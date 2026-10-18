@@ -20,6 +20,7 @@ import {
   BookStatus,
   COURSE_STATUSES,
   CourseStatus,
+  KnowledgeNote,
   LearningItem,
   LearningService,
   SKILL_ENTITY_TYPE,
@@ -37,6 +38,7 @@ import {
   levelChangeText,
   targetText,
 } from './learning-view';
+import { openNoteEditor } from './note-editor';
 import { openSkillEditor } from './skill-editor';
 import { SkillLevel } from './skill-level';
 
@@ -63,6 +65,8 @@ export class SkillDetail {
 
   protected readonly skill = signal<SkillDetailModel | null>(null);
   protected readonly loadFailed = signal(false);
+  /** Knowledge notes about this skill, newest change first. */
+  protected readonly notes = signal<KnowledgeNote[]>([]);
   private readonly titled = itemTitle(() => this.skill()?.name);
 
   constructor() {
@@ -83,6 +87,27 @@ export class SkillDetail {
         },
         error: () => this.loadFailed.set(true),
       });
+    this.loadNotes();
+  }
+
+  private loadNotes(): void {
+    this.learningService
+      .knowledgeNotes(Number(this.id()))
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      // A side list: if it can't load, the card just says nothing's there yet.
+      .subscribe({ next: (notes) => this.notes.set(notes), error: () => this.notes.set([]) });
+  }
+
+  protected async openNote(note?: KnowledgeNote): Promise<void> {
+    const result = await openNoteEditor(this.modal, note, Number(this.id()));
+    if (result) {
+      this.toast.success(result.kind === 'saved' ? 'Note saved.' : 'Note deleted.');
+      this.loadNotes();
+    }
+  }
+
+  protected tagNames(note: KnowledgeNote): string {
+    return note.tags.map((t) => t.name).join(', ');
   }
 
   protected courseStatus(item: LearningItem): string {

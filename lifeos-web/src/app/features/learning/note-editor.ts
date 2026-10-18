@@ -8,16 +8,23 @@ import { todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { KnowledgeNote, LearningService } from '../../core/services/learning.service';
 import { ToastService } from '../../core/services/toast.service';
+import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
+import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
 
 export type NoteEditorResult = { kind: 'saved'; note: KnowledgeNote } | { kind: 'deleted' };
 
-/** Opens the note dialog (new when missing); resolves with what happened, or null if dismissed. */
+/**
+ * Opens the note dialog (new when missing — about `skillId` when given, e.g. from a skill's page); resolves with
+ * what happened, or null if dismissed.
+ */
 export async function openNoteEditor(
   modal: NgbModal,
   note?: KnowledgeNote,
+  skillId?: number,
 ): Promise<NoteEditorResult | null> {
   const modalRef = modal.open(NoteEditor, { ariaLabelledBy: 'note-editor-heading', size: 'lg' });
-  (modalRef.componentInstance as NoteEditor).configure(note);
+  (modalRef.componentInstance as NoteEditor).configure(note, skillId);
   try {
     return (await modalRef.result) as NoteEditorResult;
   } catch {
@@ -28,7 +35,7 @@ export async function openNoteEditor(
 @Component({
   selector: 'app-note-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, TagPicker, LinkedItems, EntityReminders],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -107,6 +114,23 @@ export async function openNoteEditor(
           Spaced review: tomorrow, then 3, 7, 14 and 30 days apart while you remember it. Forgetting
           starts the gaps again.
         </div>
+        <div>
+          <span class="form-label d-block">Tags</span>
+          <app-tag-picker [selectedTagIds]="tagIds()" (selectedTagIdsChange)="tagIds.set($event)" />
+        </div>
+
+        @if (note(); as existing) {
+          <div class="border-top pt-3">
+            <app-linked-items entityType="KnowledgeNote" [entityId]="existing.id" />
+          </div>
+          <div class="border-top pt-3">
+            <app-entity-reminders
+              entityType="KnowledgeNote"
+              [entityId]="existing.id"
+              [entityTitle]="existing.title"
+            />
+          </div>
+        }
       </div>
       <div class="modal-footer">
         @if (note()) {
@@ -136,6 +160,7 @@ export class NoteEditor {
   );
   protected readonly note = signal<KnowledgeNote | null>(null);
   protected readonly saving = signal(false);
+  protected readonly tagIds = signal<number[]>([]);
 
   protected readonly form = this.fb.group({
     title: this.fb.nonNullable.control('', [Validators.required, Validators.maxLength(200)]),
@@ -144,12 +169,13 @@ export class NoteEditor {
     review: this.fb.nonNullable.control(true),
   });
 
-  configure(note?: KnowledgeNote): void {
+  configure(note?: KnowledgeNote, skillId?: number): void {
     this.note.set(note ?? null);
+    this.tagIds.set(note?.tags.map((t) => t.id) ?? []);
     this.form.reset({
       title: note?.title ?? '',
       content: note?.content ?? '',
-      skillId: note?.skillId ?? null,
+      skillId: note ? note.skillId : (skillId ?? null),
       review: note ? note.nextReviewOn !== null : true,
     });
   }
@@ -183,6 +209,7 @@ export class NoteEditor {
         skillId: v.skillId,
         review: v.review,
         today: todayIso(),
+        tagIds: this.tagIds(),
       })
       .subscribe({
         next: (note) => this.activeModal.close({ kind: 'saved', note }),

@@ -23,6 +23,16 @@ public class StudySessionsController(IStudySessionsService studySessionsService)
             : BadRequest(ApiResponse<List<StudySessionDto>>.Fail(result.Error!));
     }
 
+    /// <summary>GET api/Learning/StudySessions/analytics?today=2026-10-18&amp;weeks=12 — minutes by subject per week.</summary>
+    [HttpGet("analytics")]
+    public async Task<IActionResult> GetAnalytics([FromQuery, BindRequired] DateOnly today, [FromQuery] int weeks = 12)
+    {
+        var result = await studySessionsService.GetAnalyticsAsync(today, weeks);
+        return result.Success
+            ? Ok(ApiResponse<StudyAnalyticsDto>.Ok(result.Data))
+            : BadRequest(ApiResponse<StudyAnalyticsDto>.Fail(result.Error!));
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(StudySessionRequest request) => Result(await studySessionsService.CreateAsync(request));
 

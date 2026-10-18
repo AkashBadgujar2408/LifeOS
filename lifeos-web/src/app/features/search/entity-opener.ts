@@ -12,6 +12,7 @@ import { openDecisionEditor } from '../journal/decision-editor';
 import { openTaskEditor } from '../tasks/task-editor';
 import { openCourseEditor } from '../learning/course-editor';
 import { openCertificationEditor } from '../learning/certification-editor';
+import { openNoteEditor } from '../learning/note-editor';
 import { LearningService } from '../../core/services/learning.service';
 import { apiErrorMessage } from '../../core/services/api-error';
 
@@ -83,6 +84,18 @@ export class EntityOpener {
           },
           error: (err) =>
             this.toast.error(apiErrorMessage(err, 'Could not open the certification.')),
+        });
+        break;
+      case 'KnowledgeNote':
+        this.learningService.knowledgeNote(entityId).subscribe({
+          next: async (note) => {
+            const result = await openNoteEditor(this.modal, note);
+            if (result) {
+              this.remindersService.notifyChanged();
+              this.toast.success(result.kind === 'saved' ? 'Note saved.' : 'Note deleted.');
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the note.')),
         });
         break;
       case 'Course':

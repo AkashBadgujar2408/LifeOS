@@ -11,6 +11,7 @@ public class LifeAreaStatsDto
     public int MilestonesCompleted { get; init; }
     public int HabitDays { get; init; }
     public int JournalEntries { get; init; }
+    public int StudyMinutes { get; init; }
     public DateOnly? LastActivityOn { get; init; }
     public int Xp { get; init; }
     public int Level { get; init; }
