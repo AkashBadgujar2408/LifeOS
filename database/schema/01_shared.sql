@@ -326,3 +326,53 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('shared.Users') AND name = 'LifeVision')
     ALTER TABLE shared.Users ADD LifeVision NVARCHAR(2000) NULL;
 GO
+
+-- Contacts (Session 51): the one list of people — Career's network, Family's directory (Session 72), Safety's
+-- emergency contacts and Community's mentoring all point here; no module keeps its own people list. Groupings
+-- ("Mentor", "Recruiter", "Family") are tags. LastContactedOn is the last day you were in touch — set by hand for
+-- now; Family's logged interactions (Session 72) keep it current later.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('shared.Contacts'))
+BEGIN
+    CREATE TABLE shared.Contacts
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Contacts PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_Contacts_Users REFERENCES shared.Users(Id),
+        Name            NVARCHAR(200)     NOT NULL CONSTRAINT CK_Contacts_Name CHECK (LEN(Name) > 0),
+        Organisation    NVARCHAR(200)     NULL,
+        JobTitle        NVARCHAR(200)     NULL,
+        Email           NVARCHAR(320)     NULL     CONSTRAINT CK_Contacts_Email CHECK (Email IS NULL OR Email LIKE '%_@_%'),
+        Phone           NVARCHAR(50)      NULL,
+        Notes           NVARCHAR(4000)    NULL,
+        LastContactedOn DATE              NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_Contacts_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_Contacts_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+-- Not unique: two people can share a name.
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.Contacts') AND name = 'IX_Contacts_User_Name')
+    CREATE INDEX IX_Contacts_User_Name ON shared.Contacts(UserId, Name) WHERE IsDeleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('shared.ContactTags'))
+BEGIN
+    CREATE TABLE shared.ContactTags
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ContactTags PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_ContactTags_Users REFERENCES shared.Users(Id),
+        ContactId       INT               NOT NULL CONSTRAINT FK_ContactTags_Contacts REFERENCES shared.Contacts(Id),
+        TagId           INT               NOT NULL CONSTRAINT FK_ContactTags_Tags REFERENCES shared.Tags(Id),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_ContactTags_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_ContactTags_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('shared.ContactTags') AND name = 'UX_ContactTags_Contact_Tag')
+    CREATE UNIQUE INDEX UX_ContactTags_Contact_Tag ON shared.ContactTags(ContactId, TagId) WHERE IsDeleted = 0;
+GO

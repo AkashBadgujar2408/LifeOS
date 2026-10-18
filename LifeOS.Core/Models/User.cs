@@ -29,6 +29,8 @@ public partial class User
 
     public string? LifeVision { get; set; }
 
+    public virtual ICollection<ApplicationStageChange> ApplicationStageChanges { get; set; } = new List<ApplicationStageChange>();
+
     public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
 
     public virtual ICollection<BookNote> BookNotes { get; set; } = new List<BookNote>();
@@ -37,9 +39,15 @@ public partial class User
 
     public virtual ICollection<Book> Books { get; set; } = new List<Book>();
 
+    public virtual ICollection<CareerAchievement> CareerAchievements { get; set; } = new List<CareerAchievement>();
+
     public virtual ICollection<Certification> Certifications { get; set; } = new List<Certification>();
 
     public virtual Chapter? Chapter { get; set; }
+
+    public virtual ICollection<ContactTag> ContactTags { get; set; } = new List<ContactTag>();
+
+    public virtual ICollection<Contact> Contacts { get; set; } = new List<Contact>();
 
     public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
 
@@ -52,6 +60,8 @@ public partial class User
     public virtual ICollection<DocumentTag> DocumentTags { get; set; } = new List<DocumentTag>();
 
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
+
+    public virtual ICollection<Employment> Employments { get; set; } = new List<Employment>();
 
     public virtual ICollection<EntityLink> EntityLinks { get; set; } = new List<EntityLink>();
 
@@ -79,6 +89,14 @@ public partial class User
 
     public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();
 
+    public virtual ICollection<InterviewQuestionTag> InterviewQuestionTags { get; set; } = new List<InterviewQuestionTag>();
+
+    public virtual ICollection<InterviewQuestion> InterviewQuestions { get; set; } = new List<InterviewQuestion>();
+
+    public virtual ICollection<Interview> Interviews { get; set; } = new List<Interview>();
+
+    public virtual ICollection<JobApplication> JobApplications { get; set; } = new List<JobApplication>();
+
     public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
 
     public virtual ICollection<JournalEntryTag> JournalEntryTags { get; set; } = new List<JournalEntryTag>();
@@ -99,11 +117,15 @@ public partial class User
 
     public virtual ICollection<MonthlyReflection> MonthlyReflections { get; set; } = new List<MonthlyReflection>();
 
+    public virtual ICollection<PerformanceReview> PerformanceReviews { get; set; } = new List<PerformanceReview>();
+
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
 
     public virtual ICollection<RecoveryCode> RecoveryCodes { get; set; } = new List<RecoveryCode>();
 
     public virtual ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
+
+    public virtual ICollection<ResumeVersion> ResumeVersions { get; set; } = new List<ResumeVersion>();
 
     public virtual ICollection<RoadmapStep> RoadmapSteps { get; set; } = new List<RoadmapStep>();
 
@@ -112,6 +134,10 @@ public partial class User
     public virtual ICollection<RoutineHabit> RoutineHabits { get; set; } = new List<RoutineHabit>();
 
     public virtual ICollection<Routine> Routines { get; set; } = new List<Routine>();
+
+    public virtual ICollection<SalaryRecord> SalaryRecords { get; set; } = new List<SalaryRecord>();
+
+    public virtual ICollection<SideIncomeSource> SideIncomeSources { get; set; } = new List<SideIncomeSource>();
 
     public virtual ICollection<SkillLevelChange> SkillLevelChanges { get; set; } = new List<SkillLevelChange>();
 

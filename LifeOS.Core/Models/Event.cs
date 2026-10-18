@@ -47,6 +47,8 @@ public partial class Event
 
     public virtual ICollection<EventException> EventExceptions { get; set; } = new List<EventException>();
 
+    public virtual Interview? Interview { get; set; }
+
     public virtual LifeArea? LifeArea { get; set; }
 
     public virtual User User { get; set; } = null!;

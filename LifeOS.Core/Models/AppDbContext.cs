@@ -11,6 +11,8 @@ public partial class AppDbContext : DbContext
     {
     }
 
+    public virtual DbSet<ApplicationStageChange> ApplicationStageChanges { get; set; }
+
     public virtual DbSet<Attachment> Attachments { get; set; }
 
     public virtual DbSet<Book> Books { get; set; }
@@ -19,9 +21,15 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<BookTag> BookTags { get; set; }
 
+    public virtual DbSet<CareerAchievement> CareerAchievements { get; set; }
+
     public virtual DbSet<Certification> Certifications { get; set; }
 
     public virtual DbSet<Chapter> Chapters { get; set; }
+
+    public virtual DbSet<Contact> Contacts { get; set; }
+
+    public virtual DbSet<ContactTag> ContactTags { get; set; }
 
     public virtual DbSet<Course> Courses { get; set; }
 
@@ -34,6 +42,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<DocumentFile> DocumentFiles { get; set; }
 
     public virtual DbSet<DocumentTag> DocumentTags { get; set; }
+
+    public virtual DbSet<Employment> Employments { get; set; }
 
     public virtual DbSet<EntityLink> EntityLinks { get; set; }
 
@@ -61,6 +71,14 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InboxItem> InboxItems { get; set; }
 
+    public virtual DbSet<Interview> Interviews { get; set; }
+
+    public virtual DbSet<InterviewQuestion> InterviewQuestions { get; set; }
+
+    public virtual DbSet<InterviewQuestionTag> InterviewQuestionTags { get; set; }
+
+    public virtual DbSet<JobApplication> JobApplications { get; set; }
+
     public virtual DbSet<JournalEntry> JournalEntries { get; set; }
 
     public virtual DbSet<JournalEntryTag> JournalEntryTags { get; set; }
@@ -83,11 +101,15 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<MonthlyReflection> MonthlyReflections { get; set; }
 
+    public virtual DbSet<PerformanceReview> PerformanceReviews { get; set; }
+
     public virtual DbSet<Project> Projects { get; set; }
 
     public virtual DbSet<RecoveryCode> RecoveryCodes { get; set; }
 
     public virtual DbSet<Reminder> Reminders { get; set; }
+
+    public virtual DbSet<ResumeVersion> ResumeVersions { get; set; }
 
     public virtual DbSet<Roadmap> Roadmaps { get; set; }
 
@@ -96,6 +118,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Routine> Routines { get; set; }
 
     public virtual DbSet<RoutineHabit> RoutineHabits { get; set; }
+
+    public virtual DbSet<SalaryRecord> SalaryRecords { get; set; }
+
+    public virtual DbSet<SideIncomeSource> SideIncomeSources { get; set; }
 
     public virtual DbSet<Skill> Skills { get; set; }
 
@@ -125,6 +151,28 @@ public partial class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<ApplicationStageChange>(entity =>
+        {
+            entity.ToTable("ApplicationStageChanges", "career");
+
+            entity.HasIndex(e => new { e.JobApplicationId, e.ChangedOn }, "IX_ApplicationStageChanges_Application").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_ApplicationStageChanges_CreatedAt");
+            entity.Property(e => e.FromStage).HasMaxLength(20);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.ToStage).HasMaxLength(20);
+
+            entity.HasOne(d => d.JobApplication).WithMany(p => p.ApplicationStageChanges)
+                .HasForeignKey(d => d.JobApplicationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ApplicationStageChanges_JobApplications");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ApplicationStageChanges)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ApplicationStageChanges_Users");
+        });
+
         modelBuilder.Entity<Attachment>(entity =>
         {
             entity.ToTable("Attachments", "shared");
@@ -223,6 +271,27 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_BookTags_Users");
         });
 
+        modelBuilder.Entity<CareerAchievement>(entity =>
+        {
+            entity.ToTable("CareerAchievements", "career");
+
+            entity.HasIndex(e => new { e.UserId, e.AchievedOn }, "IX_CareerAchievements_User_Day").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_CareerAchievements_CreatedAt");
+            entity.Property(e => e.Description).HasMaxLength(4000);
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Employment).WithMany(p => p.CareerAchievements)
+                .HasForeignKey(d => d.EmploymentId)
+                .HasConstraintName("FK_CareerAchievements_Employments");
+
+            entity.HasOne(d => d.User).WithMany(p => p.CareerAchievements)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CareerAchievements_Users");
+        });
+
         modelBuilder.Entity<Certification>(entity =>
         {
             entity.ToTable("Certifications", "learning");
@@ -272,6 +341,52 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey<Chapter>(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Chapters_Users");
+        });
+
+        modelBuilder.Entity<Contact>(entity =>
+        {
+            entity.ToTable("Contacts", "shared");
+
+            entity.HasIndex(e => new { e.UserId, e.Name }, "IX_Contacts_User_Name").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Contacts_CreatedAt");
+            entity.Property(e => e.Email).HasMaxLength(320);
+            entity.Property(e => e.JobTitle).HasMaxLength(200);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(4000);
+            entity.Property(e => e.Organisation).HasMaxLength(200);
+            entity.Property(e => e.Phone).HasMaxLength(50);
+
+            entity.HasOne(d => d.User).WithMany(p => p.Contacts)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Contacts_Users");
+        });
+
+        modelBuilder.Entity<ContactTag>(entity =>
+        {
+            entity.ToTable("ContactTags", "shared");
+
+            entity.HasIndex(e => new { e.ContactId, e.TagId }, "UX_ContactTags_Contact_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_ContactTags_CreatedAt");
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.ContactTags)
+                .HasForeignKey(d => d.ContactId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ContactTags_Contacts");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.ContactTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ContactTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ContactTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ContactTags_Users");
         });
 
         modelBuilder.Entity<Course>(entity =>
@@ -419,6 +534,27 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DocumentTags_Users");
+        });
+
+        modelBuilder.Entity<Employment>(entity =>
+        {
+            entity.ToTable("Employments", "career");
+
+            entity.HasIndex(e => new { e.UserId, e.StartDate }, "IX_Employments_User_Start").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Employments_CreatedAt");
+            entity.Property(e => e.Description).HasMaxLength(4000);
+            entity.Property(e => e.EmploymentType)
+                .HasMaxLength(20)
+                .HasDefaultValue("FullTime", "DF_Employments_EmploymentType");
+            entity.Property(e => e.Location).HasMaxLength(200);
+            entity.Property(e => e.Organisation).HasMaxLength(200);
+            entity.Property(e => e.Role).HasMaxLength(200);
+
+            entity.HasOne(d => d.User).WithMany(p => p.Employments)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Employments_Users");
         });
 
         modelBuilder.Entity<EntityLink>(entity =>
@@ -728,6 +864,111 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_InboxItems_Users");
         });
 
+        modelBuilder.Entity<Interview>(entity =>
+        {
+            entity.ToTable("Interviews", "career");
+
+            entity.HasIndex(e => e.JobApplicationId, "IX_Interviews_Application").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.EventId, "UX_Interviews_Event")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [EventId] IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Interviews_CreatedAt");
+            entity.Property(e => e.Outcome).HasMaxLength(10);
+            entity.Property(e => e.PrepNotes).HasMaxLength(4000);
+            entity.Property(e => e.ReviewNotes).HasMaxLength(4000);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Event).WithOne(p => p.Interview)
+                .HasForeignKey<Interview>(d => d.EventId)
+                .HasConstraintName("FK_Interviews_Events");
+
+            entity.HasOne(d => d.JobApplication).WithMany(p => p.Interviews)
+                .HasForeignKey(d => d.JobApplicationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Interviews_JobApplications");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Interviews)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Interviews_Users");
+        });
+
+        modelBuilder.Entity<InterviewQuestion>(entity =>
+        {
+            entity.ToTable("InterviewQuestions", "career");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_InterviewQuestions_CreatedAt");
+            entity.Property(e => e.Question).HasMaxLength(1000);
+            entity.Property(e => e.ReviewNotes).HasMaxLength(4000);
+
+            entity.HasOne(d => d.JobApplication).WithMany(p => p.InterviewQuestions)
+                .HasForeignKey(d => d.JobApplicationId)
+                .HasConstraintName("FK_InterviewQuestions_JobApplications");
+
+            entity.HasOne(d => d.User).WithMany(p => p.InterviewQuestions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InterviewQuestions_Users");
+        });
+
+        modelBuilder.Entity<InterviewQuestionTag>(entity =>
+        {
+            entity.ToTable("InterviewQuestionTags", "career");
+
+            entity.HasIndex(e => new { e.InterviewQuestionId, e.TagId }, "UX_InterviewQuestionTags_Question_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_InterviewQuestionTags_CreatedAt");
+
+            entity.HasOne(d => d.InterviewQuestion).WithMany(p => p.InterviewQuestionTags)
+                .HasForeignKey(d => d.InterviewQuestionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InterviewQuestionTags_InterviewQuestions");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.InterviewQuestionTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InterviewQuestionTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.InterviewQuestionTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InterviewQuestionTags_Users");
+        });
+
+        modelBuilder.Entity<JobApplication>(entity =>
+        {
+            entity.ToTable("JobApplications", "career");
+
+            entity.HasIndex(e => new { e.UserId, e.Stage }, "IX_JobApplications_User_Stage").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_JobApplications_CreatedAt");
+            entity.Property(e => e.Notes).HasMaxLength(4000);
+            entity.Property(e => e.Organisation).HasMaxLength(200);
+            entity.Property(e => e.Role).HasMaxLength(200);
+            entity.Property(e => e.Source).HasMaxLength(200);
+            entity.Property(e => e.Stage)
+                .HasMaxLength(20)
+                .HasDefaultValue("Saved", "DF_JobApplications_Stage");
+            entity.Property(e => e.Url).HasMaxLength(2000);
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.JobApplications)
+                .HasForeignKey(d => d.ContactId)
+                .HasConstraintName("FK_JobApplications_Contacts");
+
+            entity.HasOne(d => d.ResumeVersion).WithMany(p => p.JobApplications)
+                .HasForeignKey(d => d.ResumeVersionId)
+                .HasConstraintName("FK_JobApplications_ResumeVersions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.JobApplications)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_JobApplications_Users");
+        });
+
         modelBuilder.Entity<JournalEntry>(entity =>
         {
             entity.ToTable("JournalEntries", "journal");
@@ -958,6 +1199,27 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_MonthlyReflections_Users");
         });
 
+        modelBuilder.Entity<PerformanceReview>(entity =>
+        {
+            entity.ToTable("PerformanceReviews", "career");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_PerformanceReviews_CreatedAt");
+            entity.Property(e => e.Improvements).HasMaxLength(4000);
+            entity.Property(e => e.Notes).HasMaxLength(4000);
+            entity.Property(e => e.PeriodLabel).HasMaxLength(100);
+            entity.Property(e => e.Rating).HasMaxLength(100);
+            entity.Property(e => e.Strengths).HasMaxLength(4000);
+
+            entity.HasOne(d => d.Employment).WithMany(p => p.PerformanceReviews)
+                .HasForeignKey(d => d.EmploymentId)
+                .HasConstraintName("FK_PerformanceReviews_Employments");
+
+            entity.HasOne(d => d.User).WithMany(p => p.PerformanceReviews)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PerformanceReviews_Users");
+        });
+
         modelBuilder.Entity<Project>(entity =>
         {
             entity.ToTable("Projects", "tasks");
@@ -1018,6 +1280,25 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Reminders_Users");
+        });
+
+        modelBuilder.Entity<ResumeVersion>(entity =>
+        {
+            entity.ToTable("ResumeVersions", "career");
+
+            entity.HasIndex(e => new { e.UserId, e.Name }, "UX_ResumeVersions_User_Name")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_ResumeVersions_CreatedAt");
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.TargetRole).HasMaxLength(200);
+
+            entity.HasOne(d => d.User).WithMany(p => p.ResumeVersions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ResumeVersions_Users");
         });
 
         modelBuilder.Entity<Roadmap>(entity =>
@@ -1116,6 +1397,59 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RoutineHabits_Users");
+        });
+
+        modelBuilder.Entity<SalaryRecord>(entity =>
+        {
+            entity.ToTable("SalaryRecords", "career");
+
+            entity.HasIndex(e => new { e.UserId, e.EffectiveOn }, "IX_SalaryRecords_User_Effective").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.EmploymentId, e.EffectiveOn }, "UX_SalaryRecords_Employment_Day")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [EmploymentId] IS NOT NULL)");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_SalaryRecords_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.Period)
+                .HasMaxLength(10)
+                .HasDefaultValue("Year", "DF_SalaryRecords_Period");
+            entity.Property(e => e.Reason)
+                .HasMaxLength(20)
+                .HasDefaultValue("Starting", "DF_SalaryRecords_Reason");
+
+            entity.HasOne(d => d.Employment).WithMany(p => p.SalaryRecords)
+                .HasForeignKey(d => d.EmploymentId)
+                .HasConstraintName("FK_SalaryRecords_Employments");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SalaryRecords)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SalaryRecords_Users");
+        });
+
+        modelBuilder.Entity<SideIncomeSource>(entity =>
+        {
+            entity.ToTable("SideIncomeSources", "career");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_SideIncomeSources_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(4000);
+            entity.Property(e => e.Status)
+                .HasMaxLength(10)
+                .HasDefaultValue("Active", "DF_SideIncomeSources_Status");
+            entity.Property(e => e.Url).HasMaxLength(2000);
+
+            entity.HasOne(d => d.User).WithMany(p => p.SideIncomeSources)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SideIncomeSources_Users");
         });
 
         modelBuilder.Entity<Skill>(entity =>

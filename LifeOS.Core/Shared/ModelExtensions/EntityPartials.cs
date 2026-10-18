@@ -114,3 +114,29 @@ public partial class RoadmapStep : ISoftDeletable, IUserOwned;
 public partial class KnowledgeNote : ISoftDeletable, IUserOwned;
 
 public partial class KnowledgeNoteTag : ISoftDeletable, IUserOwned;
+
+public partial class Contact : ISoftDeletable, IUserOwned;
+
+public partial class ContactTag : ISoftDeletable, IUserOwned;
+
+public partial class Employment : ISoftDeletable, IUserOwned;
+
+public partial class SalaryRecord : ISoftDeletable, IUserOwned;
+
+public partial class CareerAchievement : ISoftDeletable, IUserOwned;
+
+public partial class PerformanceReview : ISoftDeletable, IUserOwned;
+
+public partial class ResumeVersion : ISoftDeletable, IUserOwned;
+
+public partial class JobApplication : ISoftDeletable, IUserOwned;
+
+public partial class ApplicationStageChange : ISoftDeletable, IUserOwned;
+
+public partial class Interview : ISoftDeletable, IUserOwned;
+
+public partial class InterviewQuestion : ISoftDeletable, IUserOwned;
+
+public partial class InterviewQuestionTag : ISoftDeletable, IUserOwned;
+
+public partial class SideIncomeSource : ISoftDeletable, IUserOwned;

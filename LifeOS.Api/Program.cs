@@ -96,6 +96,7 @@ try
     builder.Services.AddScoped<IDocumentsService, DocumentsService>();
     builder.Services.AddScoped<IVaultService, VaultService>();
     builder.Services.AddScoped<IAttachmentsService, AttachmentsService>();
+    builder.Services.AddScoped<IContactsService, ContactsService>();
     builder.Services.AddRecoveryRateLimit();
 
     // Files (document files, attachments) live on disk outside any web root, one folder per user (IFileStore).
@@ -130,6 +131,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, RoadmapLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, CertificationLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, KnowledgeNoteLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, ContactLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

@@ -21,11 +21,15 @@ public partial class Tag
 
     public virtual ICollection<BookTag> BookTags { get; set; } = new List<BookTag>();
 
+    public virtual ICollection<ContactTag> ContactTags { get; set; } = new List<ContactTag>();
+
     public virtual ICollection<DocumentTag> DocumentTags { get; set; } = new List<DocumentTag>();
 
     public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
 
     public virtual ICollection<HabitTag> HabitTags { get; set; } = new List<HabitTag>();
+
+    public virtual ICollection<InterviewQuestionTag> InterviewQuestionTags { get; set; } = new List<InterviewQuestionTag>();
 
     public virtual ICollection<JournalEntryTag> JournalEntryTags { get; set; } = new List<JournalEntryTag>();
 

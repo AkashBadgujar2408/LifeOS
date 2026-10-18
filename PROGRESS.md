@@ -862,3 +862,11 @@
 - UAT test data: `learnuser1` adds tags Grammar + Languages on "Ser vs estar", a 60m "Stoicism" topic session on 16 Oct, course "Negotiation basics" (Career area, 10%) with a 125m session on 9 Oct; a deleted note "Throwaway".
 
 - Next up: **Session 51 — Career 1: schema + shared Contacts** (plan, Section 7).
+
+## Last session: 2026-10-18 — Session 51 — Career 1: schema + shared Contacts
+- Shipped: `shared.Contacts` + `ContactTags` (appended to `01_shared.sql`), `database/schema/11_career.sql` (schema `career`, 11 tables — Employments, SalaryRecords, CareerAchievements, PerformanceReviews, ResumeVersions, JobApplications, ApplicationStageChanges, Interviews, InterviewQuestions, InterviewQuestionTags, SideIncomeSources; see the plan row for every CHECK); scaffolded; `ISoftDeletable, IUserOwned` partials for all 13; Contacts API (`IContactsService`/`ContactsService`, `api/Shared/Contacts`) and `ContactLinkableProvider`. UAT backed up first (`LifeOS_UAT_pre51.bak`).
+- Verified: 42 constraint checks in a rolled-back transaction; scripts re-runnable; fresh DB scaffolds identically; curl as `careeruser1`/`careeruser2` (see the plan row); `dotnet build` 0 warnings; 280 backend tests.
+- Decisions (mine — say if you want them changed): Contacts live in `01_shared.sql` (shared schema), names aren't unique; a promotion is a new Employment row at the same organisation (plus a Promotion achievement and a salary record — Session 52 records them together); salary change % is computed only between the same period and currency; performance ratings are free text; an interview's time lives on its calendar event; side income amounts go to Finance later, not here. Contacts have no page yet: the client (editor, search opening, reminder label) comes with Session 52.
+- UAT test data: `careeruser1` (Asha Iyer; tag Mentor; goal "Become a tech lead"; contacts Priya Rao and Dev Mehta created and deleted), `careeruser2` (Ben Ford, empty).
+
+- Next up: **Session 52 — Career 2: timeline, salary, achievements** (plan, Section 7).
