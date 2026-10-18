@@ -117,6 +117,7 @@ try
     builder.Services.AddScoped<IHoldingsService, HoldingsService>();
     builder.Services.AddScoped<ILoansService, LoansService>();
     builder.Services.AddScoped<IWealthService, WealthService>();
+    builder.Services.AddScoped<IExchangeRatesService, ExchangeRatesService>();
     builder.Services.AddRecoveryRateLimit();
 
     // Files (document files, attachments) live on disk outside any web root, one folder per user (IFileStore).

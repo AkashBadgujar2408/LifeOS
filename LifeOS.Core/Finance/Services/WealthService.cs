@@ -26,7 +26,7 @@ public class WealthService(AppDbContext db) : IWealthService
             return new NetWorthDto { Day = today };
         }
 
-        var inputs = await LoadAsync();
+        var inputs = await LoadAsync(baseCurrency);
         var now = NetWorth.At(today, inputs, baseCurrency);
         return new NetWorthDto
         {
@@ -75,7 +75,7 @@ public class WealthService(AppDbContext db) : IWealthService
         var baseCurrency = await BaseCurrencyAsync();
         var items = wanted.Count == 0
             ? []
-            : NetWorth.At(today, await LoadAsync(), baseCurrency ?? currency).Items.Where(i => wanted.Contains((i.Type, i.Id))).ToList();
+            : NetWorth.At(today, await LoadAsync(baseCurrency ?? currency), baseCurrency ?? currency).Items.Where(i => wanted.Contains((i.Type, i.Id))).ToList();
         var (saved, percent, counted) = SavingsProgress.Of(target, currency, baseCurrency, items);
         return OperationResult<SavingsProgressDto?>.Ok(new SavingsProgressDto
         {
@@ -93,7 +93,7 @@ public class WealthService(AppDbContext db) : IWealthService
     private async Task<string?> BaseCurrencyAsync() =>
         await db.Users.Where(u => u.Id == db.CurrentUserId).Select(u => u.BaseCurrency).FirstOrDefaultAsync();
 
-    private async Task<WealthInputs> LoadAsync()
+    private async Task<WealthInputs> LoadAsync(string baseCurrency)
     {
         var parameters = new DynamicParameters();
         parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
@@ -125,7 +125,7 @@ public class WealthService(AppDbContext db) : IWealthService
             .Select(l => new WealthLoan(l.Id, l.Name, l.Direction == LoanKinds.Lent, l.Currency, l.Principal, l.AnnualRate,
                 l.TermMonths, l.StartDate, l.EmiAmount, l.ClosedOn))
             .ToListAsync();
-        return new WealthInputs(accounts, flows, holdings, loans, rates);
+        return new WealthInputs(accounts, flows, holdings, loans, rates, await FinanceRates.MasterAsync(db, baseCurrency));
     }
 
     private static WealthItemDto ToDto(WealthItem i) => new()

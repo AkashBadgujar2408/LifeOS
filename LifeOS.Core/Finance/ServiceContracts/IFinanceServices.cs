@@ -75,3 +75,11 @@ public interface IWealthService
     /// <summary>Null data when the goal has no amount target.</summary>
     Task<OperationResult<SavingsProgressDto?>> GetSavingsAsync(int goalId, DateOnly today);
 }
+
+/// <summary>The exchange-rate master (rates into the base currency, set by hand, with history).</summary>
+public interface IExchangeRatesService
+{
+    Task<List<ExchangeRateDto>> GetAllAsync();
+    Task<OperationResult<List<ExchangeRateDto>>> SetAsync(ExchangeRateRequest request);
+    Task<OperationResult<List<ExchangeRateDto>>> DeleteAsync(int id);
+}

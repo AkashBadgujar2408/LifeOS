@@ -73,6 +73,8 @@ public partial class User
 
     public virtual ICollection<Event> Events { get; set; } = new List<Event>();
 
+    public virtual ICollection<ExchangeRate> ExchangeRates { get; set; } = new List<ExchangeRate>();
+
     public virtual ICollection<FocusSession> FocusSessions { get; set; } = new List<FocusSession>();
 
     public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();

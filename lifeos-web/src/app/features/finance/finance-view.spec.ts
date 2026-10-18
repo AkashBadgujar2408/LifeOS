@@ -1,12 +1,15 @@
 import type { Transaction } from '../../core/services/finance.service';
 import {
   accountLine,
+  baseTotal,
   budgetBar,
+  currentRates,
   formatMoney,
   loanPaidPercent,
   monthLabel,
   monthRange,
   netWorthChange,
+  rateOn,
   shiftMonth,
   signedAmount,
   signedMoney,
@@ -137,5 +140,51 @@ describe('net worth and loans in words', () => {
     expect(loanPaidPercent(9, 240)).toBe(3);
     expect(loanPaidPercent(0, 0)).toBe(0);
     expect(loanPaidPercent(240, 240)).toBe(100);
+  });
+});
+
+describe('exchange-rate master', () => {
+  const rate = (id: number, currency: string, value: number, effectiveOn: string) => ({
+    id,
+    currency,
+    baseCurrency: 'INR',
+    rate: value,
+    effectiveOn,
+  });
+  const rates = [
+    rate(1, 'USD', 80, '2026-05-01'),
+    rate(2, 'USD', 86, '2026-10-01'),
+    rate(3, 'GBP', 110, '2026-10-01'),
+  ];
+
+  it('finds the rate in force on a day', () => {
+    expect(rateOn(rates, 'USD', '2026-10-18')).toBe(86);
+    expect(rateOn(rates, 'USD', '2026-09-30')).toBe(80);
+    expect(rateOn(rates, 'USD', '2026-04-30')).toBeNull();
+    expect(rateOn(rates, 'EUR', '2026-10-18')).toBeNull();
+  });
+
+  it('lists each currency with its current rate and history', () => {
+    const list = currentRates(rates, '2026-10-18');
+    expect(list.map((r) => r.currency)).toEqual(['GBP', 'USD']);
+    expect(list[1].current?.rate).toBe(86);
+    expect(list[1].history.map((r) => r.id)).toEqual([2, 1]);
+  });
+});
+
+describe('accounts in the base currency', () => {
+  it('adds converted balances and names the ones without a rate', () => {
+    expect(
+      baseTotal(
+        [
+          { name: 'Bank', currency: 'INR', balanceInBase: 100000 },
+          { name: 'UK account', currency: 'GBP', balanceInBase: 110000 },
+          { name: 'Euro cash', currency: 'EUR', balanceInBase: null },
+        ],
+        'INR',
+      ),
+    ).toEqual({ currency: 'INR', total: 210000, missing: ['Euro cash'] });
+    expect(baseTotal([{ name: 'Bank', currency: 'INR', balanceInBase: 5 }], 'INR')).toBeNull();
+    expect(baseTotal([{ name: 'UK', currency: 'GBP', balanceInBase: null }], null)).toBeNull();
   });
 });

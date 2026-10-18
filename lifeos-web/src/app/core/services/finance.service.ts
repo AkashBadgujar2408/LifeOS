@@ -28,6 +28,8 @@ export interface Account {
   balance: number;
   transactionCount: number;
   lastOn: string | null;
+  /** In the base currency at the exchange-rate master's rate (null: no rate for its currency yet). */
+  balanceInBase: number | null;
 }
 
 export interface AccountPayload {
@@ -353,6 +355,15 @@ export interface SavingsProgress {
   items: WealthItem[];
 }
 
+/** "1 Currency = rate BaseCurrency from effectiveOn", set by hand in Settings. */
+export interface ExchangeRate {
+  id: number;
+  currency: string;
+  baseCurrency: string;
+  rate: number;
+  effectiveOn: string;
+}
+
 /** The Finance API: accounts with computed balances, the ledger, repeating transactions and budgets. */
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
@@ -611,5 +622,32 @@ export class FinanceService {
       ),
       map((response) => response.data ?? null),
     );
+  }
+
+  // ---- Exchange-rate master ----
+
+  /** The rates set against the current base currency, newest first per currency. */
+  rates(): Observable<ExchangeRate[]> {
+    return this.http
+      .get<ApiResponse<ExchangeRate[]>>(`${this.base}/ExchangeRates`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  /** Sets a currency's rate from a day (replacing that day's); returns all rates as they now stand. */
+  setRate(currency: string, rate: number, effectiveOn: string): Observable<ExchangeRate[]> {
+    return this.http
+      .put<ApiResponse<ExchangeRate[]>>(`${this.base}/ExchangeRates`, {
+        currency,
+        rate,
+        effectiveOn,
+        today: todayIso(),
+      })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  removeRate(id: number): Observable<ExchangeRate[]> {
+    return this.http
+      .delete<ApiResponse<ExchangeRate[]>>(`${this.base}/ExchangeRates/${id}`)
+      .pipe(map((response) => response.data ?? []));
   }
 }

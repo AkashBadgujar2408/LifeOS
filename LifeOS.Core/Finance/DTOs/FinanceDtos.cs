@@ -41,6 +41,8 @@ public class AccountDto
     /// <summary>What it held at the end of the day asked for (opening balance + money in − money out), never stored.</summary>
     public decimal Balance { get; set; }
     public int TransactionCount { get; set; }
+    /// <summary>The balance in the base currency at the exchange-rate master's rate (null: no rate yet; same as Balance in the base currency).</summary>
+    public decimal? BalanceInBase { get; set; }
     /// <summary>The latest day money moved in or out (null: never).</summary>
     public DateOnly? LastOn { get; set; }
 }
@@ -492,4 +494,28 @@ public class SavingsProgressDto
     /// <summary>Whole %, capped at 100.</summary>
     public int Percent { get; init; }
     public List<WealthItemDto> Items { get; init; } = [];
+}
+
+// ---- Exchange-rate master ----
+
+/// <summary>"1 Currency = Rate BaseCurrency from EffectiveOn".</summary>
+public class ExchangeRateDto
+{
+    public int Id { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    public string BaseCurrency { get; init; } = string.Empty;
+    public decimal Rate { get; init; }
+    public DateOnly EffectiveOn { get; init; }
+}
+
+public class ExchangeRateRequest
+{
+    [Required]
+    public string Currency { get; init; } = string.Empty;
+
+    public decimal Rate { get; init; }
+
+    public DateOnly EffectiveOn { get; init; }
+
+    public DateOnly Today { get; init; }
 }

@@ -129,6 +129,16 @@
           </div>
         </section>
 
+        <!-- Exchange rates (Finance) -->
+        @if (financeOn()) {
+          <section class="card" aria-labelledby="rates-heading">
+            <div class="card-body p-4">
+              <h2 id="rates-heading" class="h5 mb-1">Exchange rates</h2>
+              <app-exchange-rates />
+            </div>
+          </section>
+        }
+
         <!-- Password -->
         <section class="card" aria-labelledby="password-heading">
           <div class="card-body p-4">

@@ -1,5 +1,6 @@
 import type {
   AccountKind,
+  ExchangeRate,
   HoldingKind,
   LoanKind,
   NetWorthPoint,
@@ -206,4 +207,45 @@ export function netWorthChange(history: NetWorthPoint[]): { change: number; sinc
 /** "3 of 240 paid" share of a loan's instalments, as a whole % (0 when it has none). */
 export function loanPaidPercent(paid: number, count: number): number {
   return count === 0 ? 0 : Math.floor((paid * 100) / count);
+}
+
+/** The rate the master gives a currency on a day: the latest set on or before it (null: none). */
+export function rateOn(rates: ExchangeRate[], currency: string, day: string): number | null {
+  const set = rates
+    .filter((r) => r.currency === currency && r.effectiveOn <= day)
+    .sort((a, b) => a.effectiveOn.localeCompare(b.effectiveOn));
+  return set.length ? set[set.length - 1].rate : null;
+}
+
+/** Each currency's rate in force on a day, with the history behind it (newest first), currencies A–Z. */
+export function currentRates(
+  rates: ExchangeRate[],
+  day: string,
+): { currency: string; current: ExchangeRate | null; history: ExchangeRate[] }[] {
+  const currencies = [...new Set(rates.map((r) => r.currency))].sort();
+  return currencies.map((currency) => {
+    const history = rates
+      .filter((r) => r.currency === currency)
+      .sort((a, b) => b.effectiveOn.localeCompare(a.effectiveOn));
+    return { currency, current: history.find((r) => r.effectiveOn <= day) ?? null, history };
+  });
+}
+
+/**
+ * Open accounts added up in the base currency (their converted balances), naming the ones with no rate yet. Null
+ * when every account is already in the base currency — the per-currency total says it all then.
+ */
+export function baseTotal(
+  accounts: { name: string; currency: string; balanceInBase: number | null }[],
+  baseCurrency: string | null,
+): { currency: string; total: number; missing: string[] } | null {
+  if (!baseCurrency || accounts.every((a) => a.currency === baseCurrency)) {
+    return null;
+  }
+  const total = accounts.reduce((sum, a) => sum + (a.balanceInBase ?? 0), 0);
+  return {
+    currency: baseCurrency,
+    total: Math.round(total * 10000) / 10000,
+    missing: accounts.filter((a) => a.balanceInBase === null).map((a) => a.name),
+  };
 }

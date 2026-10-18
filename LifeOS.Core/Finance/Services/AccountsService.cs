@@ -190,6 +190,21 @@ public class AccountsService(AppDbContext db, IEntityLinksService entityLinksSer
                 account.Balance = account.OpeningBalance;
             }
         }
+
+        // Each balance in the base currency too, at the exchange-rate master's rate for the day (else a typed one).
+        var baseCurrency = await db.Users.Where(u => u.Id == db.CurrentUserId).Select(u => u.BaseCurrency).FirstOrDefaultAsync();
+        if (baseCurrency is null)
+        {
+            return;
+        }
+
+        var foreign = accounts.Any(a => a.Currency != baseCurrency);
+        var master = foreign ? await FinanceRates.MasterAsync(db, baseCurrency) : [];
+        var typed = foreign ? await FinanceRates.TypedAsync(db) : [];
+        foreach (var account in accounts)
+        {
+            account.BalanceInBase = NetWorth.ToBase(account.Balance, account.Currency, baseCurrency, asOf, master, typed);
+        }
     }
 
     // ADO.NET shapes as they come (DATE → DateTime).

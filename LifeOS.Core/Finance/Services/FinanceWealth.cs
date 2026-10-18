@@ -114,7 +114,8 @@ public sealed record WealthInputs(
     IReadOnlyList<AccountFlow> Flows,
     IReadOnlyList<WealthHolding> Holdings,
     IReadOnlyList<WealthLoan> Loans,
-    IReadOnlyList<CurrencyRate> Rates);
+    IReadOnlyList<CurrencyRate> Rates,
+    IReadOnlyList<CurrencyRate>? MasterRates = null);
 
 /// <summary>One thing counted in net worth: positive = an asset, negative = a liability, in its own currency and the base one.</summary>
 public sealed record WealthItem(string Type, int Id, string Name, string Currency, decimal Amount, decimal? InBase);
@@ -147,14 +148,14 @@ public static class NetWorth
         {
             var balance = account.OpeningBalance
                 + flowsByAccount[account.Id].Where(f => f.Day >= account.OpeningDate && f.Day <= day).Sum(f => f.Net);
-            items.Add(Item(AccountType, account.Id, account.Name, account.Currency, balance, day, inputs.Rates, baseCurrency));
+            items.Add(Item(AccountType, account.Id, account.Name, account.Currency, balance, day, inputs, baseCurrency));
         }
 
         foreach (var holding in inputs.Holdings)
         {
             if (HoldingValue(holding, day) is { } value)
             {
-                items.Add(Item(HoldingType, holding.Id, holding.Name, holding.Currency, value, day, inputs.Rates, baseCurrency));
+                items.Add(Item(HoldingType, holding.Id, holding.Name, holding.Currency, value, day, inputs, baseCurrency));
             }
         }
 
@@ -164,7 +165,7 @@ public static class NetWorth
             var owed = LoanSchedule.OutstandingOn(schedule, loan.Principal, loan.StartDate, loan.ClosedOn, day);
             if (owed != 0)
             {
-                items.Add(Item(LoanType, loan.Id, loan.Name, loan.Currency, loan.IsLent ? owed : -owed, day, inputs.Rates, baseCurrency));
+                items.Add(Item(LoanType, loan.Id, loan.Name, loan.Currency, loan.IsLent ? owed : -owed, day, inputs, baseCurrency));
             }
         }
 
@@ -187,7 +188,21 @@ public static class NetWorth
         return valued != default ? valued.Value : holding.InvestedAmount;
     }
 
-    /// <summary>The latest rate for a currency typed on or before the day (null: none yet).</summary>
+    /// <summary>
+    /// The rate a currency converts at on a day: the exchange-rate master's latest on or before it (what you set in
+    /// Settings) — else the latest rate typed on a transaction by then — else none.
+    /// </summary>
+    public static decimal? RateFor(string currency, DateOnly day, IReadOnlyList<CurrencyRate> master, IReadOnlyList<CurrencyRate> typed) =>
+        RateOn(master, currency, day) ?? RateOn(typed, currency, day);
+
+    /// <summary>An amount in the base currency on a day (null: another currency with no rate known by then).</summary>
+    public static decimal? ToBase(
+        decimal amount, string currency, string baseCurrency, DateOnly day, IReadOnlyList<CurrencyRate> master, IReadOnlyList<CurrencyRate> typed) =>
+        currency == baseCurrency ? amount
+        : RateFor(currency, day, master, typed) is { } rate ? Math.Round(amount * rate, 4, MidpointRounding.AwayFromZero)
+        : null;
+
+    /// <summary>The latest rate for a currency on or before the day (null: none yet).</summary>
     public static decimal? RateOn(IReadOnlyList<CurrencyRate> rates, string currency, DateOnly day) =>
         rates.Where(r => r.Currency == currency && r.Day <= day).OrderBy(r => r.Day).LastOrDefault()?.Rate;
 
@@ -201,10 +216,10 @@ public static class NetWorth
     }
 
     private static WealthItem Item(
-        string type, int id, string name, string currency, decimal amount, DateOnly day, IReadOnlyList<CurrencyRate> rates, string baseCurrency)
+        string type, int id, string name, string currency, decimal amount, DateOnly day, WealthInputs inputs, string baseCurrency)
     {
         decimal? inBase = currency == baseCurrency ? amount
-            : RateOn(rates, currency, day) is { } rate ? Math.Round(amount * rate, 4, MidpointRounding.AwayFromZero)
+            : RateFor(currency, day, inputs.MasterRates ?? [], inputs.Rates) is { } rate ? Math.Round(amount * rate, 4, MidpointRounding.AwayFromZero)
             : null;
         return new WealthItem(type, id, name, currency, amount, inBase);
     }

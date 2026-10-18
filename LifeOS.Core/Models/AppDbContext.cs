@@ -55,6 +55,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<EventException> EventExceptions { get; set; }
 
+    public virtual DbSet<ExchangeRate> ExchangeRates { get; set; }
+
     public virtual DbSet<FocusSession> FocusSessions { get; set; }
 
     public virtual DbSet<Goal> Goals { get; set; }
@@ -703,6 +705,31 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_EventExceptions_Users");
+        });
+
+        modelBuilder.Entity<ExchangeRate>(entity =>
+        {
+            entity.ToTable("ExchangeRates", "finance");
+
+            entity.HasIndex(e => new { e.UserId, e.Currency, e.BaseCurrency, e.EffectiveOn }, "UX_ExchangeRates_User_Pair_Day")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.BaseCurrency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_ExchangeRates_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Rate).HasColumnType("decimal(19, 8)");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ExchangeRates)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ExchangeRates_Users");
         });
 
         modelBuilder.Entity<FocusSession>(entity =>

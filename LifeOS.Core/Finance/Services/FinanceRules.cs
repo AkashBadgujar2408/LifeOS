@@ -223,3 +223,19 @@ public static class WealthRules
         : closed is { } c2 && c2 > today ? "It can't be closed in the future."
         : LoanSchedule.CheckEmi(principal, rate, emi);
 }
+
+/// <summary>The exchange-rate master's rules (pure, unit-tested).</summary>
+public static class RateRules
+{
+    /// <summary>Most base-currency units one unit of another currency can be worth here (matches DECIMAL(19,8)).</summary>
+    public const decimal MaxRate = 99_999_999_999m;
+
+    public static string? Check(string? currency, string? baseCurrency, decimal rate, DateOnly effectiveOn, DateOnly today) =>
+        baseCurrency is null ? "Choose your base currency first — rates convert into it."
+        : currency is null ? "Choose a currency."
+        : currency == baseCurrency ? $"{currency} is your base currency — it needs no rate."
+        : rate <= 0 || rate > MaxRate ? $"Give how many {baseCurrency} one {currency} is worth (more than zero)."
+        : effectiveOn == default ? "Say from which day the rate applies."
+        : effectiveOn > today ? "A rate can't start in the future — add it on the day."
+        : null;
+}

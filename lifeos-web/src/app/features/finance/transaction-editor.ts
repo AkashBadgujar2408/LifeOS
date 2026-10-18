@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
@@ -10,6 +18,7 @@ import { apiErrorMessage } from '../../core/services/api-error';
 import { CareerService } from '../../core/services/career.service';
 import {
   Account,
+  ExchangeRate,
   FinanceService,
   TRANSACTION_KINDS,
   Transaction,
@@ -21,7 +30,12 @@ import { Attachments } from '../../shared/components/attachments/attachments';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
-import { TRANSACTION_KIND_ICONS, TRANSACTION_KIND_LABELS, transactionTitle } from './finance-view';
+import {
+  TRANSACTION_KIND_ICONS,
+  TRANSACTION_KIND_LABELS,
+  rateOn,
+  transactionTitle,
+} from './finance-view';
 
 export type TransactionEditorResult =
   { kind: 'saved'; transaction: Transaction } | { kind: 'deleted' };
@@ -381,6 +395,7 @@ export class TransactionEditor {
   protected readonly tagIds = signal<number[]>([]);
   protected readonly accountsLoaded = signal(false);
   protected readonly accounts = signal<Account[]>([]);
+  private readonly rates = signal<ExchangeRate[]>([]);
   protected readonly baseCurrency = computed(
     () => this.settingsService.settings()?.baseCurrency ?? null,
   );
@@ -477,6 +492,25 @@ export class TransactionEditor {
     this.form.controls.kind.valueChanges
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.preselectOnlyAccount());
+    // The rate box starts with the exchange-rate master's rate for the day (still editable — the transaction keeps
+    // whatever is saved). Only an empty box is filled, so a typed rate is never overwritten.
+    this.financeService
+      .rates()
+      .subscribe({ next: (rates) => this.rates.set(rates), error: () => undefined });
+    effect(() => {
+      const currency = this.currency();
+      const day = this.value().occurredOn;
+      if (!this.needsRate() || !currency || !day) {
+        return;
+      }
+      const rate = rateOn(this.rates(), currency, day);
+      untracked(() => {
+        const control = this.form.controls.exchangeRate;
+        if (rate !== null && control.value === null && !control.dirty) {
+          control.setValue(rate);
+        }
+      });
+    });
   }
 
   configure(options: TransactionEditorOptions): void {

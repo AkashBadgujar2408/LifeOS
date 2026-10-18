@@ -22,6 +22,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { RecoveryCodes } from '../../shared/components/recovery-codes/recovery-codes';
 import { VaultActivity } from './vault-activity';
+import { ExchangeRates } from '../finance/exchange-rates';
 
 function passwordsMatch(group: AbstractControl): ValidationErrors | null {
   return group.get('newPassword')?.value === group.get('confirmPassword')?.value
@@ -45,12 +46,15 @@ function allTimeZones(): string[] {
 @Component({
   selector: 'app-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, LoadError, RecoveryCodes, VaultActivity],
+  imports: [ReactiveFormsModule, LoadError, RecoveryCodes, VaultActivity, ExchangeRates],
   templateUrl: './settings.html',
 })
 export class Settings {
   private readonly fb = inject(FormBuilder);
   private readonly settingsService = inject(SettingsService);
+  protected readonly financeOn = computed(
+    () => !this.settingsService.hiddenModules().has('Finance'),
+  );
   private readonly authService = inject(AuthService);
   private readonly toast = inject(ToastService);
 

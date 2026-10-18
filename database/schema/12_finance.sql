@@ -391,3 +391,34 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.TaxItems') AND name = 'IX_TaxItems_User_Due')
     CREATE INDEX IX_TaxItems_User_Due ON finance.TaxItems(UserId, DueOn) WHERE IsDeleted = 0;
 GO
+
+-- Session 58a (asked for 2026-10-18): the exchange-rate master. "1 Currency = Rate BaseCurrency from EffectiveOn",
+-- set by hand in Settings next to the base currency (no live rates). Kept as history, so a month end long ago uses
+-- the rate of the time. BaseCurrency records which base it was set against: rows for an old base are ignored after
+-- the base changes. Used to show other-currency balances, investments and loans in the base currency (account
+-- totals, net worth, savings goals) and to prefill a transaction's rate; a transaction keeps the rate it was
+-- entered with, so the ledger's figures never shift when a rate here changes.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.ExchangeRates'))
+BEGIN
+    CREATE TABLE finance.ExchangeRates
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ExchangeRates PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_ExchangeRates_Users REFERENCES shared.Users(Id),
+        Currency        CHAR(3)           NOT NULL CONSTRAINT CK_ExchangeRates_Currency
+                            CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        BaseCurrency    CHAR(3)           NOT NULL CONSTRAINT CK_ExchangeRates_BaseCurrency
+                            CHECK (BaseCurrency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        Rate            DECIMAL(19, 8)    NOT NULL CONSTRAINT CK_ExchangeRates_Rate CHECK (Rate > 0),
+        EffectiveOn     DATE              NOT NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_ExchangeRates_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_ExchangeRates_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_ExchangeRates_NotBase CHECK (Currency <> BaseCurrency)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.ExchangeRates') AND name = 'UX_ExchangeRates_User_Pair_Day')
+    CREATE UNIQUE INDEX UX_ExchangeRates_User_Pair_Day ON finance.ExchangeRates(UserId, Currency, BaseCurrency, EffectiveOn) WHERE IsDeleted = 0;
+GO

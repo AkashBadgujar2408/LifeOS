@@ -11,6 +11,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { Account, FinanceService } from '../../core/services/finance.service';
+import { SettingsService } from '../../core/services/settings.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { openAccountEditor } from './account-editor';
@@ -18,6 +19,7 @@ import { BaseCurrencyPrompt } from './base-currency-prompt';
 import {
   ACCOUNT_KIND_ICONS,
   ACCOUNT_KIND_LABELS,
+  baseTotal,
   formatMoney,
   totalsByCurrency,
 } from './finance-view';
@@ -59,6 +61,20 @@ import { openTransactionEditor } from './transaction-editor';
         } @else {
           @if (totals().length > 0) {
             <div class="d-flex flex-wrap gap-4 mb-3" aria-label="Held in open accounts">
+              @if (inBase(); as b) {
+                <div>
+                  <div class="small text-body-secondary">
+                    All open accounts, in {{ b.currency }}
+                  </div>
+                  <div class="h4 mb-0">{{ money(b.total, b.currency) }}</div>
+                  @if (b.missing.length > 0) {
+                    <div class="small text-body-secondary">
+                      Not counted: {{ b.missing.join(', ') }} —
+                      <a routerLink="/settings" fragment="rates-heading">set a rate</a>
+                    </div>
+                  }
+                </div>
+              }
               @for (t of totals(); track t.currency) {
                 <div>
                   <div class="small text-body-secondary">In {{ t.currency }} accounts</div>
@@ -107,6 +123,11 @@ import { openTransactionEditor } from './transaction-editor';
                       <div class="fw-semibold" [class.text-danger]="a.balance < 0">
                         {{ money(a.balance, a.currency) }}
                       </div>
+                      @if (
+                        a.balanceInBase !== null && baseCurrency() && a.currency !== baseCurrency()
+                      ) {
+                        <div class="small">≈ {{ money(a.balanceInBase, baseCurrency()!) }}</div>
+                      }
                       <div class="small text-body-secondary">
                         opened with {{ money(a.openingBalance, a.currency) }}
                       </div>
@@ -128,12 +149,22 @@ export class FinanceAccounts {
   private readonly modal = inject(NgbModal);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly settingsService = inject(SettingsService);
 
   protected readonly kindIcons = ACCOUNT_KIND_ICONS;
   protected readonly kindLabels = ACCOUNT_KIND_LABELS;
   protected readonly money = formatMoney;
   protected readonly accounts = signal<Account[] | null>(null);
   protected readonly loadFailed = signal(false);
+  protected readonly baseCurrency = computed(
+    () => this.settingsService.settings()?.baseCurrency ?? null,
+  );
+  protected readonly inBase = computed(() =>
+    baseTotal(
+      (this.accounts() ?? []).filter((a) => !a.isArchived),
+      this.baseCurrency(),
+    ),
+  );
   protected readonly totals = computed(() =>
     totalsByCurrency((this.accounts() ?? []).filter((a) => !a.isArchived)),
   );
