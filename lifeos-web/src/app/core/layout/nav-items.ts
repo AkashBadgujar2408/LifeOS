@@ -111,6 +111,18 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Money',
+    items: [
+      { label: 'Accounts', route: '/finance', icon: 'bi-bank', exact: true, module: 'Finance' },
+      {
+        label: 'Transactions',
+        route: '/finance/transactions',
+        icon: 'bi-receipt',
+        module: 'Finance',
+      },
+    ],
+  },
+  {
     label: 'Wellbeing',
     items: [{ label: 'Journal', route: '/journal', icon: 'bi-journal-text', module: 'Journal' }],
   },

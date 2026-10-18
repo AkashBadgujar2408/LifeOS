@@ -187,8 +187,8 @@ export async function openSideIncomeEditor(
           ></textarea>
         </div>
         <p class="small text-body-secondary mb-0">
-          What it earns goes in Finance, once that's set up — here is what it is and whether it's
-          going.
+          What it earns goes in Finance as income marked for it — here is what it is and whether
+          it's going.
         </p>
       </div>
       <div class="modal-footer">

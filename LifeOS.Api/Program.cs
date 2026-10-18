@@ -14,6 +14,8 @@ using LifeOS.Core.Journal.ServiceContracts;
 using LifeOS.Core.Journal.Services;
 using LifeOS.Core.Career.ServiceContracts;
 using LifeOS.Core.Career.Services;
+using LifeOS.Core.Finance.ServiceContracts;
+using LifeOS.Core.Finance.Services;
 using LifeOS.Core.Learning.ServiceContracts;
 using LifeOS.Core.Learning.Services;
 using LifeOS.Core.Models;
@@ -108,6 +110,8 @@ try
     builder.Services.AddScoped<IResumeVersionsService, ResumeVersionsService>();
     builder.Services.AddScoped<IPerformanceReviewsService, PerformanceReviewsService>();
     builder.Services.AddScoped<ISideIncomeSourcesService, SideIncomeSourcesService>();
+    builder.Services.AddScoped<IAccountsService, AccountsService>();
+    builder.Services.AddScoped<ITransactionsService, TransactionsService>();
     builder.Services.AddRecoveryRateLimit();
 
     // Files (document files, attachments) live on disk outside any web root, one folder per user (IFileStore).
@@ -148,6 +152,8 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, JobApplicationLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, InterviewQuestionLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, ResumeVersionLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, AccountLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, TransactionLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

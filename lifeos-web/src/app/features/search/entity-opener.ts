@@ -19,6 +19,8 @@ import { ContactsService } from '../../core/services/contacts.service';
 import { openAchievementEditor } from '../career/achievement-editor';
 import { openQuestionEditor } from '../career/question-editor';
 import { openContactEditor } from '../contacts/contact-editor';
+import { openTransactionEditor } from '../finance/transaction-editor';
+import { FinanceService } from '../../core/services/finance.service';
 import { apiErrorMessage } from '../../core/services/api-error';
 
 /**
@@ -40,6 +42,7 @@ export class EntityOpener {
   private readonly learningService = inject(LearningService);
   private readonly careerService = inject(CareerService);
   private readonly contactsService = inject(ContactsService);
+  private readonly financeService = inject(FinanceService);
 
   open(entityType: string, entityId: number): void {
     switch (entityType) {
@@ -62,6 +65,25 @@ export class EntityOpener {
         break;
       case 'ResumeVersion':
         void this.router.navigate(['/career/resumes'], { fragment: `resume-${entityId}` });
+        break;
+      case 'FinanceAccount':
+        void this.router.navigate(['/finance/transactions'], {
+          queryParams: { accountId: entityId },
+        });
+        break;
+      case 'Transaction':
+        this.financeService.transaction(entityId).subscribe({
+          next: async (transaction) => {
+            const result = await openTransactionEditor(this.modal, { transaction });
+            if (result) {
+              this.remindersService.notifyChanged();
+              this.toast.success(
+                result.kind === 'saved' ? 'Transaction saved.' : 'Transaction deleted.',
+              );
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the transaction.')),
+        });
         break;
       case 'JobApplication':
         void this.router.navigate(['/career/applications', entityId]);

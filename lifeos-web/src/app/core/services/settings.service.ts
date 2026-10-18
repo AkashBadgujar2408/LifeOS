@@ -16,7 +16,8 @@ export type ModuleKey =
   | 'Story'
   | 'Documents'
   | 'Learning'
-  | 'Career';
+  | 'Career'
+  | 'Finance';
 
 export interface ModuleInfo {
   key: ModuleKey;
@@ -42,6 +43,11 @@ export const MODULES: ModuleInfo[] = [
     key: 'Career',
     label: 'Career',
     hides: 'the career timeline, salary history and achievements',
+  },
+  {
+    key: 'Finance',
+    label: 'Finance',
+    hides: 'Accounts and Transactions, and "Log an expense" in Quick Add',
   },
   {
     key: 'Documents',

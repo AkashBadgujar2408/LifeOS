@@ -215,6 +215,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/career/network').then((m) => m.CareerNetwork),
       },
       {
+        path: 'finance',
+        title: 'Accounts | LifeOS',
+        loadComponent: () => import('./features/finance/accounts').then((m) => m.FinanceAccounts),
+      },
+      {
+        path: 'finance/transactions',
+        title: 'Transactions | LifeOS',
+        loadComponent: () => import('./features/finance/ledger').then((m) => m.FinanceLedger),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

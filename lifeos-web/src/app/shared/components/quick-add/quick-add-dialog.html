@@ -24,6 +24,13 @@
         </label>
       }
     </div>
+    @if (financeOn()) {
+      <p class="small mb-3 mt-n2">
+        <button type="button" class="btn btn-link btn-sm p-0" (click)="logExpense()">
+          <i class="bi bi-receipt"></i> Spent money? Log an expense
+        </button>
+      </p>
+    }
 
     <div class="mb-3">
       <label class="form-label" for="quick-add-title">Title</label>

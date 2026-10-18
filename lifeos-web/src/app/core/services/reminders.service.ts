@@ -29,7 +29,9 @@ export type ReminderTargetType =
   | 'CareerAchievement'
   | 'JobApplication'
   | 'InterviewQuestion'
-  | 'ResumeVersion';
+  | 'ResumeVersion'
+  | 'FinanceAccount'
+  | 'Transaction';
 
 /** How each target type reads in the UI ("About Journal entry: 15/Oct/2026"), not the stored type string. */
 export const REMINDER_TARGET_LABELS: Record<ReminderTargetType, string> = {
@@ -53,6 +55,8 @@ export const REMINDER_TARGET_LABELS: Record<ReminderTargetType, string> = {
   JobApplication: 'Job application',
   InterviewQuestion: 'Interview question',
   ResumeVersion: 'Resume version',
+  FinanceAccount: 'Account',
+  Transaction: 'Transaction',
 };
 
 export interface Reminder {

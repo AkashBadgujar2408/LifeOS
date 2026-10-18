@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { NgbActiveModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { SettingsService } from '../../../core/services/settings.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { INBOX_KINDS, InboxKind, InboxService } from '../../../core/services/inbox.service';
 import { apiErrorMessage } from '../../../core/services/api-error';
@@ -24,6 +25,8 @@ export class QuickAddDialog {
   private readonly inboxService = inject(InboxService);
   private readonly toast = inject(ToastService);
   protected readonly activeModal = inject(NgbActiveModal);
+  private readonly modal = inject(NgbModal);
+  private readonly settingsService = inject(SettingsService);
 
   protected readonly kinds = INBOX_KINDS;
   protected readonly kindMeta = KIND_META;
@@ -34,6 +37,23 @@ export class QuickAddDialog {
     title: ['', [Validators.required, Validators.maxLength(300)]],
     notes: ['', Validators.maxLength(4000)],
   });
+
+  protected readonly financeOn = computed(
+    () => !this.settingsService.hiddenModules().has('Finance'),
+  );
+
+  /**
+   * An expense isn't an inbox note — it needs an amount and an account — so this swaps Quick Add for the
+   * transaction editor (loaded only when asked for, to keep it out of the shell's bundle).
+   */
+  protected async logExpense(): Promise<void> {
+    this.activeModal.dismiss();
+    const { openTransactionEditor } = await import('../../../features/finance/transaction-editor');
+    const result = await openTransactionEditor(this.modal, { kind: 'Expense' });
+    if (result?.kind === 'saved') {
+      this.toast.success('Expense saved.');
+    }
+  }
 
   /** Called by QuickAddService when opened from a context that implies the kind (e.g. the Tasks page). */
   presetKind(kind: InboxKind): void {

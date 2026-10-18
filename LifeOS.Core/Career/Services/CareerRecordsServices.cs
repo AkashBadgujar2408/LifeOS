@@ -339,9 +339,15 @@ public class SideIncomeSourcesService(AppDbContext db) : ISideIncomeSourcesServi
             return OperationResult<bool>.Fail(NotFound);
         }
 
+        var now = DateTime.UtcNow;
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        // What it earned stays in Finance, just no longer filed under it.
+        await db.Transactions.Where(t => t.SideIncomeSourceId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.SideIncomeSourceId, (int?)null).SetProperty(x => x.UpdatedAt, now));
         source.IsDeleted = true;
-        source.DeletedAt = DateTime.UtcNow;
+        source.DeletedAt = now;
         await db.SaveChangesAsync();
+        await transaction.CommitAsync();
         return OperationResult<bool>.Ok(true);
     }
 

@@ -53,6 +53,8 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   JobApplication: 'bi-kanban',
   InterviewQuestion: 'bi-chat-square-quote',
   ResumeVersion: 'bi-file-earmark-person',
+  FinanceAccount: 'bi-bank',
+  Transaction: 'bi-receipt',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -89,4 +91,6 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   JobApplication: 'Job applications',
   InterviewQuestion: 'Interview questions',
   ResumeVersion: 'Resume versions',
+  FinanceAccount: 'Accounts',
+  Transaction: 'Transactions',
 };

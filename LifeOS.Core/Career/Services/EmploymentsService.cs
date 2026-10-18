@@ -164,6 +164,9 @@ public class EmploymentsService(AppDbContext db, IEntityLinksService entityLinks
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.EmploymentId, (int?)null).SetProperty(x => x.UpdatedAt, now));
         await db.PerformanceReviews.Where(r => r.EmploymentId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.EmploymentId, (int?)null).SetProperty(x => x.UpdatedAt, now));
+        // Salary credits keep their money, just not which role paid them.
+        await db.Transactions.Where(t => t.EmploymentId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.EmploymentId, (int?)null).SetProperty(x => x.UpdatedAt, now));
         role.IsDeleted = true;
         role.DeletedAt = now;
         await db.SaveChangesAsync();
