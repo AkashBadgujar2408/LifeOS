@@ -369,6 +369,11 @@
           </section>
         }
 
+        <!-- Medicines: counts only until the vault is unlocked -->
+        @if (!hidden().has('Health')) {
+          <app-doses-card />
+        }
+
         <!-- Documents expiring -->
         @if (day.expiringDocuments.length > 0) {
           <section class="card" aria-labelledby="documents-heading">

@@ -994,3 +994,13 @@
 - Test data: `health62` (profile with encrypted notes), `health62b` (its import).
 
 - Next up: **Session 63 — Health 2** (profile, history, visits, medications).
+
+## Last session: 2026-10-19 — Session 63 — Health 2: profile, history, visits, medicines
+- Shipped (backend): `MedicalConditionsService`, `DoctorVisitsService` (calendar event + follow-up reminder), `MedicationsService` (schedules, doses, as-needed, adherence, count summary), pure `MedicationRules` + visit/condition checks in `HealthRules`, lock-aware `DoctorVisit`/`Medication`/`MedicalCondition` providers; event and contact deletes release visits; `HealthRecordsControllers.cs` (+ ungated `DoseSummary`).
+- Shipped (frontend): `HealthService` (one shared unlock prompt, retry on 423, `HealthLockedError`), `/health`, `/health/history`, `/health/visits`, `/health/medications`, four editors, `<app-todays-doses>`, My Day `<app-doses-card>`, nav, search/reminder labels, `EntityOpener`; `health-view.ts` (+ spec).
+- Verified: see plan row 63. 383 backend + 223 frontend tests.
+- Decisions (mine — say if you want them changed): outside Health nothing medical shows — calendar "Doctor's appointment — Dr X", follow-up reminder "Book your follow-up visit (due …)", locked search finds no health items and links/reminders show only "Doctor visit"/"Medicine"; My Day shows dose counts locked; the follow-up reminder comes a week before at 09:00; reports go in as linked vault Documents; a dose can be marked only on a day it was due; skipped doses count against adherence; a medicine can't switch between scheduled and as-needed once doses exist.
+- Known limitation: dragging a visit's appointment to another day on the calendar moves the time but not the visit's own day (the visit page shows the event's time) — fix with Session 75's review if it matters.
+- Test data: `health63` (doubled rows from two curl runs: two Penicillin allergies, two Vitamin D, two Ibuprofen; Metformin, Amlodipine; the Dr Mehta visit).
+
+- Next up: **Session 64 — Health 3** (fitness, sleep, body, nutrition).

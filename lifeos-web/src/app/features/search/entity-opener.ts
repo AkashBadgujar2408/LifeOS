@@ -23,6 +23,11 @@ import { openTransactionEditor } from '../finance/transaction-editor';
 import { openPolicyEditor } from '../finance/policy-editor';
 import { openTaxItemEditor } from '../finance/tax-item-editor';
 import { FinanceService } from '../../core/services/finance.service';
+import { HealthLockedError, HealthService } from '../../core/services/health.service';
+import { todayIso } from '../../core/dates/today';
+import { openVisitEditor } from '../health/visit-editor';
+import { openMedicationEditor } from '../health/medication-editor';
+import { openConditionEditor } from '../health/condition-editor';
 import { apiErrorMessage } from '../../core/services/api-error';
 
 /**
@@ -45,6 +50,7 @@ export class EntityOpener {
   private readonly careerService = inject(CareerService);
   private readonly contactsService = inject(ContactsService);
   private readonly financeService = inject(FinanceService);
+  private readonly healthService = inject(HealthService);
 
   open(entityType: string, entityId: number): void {
     switch (entityType) {
@@ -83,6 +89,39 @@ export class EntityOpener {
             }
           },
           error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the policy.')),
+        });
+        break;
+      case 'DoctorVisit':
+        this.healthService.visit(entityId).subscribe({
+          next: async (visit) => {
+            const result = await openVisitEditor(this.modal, visit);
+            if (result) {
+              this.toast.success(result.kind === 'saved' ? 'Visit saved.' : 'Visit deleted.');
+            }
+          },
+          error: (err) => this.healthOpenFailed(err, 'Could not open the visit.'),
+        });
+        break;
+      case 'Medication':
+        this.healthService.medication(entityId, todayIso()).subscribe({
+          next: async (medication) => {
+            const result = await openMedicationEditor(this.modal, medication);
+            if (result) {
+              this.toast.success(result.kind === 'saved' ? 'Medicine saved.' : 'Medicine deleted.');
+            }
+          },
+          error: (err) => this.healthOpenFailed(err, 'Could not open the medicine.'),
+        });
+        break;
+      case 'MedicalCondition':
+        this.healthService.condition(entityId).subscribe({
+          next: async (condition) => {
+            const result = await openConditionEditor(this.modal, condition);
+            if (result) {
+              this.toast.success(result.kind === 'saved' ? 'Saved.' : 'Deleted.');
+            }
+          },
+          error: (err) => this.healthOpenFailed(err, 'Could not open it.'),
         });
         break;
       case 'TaxItem':
@@ -250,6 +289,13 @@ export class EntityOpener {
           error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the event.')),
         });
         break;
+    }
+  }
+
+  /** Dismissing the unlock prompt is a choice, not an error. */
+  private healthOpenFailed(err: unknown, message: string): void {
+    if (!(err instanceof HealthLockedError)) {
+      this.toast.error(apiErrorMessage(err, message));
     }
   }
 }

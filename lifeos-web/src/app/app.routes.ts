@@ -277,6 +277,27 @@ export const routes: Routes = [
           import('./features/finance/statement-import').then((m) => m.StatementImport),
       },
       {
+        path: 'health',
+        title: 'Health | LifeOS',
+        loadComponent: () => import('./features/health/health').then((m) => m.Health),
+      },
+      {
+        path: 'health/history',
+        title: 'Medical history | LifeOS',
+        loadComponent: () => import('./features/health/history').then((m) => m.HealthHistory),
+      },
+      {
+        path: 'health/visits',
+        title: 'Doctor visits | LifeOS',
+        loadComponent: () => import('./features/health/visits').then((m) => m.HealthVisits),
+      },
+      {
+        path: 'health/medications',
+        title: 'Medicines | LifeOS',
+        loadComponent: () =>
+          import('./features/health/medications').then((m) => m.HealthMedications),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

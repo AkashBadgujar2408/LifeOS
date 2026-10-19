@@ -123,6 +123,9 @@ try
     builder.Services.AddScoped<IInsurancePoliciesService, InsurancePoliciesService>();
     builder.Services.AddScoped<ITaxItemsService, TaxItemsService>();
     builder.Services.AddScoped<IHealthProfileService, HealthProfileService>();
+    builder.Services.AddScoped<IMedicalConditionsService, MedicalConditionsService>();
+    builder.Services.AddScoped<IDoctorVisitsService, DoctorVisitsService>();
+    builder.Services.AddScoped<IMedicationsService, MedicationsService>();
     builder.Services.AddScoped<IStatementImportService, StatementImportService>();
     builder.Services.AddScoped<IFinanceReportsService, FinanceReportsService>();
     builder.Services.AddScoped<IAccountDataService, AccountDataService>();
@@ -172,6 +175,9 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, LoanLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, InsurancePolicyLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, TaxItemLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, DoctorVisitLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, MedicationLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, MedicalConditionLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

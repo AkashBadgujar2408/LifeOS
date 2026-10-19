@@ -130,6 +130,8 @@ public class ContactsService(AppDbContext db, IEntityLinksService entityLinksSer
             .ExecuteUpdateAsync(s => s.SetProperty(l => l.ContactId, (int?)null).SetProperty(l => l.UpdatedAt, now));
         await db.InsurancePolicies.Where(p => p.ContactId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.ContactId, (int?)null).SetProperty(p => p.UpdatedAt, now));
+        await db.DoctorVisits.Where(v => v.ContactId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(v => v.ContactId, (int?)null).SetProperty(v => v.UpdatedAt, now));
         contact.IsDeleted = true;
         contact.DeletedAt = now;
         await db.SaveChangesAsync();

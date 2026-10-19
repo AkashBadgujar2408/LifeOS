@@ -111,6 +111,9 @@ public class EventsService(AppDbContext db, IEntityLinksService entityLinksServi
         // An interview round scheduled by this event stays, unscheduled.
         await db.Interviews.Where(i => i.EventId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(i => i.EventId, (int?)null).SetProperty(i => i.UpdatedAt, now));
+        // So does a doctor visit, without its appointment time.
+        await db.DoctorVisits.Where(v => v.EventId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(v => v.EventId, (int?)null).SetProperty(v => v.UpdatedAt, now));
         await db.SaveChangesAsync();
         await entityLinksService.RemoveAllForEntityAsync(EventLinkableProvider.Type, id);
         // A reminder about a deleted event would surface something that no longer exists.

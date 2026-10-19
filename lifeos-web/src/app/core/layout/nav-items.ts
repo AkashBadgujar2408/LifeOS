@@ -152,7 +152,18 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: 'Wellbeing',
-    items: [{ label: 'Journal', route: '/journal', icon: 'bi-journal-text', module: 'Journal' }],
+    items: [
+      { label: 'Journal', route: '/journal', icon: 'bi-journal-text', module: 'Journal' },
+      { label: 'Health', route: '/health', icon: 'bi-heart-pulse', exact: true, module: 'Health' },
+      {
+        label: 'Medical history',
+        route: '/health/history',
+        icon: 'bi-clipboard2-pulse',
+        module: 'Health',
+      },
+      { label: 'Doctor visits', route: '/health/visits', icon: 'bi-hospital', module: 'Health' },
+      { label: 'Medicines', route: '/health/medications', icon: 'bi-capsule', module: 'Health' },
+    ],
   },
   {
     label: 'Life administration',
