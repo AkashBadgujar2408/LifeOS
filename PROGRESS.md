@@ -975,3 +975,14 @@
 - Stopped here at your request. Still open in Session 61 (part 2): phone-width pass on every new page, performance at 10k transactions, docs (README), backlog review.
 
 - Next up: **Session 61 part 2** (plan, Section 7).
+
+## Last session: 2026-10-19 — Session 61 (part 2) — Phase 2 polish
+- Checked first (left open by part 1): the rate-prefill fix in Chrome — USD prefilled 84, switching to EUR (no rate) leaves the box empty and the page stays responsive, GBP fills 110, a typed 112.5 is kept. Lint and Prettier clean; fresh DB scaffolds identically.
+- Phone width: all 47 list/page routes loaded in a 375px same-origin frame — none wider than the screen (the check was proven on a planted 600px element). Mostly empty states (`multi61` has finance data only).
+- Performance: `polish61` (new) with 10,000 transactions over three years, bulk-inserted in SQL with tags (`scratchpad/bulk10k.sql`, local only). All-time ledger: 0.3 s from the API (4.5 MB), counted on screen in 0.4 s, ag-Grid keeps ~20 rows in the DOM, scrolling ≤ 72 ms per big jump, quick-filter search 30 ms; accounts, net worth, budgets, 60-month cash flow, KPIs, My Day, global search all < 0.1 s warm. Nothing needed changing.
+- Docs: README brought up to Phase 2 (modules, status, layout, schema range, per-user export as a backup). Backlog: shipped rows ticked in the plan; still open only birthdays (73), productivity review / planned vs actual (91), notifications when closed (94).
+- Found: `KpiFiguresTests` still asserted `net-worth` was not a known tile (part 1 made it one) — the "356 green" in part 1 was one test short of true. Fixed.
+- Verified: 356 backend + 218 frontend tests; `ng build` clean; NuGet audit (unsandboxed) no vulnerable packages.
+- Test data: `polish61` (HDFC with 10,000 transactions, Wise USD/GBP/EUR); credentials only in that session's scratchpad.
+
+- Next up: **Session 62 — Health 1** (plan, Section 7).

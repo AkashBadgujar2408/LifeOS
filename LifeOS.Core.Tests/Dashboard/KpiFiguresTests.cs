@@ -76,6 +76,7 @@ public class KpiFiguresTests
     {
         Assert.Equal(KpiFigures.All.Count, KpiFigures.All.Select(k => k.Key).Distinct().Count());
         Assert.True(KpiFigures.IsKnown(KpiKeys.TasksDoneWeek));
-        Assert.False(KpiFigures.IsKnown("net-worth"));
+        Assert.True(KpiFigures.IsKnown(KpiKeys.NetWorth));
+        Assert.False(KpiFigures.IsKnown("no-such-figure"));
     }
 }

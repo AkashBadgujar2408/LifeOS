@@ -1,7 +1,10 @@
 # LifeOS
 
-A personal "life operating system": goals, tasks and projects, calendar and reminders, habits, a journal, and a daily
-**My Day** dashboard that ties them together. Everything links to everything else (a task to the goal it serves, a
+A personal "life operating system": goals, tasks and projects, calendar and reminders, habits, a journal, documents
+with an encrypted vault, learning (skills, courses, books, roadmaps, study time), career (roles, pay, applications,
+interviews, network), finance (multi-currency accounts, ledger, budgets, investments, loans, insurance, taxes, net
+worth), a **Story Mode** that reads your life as a biography, and a daily **My Day** dashboard that ties them
+together. Everything links to everything else (a task to the goal it serves, a
 habit to its goal, a reminder to any of them). It's built to *improve* a life, not just log it, so it also gives
 plain, rule-based nudges ("your reading streak broke on Wednesday", "this goal hasn't moved in 20 days").
 
@@ -15,8 +18,8 @@ It runs on your own machine. It's multi-user at the data layer (registration + l
 
 ## Status
 
-Month 1 is complete: the seven core modules plus a UX and testing pass (Sessions 1–27). Next up is Phase 2,
-starting with **Story Mode** (your life as a biography, with light game elements).
+Month 1 (the seven core modules, Sessions 1–27) and Phase 2 (Story Mode, Documents, Learning, Career, Finance, data
+export/import, Sessions 28–61) are complete. Next is Phase 3, starting with **Health** (Session 62).
 
 **The main document is [`LifeOS_Development_Plan.md`](LifeOS_Development_Plan.md)**: what LifeOS is, every decision
 and deviation from the original blueprint, the session-by-session roadmap with what's done, and the backlog for
@@ -124,16 +127,16 @@ LifeOS.Api/            Web API: Areas/<Module>/Controllers (thin), Program.cs, I
 LifeOS.Core/           Everything else on the server
   Models/              Scaffolded EF entities + AppDbContext (generated: never edit by hand)
   Shared/              Cross-cutting: auth, tags, links, inbox, life areas, soft-delete/user filters
-  Goals/ Tasks/ Calendar/ Habits/ Journal/ Dashboard/
+  Goals/ Tasks/ Calendar/ Habits/ Journal/ Dashboard/ Story/ Documents/ Learning/ Career/ Finance/
                        Each: DTOs/, ServiceContracts/, Services/, AutoMapper/
 LifeOS.Core.Tests/     xUnit tests for the pure logic
 database/
-  schema/              00_create_database.sql ... 07_dashboard.sql (one SQL schema per module)
-  procedures/          <schema>.<Name>.sql stored procedures (calendar feed, My Day, life balance)
+  schema/              00_create_database.sql ... 12_finance.sql (one SQL schema per module)
+  procedures/          <schema>.<Name>.sql stored procedures (calendar feed, My Day, KPIs, life story, balances, ...)
 lifeos-web/            Angular app
   src/app/core/        Services (one per API area), layout/shell, guards, interceptor, date helpers
   src/app/features/    One folder per module/page
-  src/app/shared/      Reusable components (tag picker, linked items, quick add, reminders, load error)
+  src/app/shared/      Reusable components (tag picker, linked items, quick add, reminders, attachments, load error)
 docs/ARCHITECTURE.md   How it fits together
 ```
 
@@ -156,7 +159,12 @@ There's no automatic backup. Your data lives in one LocalDB database, so back it
 sqlcmd -S "(localdb)\mssqllocaldb" -Q "BACKUP DATABASE LifeOS_UAT TO DISK = 'D:\My Projects\LifeOS\database\backups\LifeOS_UAT.bak' WITH INIT"
 ```
 
-Restore and details: `database/Backup-Command.txt`. `database/backups/` is git-ignored.
+Restore and details: `database/Backup-Command.txt`. `database/backups/` is git-ignored. Back up the files and keys
+folders (see *File storage* above) at the same time.
+
+Each user can also take their own copy: **Settings › Your data › Download my data** gives a zip (JSON + a CSV per table + the
+files, vault files decrypted — keep it somewhere safe), which can be imported into a new, empty account, on this
+machine or another one.
 
 ## Troubleshooting
 
