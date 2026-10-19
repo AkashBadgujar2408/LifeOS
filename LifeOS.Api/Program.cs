@@ -122,6 +122,7 @@ try
     builder.Services.AddScoped<ITaxItemsService, TaxItemsService>();
     builder.Services.AddScoped<IStatementImportService, StatementImportService>();
     builder.Services.AddScoped<IFinanceReportsService, FinanceReportsService>();
+    builder.Services.AddScoped<IAccountDataService, AccountDataService>();
     builder.Services.AddRecoveryRateLimit();
 
     // Files (document files, attachments) live on disk outside any web root, one folder per user (IFileStore).

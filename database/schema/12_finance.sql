@@ -450,3 +450,10 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'UX_Transactions_User_ImportHash')
     CREATE UNIQUE INDEX UX_Transactions_User_ImportHash ON finance.Transactions(UserId, ImportHash) WHERE ImportHash IS NOT NULL;
 GO
+
+-- Session 60 (export/import): what a statement line's ImportHash is computed from must survive an export → import
+-- into another account, where every id changes — so the account part of the hash is this stable key, not its id.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('finance.Accounts') AND name = 'ImportKey')
+    ALTER TABLE finance.Accounts ADD
+        ImportKey UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Accounts_ImportKey DEFAULT (NEWID());
+GO

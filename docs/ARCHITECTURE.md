@@ -133,6 +133,16 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   `tasks.TaskTags`). No per-module category enums.
 - **History**: goals log status changes and revisions to `goals.GoalHistory`. New audit trails follow the same
   small per-module table pattern.
+- **Your data: export / import / permanent deletion** (Session 60): `IAccountDataService` (`AccountDataService`,
+  `api/Shared/Account/{export,import,delete}`) reads the EF model — every entity with a `UserId` column is the user's
+  data, so later modules are covered without code. Export: one zip (`manifest.json`, `data/<schema>.<Table>.json`
+  exact values, `csv/<schema>/<Table>.csv`, `files/<stored name>` with vault files decrypted — so the vault must be
+  unlocked — and a README); soft-deleted rows included, recovery codes never. Import: only into an empty account, one
+  transaction, tables in FK order (pure `AccountData.InsertOrder`), new ids with every FK remapped, the task-repeat
+  self-reference and the polymorphic `EntityType`/`EntityId` pairs (links, reminders, attachments) patched after
+  everything is in, links re-canonicalised, files re-stored (vault ones re-encrypted for the new user). Permanent
+  deletion (password + typed username): self-references nulled, hard `DELETE` per table in reverse FK order, the user
+  row, then `IFileStore.DeleteAll` — the only hard delete in LifeOS. UI: Settings › Your data (`<app-your-data>`).
 
 ## Stored procedures (Dapper)
 
@@ -210,6 +220,8 @@ Swagger UI (`/swagger`, Development only) has the full request/response shapes.
 3. `LifeOS.Core/<Module>/{DTOs,ServiceContracts,Services,AutoMapper}`; register the service in `Program.cs`. If its
    items should be linkable or remindable, add an `ILinkableEntityProvider`; its delete removes links and reminders.
 4. Thin controllers in `LifeOS.Api/Areas/<Module>/Controllers/`.
+   Export, import and account deletion pick up the new tables by themselves (they have `UserId`); a linkable type
+   named differently from its model class needs an entry in `AccountData.ModelTypeFor`.
 5. `core/services/<module>.service.ts`, `features/<module>/`, a route replacing the `placeholder(...)` one, and a
    nav entry.
 6. Pure rules get xUnit or vitest tests; date logic gets `npm run test:tz`.

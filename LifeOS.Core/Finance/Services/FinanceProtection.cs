@@ -53,7 +53,7 @@ public static class ProtectionRules
 public sealed record StatementLine(DateOnly OccurredOn, decimal Amount, string Description);
 
 /// <summary>
-/// Importing bank statements (pure, unit-tested). Each line gets a fingerprint — SHA-256 of the account, day, signed
+/// Importing bank statements (pure, unit-tested). Each line gets a fingerprint — SHA-256 of the account's ImportKey (stable across export/import, unlike its id), day, signed
 /// amount, cleaned description and which repeat of that same line it is within the file — stored as
 /// Transactions.ImportHash, so importing the same statement (or one that overlaps it) twice adds nothing the second
 /// time. Two identical coffees on one day are repeats 0 and 1, so both are kept the first time.
@@ -67,7 +67,7 @@ public static partial class StatementImport
     public static string Clean(string? text) => Spaces().Replace(text?.Trim() ?? string.Empty, " ");
 
     /// <summary>The fingerprints of a statement's lines, in order.</summary>
-    public static List<string> Hashes(int accountId, IReadOnlyList<StatementLine> lines)
+    public static List<string> Hashes(Guid accountKey, IReadOnlyList<StatementLine> lines)
     {
         var seen = new Dictionary<string, int>(StringComparer.Ordinal);
         var hashes = new List<string>(lines.Count);
@@ -75,7 +75,7 @@ public static partial class StatementImport
         {
             var key = string.Join(
                 '|',
-                accountId.ToString(CultureInfo.InvariantCulture),
+                accountKey.ToString("N"),
                 line.OccurredOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                 line.Amount.ToString("0.0000", CultureInfo.InvariantCulture),
                 Clean(line.Description).ToUpperInvariant());

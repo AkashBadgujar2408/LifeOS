@@ -60,7 +60,8 @@ public class StatementImportService(AppDbContext db) : IStatementImportService
         }
 
         var lines = request.Lines.Select(l => new StatementLine(l.OccurredOn, l.Amount, StatementImport.Clean(l.Description))).ToList();
-        var hashes = StatementImport.Hashes(account.Id, lines);
+        var accountKey = await db.Accounts.Where(a => a.Id == account.Id).Select(a => a.ImportKey).FirstAsync();
+        var hashes = StatementImport.Hashes(accountKey, lines);
         // Deleted rows count too: an imported line you deleted doesn't come back. (The index is per user, so the
         // query filters are bypassed and the user is filtered by hand.)
         var known = (await db.Transactions.IgnoreQueryFilters()

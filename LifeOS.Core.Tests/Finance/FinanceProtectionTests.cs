@@ -5,6 +5,8 @@ namespace LifeOS.Core.Tests.Finance;
 public class FinanceProtectionTests
 {
     private static readonly DateOnly Today = new(2026, 10, 19);
+    private static readonly Guid KeyA = Guid.Parse("6f9619ff-8b86-d011-b42d-00c04fc964ff");
+    private static readonly Guid KeyB = Guid.Parse("0f8fad5b-d9cb-469f-a165-70867728950e");
 
     [Fact]
     public void Policies_follow_their_constraints()
@@ -61,21 +63,21 @@ public class FinanceProtectionTests
             new(day, 52_000m, "SALARY OCT"),
         ];
 
-        var first = StatementImport.Hashes(7, lines);
-        var again = StatementImport.Hashes(7, lines);
+        var first = StatementImport.Hashes(KeyA, lines);
+        var again = StatementImport.Hashes(KeyA, lines);
 
         Assert.Equal(first, again);
         // Two identical coffees (spacing and case don't matter) are repeats 0 and 1 — both kept, not merged.
         Assert.Equal(3, first.Distinct().Count());
         Assert.All(first, h => Assert.Matches("^[0-9a-f]{64}$", h));
         // An overlapping statement that has only the first coffee recognises it.
-        Assert.Equal(first[0], StatementImport.Hashes(7, [new(day, -150m, "Cafe Coffee Day")])[0]);
+        Assert.Equal(first[0], StatementImport.Hashes(KeyA, [new(day, -150m, "Cafe Coffee Day")])[0]);
         // Another account, day or amount is another line.
-        Assert.NotEqual(first[0], StatementImport.Hashes(8, [lines[0]])[0]);
-        Assert.NotEqual(first[0], StatementImport.Hashes(7, [new(day.AddDays(1), -150m, "CAFE COFFEE DAY")])[0]);
-        Assert.NotEqual(first[0], StatementImport.Hashes(7, [new(day, 150m, "CAFE COFFEE DAY")])[0]);
+        Assert.NotEqual(first[0], StatementImport.Hashes(KeyB, [lines[0]])[0]);
+        Assert.NotEqual(first[0], StatementImport.Hashes(KeyA, [new(day.AddDays(1), -150m, "CAFE COFFEE DAY")])[0]);
+        Assert.NotEqual(first[0], StatementImport.Hashes(KeyA, [new(day, 150m, "CAFE COFFEE DAY")])[0]);
         // 150 and 150.00 are the same amount.
-        Assert.Equal(first[0], StatementImport.Hashes(7, [new(day, -150.00m, "CAFE COFFEE DAY")])[0]);
+        Assert.Equal(first[0], StatementImport.Hashes(KeyA, [new(day, -150.00m, "CAFE COFFEE DAY")])[0]);
     }
 
     [Fact]

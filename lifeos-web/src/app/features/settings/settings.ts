@@ -20,6 +20,7 @@ import {
 } from '../../core/services/settings.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
+import { YourData } from './your-data';
 import { RecoveryCodes } from '../../shared/components/recovery-codes/recovery-codes';
 import { VaultActivity } from './vault-activity';
 import { ExchangeRates } from '../finance/exchange-rates';
@@ -46,7 +47,7 @@ function allTimeZones(): string[] {
 @Component({
   selector: 'app-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, LoadError, RecoveryCodes, VaultActivity, ExchangeRates],
+  imports: [ReactiveFormsModule, LoadError, RecoveryCodes, VaultActivity, ExchangeRates, YourData],
   templateUrl: './settings.html',
 })
 export class Settings {

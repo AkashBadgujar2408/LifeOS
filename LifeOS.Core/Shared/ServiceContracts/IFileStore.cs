@@ -37,4 +37,7 @@ public interface IFileStore
     /// was never saved — a soft-deleted row keeps its file so it can be restored.
     /// </summary>
     bool Delete(int userId, string storedName);
+
+    /// <summary>Removes the user's whole folder (permanent account deletion only). Returns how many files it held.</summary>
+    int DeleteAll(int userId);
 }

@@ -188,6 +188,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(3)
                 .IsUnicode(false)
                 .IsFixedLength();
+            entity.Property(e => e.ImportKey).HasDefaultValueSql("(newid())", "DF_Accounts_ImportKey");
             entity.Property(e => e.Institution).HasMaxLength(200);
             entity.Property(e => e.Kind).HasMaxLength(10);
             entity.Property(e => e.Name).HasMaxLength(200);

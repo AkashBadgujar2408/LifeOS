@@ -953,3 +953,15 @@
 - Test data: `fin5user1` (INR; HDFC Salary + HDFC Savings with imported October lines, "Family health cover" renewing 01/Dec/2026, tax items "Health insurance premium (80D)" and "File ITR" (done)), `fin5user2` (empty).
 
 - Next up: **Session 60 — Data export / import + permanent deletion** (plan, Section 7).
+
+## Last session: 2026-10-19 — Session 60 — Data export / import + permanent deletion
+- Shipped (backend): `AccountDataService` + `IAccountDataService` (`api/Shared/Account/{export,import,delete}`, `AccountController`), pure `AccountData` (`InsertOrder`, `ModelTypeFor`, `Csv`; 5 xUnit cases incl. "every linkable type names a model" and "the real schema has an insert order"), `IFileStore.DeleteAll`; `finance.Accounts.ImportKey` (upgrade block in `12_finance.sql`; UAT backed up first, `LifeOS_UAT_pre60.bak`) — statement-import fingerprints hash it instead of the account id.
+- Shipped (frontend): `AccountDataService` client, Settings "Your data" card (`features/settings/your-data.ts`: download, import with summary + "Open My Day", delete account with typed username + password + confirmation, then logout).
+- Verified: see the plan row 60 — full round trip with files (vault included, byte-identical), every test account except `Akash` exported → imported → identical per-table counts → copy deleted to zero rows; the UI flow in headless Chrome. `dotnet build` 0 warnings; `ng build`, lint, Prettier clean; **351 backend + 215 frontend** tests; fresh DB scaffolds identically.
+- Deviation (recorded in the plan): no per-module `IModuleExporter` — one exporter driven by the EF model, so later modules need nothing for export/import/deletion (only a `ModelTypeFor` entry if a linkable type's name differs from its model class).
+- Decisions (mine — say if you want them changed): exports include soft-deleted rows (so an import is a faithful copy); vault files leave decrypted and need the vault unlocked (each counts as an "opened" in the vault log); import only into an empty account and all or nothing; links/reminders whose target didn't come across are kept soft-deleted; the vault access log is exported but not imported; dismissed-insight keys come across as they are (they just stop matching); deletion needs the password and the username typed out, then logs out.
+- Found while testing: the statement-import fingerprint from Session 59 used the account id, which changes on import — re-importing an old statement after moving would have duplicated it; fixed with `ImportKey` the same session. `fin5user1`'s Session 59 imports were hashed the old way (test data only — re-importing that CSV there would add duplicates).
+- Test data: `exp60b`, `exp60c`, `exp60ui` (restored by import), `exp60user` (first run); the `cp60x*` copies are permanently deleted. To test as an existing test user without its password, the session minted dev JWTs from the Development key (local only).
+- Stopped here at your request — Session 61 is for later.
+
+- Next up: **Session 61 — Phase 2 polish** (plan, Section 7: multi-currency accounts, net-worth KPI tile, phone-width pass, 10k-transaction performance, docs, backlog).

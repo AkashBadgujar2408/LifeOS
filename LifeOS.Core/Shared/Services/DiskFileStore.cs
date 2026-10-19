@@ -208,6 +208,24 @@ public class DiskFileStore : IFileStore
         return true;
     }
 
+    public int DeleteAll(int userId)
+    {
+        if (userId <= 0)
+        {
+            return 0;
+        }
+
+        var folder = UserFolder(userId);
+        if (!Directory.Exists(folder))
+        {
+            return 0;
+        }
+
+        var count = Directory.GetFiles(folder).Length;
+        Directory.Delete(folder, recursive: true);
+        return count;
+    }
+
     private IDataProtector Protector(int userId) =>
         dataProtection.CreateProtector(ProtectionPurpose, userId.ToString(CultureInfo.InvariantCulture));
 
