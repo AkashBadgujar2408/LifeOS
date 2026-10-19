@@ -17,7 +17,7 @@
     role="group"
     aria-label="Show on the calendar"
   >
-    @for (source of sourceTypes; track source) {
+    @for (source of sourceTypes(); track source) {
       <button
         type="button"
         class="btn btn-sm lifeos-cal-filter"

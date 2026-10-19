@@ -364,6 +364,134 @@ export interface ExchangeRate {
   effectiveOn: string;
 }
 
+export const POLICY_KINDS = ['Health', 'Life', 'Vehicle', 'Home', 'Travel', 'Other'] as const;
+export type PolicyKind = (typeof POLICY_KINDS)[number];
+
+export const PREMIUM_FREQUENCIES = [
+  'Monthly',
+  'Quarterly',
+  'HalfYearly',
+  'Yearly',
+  'Single',
+] as const;
+export type PremiumFrequency = (typeof PREMIUM_FREQUENCIES)[number];
+
+/** An insurance policy; its renewal reminder is kept in step by the server. */
+export interface InsurancePolicy {
+  id: number;
+  name: string;
+  kind: PolicyKind;
+  insurer: string | null;
+  policyNumberLast4: string | null;
+  currency: string;
+  sumAssured: number | null;
+  premium: number | null;
+  premiumFrequency: PremiumFrequency | null;
+  startDate: string | null;
+  renewsOn: string | null;
+  endsOn: string | null;
+  contactId: number | null;
+  contactName: string | null;
+  notes: string | null;
+  renewalReminderDays: number | null;
+  /** The premium over a year (null: none, or paid once). */
+  annualPremium: number | null;
+}
+
+export interface InsurancePolicyPayload {
+  name: string;
+  kind: PolicyKind;
+  insurer: string | null;
+  /** Whatever was typed; only the last 4 letters/digits are kept. */
+  number: string | null;
+  currency: string;
+  sumAssured: number | null;
+  premium: number | null;
+  premiumFrequency: PremiumFrequency | null;
+  startDate: string | null;
+  renewsOn: string | null;
+  endsOn: string | null;
+  contactId: number | null;
+  notes: string | null;
+  renewalReminderDays: number | null;
+  timeZone: string;
+}
+
+export const TAX_ITEM_KINDS = ['Deadline', 'Deduction', 'Payment', 'Document', 'Other'] as const;
+export type TaxItemKind = (typeof TAX_ITEM_KINDS)[number];
+
+/** Something for the taxman, filed under the user's own tax-year label; its due day shows on the calendar. */
+export interface TaxItem {
+  id: number;
+  title: string;
+  kind: TaxItemKind;
+  taxYear: string | null;
+  dueOn: string | null;
+  amount: number | null;
+  currency: string | null;
+  isDeductible: boolean;
+  transactionId: number | null;
+  transactionOn: string | null;
+  transactionPayee: string | null;
+  transactionAmount: number | null;
+  transactionCurrency: string | null;
+  doneOn: string | null;
+  notes: string | null;
+}
+
+export interface TaxItemPayload {
+  title: string;
+  kind: TaxItemKind;
+  taxYear: string | null;
+  dueOn: string | null;
+  /** Null with a transaction = take the transaction's amount. */
+  amount: number | null;
+  currency: string | null;
+  isDeductible: boolean;
+  transactionId: number | null;
+  doneOn: string | null;
+  notes: string | null;
+  today: string;
+}
+
+/** One bank-statement line as read from the CSV: + money in, − money out. */
+export interface ImportLine {
+  occurredOn: string;
+  amount: number;
+  description: string | null;
+  reference: string | null;
+}
+
+export type ImportLineStatus = 'New' | 'Duplicate' | 'Error';
+
+export interface ImportResult {
+  /** Written (0 for a preview, or when any line has an error — all or nothing). */
+  added: number;
+  new: number;
+  duplicates: number;
+  errors: number;
+  lines: { index: number; status: ImportLineStatus; error: string | null }[];
+}
+
+export interface CashFlowMonth {
+  monthStart: string;
+  income: number;
+  spending: number;
+  net: number;
+  /** % of income kept, one decimal; null without income. */
+  savingsRate: number | null;
+  unconverted: number;
+}
+
+export interface CashFlowReport {
+  /** The base currency (null: none chosen — the report is empty). */
+  currency: string | null;
+  months: CashFlowMonth[];
+  total: CashFlowMonth;
+  tags: { tagId: number; tagName: string; spent: number; transactionCount: number }[];
+  untaggedSpending: number;
+}
+
 /** The Finance API: accounts with computed balances, the ledger, repeating transactions and budgets. */
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
@@ -649,5 +777,122 @@ export class FinanceService {
     return this.http
       .delete<ApiResponse<ExchangeRate[]>>(`${this.base}/ExchangeRates/${id}`)
       .pipe(map((response) => response.data ?? []));
+  }
+
+  // ---- Insurance ----
+
+  policies(): Observable<InsurancePolicy[]> {
+    return this.http
+      .get<ApiResponse<InsurancePolicy[]>>(`${this.base}/InsurancePolicies`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  policy(id: number): Observable<InsurancePolicy> {
+    return this.http
+      .get<ApiResponse<InsurancePolicy>>(`${this.base}/InsurancePolicies/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Saving moves (or removes) the renewal reminder, so reminder lists refresh. */
+  savePolicy(id: number | null, payload: InsurancePolicyPayload): Observable<InsurancePolicy> {
+    const request = id
+      ? this.http.put<ApiResponse<InsurancePolicy>>(`${this.base}/InsurancePolicies/${id}`, payload)
+      : this.http.post<ApiResponse<InsurancePolicy>>(`${this.base}/InsurancePolicies`, payload);
+    return request.pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map((response) => response.data!),
+    );
+  }
+
+  removePolicy(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/InsurancePolicies/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  // ---- Tax ----
+
+  taxItems(): Observable<TaxItem[]> {
+    return this.http
+      .get<ApiResponse<TaxItem[]>>(`${this.base}/TaxItems`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  taxItem(id: number): Observable<TaxItem> {
+    return this.http
+      .get<ApiResponse<TaxItem>>(`${this.base}/TaxItems/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  saveTaxItem(id: number | null, payload: TaxItemPayload): Observable<TaxItem> {
+    const request = id
+      ? this.http.put<ApiResponse<TaxItem>>(`${this.base}/TaxItems/${id}`, payload)
+      : this.http.post<ApiResponse<TaxItem>>(`${this.base}/TaxItems`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  /** Marks it handled today, or reopens it. */
+  setTaxItemDone(id: number, done: boolean): Observable<TaxItem> {
+    const today = todayIso();
+    return this.http
+      .put<ApiResponse<TaxItem>>(`${this.base}/TaxItems/${id}/done`, {
+        doneOn: done ? today : null,
+        today,
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  removeTaxItem(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/TaxItems/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  // ---- Statement import ----
+
+  /** Which lines are new, already imported or wrong; writes nothing. */
+  previewImport(
+    accountId: number,
+    lines: ImportLine[],
+    tagIds: number[],
+  ): Observable<ImportResult> {
+    return this.http
+      .post<ApiResponse<ImportResult>>(`${this.base}/Transactions/import/preview`, {
+        accountId,
+        lines,
+        tagIds,
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Writes the new lines — all or nothing; lines already imported are skipped. */
+  importStatement(
+    accountId: number,
+    lines: ImportLine[],
+    tagIds: number[],
+  ): Observable<ImportResult> {
+    return this.http
+      .post<ApiResponse<ImportResult>>(`${this.base}/Transactions/import`, {
+        accountId,
+        lines,
+        tagIds,
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  // ---- Reports ----
+
+  /** The last `months` months up to this one, in the base currency. */
+  cashFlow(months: number): Observable<CashFlowReport> {
+    return this.dueWritten().pipe(
+      switchMap(() =>
+        this.http.get<ApiResponse<CashFlowReport>>(`${this.base}/Reports/cashflow`, {
+          params: { today: todayIso(), months },
+        }),
+      ),
+      map((response) => response.data!),
+    );
   }
 }

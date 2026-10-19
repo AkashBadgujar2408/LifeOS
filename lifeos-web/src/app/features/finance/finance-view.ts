@@ -1,9 +1,15 @@
+import { daysBetween } from '../career/career-view';
 import type {
   AccountKind,
   ExchangeRate,
   HoldingKind,
+  InsurancePolicy,
   LoanKind,
   NetWorthPoint,
+  PolicyKind,
+  PremiumFrequency,
+  TaxItem,
+  TaxItemKind,
   Transaction,
   TransactionKind,
 } from '../../core/services/finance.service';
@@ -248,4 +254,104 @@ export function baseTotal(
     total: Math.round(total * 10000) / 10000,
     missing: accounts.filter((a) => a.balanceInBase === null).map((a) => a.name),
   };
+}
+
+export const POLICY_KIND_LABELS: Record<PolicyKind, string> = {
+  Health: 'Health',
+  Life: 'Life',
+  Vehicle: 'Vehicle',
+  Home: 'Home',
+  Travel: 'Travel',
+  Other: 'Other',
+};
+
+export const POLICY_KIND_ICONS: Record<PolicyKind, string> = {
+  Health: 'bi-heart-pulse',
+  Life: 'bi-shield-check',
+  Vehicle: 'bi-car-front',
+  Home: 'bi-house',
+  Travel: 'bi-airplane',
+  Other: 'bi-shield',
+};
+
+export const PREMIUM_FREQUENCY_LABELS: Record<PremiumFrequency, string> = {
+  Monthly: 'a month',
+  Quarterly: 'a quarter',
+  HalfYearly: 'every six months',
+  Yearly: 'a year',
+  Single: 'once (single premium)',
+};
+
+export const TAX_ITEM_KIND_LABELS: Record<TaxItemKind, string> = {
+  Deadline: 'Deadline',
+  Deduction: 'Deduction',
+  Payment: 'Tax paid',
+  Document: 'Form to collect',
+  Other: 'Other',
+};
+
+/** How soon a renewal counts as "soon" on the insurance page (the reminder itself is set per policy). */
+export const RENEWAL_SOON_DAYS = 30;
+
+/**
+ * Where a policy stands today: ended (past its end day), renewal overdue (the renewal day has gone by — renewed
+ * policies get a new date), renews soon (within 30 days), or in force.
+ */
+export function policyStatus(
+  policy: Pick<InsurancePolicy, 'renewsOn' | 'endsOn'>,
+  today: string,
+): { kind: 'ended' | 'overdue' | 'soon' | 'active'; days: number | null } {
+  if (policy.endsOn && policy.endsOn < today) {
+    return { kind: 'ended', days: null };
+  }
+  if (!policy.renewsOn) {
+    return { kind: 'active', days: null };
+  }
+  const days = daysBetween(today, policy.renewsOn);
+  return days < 0
+    ? { kind: 'overdue', days: -days }
+    : days <= RENEWAL_SOON_DAYS
+      ? { kind: 'soon', days }
+      : { kind: 'active', days };
+}
+
+/** One tax year's items, open ones first (as the API orders them), and what's deductible per currency. */
+export interface TaxYearGroup {
+  taxYear: string | null;
+  items: TaxItem[];
+  open: number;
+  deductible: { currency: string; total: number }[];
+}
+
+/** Items grouped by their tax-year label, in the API's order (newest year first, items without a year last). */
+export function taxYearGroups(items: readonly TaxItem[]): TaxYearGroup[] {
+  const groups = new Map<string | null, TaxItem[]>();
+  for (const item of items) {
+    const key = item.taxYear?.trim() || null;
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+  const keys = [...groups.keys()];
+  const ordered = [...keys.filter((k) => k !== null), ...keys.filter((k) => k === null)];
+  return ordered.map((taxYear) => {
+    const list = groups.get(taxYear)!;
+    const totals = new Map<string, number>();
+    for (const item of list) {
+      if (item.isDeductible && item.amount !== null && item.currency) {
+        totals.set(item.currency, (totals.get(item.currency) ?? 0) + item.amount);
+      }
+    }
+    return {
+      taxYear,
+      items: list,
+      open: list.filter((i) => !i.doneOn).length,
+      deductible: [...totals]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([currency, total]) => ({ currency, total: Math.round(total * 10000) / 10000 })),
+    };
+  });
+}
+
+/** "Due 31/Oct · 12 days left" style urgency for an open tax item (null: done or undated). */
+export function taxDueDays(item: Pick<TaxItem, 'dueOn' | 'doneOn'>, today: string): number | null {
+  return item.doneOn || !item.dueOn ? null : daysBetween(today, item.dueOn);
 }

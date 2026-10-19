@@ -118,6 +118,10 @@ try
     builder.Services.AddScoped<ILoansService, LoansService>();
     builder.Services.AddScoped<IWealthService, WealthService>();
     builder.Services.AddScoped<IExchangeRatesService, ExchangeRatesService>();
+    builder.Services.AddScoped<IInsurancePoliciesService, InsurancePoliciesService>();
+    builder.Services.AddScoped<ITaxItemsService, TaxItemsService>();
+    builder.Services.AddScoped<IStatementImportService, StatementImportService>();
+    builder.Services.AddScoped<IFinanceReportsService, FinanceReportsService>();
     builder.Services.AddRecoveryRateLimit();
 
     // Files (document files, attachments) live on disk outside any web root, one folder per user (IFileStore).
@@ -162,6 +166,8 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, TransactionLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, HoldingLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, LoanLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, InsurancePolicyLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, TaxItemLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

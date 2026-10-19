@@ -57,6 +57,8 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   Transaction: 'bi-receipt',
   Holding: 'bi-graph-up-arrow',
   Loan: 'bi-bank2',
+  InsurancePolicy: 'bi-shield-check',
+  TaxItem: 'bi-file-earmark-text',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -97,4 +99,6 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   Transaction: 'Transactions',
   Holding: 'Investments',
   Loan: 'Loans',
+  InsurancePolicy: 'Insurance',
+  TaxItem: 'Tax items',
 };

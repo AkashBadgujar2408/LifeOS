@@ -1,4 +1,4 @@
-import type { Transaction } from '../../core/services/finance.service';
+import type { TaxItem, Transaction } from '../../core/services/finance.service';
 import {
   accountLine,
   baseTotal,
@@ -9,6 +9,9 @@ import {
   monthLabel,
   monthRange,
   netWorthChange,
+  policyStatus,
+  taxDueDays,
+  taxYearGroups,
   rateOn,
   shiftMonth,
   signedAmount,
@@ -186,5 +189,75 @@ describe('accounts in the base currency', () => {
     ).toEqual({ currency: 'INR', total: 210000, missing: ['Euro cash'] });
     expect(baseTotal([{ name: 'Bank', currency: 'INR', balanceInBase: 5 }], 'INR')).toBeNull();
     expect(baseTotal([{ name: 'UK', currency: 'GBP', balanceInBase: null }], null)).toBeNull();
+  });
+});
+
+describe('policyStatus', () => {
+  const today = '2026-10-19';
+  it('says whether a policy has ended, is overdue, renews soon or is in force', () => {
+    expect(policyStatus({ renewsOn: '2026-11-01', endsOn: null }, today)).toEqual({
+      kind: 'soon',
+      days: 13,
+    });
+    expect(policyStatus({ renewsOn: '2027-04-01', endsOn: null }, today).kind).toBe('active');
+    expect(policyStatus({ renewsOn: '2026-10-10', endsOn: null }, today)).toEqual({
+      kind: 'overdue',
+      days: 9,
+    });
+    expect(policyStatus({ renewsOn: '2026-11-01', endsOn: '2026-10-18' }, today).kind).toBe(
+      'ended',
+    );
+    expect(policyStatus({ renewsOn: null, endsOn: null }, today)).toEqual({
+      kind: 'active',
+      days: null,
+    });
+  });
+});
+
+describe('taxYearGroups', () => {
+  function item(overrides: Partial<TaxItem>): TaxItem {
+    return {
+      id: 1,
+      title: 'x',
+      kind: 'Deduction',
+      taxYear: 'FY 2026-27',
+      dueOn: null,
+      amount: null,
+      currency: null,
+      isDeductible: false,
+      transactionId: null,
+      transactionOn: null,
+      transactionPayee: null,
+      transactionAmount: null,
+      transactionCurrency: null,
+      doneOn: null,
+      notes: null,
+      ...overrides,
+    };
+  }
+
+  it('groups by year (unlabelled last) and adds up deductible amounts per currency', () => {
+    const groups = taxYearGroups([
+      item({ id: 1, taxYear: null, amount: 10, currency: 'INR', isDeductible: true }),
+      item({ id: 2, amount: 150_000, currency: 'INR', isDeductible: true }),
+      item({ id: 3, amount: 25_000, currency: 'INR', isDeductible: true, doneOn: '2026-10-01' }),
+      item({ id: 4, amount: 9_000, currency: 'INR', isDeductible: false }),
+      item({ id: 5, amount: 100, currency: 'USD', isDeductible: true }),
+      item({ id: 6, taxYear: 'FY 2025-26' }),
+    ]);
+    expect(groups.map((g) => g.taxYear)).toEqual(['FY 2026-27', 'FY 2025-26', null]);
+    expect(groups[0].deductible).toEqual([
+      { currency: 'INR', total: 175_000 },
+      { currency: 'USD', total: 100 },
+    ]);
+    expect(groups[0].open).toBe(3);
+  });
+
+  it('counts days to an open due date only', () => {
+    expect(taxDueDays(item({ dueOn: '2026-10-31' }), '2026-10-19')).toBe(12);
+    expect(
+      taxDueDays(item({ dueOn: '2026-10-31', doneOn: '2026-10-19' }), '2026-10-19'),
+    ).toBeNull();
+    expect(taxDueDays(item({}), '2026-10-19')).toBeNull();
   });
 });

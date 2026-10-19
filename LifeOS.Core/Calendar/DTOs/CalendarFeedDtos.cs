@@ -7,6 +7,7 @@ public static class CalendarSourceTypes
     public const string Task = "Task";
     public const string Milestone = "Milestone";
     public const string Goal = "Goal";
+    public const string TaxItem = "TaxItem";
 }
 
 /// <summary>

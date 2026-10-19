@@ -1047,6 +1047,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ContactId)
                 .HasConstraintName("FK_InsurancePolicies_Contacts");
 
+            entity.HasOne(d => d.RenewalReminder).WithMany(p => p.InsurancePolicies)
+                .HasForeignKey(d => d.RenewalReminderId)
+                .HasConstraintName("FK_InsurancePolicies_Reminders");
+
             entity.HasOne(d => d.User).WithMany(p => p.InsurancePolicies)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -1976,6 +1980,10 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("([IsDeleted]=(0) AND [RecurringTransactionId] IS NOT NULL)");
 
+            entity.HasIndex(e => new { e.UserId, e.ImportHash }, "UX_Transactions_User_ImportHash")
+                .IsUnique()
+                .HasFilter("([ImportHash] IS NOT NULL)");
+
             entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Transactions_CreatedAt");
             entity.Property(e => e.Currency)
@@ -1983,6 +1991,10 @@ public partial class AppDbContext : DbContext
                 .IsUnicode(false)
                 .IsFixedLength();
             entity.Property(e => e.ExchangeRate).HasColumnType("decimal(19, 8)");
+            entity.Property(e => e.ImportHash)
+                .HasMaxLength(64)
+                .IsUnicode(false)
+                .IsFixedLength();
             entity.Property(e => e.Kind).HasMaxLength(10);
             entity.Property(e => e.Note).HasMaxLength(1000);
             entity.Property(e => e.Payee).HasMaxLength(200);

@@ -47,5 +47,7 @@ public partial class Reminder
 
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 
+    public virtual ICollection<InsurancePolicy> InsurancePolicies { get; set; } = new List<InsurancePolicy>();
+
     public virtual User User { get; set; } = null!;
 }

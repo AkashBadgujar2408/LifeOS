@@ -6,13 +6,14 @@ SET ANSI_NULLS ON;
 GO
 
 -- The unified calendar feed: everything with a date that falls in a range, from every module, as one row shape.
--- Called via Dapper from CalendarFeedService. Depends on 02_goals.sql, 03_tasks.sql, 04_calendar.sql.
+-- Called via Dapper from CalendarFeedService. Depends on 02_goals.sql, 03_tasks.sql, 04_calendar.sql, 12_finance.sql.
 --
 -- Sources (SourceType) in result set 1:
 --   Event      one-off calendar.Events — all-day (date range) or timed (UTC moments); recurring ones are sets 2-3
 --   Task       tasks.TaskItems with a DueDate (open and done; IsDone tells them apart)
 --   Milestone  goals.GoalMilestones with a TargetDate
 --   Goal       goals.Goals with a TargetDate
+--   TaxItem    finance.TaxItems with a DueOn (Session 59; done once DoneOn is set)
 --
 -- Two kinds of range, because the data has two kinds of time (see CLAUDE.md "Calendar dates are DATE"):
 --   @FromDate/@ToDate  the user's *local* calendar days shown, inclusive — matched against DATE columns as-is.
@@ -125,6 +126,19 @@ BEGIN
       AND g.IsDeleted = 0
       AND g.Status <> N'Abandoned'
       AND g.TargetDate BETWEEN @FromDate AND @ToDate
+
+    UNION ALL
+
+    -- Tax deadlines: a tax item's due day (Session 59).
+    SELECT
+        N'TaxItem', x.Id, x.Title, CAST(1 AS BIT),
+        x.DueOn, x.DueOn, NULL, NULL,
+        CAST(CASE WHEN x.DoneOn IS NOT NULL THEN 1 ELSE 0 END AS BIT),
+        NULL, NULL, NULL, NULL, NULL
+    FROM finance.TaxItems x
+    WHERE x.UserId = @UserId
+      AND x.IsDeleted = 0
+      AND x.DueOn BETWEEN @FromDate AND @ToDate
 
     -- A stable order: date-based items by date, then timed events by start. The client still places each item on
     -- its local day (only it can turn StartsAt into a local date); this just keeps ties deterministic.

@@ -11,7 +11,7 @@ import {
 import { formatDate } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
@@ -83,7 +83,14 @@ const LEDGER_THEME = themeQuartz.withParams({
 @Component({
   selector: 'app-finance-ledger',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, NgbInputDatepicker, AgGridAngular, LoadError, BaseCurrencyPrompt],
+  imports: [
+    FormsModule,
+    NgbInputDatepicker,
+    AgGridAngular,
+    RouterLink,
+    LoadError,
+    BaseCurrencyPrompt,
+  ],
   template: `
     <div class="container-fluid container-xxl py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
@@ -93,9 +100,14 @@ const LEDGER_THEME = themeQuartz.withParams({
             Every income, expense and transfer. Pick a row to change it or add a receipt.
           </p>
         </div>
-        <button type="button" class="btn btn-primary" (click)="add()">
-          <i class="bi bi-plus-lg"></i> Add transaction
-        </button>
+        <div class="d-flex gap-2">
+          <a routerLink="/finance/import" class="btn btn-outline-primary">
+            <i class="bi bi-box-arrow-in-down"></i> Import statement
+          </a>
+          <button type="button" class="btn btn-primary" (click)="add()">
+            <i class="bi bi-plus-lg"></i> Add transaction
+          </button>
+        </div>
       </div>
 
       <app-base-currency-prompt />

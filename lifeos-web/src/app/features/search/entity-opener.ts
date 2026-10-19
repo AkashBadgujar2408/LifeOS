@@ -20,6 +20,8 @@ import { openAchievementEditor } from '../career/achievement-editor';
 import { openQuestionEditor } from '../career/question-editor';
 import { openContactEditor } from '../contacts/contact-editor';
 import { openTransactionEditor } from '../finance/transaction-editor';
+import { openPolicyEditor } from '../finance/policy-editor';
+import { openTaxItemEditor } from '../finance/tax-item-editor';
 import { FinanceService } from '../../core/services/finance.service';
 import { apiErrorMessage } from '../../core/services/api-error';
 
@@ -71,6 +73,29 @@ export class EntityOpener {
         break;
       case 'Loan':
         void this.router.navigate(['/finance/loans', entityId]);
+        break;
+      case 'InsurancePolicy':
+        this.financeService.policy(entityId).subscribe({
+          next: async (policy) => {
+            const result = await openPolicyEditor(this.modal, policy);
+            if (result) {
+              this.toast.success(result.kind === 'saved' ? 'Policy saved.' : 'Policy deleted.');
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the policy.')),
+        });
+        break;
+      case 'TaxItem':
+        this.financeService.taxItem(entityId).subscribe({
+          next: async (item) => {
+            const result = await openTaxItemEditor(this.modal, item);
+            if (result) {
+              this.remindersService.notifyChanged();
+              this.toast.success(result.kind === 'saved' ? 'Tax item saved.' : 'Tax item deleted.');
+            }
+          },
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the tax item.')),
+        });
         break;
       case 'FinanceAccount':
         void this.router.navigate(['/finance/transactions'], {

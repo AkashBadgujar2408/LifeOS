@@ -43,7 +43,13 @@ public partial class InsurancePolicy
 
     public DateTime? DeletedAt { get; set; }
 
+    public int? RenewalReminderDays { get; set; }
+
+    public int? RenewalReminderId { get; set; }
+
     public virtual Contact? Contact { get; set; }
+
+    public virtual Reminder? RenewalReminder { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

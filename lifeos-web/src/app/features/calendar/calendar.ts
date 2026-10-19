@@ -36,6 +36,9 @@ import { LifeAreasService } from '../../core/services/life-areas.service';
 import { TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { openTaskEditor } from '../tasks/task-editor';
+import { openTaxItemEditor } from '../finance/tax-item-editor';
+import { FinanceService } from '../../core/services/finance.service';
+import { SettingsService } from '../../core/services/settings.service';
 import {
   SOURCE_LABELS,
   SOURCE_TYPES,
@@ -59,12 +62,19 @@ import { LoadError } from '../../shared/components/load-error/load-error';
 export class Calendar {
   private readonly calendarService = inject(CalendarService);
   private readonly tasksService = inject(TasksService);
+  private readonly financeService = inject(FinanceService);
   private readonly toast = inject(ToastService);
   private readonly modal = inject(NgbModal);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly sourceTypes = SOURCE_TYPES;
+  private readonly hiddenModules = inject(SettingsService).hiddenModules;
+  /** Tax deadlines belong to Finance: switched off with it in Settings. */
+  protected readonly sourceTypes = computed(() =>
+    this.hiddenModules().has('Finance')
+      ? SOURCE_TYPES.filter((s) => s !== 'TaxItem')
+      : SOURCE_TYPES,
+  );
   protected readonly sourceLabels = SOURCE_LABELS;
 
   protected readonly items = signal<CalendarFeedItem[]>([]);
@@ -75,8 +85,9 @@ export class Calendar {
 
   protected readonly events = computed(() => {
     const hidden = this.hiddenSources();
+    const shown = new Set(this.sourceTypes());
     return this.items()
-      .filter((item) => !hidden.has(item.sourceType))
+      .filter((item) => shown.has(item.sourceType) && !hidden.has(item.sourceType))
       .map(toEventInput);
   });
 
@@ -282,6 +293,23 @@ export class Calendar {
         break;
       case 'Goal':
         void this.router.navigate(['/goals', item.sourceId]);
+        break;
+      case 'TaxItem':
+        this.financeService
+          .taxItem(item.sourceId)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: async (taxItem) => {
+              const result = await openTaxItemEditor(this.modal, taxItem);
+              this.loadFeed();
+              if (result) {
+                this.toast.success(
+                  result.kind === 'saved' ? 'Tax item saved.' : 'Tax item deleted.',
+                );
+              }
+            },
+            error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the tax item.')),
+          });
         break;
     }
   }

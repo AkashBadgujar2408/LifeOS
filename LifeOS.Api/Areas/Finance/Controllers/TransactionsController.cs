@@ -10,7 +10,7 @@ namespace LifeOS.Api.Areas.Finance.Controllers;
 [Area("Finance")]
 [Route("api/[area]/[controller]")]
 [Authorize]
-public class TransactionsController(ITransactionsService transactionsService) : ControllerBase
+public class TransactionsController(ITransactionsService transactionsService, IStatementImportService importService) : ControllerBase
 {
     /// <summary>
     /// GET api/Finance/Transactions[?from&amp;to&amp;accountId&amp;tagId&amp;kind] — the ledger, newest first, with its
@@ -53,6 +53,17 @@ public class TransactionsController(ITransactionsService transactionsService) : 
         var result = await transactionsService.DeleteAsync(id);
         return result.Success ? Ok(ApiResponse<bool>.Ok(true)) : NotFound(ApiResponse<bool>.Fail(result.Error!));
     }
+
+    /// <summary>POST api/Finance/Transactions/import/preview — which statement lines are new, already imported or wrong (writes nothing).</summary>
+    [HttpPost("import/preview")]
+    public async Task<IActionResult> PreviewImport(ImportRequest request) => ImportResult(await importService.ImportAsync(request, write: false));
+
+    /// <summary>POST api/Finance/Transactions/import — writes the new lines (all or nothing; already imported ones are skipped).</summary>
+    [HttpPost("import")]
+    public async Task<IActionResult> Import(ImportRequest request) => ImportResult(await importService.ImportAsync(request, write: true));
+
+    private IActionResult ImportResult(OperationResult<ImportResultDto> result) =>
+        result.Success ? Ok(ApiResponse<ImportResultDto>.Ok(result.Data)) : BadRequest(ApiResponse<ImportResultDto>.Fail(result.Error!));
 
     private IActionResult Result(OperationResult<TransactionDto> result) =>
         result.Success

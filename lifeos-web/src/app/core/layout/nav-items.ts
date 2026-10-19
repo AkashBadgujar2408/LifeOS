@@ -140,6 +140,14 @@ export const NAV_GROUPS: NavGroup[] = [
         module: 'Finance',
       },
       { label: 'Loans', route: '/finance/loans', icon: 'bi-bank2', module: 'Finance' },
+      {
+        label: 'Insurance',
+        route: '/finance/insurance',
+        icon: 'bi-shield-check',
+        module: 'Finance',
+      },
+      { label: 'Taxes', route: '/finance/taxes', icon: 'bi-file-earmark-text', module: 'Finance' },
+      { label: 'Reports', route: '/finance/reports', icon: 'bi-bar-chart', module: 'Finance' },
     ],
   },
   {

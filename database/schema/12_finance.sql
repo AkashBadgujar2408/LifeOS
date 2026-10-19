@@ -422,3 +422,31 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.ExchangeRates') AND name = 'UX_ExchangeRates_User_Pair_Day')
     CREATE UNIQUE INDEX UX_ExchangeRates_User_Pair_Day ON finance.ExchangeRates(UserId, Currency, BaseCurrency, EffectiveOn) WHERE IsDeleted = 0;
 GO
+
+-- Session 59 (Finance 5): a policy's renewal reminder works like a certification's — RenewalReminderDays (0-365)
+-- before RenewsOn, one ordinary calendar.Reminders row kept in step by InsurancePoliciesService (only with a
+-- renewal date).
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('finance.InsurancePolicies') AND name = 'RenewalReminderDays')
+    ALTER TABLE finance.InsurancePolicies ADD
+        RenewalReminderDays INT NULL CONSTRAINT CK_InsurancePolicies_RenewalReminderDays CHECK (RenewalReminderDays BETWEEN 0 AND 365),
+        RenewalReminderId   INT NULL CONSTRAINT FK_InsurancePolicies_Reminders REFERENCES calendar.Reminders(Id);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_InsurancePolicies_Reminder')
+    ALTER TABLE finance.InsurancePolicies ADD CONSTRAINT CK_InsurancePolicies_Reminder
+        CHECK (RenewalReminderDays IS NULL OR RenewsOn IS NOT NULL);
+GO
+
+-- Session 59: a transaction imported from a bank statement remembers where it came from — SHA-256 (hex) of the
+-- account, day, signed amount, cleaned description and which repeat of that line it was within the file — so
+-- importing the same statement again adds nothing. The unique index deliberately includes deleted rows: an
+-- imported line you deleted doesn't come back with the next import.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'ImportHash')
+    ALTER TABLE finance.Transactions ADD
+        ImportHash CHAR(64) NULL CONSTRAINT CK_Transactions_ImportHash
+            CHECK (ImportHash COLLATE Latin1_General_BIN NOT LIKE '%[^0-9a-f]%' AND LEN(ImportHash) = 64);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'UX_Transactions_User_ImportHash')
+    CREATE UNIQUE INDEX UX_Transactions_User_ImportHash ON finance.Transactions(UserId, ImportHash) WHERE ImportHash IS NOT NULL;
+GO

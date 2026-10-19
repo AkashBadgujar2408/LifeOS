@@ -49,6 +49,8 @@ public partial class Transaction
 
     public DateTime? DeletedAt { get; set; }
 
+    public string? ImportHash { get; set; }
+
     public virtual Employment? Employment { get; set; }
 
     public virtual Account? FromAccount { get; set; }

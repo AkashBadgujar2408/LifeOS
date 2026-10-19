@@ -256,6 +256,27 @@ export const routes: Routes = [
         loadComponent: () => import('./features/finance/loan-detail').then((m) => m.LoanDetail),
       },
       {
+        path: 'finance/insurance',
+        title: 'Insurance | LifeOS',
+        loadComponent: () => import('./features/finance/insurance').then((m) => m.FinanceInsurance),
+      },
+      {
+        path: 'finance/taxes',
+        title: 'Taxes | LifeOS',
+        loadComponent: () => import('./features/finance/taxes').then((m) => m.FinanceTaxes),
+      },
+      {
+        path: 'finance/reports',
+        title: 'Money reports | LifeOS',
+        loadComponent: () => import('./features/finance/reports').then((m) => m.FinanceReports),
+      },
+      {
+        path: 'finance/import',
+        title: 'Import a statement | LifeOS',
+        loadComponent: () =>
+          import('./features/finance/statement-import').then((m) => m.StatementImport),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

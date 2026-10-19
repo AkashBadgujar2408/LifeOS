@@ -83,3 +83,38 @@ public interface IExchangeRatesService
     Task<OperationResult<List<ExchangeRateDto>>> SetAsync(ExchangeRateRequest request);
     Task<OperationResult<List<ExchangeRateDto>>> DeleteAsync(int id);
 }
+
+/// <summary>Insurance policies and their renewal reminder (InsurancePoliciesService.SyncRenewalReminderAsync).</summary>
+public interface IInsurancePoliciesService
+{
+    Task<List<InsurancePolicyDto>> GetAllAsync();
+    Task<OperationResult<InsurancePolicyDto>> GetAsync(int id);
+    Task<OperationResult<InsurancePolicyDto>> CreateAsync(InsurancePolicyRequest request);
+    Task<OperationResult<InsurancePolicyDto>> UpdateAsync(int id, InsurancePolicyRequest request);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+/// <summary>Tax deadlines, deductions, payments and forms, by tax year.</summary>
+public interface ITaxItemsService
+{
+    Task<List<TaxItemDto>> GetAllAsync();
+    Task<OperationResult<TaxItemDto>> GetAsync(int id);
+    Task<OperationResult<TaxItemDto>> CreateAsync(TaxItemRequest request);
+    Task<OperationResult<TaxItemDto>> UpdateAsync(int id, TaxItemRequest request);
+    Task<OperationResult<TaxItemDto>> SetDoneAsync(int id, TaxItemDoneRequest request);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+/// <summary>Bank statement import: checks every line, skips ones already imported, writes all or nothing.</summary>
+public interface IStatementImportService
+{
+    /// <summary><paramref name="write"/> false = a preview (nothing written).</summary>
+    Task<OperationResult<ImportResultDto>> ImportAsync(ImportRequest request, bool write);
+}
+
+/// <summary>Reports over time (the net worth trend is <see cref="IWealthService"/>).</summary>
+public interface IFinanceReportsService
+{
+    /// <summary>The last <paramref name="months"/> months up to today's, in the base currency.</summary>
+    Task<CashFlowReportDto> GetCashFlowAsync(DateOnly today, int months);
+}
