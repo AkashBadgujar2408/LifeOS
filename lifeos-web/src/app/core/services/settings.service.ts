@@ -17,7 +17,8 @@ export type ModuleKey =
   | 'Documents'
   | 'Learning'
   | 'Career'
-  | 'Finance';
+  | 'Finance'
+  | 'Health';
 
 export interface ModuleInfo {
   key: ModuleKey;
@@ -48,6 +49,11 @@ export const MODULES: ModuleInfo[] = [
     key: 'Finance',
     label: 'Finance',
     hides: 'Accounts and Transactions, and "Log an expense" in Quick Add',
+  },
+  {
+    key: 'Health',
+    label: 'Health',
+    hides: "your health records, medicines and logs, and today's doses on My Day",
   },
   {
     key: 'Documents',

@@ -45,6 +45,8 @@ public partial class Event
 
     public int? LifeAreaId { get; set; }
 
+    public virtual DoctorVisit? DoctorVisit { get; set; }
+
     public virtual ICollection<EventException> EventExceptions { get; set; } = new List<EventException>();
 
     public virtual Interview? Interview { get; set; }

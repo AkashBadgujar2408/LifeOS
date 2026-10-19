@@ -64,7 +64,7 @@ public class VaultService(AppDbContext db, IDataProtectionProvider dataProtectio
         }
     }
 
-    public Task LogAsync(string action, string entityType, int entityId, string? detail) =>
+    public Task LogAsync(string action, string? entityType, int? entityId, string? detail) =>
         WriteAsync(action, entityType, entityId, detail);
 
     public async Task<List<VaultAccessDto>> ActivityAsync(int take)

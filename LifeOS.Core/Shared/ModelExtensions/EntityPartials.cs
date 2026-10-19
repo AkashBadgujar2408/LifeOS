@@ -166,3 +166,27 @@ public partial class TaxItem : ISoftDeletable, IUserOwned;
 public partial class AccountCurrency : ISoftDeletable, IUserOwned;
 
 public partial class ExchangeRate : ISoftDeletable, IUserOwned;
+
+public partial class HealthProfile : ISoftDeletable, IUserOwned;
+
+public partial class MedicalCondition : ISoftDeletable, IUserOwned;
+
+public partial class DoctorVisit : ISoftDeletable, IUserOwned;
+
+public partial class Medication : ISoftDeletable, IUserOwned;
+
+public partial class MedicationSchedule : ISoftDeletable, IUserOwned;
+
+public partial class MedicationDose : ISoftDeletable, IUserOwned;
+
+public partial class Workout : ISoftDeletable, IUserOwned;
+
+public partial class Meal : ISoftDeletable, IUserOwned;
+
+public partial class WaterIntake : ISoftDeletable, IUserOwned;
+
+public partial class SleepRecord : ISoftDeletable, IUserOwned;
+
+public partial class BodyMeasurement : ISoftDeletable, IUserOwned;
+
+public partial class LabResult : ISoftDeletable, IUserOwned;

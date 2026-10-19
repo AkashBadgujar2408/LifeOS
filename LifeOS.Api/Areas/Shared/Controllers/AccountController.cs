@@ -35,7 +35,7 @@ public class AccountController(IAccountDataService accountDataService) : Control
             if (!result.Success)
             {
                 await file.DisposeAsync();
-                return result.Error == AccountDataErrors.VaultLocked
+                return result.Error is AccountDataErrors.VaultLocked or AccountDataErrors.SensitiveLocked
                     ? StatusCode(StatusCodes.Status423Locked, ApiResponse<bool>.Fail(result.Error))
                     : BadRequest(ApiResponse<bool>.Fail(result.Error!));
             }

@@ -15,8 +15,11 @@ public interface IVaultService
     /// <summary>Whether this request carries a live unlock issued to the logged-in user.</summary>
     bool IsUnlocked { get; }
 
-    /// <summary>Records something sensitive being opened or unprotected (an action from <see cref="VaultActions"/>).</summary>
-    Task LogAsync(string action, string entityType, int entityId, string? detail);
+    /// <summary>
+    /// Records something sensitive being opened or unprotected (an action from <see cref="VaultActions"/>) — one item,
+    /// or none for a whole area (health records in an export).
+    /// </summary>
+    Task LogAsync(string action, string? entityType, int? entityId, string? detail);
 
     /// <summary>The latest vault activity, newest first.</summary>
     Task<List<VaultAccessDto>> ActivityAsync(int take);

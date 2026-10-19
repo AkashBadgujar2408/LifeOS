@@ -19,6 +19,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Attachment> Attachments { get; set; }
 
+    public virtual DbSet<BodyMeasurement> BodyMeasurements { get; set; }
+
     public virtual DbSet<Book> Books { get; set; }
 
     public virtual DbSet<BookNote> BookNotes { get; set; }
@@ -42,6 +44,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Decision> Decisions { get; set; }
 
     public virtual DbSet<DismissedInsight> DismissedInsights { get; set; }
+
+    public virtual DbSet<DoctorVisit> DoctorVisits { get; set; }
 
     public virtual DbSet<Document> Documents { get; set; }
 
@@ -77,6 +81,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<HabitTag> HabitTags { get; set; }
 
+    public virtual DbSet<HealthProfile> HealthProfiles { get; set; }
+
     public virtual DbSet<Holding> Holdings { get; set; }
 
     public virtual DbSet<HoldingValuation> HoldingValuations { get; set; }
@@ -105,11 +111,23 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<KpiTile> KpiTiles { get; set; }
 
+    public virtual DbSet<LabResult> LabResults { get; set; }
+
     public virtual DbSet<LifeArea> LifeAreas { get; set; }
 
     public virtual DbSet<LifeAreaRating> LifeAreaRatings { get; set; }
 
     public virtual DbSet<Loan> Loans { get; set; }
+
+    public virtual DbSet<Meal> Meals { get; set; }
+
+    public virtual DbSet<MedicalCondition> MedicalConditions { get; set; }
+
+    public virtual DbSet<Medication> Medications { get; set; }
+
+    public virtual DbSet<MedicationDose> MedicationDoses { get; set; }
+
+    public virtual DbSet<MedicationSchedule> MedicationSchedules { get; set; }
 
     public virtual DbSet<MissionDebrief> MissionDebriefs { get; set; }
 
@@ -149,6 +167,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SkillTag> SkillTags { get; set; }
 
+    public virtual DbSet<SleepRecord> SleepRecords { get; set; }
+
     public virtual DbSet<StudySession> StudySessions { get; set; }
 
     public virtual DbSet<Tag> Tags { get; set; }
@@ -173,7 +193,11 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<VaultAccessLog> VaultAccessLogs { get; set; }
 
+    public virtual DbSet<WaterIntake> WaterIntakes { get; set; }
+
     public virtual DbSet<WeeklyReflection> WeeklyReflections { get; set; }
+
+    public virtual DbSet<Workout> Workouts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -277,6 +301,23 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Attachments_Users");
+        });
+
+        modelBuilder.Entity<BodyMeasurement>(entity =>
+        {
+            entity.ToTable("BodyMeasurements", "health");
+
+            entity.HasIndex(e => new { e.UserId, e.Kind, e.MeasuredOn }, "IX_BodyMeasurements_User_Kind_MeasuredOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_BodyMeasurements_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Value).HasColumnType("decimal(7, 2)");
+            entity.Property(e => e.Value2).HasColumnType("decimal(7, 2)");
+
+            entity.HasOne(d => d.User).WithMany(p => p.BodyMeasurements)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BodyMeasurements_Users");
         });
 
         modelBuilder.Entity<Book>(entity =>
@@ -562,6 +603,43 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_DismissedInsights_Users");
+        });
+
+        modelBuilder.Entity<DoctorVisit>(entity =>
+        {
+            entity.ToTable("DoctorVisits", "health");
+
+            entity.HasIndex(e => new { e.UserId, e.VisitOn }, "IX_DoctorVisits_User_VisitOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.EventId, "UX_DoctorVisits_Event")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [EventId] IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_DoctorVisits_CreatedAt");
+            entity.Property(e => e.Place).HasMaxLength(200);
+            entity.Property(e => e.Reason).HasMaxLength(200);
+            entity.Property(e => e.Specialty).HasMaxLength(100);
+
+            entity.HasOne(d => d.Condition).WithMany(p => p.DoctorVisits)
+                .HasForeignKey(d => d.ConditionId)
+                .HasConstraintName("FK_DoctorVisits_MedicalConditions");
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.DoctorVisits)
+                .HasForeignKey(d => d.ContactId)
+                .HasConstraintName("FK_DoctorVisits_Contacts");
+
+            entity.HasOne(d => d.Event).WithOne(p => p.DoctorVisit)
+                .HasForeignKey<DoctorVisit>(d => d.EventId)
+                .HasConstraintName("FK_DoctorVisits_Events");
+
+            entity.HasOne(d => d.FollowUpReminder).WithMany(p => p.DoctorVisits)
+                .HasForeignKey(d => d.FollowUpReminderId)
+                .HasConstraintName("FK_DoctorVisits_Reminders");
+
+            entity.HasOne(d => d.User).WithMany(p => p.DoctorVisits)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DoctorVisits_Users");
         });
 
         modelBuilder.Entity<Document>(entity =>
@@ -986,6 +1064,25 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_HabitTags_Users");
         });
 
+        modelBuilder.Entity<HealthProfile>(entity =>
+        {
+            entity.ToTable("HealthProfiles", "health");
+
+            entity.HasIndex(e => e.UserId, "UX_HealthProfiles_User")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.BloodGroup).HasMaxLength(3);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_HealthProfiles_CreatedAt");
+            entity.Property(e => e.HeightCm).HasColumnType("decimal(4, 1)");
+            entity.Property(e => e.Sex).HasMaxLength(10);
+
+            entity.HasOne(d => d.User).WithOne(p => p.HealthProfile)
+                .HasForeignKey<HealthProfile>(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HealthProfiles_Users");
+        });
+
         modelBuilder.Entity<Holding>(entity =>
         {
             entity.ToTable("Holdings", "finance");
@@ -1320,6 +1417,31 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_KpiTiles_Users");
         });
 
+        modelBuilder.Entity<LabResult>(entity =>
+        {
+            entity.ToTable("LabResults", "health");
+
+            entity.HasIndex(e => new { e.UserId, e.TestName, e.TakenOn }, "IX_LabResults_User_Test_TakenOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_LabResults_CreatedAt");
+            entity.Property(e => e.Laboratory).HasMaxLength(200);
+            entity.Property(e => e.RangeHigh).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.RangeLow).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.TestName).HasMaxLength(200);
+            entity.Property(e => e.Unit).HasMaxLength(30);
+            entity.Property(e => e.Value).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.ValueText).HasMaxLength(100);
+
+            entity.HasOne(d => d.User).WithMany(p => p.LabResults)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_LabResults_Users");
+
+            entity.HasOne(d => d.Visit).WithMany(p => p.LabResults)
+                .HasForeignKey(d => d.VisitId)
+                .HasConstraintName("FK_LabResults_DoctorVisits");
+        });
+
         modelBuilder.Entity<LifeArea>(entity =>
         {
             entity.ToTable("LifeAreas", "shared");
@@ -1388,6 +1510,116 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Loans_Users");
+        });
+
+        modelBuilder.Entity<Meal>(entity =>
+        {
+            entity.ToTable("Meals", "health");
+
+            entity.HasIndex(e => new { e.UserId, e.EatenOn }, "IX_Meals_User_EatenOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CarbsG).HasColumnType("decimal(5, 1)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Meals_CreatedAt");
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.FatG).HasColumnType("decimal(5, 1)");
+            entity.Property(e => e.MealType).HasMaxLength(10);
+            entity.Property(e => e.ProteinG).HasColumnType("decimal(5, 1)");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Meals)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Meals_Users");
+        });
+
+        modelBuilder.Entity<MedicalCondition>(entity =>
+        {
+            entity.ToTable("MedicalConditions", "health");
+
+            entity.HasIndex(e => new { e.UserId, e.Kind }, "IX_MedicalConditions_User_Kind").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MedicalConditions_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(10);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Severity).HasMaxLength(10);
+
+            entity.HasOne(d => d.User).WithMany(p => p.MedicalConditions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MedicalConditions_Users");
+        });
+
+        modelBuilder.Entity<Medication>(entity =>
+        {
+            entity.ToTable("Medications", "health");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Medications_CreatedAt");
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Strength).HasMaxLength(100);
+
+            entity.HasOne(d => d.Condition).WithMany(p => p.Medications)
+                .HasForeignKey(d => d.ConditionId)
+                .HasConstraintName("FK_Medications_MedicalConditions");
+
+            entity.HasOne(d => d.PrescribedAtVisit).WithMany(p => p.Medications)
+                .HasForeignKey(d => d.PrescribedAtVisitId)
+                .HasConstraintName("FK_Medications_DoctorVisits");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Medications)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Medications_Users");
+        });
+
+        modelBuilder.Entity<MedicationDose>(entity =>
+        {
+            entity.ToTable("MedicationDoses", "health");
+
+            entity.HasIndex(e => new { e.UserId, e.DoseDate }, "IX_MedicationDoses_User_Date").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.ScheduleId, e.DoseDate }, "UX_MedicationDoses_Schedule_Date")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [ScheduleId] IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MedicationDoses_CreatedAt");
+            entity.Property(e => e.Status).HasMaxLength(10);
+
+            entity.HasOne(d => d.Medication).WithMany(p => p.MedicationDoses)
+                .HasForeignKey(d => d.MedicationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MedicationDoses_Medications");
+
+            entity.HasOne(d => d.Schedule).WithMany(p => p.MedicationDoses)
+                .HasForeignKey(d => d.ScheduleId)
+                .HasConstraintName("FK_MedicationDoses_MedicationSchedules");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MedicationDoses)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MedicationDoses_Users");
+        });
+
+        modelBuilder.Entity<MedicationSchedule>(entity =>
+        {
+            entity.ToTable("MedicationSchedules", "health");
+
+            entity.HasIndex(e => new { e.MedicationId, e.TimeOfDay }, "UX_MedicationSchedules_Medication_Time")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MedicationSchedules_CreatedAt");
+            entity.Property(e => e.Dose).HasMaxLength(100);
+            entity.Property(e => e.ScheduleDays).HasDefaultValue((byte)127, "DF_MedicationSchedules_ScheduleDays");
+            entity.Property(e => e.TimeOfDay).HasPrecision(0);
+
+            entity.HasOne(d => d.Medication).WithMany(p => p.MedicationSchedules)
+                .HasForeignKey(d => d.MedicationId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MedicationSchedules_Medications");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MedicationSchedules)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MedicationSchedules_Users");
         });
 
         modelBuilder.Entity<MissionDebrief>(entity =>
@@ -1839,6 +2071,20 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_SkillTags_Users");
         });
 
+        modelBuilder.Entity<SleepRecord>(entity =>
+        {
+            entity.ToTable("SleepRecords", "health");
+
+            entity.HasIndex(e => new { e.UserId, e.WokeOn }, "IX_SleepRecords_User_WokeOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_SleepRecords_CreatedAt");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SleepRecords)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SleepRecords_Users");
+        });
+
         modelBuilder.Entity<StudySession>(entity =>
         {
             entity.ToTable("StudySessions", "learning");
@@ -2179,6 +2425,20 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_VaultAccessLog_Users");
         });
 
+        modelBuilder.Entity<WaterIntake>(entity =>
+        {
+            entity.ToTable("WaterIntakes", "health");
+
+            entity.HasIndex(e => new { e.UserId, e.DrunkOn }, "IX_WaterIntakes_User_DrunkOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_WaterIntakes_CreatedAt");
+
+            entity.HasOne(d => d.User).WithMany(p => p.WaterIntakes)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WaterIntakes_Users");
+        });
+
         modelBuilder.Entity<WeeklyReflection>(entity =>
         {
             entity.ToTable("WeeklyReflections", "journal");
@@ -2193,6 +2453,23 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WeeklyReflections_Users");
+        });
+
+        modelBuilder.Entity<Workout>(entity =>
+        {
+            entity.ToTable("Workouts", "health");
+
+            entity.HasIndex(e => new { e.UserId, e.OccurredOn }, "IX_Workouts_User_OccurredOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Workouts_CreatedAt");
+            entity.Property(e => e.DistanceKm).HasColumnType("decimal(6, 2)");
+            entity.Property(e => e.Intensity).HasMaxLength(10);
+            entity.Property(e => e.Kind).HasMaxLength(10);
+
+            entity.HasOne(d => d.User).WithMany(p => p.Workouts)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Workouts_Users");
         });
 
         OnModelCreatingPartial(modelBuilder);

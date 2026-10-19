@@ -32,8 +32,8 @@ import { ensureVaultUnlocked } from '../../shared/components/vault-unlock/vault-
         <h3 class="h6 mt-3">Download everything</h3>
         <p class="small mb-2">
           One .zip with every table as JSON (what an import reads back) and CSV (for spreadsheets),
-          plus your document files and attachments. Vault documents are included unlocked — keep the
-          file somewhere safe.
+          plus your document files and attachments. Vault documents and health records are included
+          unlocked — keep the file somewhere safe.
         </p>
         <button
           type="button"
@@ -180,7 +180,7 @@ export class YourData {
           const unlocked = await ensureVaultUnlocked(
             this.modal,
             this.vault,
-            'Your export includes vault documents.',
+            'Your export includes vault documents or health records.',
           );
           if (unlocked) {
             this.download();

@@ -37,6 +37,8 @@ public partial class User
 
     public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
 
+    public virtual ICollection<BodyMeasurement> BodyMeasurements { get; set; } = new List<BodyMeasurement>();
+
     public virtual ICollection<BookNote> BookNotes { get; set; } = new List<BookNote>();
 
     public virtual ICollection<BookTag> BookTags { get; set; } = new List<BookTag>();
@@ -60,6 +62,8 @@ public partial class User
     public virtual ICollection<Decision> Decisions { get; set; } = new List<Decision>();
 
     public virtual ICollection<DismissedInsight> DismissedInsights { get; set; } = new List<DismissedInsight>();
+
+    public virtual ICollection<DoctorVisit> DoctorVisits { get; set; } = new List<DoctorVisit>();
 
     public virtual ICollection<DocumentFile> DocumentFiles { get; set; } = new List<DocumentFile>();
 
@@ -95,6 +99,8 @@ public partial class User
 
     public virtual ICollection<Habit> Habits { get; set; } = new List<Habit>();
 
+    public virtual HealthProfile? HealthProfile { get; set; }
+
     public virtual ICollection<HoldingValuation> HoldingValuations { get; set; } = new List<HoldingValuation>();
 
     public virtual ICollection<Holding> Holdings { get; set; } = new List<Holding>();
@@ -123,9 +129,21 @@ public partial class User
 
     public virtual ICollection<KpiTile> KpiTiles { get; set; } = new List<KpiTile>();
 
+    public virtual ICollection<LabResult> LabResults { get; set; } = new List<LabResult>();
+
     public virtual ICollection<LifeAreaRating> LifeAreaRatings { get; set; } = new List<LifeAreaRating>();
 
     public virtual ICollection<Loan> Loans { get; set; } = new List<Loan>();
+
+    public virtual ICollection<Meal> Meals { get; set; } = new List<Meal>();
+
+    public virtual ICollection<MedicalCondition> MedicalConditions { get; set; } = new List<MedicalCondition>();
+
+    public virtual ICollection<MedicationDose> MedicationDoses { get; set; } = new List<MedicationDose>();
+
+    public virtual ICollection<MedicationSchedule> MedicationSchedules { get; set; } = new List<MedicationSchedule>();
+
+    public virtual ICollection<Medication> Medications { get; set; } = new List<Medication>();
 
     public virtual ICollection<MissionDebrief> MissionDebriefs { get; set; } = new List<MissionDebrief>();
 
@@ -165,6 +183,8 @@ public partial class User
 
     public virtual ICollection<Skill> Skills { get; set; } = new List<Skill>();
 
+    public virtual ICollection<SleepRecord> SleepRecords { get; set; } = new List<SleepRecord>();
+
     public virtual ICollection<StudySession> StudySessions { get; set; } = new List<StudySession>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
@@ -187,5 +207,9 @@ public partial class User
 
     public virtual ICollection<VaultAccessLog> VaultAccessLogs { get; set; } = new List<VaultAccessLog>();
 
+    public virtual ICollection<WaterIntake> WaterIntakes { get; set; } = new List<WaterIntake>();
+
     public virtual ICollection<WeeklyReflection> WeeklyReflections { get; set; } = new List<WeeklyReflection>();
+
+    public virtual ICollection<Workout> Workouts { get; set; } = new List<Workout>();
 }

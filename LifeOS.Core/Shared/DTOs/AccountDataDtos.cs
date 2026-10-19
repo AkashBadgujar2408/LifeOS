@@ -33,4 +33,5 @@ public class DeleteAccountRequest
 public static class AccountDataErrors
 {
     public const string VaultLocked = "Your export includes vault documents — unlock the vault first.";
+    public const string SensitiveLocked = "Your export includes health records — unlock the vault first.";
 }

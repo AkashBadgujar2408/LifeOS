@@ -16,6 +16,8 @@ using LifeOS.Core.Career.ServiceContracts;
 using LifeOS.Core.Career.Services;
 using LifeOS.Core.Finance.ServiceContracts;
 using LifeOS.Core.Finance.Services;
+using LifeOS.Core.Health.ServiceContracts;
+using LifeOS.Core.Health.Services;
 using LifeOS.Core.Learning.ServiceContracts;
 using LifeOS.Core.Learning.Services;
 using LifeOS.Core.Models;
@@ -120,6 +122,7 @@ try
     builder.Services.AddScoped<IExchangeRatesService, ExchangeRatesService>();
     builder.Services.AddScoped<IInsurancePoliciesService, InsurancePoliciesService>();
     builder.Services.AddScoped<ITaxItemsService, TaxItemsService>();
+    builder.Services.AddScoped<IHealthProfileService, HealthProfileService>();
     builder.Services.AddScoped<IStatementImportService, StatementImportService>();
     builder.Services.AddScoped<IFinanceReportsService, FinanceReportsService>();
     builder.Services.AddScoped<IAccountDataService, AccountDataService>();

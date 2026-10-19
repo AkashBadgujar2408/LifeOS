@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
+using LifeOS.Core.Shared.ModelExtensions;
 using LifeOS.Core.Shared.ServiceContracts;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -8,11 +10,14 @@ namespace LifeOS.Core.Models;
 public partial class AppDbContext
 {
     private readonly ICurrentUserService? currentUserService;
+    private readonly IDataProtector? sensitiveProtector;
 
-    public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUserService currentUserService)
+    public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUserService currentUserService,
+        IDataProtectionProvider dataProtection)
         : base(options)
     {
         this.currentUserService = currentUserService;
+        sensitiveProtector = dataProtection.CreateProtector(SensitiveColumns.Purpose);
     }
 
     public int? CurrentUserId => currentUserService?.UserId;
@@ -36,6 +41,12 @@ public partial class AppDbContext
             else if (property.ClrType == typeof(DateTime?))
             {
                 property.SetValueConverter(NullableUtcConverter);
+            }
+            else if (SensitiveColumns.IsEncrypted(property))
+            {
+                // The model is built once per process, so this is the first context's protector — the provider is a
+                // singleton, so every context would hand over the same one.
+                property.SetValueConverter(SensitiveColumns.Converter(sensitiveProtector));
             }
         }
 

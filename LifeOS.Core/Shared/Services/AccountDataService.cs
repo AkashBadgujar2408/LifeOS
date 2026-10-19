@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
+using LifeOS.Core.Shared.ModelExtensions;
 using LifeOS.Core.Shared.ServiceContracts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
@@ -31,6 +32,9 @@ public class AccountDataService(AppDbContext db, IFileStore fileStore, IVaultSer
     private static readonly MethodInfo LoadMethod =
         typeof(AccountDataService).GetMethod(nameof(LoadRowsAsync), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
+    private static readonly MethodInfo AnyMethod =
+        typeof(AccountDataService).GetMethod(nameof(AnyRowsAsync), BindingFlags.NonPublic | BindingFlags.Instance)!;
+
     private static readonly MethodInfo CountMethod =
         typeof(AccountDataService).GetMethod(nameof(CountLiveAsync), BindingFlags.NonPublic | BindingFlags.Instance)!;
 
@@ -49,6 +53,22 @@ public class AccountDataService(AppDbContext db, IFileStore fileStore, IVaultSer
         if (vaultDocumentIds.Count > 0 && !vaultService.IsUnlocked)
         {
             return OperationResult<bool>.Fail(AccountDataErrors.VaultLocked);
+        }
+
+        // So do sensitive records (health): their encrypted notes leave as plain text.
+        var hasSensitive = false;
+        foreach (var table in tables.Where(t => SensitiveColumns.Schemas.Contains(t.Schema)))
+        {
+            if (await (Task<bool>)AnyMethod.MakeGenericMethod(table.Entity.ClrType).Invoke(this, [userId])!)
+            {
+                hasSensitive = true;
+                break;
+            }
+        }
+
+        if (hasSensitive && !vaultService.IsUnlocked)
+        {
+            return OperationResult<bool>.Fail(AccountDataErrors.SensitiveLocked);
         }
 
         using var zip = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true);
@@ -126,6 +146,11 @@ public class AccountDataService(AppDbContext db, IFileStore fileStore, IVaultSer
         foreach (var documentId in vaultDocumentIds)
         {
             await vaultService.LogAsync(VaultActions.Opened, "Document", documentId, "Included in a data export");
+        }
+
+        if (hasSensitive)
+        {
+            await vaultService.LogAsync(VaultActions.Opened, null, null, "Health records included in a data export");
         }
 
         return OperationResult<bool>.Ok(true);
@@ -271,6 +296,10 @@ public class AccountDataService(AppDbContext db, IFileStore fileStore, IVaultSer
             .OrderBy(e => EF.Property<int>(e, "Id"))
             .ToListAsync())
         .Cast<object>().ToList();
+
+    private async Task<bool> AnyRowsAsync<T>(int userId)
+        where T : class =>
+        await db.Set<T>().IgnoreQueryFilters().AnyAsync(e => EF.Property<int>(e, "UserId") == userId);
 
     private async Task<int> CountLiveAsync<T>(int userId)
         where T : class =>

@@ -45,6 +45,8 @@ public partial class Reminder
 
     public virtual ICollection<Decision> Decisions { get; set; } = new List<Decision>();
 
+    public virtual ICollection<DoctorVisit> DoctorVisits { get; set; } = new List<DoctorVisit>();
+
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 
     public virtual ICollection<InsurancePolicy> InsurancePolicies { get; set; } = new List<InsurancePolicy>();

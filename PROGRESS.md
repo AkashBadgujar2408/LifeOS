@@ -986,3 +986,11 @@
 - Test data: `polish61` (HDFC with 10,000 transactions, Wise USD/GBP/EUR); credentials only in that session's scratchpad.
 
 - Next up: **Session 62 — Health 1** (plan, Section 7).
+
+## Last session: 2026-10-19 — Session 62 — Health 1: schema + sensitive-data pass
+- Shipped: `13_health.sql` (12 tables, UAT backed up first, `LifeOS_UAT_pre62.bak`), Health in the module switch (`01_shared.sql` CHECK widened, `ModuleKeys.Health`, client `MODULES`); `SensitiveColumns` (Data Protection value converter on every `…Notes` column of `health`, `CK_…_NotesEncrypted`); `[VaultUnlockRequired]` filter; `api/Health/HealthProfile` + `HealthProfileService` + pure `HealthRules`; the export asks for the unlock when health rows exist and logs it (`IVaultService.LogAsync` now takes no target too); "Your data" wording.
+- Verified: see plan row 62. 367 backend tests.
+- Decisions (mine — say if you want them changed): only free text (`Notes`) is encrypted — names, dates and values stay plain so they can be charted and checked, and the whole Health API sits behind the vault unlock instead; one app-wide encryption purpose (a value converter can't see the user); reads of health data aren't logged one by one (the unlock is); sex is optional with Female/Male/Intersex; a doctor is a shared contact; doses are one row per schedule per day like habit days; measurements keep one unit per kind.
+- Test data: `health62` (profile with encrypted notes), `health62b` (its import).
+
+- Next up: **Session 63 — Health 2** (profile, history, visits, medications).
