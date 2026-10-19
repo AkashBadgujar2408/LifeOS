@@ -3,6 +3,7 @@ import type {
   DoctorVisit,
   Dose,
   Intensity,
+  LabResult,
   MealType,
   Measurement,
   MeasurementKind,
@@ -222,4 +223,25 @@ export function nightSeries(
     days.push({ day, minutes: byDay.get(day) ?? null });
   }
   return days;
+}
+
+// ---- Labs ----
+
+/** "5.9 %", "92 mg/dL", "Negative". */
+export function labValueText(r: Pick<LabResult, 'value' | 'valueText' | 'unit'>): string {
+  if (r.value === null) {
+    return r.valueText ?? '';
+  }
+  return r.unit ? `${number(r.value)} ${r.unit}` : number(r.value);
+}
+
+/** The lab's reference range as printed: "4–5.6", "below 100", "above 40", or null without one. */
+export function labRangeText(r: Pick<LabResult, 'rangeLow' | 'rangeHigh'>): string | null {
+  if (r.rangeLow !== null && r.rangeHigh !== null) {
+    return `${number(r.rangeLow)}–${number(r.rangeHigh)}`;
+  }
+  if (r.rangeHigh !== null) {
+    return `below ${number(r.rangeHigh)}`;
+  }
+  return r.rangeLow !== null ? `above ${number(r.rangeLow)}` : null;
 }

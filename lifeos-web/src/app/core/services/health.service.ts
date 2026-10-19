@@ -261,6 +261,78 @@ export interface NutritionTrendDay {
   meals: number;
 }
 
+export type LabFlag = 'Low' | 'Normal' | 'High';
+
+export interface LabResult {
+  id: number;
+  testName: string;
+  takenOn: string;
+  value: number | null;
+  valueText: string | null;
+  unit: string | null;
+  rangeLow: number | null;
+  rangeHigh: number | null;
+  laboratory: string | null;
+  visitId: number | null;
+  notes: string | null;
+  flag: LabFlag | null;
+}
+
+export type LabResultPayload = Omit<LabResult, 'id' | 'flag'> & { today: string };
+
+export interface LabTest {
+  testName: string;
+  unit: string | null;
+  /** Newest first. */
+  results: LabResult[];
+  latestOutOfRange: boolean;
+}
+
+export interface WellnessCheckIn {
+  day: string;
+  stressLevel: number | null;
+  energyLevel: number | null;
+  notes: string | null;
+}
+
+export interface WellnessDay {
+  day: string;
+  mood: number | null;
+  stressLevel: number | null;
+  energyLevel: number | null;
+}
+
+export interface Wellness {
+  days: WellnessDay[];
+  today: WellnessCheckIn | null;
+  averageMood: number | null;
+  averageStress: number | null;
+  averageEnergy: number | null;
+}
+
+export const GOAL_TARGET_KINDS = [
+  'Weight',
+  'BodyFat',
+  'Waist',
+  'Chest',
+  'Hips',
+  'RestingHeartRate',
+  'BloodSugar',
+] as const;
+export type GoalTargetKind = (typeof GOAL_TARGET_KINDS)[number];
+
+export interface GoalTarget {
+  goalId: number;
+  goalTitle: string;
+  kind: GoalTargetKind;
+  unit: string;
+  startValue: number;
+  targetValue: number;
+  latestValue: number | null;
+  latestOn: string | null;
+  percent: number;
+}
+
 /** Thrown when Health is locked and the user dismissed the password prompt. */
 export class HealthLockedError extends Error {
   constructor() {
@@ -609,6 +681,89 @@ export class HealthService {
         headers: this.vault.headers(),
       }),
     ).pipe(map((response) => response.data!));
+  }
+
+  // ---- Labs, wellness, goal targets ----
+
+  labTests(): Observable<LabTest[]> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<LabTest[]>>(`${this.base}/LabResults`, {
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data ?? []));
+  }
+
+  labResult(id: number): Observable<LabResult> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<LabResult>>(`${this.base}/LabResults/${id}`, {
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data!));
+  }
+
+  saveLabResult(id: number | null, payload: LabResultPayload): Observable<LabResult> {
+    return this.save<LabResult>('LabResults', id, payload);
+  }
+
+  removeLabResult(id: number): Observable<void> {
+    return this.remove(`LabResults/${id}`).pipe(tap(() => this.remindersService.notifyChanged()));
+  }
+
+  wellness(from: string, to: string, today: string): Observable<Wellness> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<Wellness>>(`${this.base}/Wellness`, {
+        params: { from, to, today },
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data!));
+  }
+
+  /** Saves the day's check-in; null back when it was all blank (removed). */
+  saveCheckIn(
+    day: string,
+    payload: {
+      stressLevel: number | null;
+      energyLevel: number | null;
+      notes: string | null;
+      today: string;
+    },
+  ): Observable<WellnessCheckIn | null> {
+    return this.guarded(() =>
+      this.http.put<ApiResponse<WellnessCheckIn | null>>(`${this.base}/Wellness/${day}`, payload, {
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data ?? null));
+  }
+
+  goalTargets(): Observable<GoalTarget[]> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<GoalTarget[]>>(`${this.base}/GoalTargets`, {
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data ?? []));
+  }
+
+  goalTarget(goalId: number): Observable<GoalTarget | null> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<GoalTarget | null>>(`${this.base}/GoalTargets/${goalId}`, {
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data ?? null));
+  }
+
+  saveGoalTarget(
+    goalId: number,
+    payload: { kind: GoalTargetKind; startValue: number | null; targetValue: number },
+  ): Observable<GoalTarget | null> {
+    return this.guarded(() =>
+      this.http.put<ApiResponse<GoalTarget | null>>(`${this.base}/GoalTargets/${goalId}`, payload, {
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data ?? null));
+  }
+
+  removeGoalTarget(goalId: number): Observable<void> {
+    return this.remove(`GoalTargets/${goalId}`);
   }
 
   /** POST for a new one, PUT to `{path}/{id}` for an existing one. */

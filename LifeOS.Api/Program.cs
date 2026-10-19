@@ -130,6 +130,9 @@ try
     builder.Services.AddScoped<ISleepService, SleepService>();
     builder.Services.AddScoped<IMeasurementsService, MeasurementsService>();
     builder.Services.AddScoped<INutritionService, NutritionService>();
+    builder.Services.AddScoped<ILabResultsService, LabResultsService>();
+    builder.Services.AddScoped<IWellnessService, WellnessService>();
+    builder.Services.AddScoped<IGoalTargetsService, GoalTargetsService>();
     builder.Services.AddScoped<IStatementImportService, StatementImportService>();
     builder.Services.AddScoped<IFinanceReportsService, FinanceReportsService>();
     builder.Services.AddScoped<IAccountDataService, AccountDataService>();
@@ -182,6 +185,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, DoctorVisitLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, MedicationLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, MedicalConditionLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, LabResultLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

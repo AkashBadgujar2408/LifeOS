@@ -62,6 +62,7 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   DoctorVisit: 'bi-hospital',
   Medication: 'bi-capsule',
   MedicalCondition: 'bi-heart-pulse',
+  LabResult: 'bi-clipboard2-data',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -107,4 +108,5 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   DoctorVisit: 'Doctor visits',
   Medication: 'Medicines',
   MedicalCondition: 'Medical history',
+  LabResult: 'Lab results',
 };

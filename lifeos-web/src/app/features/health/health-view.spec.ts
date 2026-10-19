@@ -4,6 +4,8 @@ import {
   followUpsDue,
   medicationGroups,
   changeText,
+  labRangeText,
+  labValueText,
   durationText,
   measurementText,
   medicationState,
@@ -163,5 +165,14 @@ describe('health view', () => {
       { day: '2026-10-18', minutes: 480 },
       { day: '2026-10-19', minutes: null },
     ]);
+  });
+
+  it('writes lab values and ranges as a report does', () => {
+    expect(labValueText({ value: 5.9, valueText: null, unit: '%' })).toBe('5.9 %');
+    expect(labValueText({ value: null, valueText: 'Negative', unit: null })).toBe('Negative');
+    expect(labRangeText({ rangeLow: 4, rangeHigh: 5.6 })).toBe('4–5.6');
+    expect(labRangeText({ rangeLow: null, rangeHigh: 100 })).toBe('below 100');
+    expect(labRangeText({ rangeLow: 40, rangeHigh: null })).toBe('above 40');
+    expect(labRangeText({ rangeLow: null, rangeHigh: null })).toBeNull();
   });
 });

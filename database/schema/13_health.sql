@@ -361,3 +361,55 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('health.LabResults') AND name = 'IX_LabResults_User_Test_TakenOn')
     CREATE INDEX IX_LabResults_User_Test_TakenOn ON health.LabResults(UserId, TestName, TakenOn) WHERE IsDeleted = 0;
 GO
+
+-- Session 65. How a day felt, besides the journal's mood: stress (1 calm ... 5 overwhelmed) and energy (1 drained
+-- ... 5 full of it), one check-in per day, rewritten in place. Mood itself stays in journal.JournalEntries.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('health.WellnessCheckIns'))
+BEGIN
+    CREATE TABLE health.WellnessCheckIns
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_WellnessCheckIns PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_WellnessCheckIns_Users REFERENCES shared.Users(Id),
+        CheckInOn       DATE              NOT NULL,
+        StressLevel     TINYINT           NULL     CONSTRAINT CK_WellnessCheckIns_StressLevel CHECK (StressLevel BETWEEN 1 AND 5),
+        EnergyLevel     TINYINT           NULL     CONSTRAINT CK_WellnessCheckIns_EnergyLevel CHECK (EnergyLevel BETWEEN 1 AND 5),
+        Notes           NVARCHAR(MAX)     NULL     CONSTRAINT CK_WellnessCheckIns_NotesEncrypted CHECK (Notes LIKE 'CfDJ8%'),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_WellnessCheckIns_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_WellnessCheckIns_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_WellnessCheckIns_NotEmpty CHECK (StressLevel IS NOT NULL OR EnergyLevel IS NOT NULL OR Notes IS NOT NULL)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('health.WellnessCheckIns') AND name = 'UX_WellnessCheckIns_User_Day')
+    CREATE UNIQUE INDEX UX_WellnessCheckIns_User_Day ON health.WellnessCheckIns(UserId, CheckInOn) WHERE IsDeleted = 0;
+GO
+
+-- Session 65. A goal measured by the body ("Weigh 75 kg"): which measurement kind, where it started and where it
+-- should get to. Kept here, behind the vault, rather than on goals.Goals (which isn't locked). Progress is computed
+-- from the latest measurement — never stored. One per goal; a goal's delete removes it.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('health.GoalTargets'))
+BEGIN
+    CREATE TABLE health.GoalTargets
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_GoalTargets PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_GoalTargets_Users REFERENCES shared.Users(Id),
+        GoalId          INT               NOT NULL CONSTRAINT FK_GoalTargets_Goals REFERENCES goals.Goals(Id),
+        Kind            NVARCHAR(20)      NOT NULL CONSTRAINT CK_GoalTargets_Kind
+                            CHECK (Kind IN ('Weight', 'BodyFat', 'Waist', 'Chest', 'Hips', 'RestingHeartRate', 'BloodSugar')),
+        StartValue      DECIMAL(7, 2)     NOT NULL CONSTRAINT CK_GoalTargets_StartValue CHECK (StartValue > 0),
+        TargetValue     DECIMAL(7, 2)     NOT NULL CONSTRAINT CK_GoalTargets_TargetValue CHECK (TargetValue > 0),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_GoalTargets_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_GoalTargets_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_GoalTargets_Moves CHECK (StartValue <> TargetValue)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('health.GoalTargets') AND name = 'UX_GoalTargets_Goal')
+    CREATE UNIQUE INDEX UX_GoalTargets_Goal ON health.GoalTargets(GoalId) WHERE IsDeleted = 0;
+GO

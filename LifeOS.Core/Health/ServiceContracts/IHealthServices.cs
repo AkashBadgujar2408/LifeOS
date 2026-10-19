@@ -131,3 +131,39 @@ public interface INutritionService
 
     Task<OperationResult<NutritionDayDto>> RemoveWaterAsync(int id);
 }
+
+/// <summary>Lab results, grouped by test.</summary>
+public interface ILabResultsService
+{
+    Task<List<LabTestDto>> GetTestsAsync();
+
+    Task<OperationResult<LabResultDto>> GetAsync(int id);
+
+    Task<OperationResult<LabResultDto>> CreateAsync(LabResultRequest request);
+
+    Task<OperationResult<LabResultDto>> UpdateAsync(int id, LabResultRequest request);
+
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+/// <summary>Stress and energy check-ins, read beside the journal's mood.</summary>
+public interface IWellnessService
+{
+    Task<WellnessDto> GetAsync(DateOnly from, DateOnly to, DateOnly today);
+
+    /// <summary>Creates or rewrites the day's check-in; all blank removes it.</summary>
+    Task<OperationResult<WellnessCheckInDto?>> SaveAsync(DateOnly day, WellnessCheckInRequest request);
+}
+
+/// <summary>Goals measured by the body.</summary>
+public interface IGoalTargetsService
+{
+    Task<List<GoalTargetDto>> GetAllAsync();
+
+    /// <summary>Null data when the goal has no health target.</summary>
+    Task<OperationResult<GoalTargetDto?>> GetAsync(int goalId);
+
+    Task<OperationResult<GoalTargetDto?>> SaveAsync(int goalId, GoalTargetRequest request);
+
+    Task<OperationResult<bool>> DeleteAsync(int goalId);
+}

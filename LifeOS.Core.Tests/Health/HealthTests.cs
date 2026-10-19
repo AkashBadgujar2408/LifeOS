@@ -24,7 +24,7 @@ public class HealthTests
 
         Assert.Equal(
             ["BodyMeasurement.Notes", "DoctorVisit.Notes", "HealthProfile.Notes", "LabResult.Notes", "Meal.Notes",
-             "MedicalCondition.Notes", "Medication.Notes", "SleepRecord.Notes", "Workout.Notes"],
+             "MedicalCondition.Notes", "Medication.Notes", "SleepRecord.Notes", "WellnessCheckIn.Notes", "Workout.Notes"],
             encrypted);
         // Notes elsewhere (a goal's, an account's) stay plain.
         Assert.Null(db.Model.FindEntityType(typeof(Account))!.FindProperty(nameof(Account.Notes))!.GetValueConverter());

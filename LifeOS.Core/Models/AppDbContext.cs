@@ -73,6 +73,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<GoalTag> GoalTags { get; set; }
 
+    public virtual DbSet<GoalTarget> GoalTargets { get; set; }
+
     public virtual DbSet<Habit> Habits { get; set; }
 
     public virtual DbSet<HabitChallenge> HabitChallenges { get; set; }
@@ -196,6 +198,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WaterIntake> WaterIntakes { get; set; }
 
     public virtual DbSet<WeeklyReflection> WeeklyReflections { get; set; }
+
+    public virtual DbSet<WellnessCheckIn> WellnessCheckIns { get; set; }
 
     public virtual DbSet<Workout> Workouts { get; set; }
 
@@ -959,6 +963,30 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_GoalTags_Users");
+        });
+
+        modelBuilder.Entity<GoalTarget>(entity =>
+        {
+            entity.ToTable("GoalTargets", "health");
+
+            entity.HasIndex(e => e.GoalId, "UX_GoalTargets_Goal")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_GoalTargets_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.StartValue).HasColumnType("decimal(7, 2)");
+            entity.Property(e => e.TargetValue).HasColumnType("decimal(7, 2)");
+
+            entity.HasOne(d => d.Goal).WithOne(p => p.GoalTarget)
+                .HasForeignKey<GoalTarget>(d => d.GoalId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalTargets_Goals");
+
+            entity.HasOne(d => d.User).WithMany(p => p.GoalTargets)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalTargets_Users");
         });
 
         modelBuilder.Entity<Habit>(entity =>
@@ -2453,6 +2481,22 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WeeklyReflections_Users");
+        });
+
+        modelBuilder.Entity<WellnessCheckIn>(entity =>
+        {
+            entity.ToTable("WellnessCheckIns", "health");
+
+            entity.HasIndex(e => new { e.UserId, e.CheckInOn }, "UX_WellnessCheckIns_User_Day")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_WellnessCheckIns_CreatedAt");
+
+            entity.HasOne(d => d.User).WithMany(p => p.WellnessCheckIns)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WellnessCheckIns_Users");
         });
 
         modelBuilder.Entity<Workout>(entity =>

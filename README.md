@@ -3,7 +3,8 @@
 A personal "life operating system": goals, tasks and projects, calendar and reminders, habits, a journal, documents
 with an encrypted vault, learning (skills, courses, books, roadmaps, study time), career (roles, pay, applications,
 interviews, network), finance (multi-currency accounts, ledger, budgets, investments, loans, insurance, taxes, net
-worth), a **Story Mode** that reads your life as a biography, and a daily **My Day** dashboard that ties them
+worth), health (history, visits, medicines, exercise, sleep, body, food, labs, wellbeing — encrypted and behind
+the vault), a **Story Mode** that reads your life as a biography, and a daily **My Day** dashboard that ties them
 together. Everything links to everything else (a task to the goal it serves, a
 habit to its goal, a reminder to any of them). It's built to *improve* a life, not just log it, so it also gives
 plain, rule-based nudges ("your reading streak broke on Wednesday", "this goal hasn't moved in 20 days").
@@ -18,8 +19,8 @@ It runs on your own machine. It's multi-user at the data layer (registration + l
 
 ## Status
 
-Month 1 (the seven core modules, Sessions 1–27) and Phase 2 (Story Mode, Documents, Learning, Career, Finance, data
-export/import, Sessions 28–61) are complete. Next is Phase 3, starting with **Health** (Session 62).
+Month 1 (the seven core modules, Sessions 1–27), Phase 2 (Story Mode, Documents, Learning, Career, Finance, data
+export/import, Sessions 28–61) and Health (Sessions 62–65, encrypted and behind the vault) are complete. Next is **Home** (Session 66).
 
 **The main document is [`LifeOS_Development_Plan.md`](LifeOS_Development_Plan.md)**: what LifeOS is, every decision
 and deviation from the original blueprint, the session-by-session roadmap with what's done, and the backlog for

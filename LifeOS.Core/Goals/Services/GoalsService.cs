@@ -235,6 +235,10 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         await db.RoadmapSteps
             .Where(r => r.GoalId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.GoalId, (int?)null).SetProperty(r => r.UpdatedAt, now));
+        // A health target (Session 65) belongs to the goal.
+        await db.GoalTargets
+            .Where(t => t.GoalId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsDeleted, true).SetProperty(t => t.DeletedAt, now));
 
         goal.IsDeleted = true;
         goal.DeletedAt = now;

@@ -82,6 +82,8 @@ export class HealthTrend {
   readonly format = input<(value: number) => string>((value) => String(value));
   /** Start the value axis at zero (amounts) or let it fit the data (a weight). */
   readonly fromZero = input(true);
+  /** A fixed value axis (a 1–5 scale), instead of fitting the data. */
+  readonly range = input<readonly [number, number] | null>(null);
   readonly height = input(200);
   /** What the chart says, for screen readers (the page shows it as text too). */
   readonly summary = input.required<string>();
@@ -148,6 +150,8 @@ export class HealthTrend {
       scales: {
         y: {
           beginAtZero: this.fromZero(),
+          min: this.range()?.[0],
+          max: this.range()?.[1],
           border: { display: false },
           grid: { color: grid },
           ticks: {

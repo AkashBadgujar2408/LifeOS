@@ -190,3 +190,7 @@ public partial class SleepRecord : ISoftDeletable, IUserOwned;
 public partial class BodyMeasurement : ISoftDeletable, IUserOwned;
 
 public partial class LabResult : ISoftDeletable, IUserOwned;
+
+public partial class WellnessCheckIn : ISoftDeletable, IUserOwned;
+
+public partial class GoalTarget : ISoftDeletable, IUserOwned;

@@ -116,3 +116,30 @@ public class MedicalConditionLinkableProvider(AppDbContext db, IServiceProvider 
             .ToListAsync();
     }
 }
+
+/// <summary>A lab result titled "HbA1c · 14/Oct/2026".</summary>
+public class LabResultLinkableProvider(AppDbContext db, IServiceProvider services) : HealthLinkableProvider(db, services)
+{
+    public const string Type = "LabResult";
+
+    public override string EntityType => Type;
+
+    public override string DisplayName => "Lab result";
+
+    protected override async Task<Dictionary<int, string>> TitlesAsync(IReadOnlyCollection<int> ids) =>
+        (await Db.LabResults.Where(r => ids.Contains(r.Id)).Select(r => new { r.Id, r.TestName, r.TakenOn }).ToListAsync())
+        .ToDictionary(r => r.Id, r => $"{r.TestName} · {Day(r.TakenOn)}");
+
+    protected override async Task<List<LinkableItemDto>> FindAsync(string? search, int take)
+    {
+        var query = Db.LabResults.AsQueryable();
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(r => r.TestName.Contains(search) || (r.Laboratory != null && r.Laboratory.Contains(search)));
+        }
+
+        return (await query.OrderByDescending(r => r.TakenOn).Take(take).Select(r => new { r.Id, r.TestName, r.TakenOn }).ToListAsync())
+            .Select(r => new LinkableItemDto { EntityType = Type, EntityId = r.Id, Title = $"{r.TestName} · {Day(r.TakenOn)}" })
+            .ToList();
+    }
+}

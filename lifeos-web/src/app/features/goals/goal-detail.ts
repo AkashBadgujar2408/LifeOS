@@ -5,6 +5,7 @@ import {
   Injector,
   OnInit,
   afterNextRender,
+  computed,
   LOCALE_ID,
   inject,
   input,
@@ -31,6 +32,8 @@ import { EntityReminders } from '../../shared/components/entity-reminders/entity
 import { MissionLinks } from '../story/mission-links';
 import { GoalTrend } from './goal-trend';
 import { SavingsProgress } from '../finance/savings-progress';
+import { GoalTargetCard } from '../health/goal-target-card';
+import { SettingsService } from '../../core/services/settings.service';
 import { itemTitle } from '../../core/layout/item-title';
 import { openMissionPassed } from '../story/mission-passed';
 import {
@@ -64,6 +67,7 @@ const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(20
     MissionLinks,
     GoalTrend,
     SavingsProgress,
+    GoalTargetCard,
   ],
   templateUrl: './goal-detail.html',
 })
@@ -76,6 +80,11 @@ export class GoalDetail implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly locale = inject(LOCALE_ID);
+  /** Health targets show only while the Health module is on. */
+  private readonly settingsService = inject(SettingsService);
+  protected readonly healthHidden = computed(() =>
+    this.settingsService.hiddenModules().has('Health'),
+  );
 
   readonly id = input.required<string>();
 

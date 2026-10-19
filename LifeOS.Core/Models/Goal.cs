@@ -41,6 +41,8 @@ public partial class Goal
 
     public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
 
+    public virtual GoalTarget? GoalTarget { get; set; }
+
     public virtual LifeArea LifeArea { get; set; } = null!;
 
     public virtual MissionDebrief? MissionDebrief { get; set; }

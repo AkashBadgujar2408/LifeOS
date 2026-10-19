@@ -318,6 +318,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/health/nutrition').then((m) => m.HealthNutrition),
       },
       {
+        path: 'health/labs',
+        title: 'Lab results | LifeOS',
+        loadComponent: () => import('./features/health/labs').then((m) => m.HealthLabs),
+      },
+      {
+        path: 'health/wellness',
+        title: 'Wellbeing | LifeOS',
+        loadComponent: () => import('./features/health/wellness').then((m) => m.HealthWellness),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

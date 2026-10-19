@@ -89,6 +89,8 @@ public partial class User
 
     public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
 
+    public virtual ICollection<GoalTarget> GoalTargets { get; set; } = new List<GoalTarget>();
+
     public virtual ICollection<Goal> Goals { get; set; } = new List<Goal>();
 
     public virtual ICollection<HabitChallenge> HabitChallenges { get; set; } = new List<HabitChallenge>();
@@ -210,6 +212,8 @@ public partial class User
     public virtual ICollection<WaterIntake> WaterIntakes { get; set; } = new List<WaterIntake>();
 
     public virtual ICollection<WeeklyReflection> WeeklyReflections { get; set; } = new List<WeeklyReflection>();
+
+    public virtual ICollection<WellnessCheckIn> WellnessCheckIns { get; set; } = new List<WellnessCheckIn>();
 
     public virtual ICollection<Workout> Workouts { get; set; } = new List<Workout>();
 }

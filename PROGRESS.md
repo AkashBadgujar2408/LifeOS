@@ -1012,3 +1012,12 @@
 - Test data: `health64` (workouts, three nights + a nap, weights, two BP readings, meals, water).
 
 - Next up: **Session 65 — Health 4** (labs, mental wellness, health goals, export check).
+
+## Last session: 2026-10-19 — Session 65 — Health 4: labs, wellbeing, health goals
+- Shipped: `13_health.sql` upgrade (`WellnessCheckIns`, `GoalTargets`; UAT backed up, `LifeOS_UAT_pre65.bak`), `LabResultsService`, `WellnessService`, `GoalTargetsService`, pure `HealthRecordRules` (6 xUnit cases + the encrypted-columns list), `LabResult` provider, goal delete removes its target; client `/health/labs` + lab editor, `/health/wellness`, `<app-goal-target-card>` on Health-area goal pages, "Keeping an eye on" on `/health`, an optional fixed range on `<app-health-trend>`; `labValueText`/`labRangeText` (+ spec). README now lists Health.
+- Verified: see plan row 65 — including the export → import → permanent-deletion round trip with every health table. 406 backend + 227 frontend tests, all six zones; fresh DB scaffolds identically; NuGet audit clean.
+- Decisions (mine — say if you want them changed): stress and energy are their own 1–5 check-in (mood stays the journal's); a lab test is matched by name in any case and shown with the spelling used most; "in range" includes both ends; a health goal's start defaults to the latest reading, its progress is clamped to 0–100 and moving the wrong way shows 0, never negative; health goals keep their numbers in the health schema, so the goal page asks for the unlock only when you press the button.
+- The Health module (Sessions 62–65) is done. Session 75 (Phase 3 polish) still reviews encryption/unlock on Health as planned.
+- Test data: `health64` (labs, check-ins, "Resting pulse under 60" now a weight target); `h65copy` was imported and then permanently deleted.
+
+- Next up: **Session 66 — Home 1** (plan, Section 7).

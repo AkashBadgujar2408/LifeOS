@@ -122,3 +122,76 @@ public class NutritionController(INutritionService nutritionService) : HealthLog
     [HttpDelete("water/{id:int}")]
     public async Task<IActionResult> RemoveWater(int id) => Result(await nutritionService.RemoveWaterAsync(id));
 }
+
+[ApiController]
+[Area("Health")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+[VaultUnlockRequired]
+public class LabResultsController(ILabResultsService labResultsService) : HealthLogController
+{
+    /// <summary>GET api/Health/LabResults — every test with its history (newest first), out of range first.</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetTests() =>
+        Ok(ApiResponse<List<LabTestDto>>.Ok(await labResultsService.GetTestsAsync()));
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id)
+    {
+        var result = await labResultsService.GetAsync(id);
+        return result.Success ? Ok(ApiResponse<LabResultDto>.Ok(result.Data)) : NotFound(ApiResponse<LabResultDto>.Fail(result.Error!));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create(LabResultRequest request) => Result(await labResultsService.CreateAsync(request));
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, LabResultRequest request) => Result(await labResultsService.UpdateAsync(id, request));
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id) => Deleted(await labResultsService.DeleteAsync(id));
+}
+
+[ApiController]
+[Area("Health")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+[VaultUnlockRequired]
+public class WellnessController(IWellnessService wellnessService) : HealthLogController
+{
+    /// <summary>GET api/Health/Wellness?from&amp;to&amp;today — mood (journal), stress and energy per day, with averages.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Get(DateOnly from, DateOnly to, DateOnly today) =>
+        Ok(ApiResponse<WellnessDto>.Ok(await wellnessService.GetAsync(from, to, today)));
+
+    /// <summary>PUT api/Health/Wellness/{day} — the day's check-in, rewritten; all blank removes it (data: null).</summary>
+    [HttpPut("{day}")]
+    public async Task<IActionResult> Save(DateOnly day, WellnessCheckInRequest request) => Result(await wellnessService.SaveAsync(day, request));
+}
+
+[ApiController]
+[Area("Health")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+[VaultUnlockRequired]
+public class GoalTargetsController(IGoalTargetsService goalTargetsService) : HealthLogController
+{
+    /// <summary>GET api/Health/GoalTargets — every goal with a health target and how far along it is.</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAll() =>
+        Ok(ApiResponse<List<GoalTargetDto>>.Ok(await goalTargetsService.GetAllAsync()));
+
+    /// <summary>GET api/Health/GoalTargets/{goalId} — data: null when the goal has none.</summary>
+    [HttpGet("{goalId:int}")]
+    public async Task<IActionResult> Get(int goalId)
+    {
+        var result = await goalTargetsService.GetAsync(goalId);
+        return result.Success ? Ok(ApiResponse<GoalTargetDto?>.Ok(result.Data)) : NotFound(ApiResponse<GoalTargetDto?>.Fail(result.Error!));
+    }
+
+    [HttpPut("{goalId:int}")]
+    public async Task<IActionResult> Save(int goalId, GoalTargetRequest request) => Result(await goalTargetsService.SaveAsync(goalId, request));
+
+    [HttpDelete("{goalId:int}")]
+    public async Task<IActionResult> Delete(int goalId) => Deleted(await goalTargetsService.DeleteAsync(goalId));
+}

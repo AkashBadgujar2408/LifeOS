@@ -16,9 +16,11 @@ import { todayIso } from '../../core/dates/today';
 import {
   DoctorVisit,
   Fitness,
+  GoalTarget,
   HealthLockedError,
   HealthProfile,
   HealthService,
+  LabTest,
   MedicalCondition,
   MeasurementLatest,
   NutritionDay,
@@ -26,7 +28,14 @@ import {
 } from '../../core/services/health.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
-import { durationText, followUpsDue, measurementText, visitBuckets } from './health-view';
+import {
+  durationText,
+  followUpsDue,
+  labRangeText,
+  labValueText,
+  measurementText,
+  visitBuckets,
+} from './health-view';
 import { openProfileEditor } from './profile-editor';
 import { TodaysDoses } from './todays-doses';
 import { openVisitEditor } from './visit-editor';
@@ -154,6 +163,60 @@ import { openVisitEditor } from './visit-editor';
               </div>
             </div>
           </div>
+          @if (outOfRange().length || d.goals.length) {
+            <div class="col-12">
+              <div class="card">
+                <div class="card-body">
+                  <h2 class="h5">Keeping an eye on</h2>
+                  <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                    @for (t of outOfRange(); track t.testName) {
+                      <li class="d-flex gap-2">
+                        <i
+                          class="bi {{
+                            t.results[0].flag === 'High' ? 'bi-arrow-up' : 'bi-arrow-down'
+                          }} mt-1 text-danger-emphasis"
+                          aria-hidden="true"
+                        ></i>
+                        <div class="min-w-0">
+                          <a class="fw-semibold" routerLink="/health/labs">{{ t.testName }}</a>
+                          <span class="small">
+                            {{ labValue(t.results[0]) }} —
+                            {{ t.results[0].flag === 'High' ? 'above' : 'below' }}
+                            {{ labRange(t.results[0]) }}</span
+                          >
+                          <div class="small text-body-secondary">
+                            {{ t.results[0].takenOn | date }}
+                          </div>
+                        </div>
+                      </li>
+                    }
+                    @for (g of d.goals; track g.goalId) {
+                      <li class="d-flex gap-2 align-items-center">
+                        <i class="bi bi-flag mt-1" aria-hidden="true"></i>
+                        <div class="min-w-0 flex-grow-1">
+                          <a class="fw-semibold" [routerLink]="['/goals', g.goalId]">{{
+                            g.goalTitle
+                          }}</a>
+                          <div
+                            class="progress mt-1"
+                            style="height: 6px"
+                            role="progressbar"
+                            [attr.aria-valuenow]="g.percent"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                            [attr.aria-label]="g.goalTitle + ' ' + g.percent + '%'"
+                          >
+                            <div class="progress-bar" [style.width.%]="g.percent"></div>
+                          </div>
+                        </div>
+                        <span class="small fw-semibold">{{ g.percent }}%</span>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </div>
+            </div>
+          }
           <div class="col-12">
             <div class="card">
               <div class="card-body">
@@ -220,6 +283,8 @@ export class Health {
     sleep: SleepSummary;
     measurements: MeasurementLatest[];
     nutrition: NutritionDay;
+    labs: LabTest[];
+    goals: GoalTarget[];
   } | null>(null);
   protected readonly loadFailed = signal<string | null>(null);
   private readonly today = todayIso();
@@ -258,6 +323,11 @@ export class Health {
       { label: 'Water today', value: `${d.nutrition.waterMl} ml`, link: '/health/nutrition' },
     ];
   });
+  protected readonly labValue = labValueText;
+  protected readonly labRange = labRangeText;
+  protected readonly outOfRange = computed(() =>
+    (this.data()?.labs ?? []).filter((t) => t.latestOutOfRange),
+  );
   protected readonly followUps = computed(() =>
     followUpsDue(this.data()?.visits ?? [], this.today),
   );
@@ -275,6 +345,8 @@ export class Health {
       sleep: this.healthService.sleep(this.today, this.today, this.today),
       measurements: this.healthService.latestMeasurements(),
       nutrition: this.healthService.nutritionDay(this.today),
+      labs: this.healthService.labTests(),
+      goals: this.healthService.goalTargets(),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

@@ -167,6 +167,8 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Sleep', route: '/health/sleep', icon: 'bi-moon-stars', module: 'Health' },
       { label: 'Body', route: '/health/body', icon: 'bi-rulers', module: 'Health' },
       { label: 'Food & water', route: '/health/nutrition', icon: 'bi-cup-straw', module: 'Health' },
+      { label: 'Lab results', route: '/health/labs', icon: 'bi-clipboard2-data', module: 'Health' },
+      { label: 'Wellbeing', route: '/health/wellness', icon: 'bi-emoji-smile', module: 'Health' },
     ],
   },
   {

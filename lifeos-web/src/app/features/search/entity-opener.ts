@@ -28,6 +28,7 @@ import { todayIso } from '../../core/dates/today';
 import { openVisitEditor } from '../health/visit-editor';
 import { openMedicationEditor } from '../health/medication-editor';
 import { openConditionEditor } from '../health/condition-editor';
+import { openLabEditor } from '../health/lab-editor';
 import { apiErrorMessage } from '../../core/services/api-error';
 
 /**
@@ -111,6 +112,16 @@ export class EntityOpener {
             }
           },
           error: (err) => this.healthOpenFailed(err, 'Could not open the medicine.'),
+        });
+        break;
+      case 'LabResult':
+        this.healthService.labResult(entityId).subscribe({
+          next: async (result) => {
+            if (await openLabEditor(this.modal, result)) {
+              this.toast.success('Saved.');
+            }
+          },
+          error: (err) => this.healthOpenFailed(err, 'Could not open the result.'),
         });
         break;
       case 'MedicalCondition':

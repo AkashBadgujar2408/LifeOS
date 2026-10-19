@@ -455,3 +455,136 @@ public class NutritionTrendDayDto
     public int WaterMl { get; init; }
     public int Meals { get; init; }
 }
+
+// ---- Lab results ----
+
+/// <summary>Where a result sits against the lab's range. Null when it can't be said (a word result, no range).</summary>
+public static class LabFlags
+{
+    public const string Low = "Low";
+    public const string Normal = "Normal";
+    public const string High = "High";
+}
+
+public class LabResultDto
+{
+    public int Id { get; init; }
+    public string TestName { get; init; } = string.Empty;
+    public DateOnly TakenOn { get; init; }
+    public decimal? Value { get; init; }
+    public string? ValueText { get; init; }
+    public string? Unit { get; init; }
+    public decimal? RangeLow { get; init; }
+    public decimal? RangeHigh { get; init; }
+    public string? Laboratory { get; init; }
+    public int? VisitId { get; init; }
+    public string? Notes { get; init; }
+    public string? Flag { get; init; }
+}
+
+public class LabResultRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string TestName { get; init; } = string.Empty;
+
+    public DateOnly TakenOn { get; init; }
+    public decimal? Value { get; init; }
+
+    [StringLength(100)]
+    public string? ValueText { get; init; }
+
+    [StringLength(30)]
+    public string? Unit { get; init; }
+
+    public decimal? RangeLow { get; init; }
+    public decimal? RangeHigh { get; init; }
+
+    [StringLength(200)]
+    public string? Laboratory { get; init; }
+
+    public int? VisitId { get; init; }
+
+    [StringLength(HealthLimits.NotesLength)]
+    public string? Notes { get; init; }
+
+    public DateOnly Today { get; init; }
+}
+
+/// <summary>One test's history (same name, any case), newest result first.</summary>
+public class LabTestDto
+{
+    public string TestName { get; init; } = string.Empty;
+    public string? Unit { get; init; }
+    public List<LabResultDto> Results { get; init; } = [];
+    /// <summary>The latest result is outside its range.</summary>
+    public bool LatestOutOfRange { get; init; }
+}
+
+// ---- Mental wellness ----
+
+public class WellnessCheckInDto
+{
+    public DateOnly Day { get; init; }
+    public byte? StressLevel { get; init; }
+    public byte? EnergyLevel { get; init; }
+    public string? Notes { get; init; }
+}
+
+public class WellnessCheckInRequest
+{
+    public byte? StressLevel { get; init; }
+    public byte? EnergyLevel { get; init; }
+
+    [StringLength(HealthLimits.NotesLength)]
+    public string? Notes { get; init; }
+
+    public DateOnly Today { get; init; }
+}
+
+public class WellnessDayDto
+{
+    public DateOnly Day { get; init; }
+    /// <summary>The journal entry's mood that day (1–5), if any.</summary>
+    public byte? Mood { get; init; }
+    public byte? StressLevel { get; init; }
+    public byte? EnergyLevel { get; init; }
+}
+
+public class WellnessDto
+{
+    /// <summary>Every day from..to, oldest first.</summary>
+    public List<WellnessDayDto> Days { get; init; } = [];
+    public WellnessCheckInDto? Today { get; init; }
+    public decimal? AverageMood { get; init; }
+    public decimal? AverageStress { get; init; }
+    public decimal? AverageEnergy { get; init; }
+}
+
+// ---- Health goals ----
+
+/// <summary>A goal measured by the body: from where it started to the target, with the latest reading.</summary>
+public class GoalTargetDto
+{
+    public int GoalId { get; init; }
+    public string GoalTitle { get; init; } = string.Empty;
+    public string Kind { get; init; } = string.Empty;
+    public string Unit { get; init; } = string.Empty;
+    public decimal StartValue { get; init; }
+    public decimal TargetValue { get; init; }
+    public decimal? LatestValue { get; init; }
+    public DateOnly? LatestOn { get; init; }
+    /// <summary>Of the way from start to target, 0–100 (overshooting counts as 100).</summary>
+    public int Percent { get; init; }
+}
+
+public class GoalTargetRequest
+{
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    /// <summary>Blank = the latest measurement of that kind.</summary>
+    public decimal? StartValue { get; init; }
+
+    public decimal TargetValue { get; init; }
+}
