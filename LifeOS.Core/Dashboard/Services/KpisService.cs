@@ -3,6 +3,8 @@ using Dapper;
 using LifeOS.Core.Calendar.Services;
 using LifeOS.Core.Dashboard.DTOs;
 using LifeOS.Core.Dashboard.ServiceContracts;
+using LifeOS.Core.Finance.DTOs;
+using LifeOS.Core.Finance.ServiceContracts;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.Services;
@@ -15,7 +17,7 @@ namespace LifeOS.Core.Dashboard.Services;
 /// Personal KPI tiles: which ones are stored per user (dashboard.KpiTiles), the numbers never are — they come from
 /// dashboard.GetKpiFacts (three result sets, read in order) plus KpiFigures for habit consistency.
 /// </summary>
-public class KpisService(AppDbContext db) : IKpisService
+public class KpisService(AppDbContext db, IWealthService wealthService) : IKpisService
 {
     public async Task<OperationResult<KpisDto>> GetAsync(DateOnly today, string? timeZoneId)
     {
@@ -32,6 +34,10 @@ public class KpisService(AppDbContext db) : IKpisService
         {
             return OperationResult<KpisDto>.Ok(new KpisDto { Available = [.. KpiFigures.All] });
         }
+
+        // Net worth comes from the Finance picture (NetWorth.At), fetched before the facts reader opens — one
+        // connection runs one command at a time. Compared with the last month end before today.
+        NetWorthDto? worth = chosen.Contains(KpiKeys.NetWorth) ? await wealthService.GetNetWorthAsync(today) : null;
 
         var windows = KpiWindows.For(today);
         DateTime Utc(DateOnly day) => EventRecurrence.LocalToUtc(day.ToDateTime(TimeOnly.MinValue), zone);
@@ -59,7 +65,7 @@ public class KpisService(AppDbContext db) : IKpisService
             .GroupBy(e => e.HabitId)
             .ToDictionary(g => g.Key, g => g.Select(e => DateOnly.FromDateTime(e.EntryDate)).ToHashSet());
 
-        (int? Value, int? Previous) Figure(string key) => key switch
+        (decimal? Value, decimal? Previous) Figure(string key) => key switch
         {
             KpiKeys.TasksDoneWeek => (facts.TasksDoneThisWeek, facts.TasksDoneLastWeek),
             KpiKeys.FocusWeek => (facts.FocusMinutesThisWeek, facts.FocusMinutesLastWeek),
@@ -70,6 +76,7 @@ public class KpisService(AppDbContext db) : IKpisService
             KpiKeys.ObjectivesDone30 => (facts.ObjectivesDoneLast30, facts.ObjectivesDonePrev30),
             KpiKeys.GoalsPassedYear => (facts.GoalsPassedThisYear, null),
             KpiKeys.GoalsActive => (facts.GoalsActive, null),
+            KpiKeys.NetWorth when worth?.Currency is not null => (worth.Net, worth.History.Count >= 2 ? worth.History[^2].Net : null),
             _ => (null, null),
         };
 
@@ -88,6 +95,7 @@ public class KpisService(AppDbContext db) : IKpisService
                     Value = value,
                     Previous = previous,
                     ComparedWith = definition.ComparedWith,
+                    Currency = definition.Unit == KpiUnits.Money ? worth?.Currency : null,
                 };
             })
             .ToList();

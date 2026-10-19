@@ -146,7 +146,7 @@ export interface MyDay {
   hiddenInsightCount: number;
 }
 
-export type KpiUnit = 'Count' | 'Percent' | 'Minutes';
+export type KpiUnit = 'Count' | 'Percent' | 'Minutes' | 'Money';
 
 /** A figure that can go on My Day (KpiFigures.All on the API); its module hides it with the module. */
 export interface KpiDefinition {
@@ -162,6 +162,8 @@ export interface KpiTile extends KpiDefinition {
   /** Null when there's nothing to measure yet. */
   value: number | null;
   previous: number | null;
+  /** A money tile's currency (the base currency). */
+  currency: string | null;
 }
 
 export interface Kpis {

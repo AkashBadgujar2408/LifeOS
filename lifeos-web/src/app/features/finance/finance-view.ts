@@ -355,3 +355,31 @@ export function taxYearGroups(items: readonly TaxItem[]): TaxYearGroup[] {
 export function taxDueDays(item: Pick<TaxItem, 'dueOn' | 'doneOn'>, today: string): number | null {
   return item.doneOn || !item.dueOn ? null : daysBetween(today, item.dueOn);
 }
+
+/** The currencies an account holds, its main one first (a single-currency account holds just one). */
+export function heldCurrencies(
+  account: { currency: string; balances?: { currency: string }[] } | undefined,
+): string[] {
+  if (!account) {
+    return [];
+  }
+  return account.balances?.length ? account.balances.map((b) => b.currency) : [account.currency];
+}
+
+/**
+ * Which currency money moves in on an account: the one chosen if the account holds it, else `preferred` if held
+ * (a transfer arriving as it left), else the account's main one. Null without an account.
+ */
+export function pickCurrency(
+  held: readonly string[],
+  chosen: string | null | undefined,
+  preferred: string | null = null,
+): string | null {
+  if (held.length === 0) {
+    return null;
+  }
+  if (chosen && held.includes(chosen)) {
+    return chosen;
+  }
+  return preferred && held.includes(preferred) ? preferred : held[0];
+}

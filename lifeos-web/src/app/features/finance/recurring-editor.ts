@@ -19,7 +19,12 @@ import { RECURRENCE_FREQUENCIES, RecurrenceFrequency } from '../../core/services
 import { ToastService } from '../../core/services/toast.service';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
 import { intervalUnit } from '../calendar/event-recurrence';
-import { TRANSACTION_KIND_ICONS, TRANSACTION_KIND_LABELS } from './finance-view';
+import {
+  TRANSACTION_KIND_ICONS,
+  TRANSACTION_KIND_LABELS,
+  heldCurrencies,
+  pickCurrency,
+} from './finance-view';
 
 export type RecurringEditorResult =
   { kind: 'saved'; schedule: RecurringTransaction } | { kind: 'deleted' };
@@ -131,7 +136,7 @@ export async function openRecurringEditor(
                 </option>
                 @for (a of pickable(); track a.id) {
                   <option [ngValue]="a.id" [selected]="a.id === form.controls.fromAccountId.value">
-                    {{ a.name }} ({{ a.currency }})
+                    {{ a.name }} ({{ held(a).join(', ') }})
                   </option>
                 }
               </select>
@@ -156,7 +161,7 @@ export async function openRecurringEditor(
                 </option>
                 @for (a of pickable(); track a.id) {
                   <option [ngValue]="a.id" [selected]="a.id === form.controls.toAccountId.value">
-                    {{ a.name }} ({{ a.currency }})
+                    {{ a.name }} ({{ held(a).join(', ') }})
                   </option>
                 }
               </select>
@@ -167,6 +172,36 @@ export async function openRecurringEditor(
           }
         </div>
 
+        @if (movingHeld().length > 1 || arrivingHeld().length > 1) {
+          <div class="row g-3">
+            @if (movingHeld().length > 1) {
+              <div class="col-sm-6">
+                <label class="form-label" for="rec-currency">
+                  {{ kind() === 'Income' ? 'Arrives in' : 'Paid in' }}
+                </label>
+                <select id="rec-currency" class="form-select" formControlName="moveCurrency">
+                  @for (c of movingHeld(); track c) {
+                    <option [ngValue]="c" [selected]="c === currency()">{{ c }}</option>
+                  }
+                </select>
+              </div>
+            }
+            @if (arrivingHeld().length > 1) {
+              <div class="col-sm-6">
+                <label class="form-label" for="rec-arrive-currency">Arrives as</label>
+                <select
+                  id="rec-arrive-currency"
+                  class="form-select"
+                  formControlName="arriveCurrency"
+                >
+                  @for (c of arrivingHeld(); track c) {
+                    <option [ngValue]="c" [selected]="c === toCurrency()">{{ c }}</option>
+                  }
+                </select>
+              </div>
+            }
+          </div>
+        }
         @if (needsToAmount()) {
           <div>
             <label class="form-label" for="rec-to-amount">Arrives ({{ toCurrency() }})</label>
@@ -391,6 +426,9 @@ export class RecurringEditor {
     fromAccountId: this.fb.control<number | null>(null),
     toAccountId: this.fb.control<number | null>(null),
     toAmount: this.fb.control<number | null>(null, Validators.min(0.01)),
+    // Multi-currency accounts: the currency chosen to move in / arrive in (null: the account's main one).
+    moveCurrency: this.fb.control<string | null>(null),
+    arriveCurrency: this.fb.control<string | null>(null),
     exchangeRate: this.fb.control<number | null>(null, Validators.min(0.00000001)),
     recurrenceFrequency: this.fb.nonNullable.control<RecurrenceFrequency>('Monthly'),
     recurrenceInterval: this.fb.control<number | null>(1, [
@@ -423,14 +461,21 @@ export class RecurringEditor {
     return id == null ? undefined : this.accounts().find((a) => a.id === id);
   }
 
-  protected readonly currency = computed(() => {
+  protected readonly held = heldCurrencies;
+  protected readonly movingHeld = computed(() => {
     const v = this.value();
-    return (
-      this.account(this.kind() === 'Income' ? v.toAccountId : v.fromAccountId)?.currency ?? null
-    );
+    return heldCurrencies(this.account(this.kind() === 'Income' ? v.toAccountId : v.fromAccountId));
   });
+  protected readonly arrivingHeld = computed(() =>
+    this.kind() === 'Transfer' ? heldCurrencies(this.account(this.value().toAccountId)) : [],
+  );
+  /** The amount's currency: the one chosen on a multi-currency account, else the account's own. */
+  protected readonly currency = computed(() =>
+    pickCurrency(this.movingHeld(), this.value().moveCurrency),
+  );
+  /** What a transfer arrives in: the one chosen, else as it left if held, else the receiving account's own. */
   protected readonly toCurrency = computed(() =>
-    this.kind() === 'Transfer' ? (this.account(this.value().toAccountId)?.currency ?? null) : null,
+    pickCurrency(this.arrivingHeld(), this.value().arriveCurrency, this.currency()),
   );
   protected readonly needsToAmount = computed(() => {
     const to = this.toCurrency();
@@ -465,6 +510,8 @@ export class RecurringEditor {
       fromAccountId: schedule?.fromAccountId ?? null,
       toAccountId: schedule?.toAccountId ?? null,
       toAmount: schedule?.toAmount ?? null,
+      moveCurrency: schedule?.currency ?? null,
+      arriveCurrency: schedule ? (schedule.toCurrency ?? schedule.currency) : null,
       exchangeRate: schedule?.exchangeRate ?? null,
       recurrenceFrequency: schedule?.recurrenceFrequency ?? 'Monthly',
       recurrenceInterval: schedule?.recurrenceInterval ?? 1,
@@ -564,6 +611,8 @@ export class RecurringEditor {
         amount: v.amount!,
         exchangeRate: this.needsRate() ? v.exchangeRate : null,
         toAmount: this.needsToAmount() ? v.toAmount : null,
+        currency: this.movingHeld().length > 1 ? this.currency() : null,
+        toCurrency: this.arrivingHeld().length > 1 ? this.toCurrency() : null,
         fromAccountId: v.kind === 'Income' ? null : v.fromAccountId,
         toAccountId: v.kind === 'Expense' ? null : v.toAccountId,
         payee: v.payee.trim() || null,

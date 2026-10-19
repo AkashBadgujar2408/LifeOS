@@ -29,6 +29,8 @@ public partial class User
 
     public string? LifeVision { get; set; }
 
+    public virtual ICollection<AccountCurrency> AccountCurrencies { get; set; } = new List<AccountCurrency>();
+
     public virtual ICollection<Account> Accounts { get; set; } = new List<Account>();
 
     public virtual ICollection<ApplicationStageChange> ApplicationStageChanges { get; set; } = new List<ApplicationStageChange>();

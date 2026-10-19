@@ -93,10 +93,12 @@ public static class LoanSchedule
 
 // ---- Net worth ----
 
-public sealed record WealthAccount(int Id, string Name, string Currency, decimal OpeningBalance, DateOnly OpeningDate);
+/// <summary>An account for net worth; <paramref name="Extra"/> are a multi-currency account's other currencies (Session 61).</summary>
+public sealed record WealthAccount(
+    int Id, string Name, string Currency, decimal OpeningBalance, DateOnly OpeningDate, IReadOnlyList<HeldCurrency>? Extra = null);
 
-/// <summary>Money into (+) or out of (−) an account on a day, as finance.GetNetWorthFacts sums it.</summary>
-public sealed record AccountFlow(int AccountId, DateOnly Day, decimal Net);
+/// <summary>Money into (+) or out of (−) an account on a day in one currency (null: the account's main one), as finance.GetNetWorthFacts sums it.</summary>
+public sealed record AccountFlow(int AccountId, DateOnly Day, decimal Net, string? Currency = null);
 
 public sealed record WealthHolding(
     int Id, string Name, string Currency, decimal? InvestedAmount, DateOnly? AcquiredOn, DateOnly? DisposedOn,
@@ -146,9 +148,16 @@ public static class NetWorth
         var flowsByAccount = inputs.Flows.ToLookup(f => f.AccountId);
         foreach (var account in inputs.Accounts.Where(a => a.OpeningDate <= day))
         {
-            var balance = account.OpeningBalance
-                + flowsByAccount[account.Id].Where(f => f.Day >= account.OpeningDate && f.Day <= day).Sum(f => f.Net);
-            items.Add(Item(AccountType, account.Id, account.Name, account.Currency, balance, day, inputs, baseCurrency));
+            // One item per currency the account holds: a multi-currency account is several pockets, each converted on its own.
+            var flows = flowsByAccount[account.Id].Where(f => f.Day >= account.OpeningDate && f.Day <= day)
+                .Select(f => new CurrencyMoves(f.Currency ?? account.Currency, Math.Max(f.Net, 0), Math.Max(-f.Net, 0)))
+                .ToList();
+            var extra = account.Extra ?? [];
+            foreach (var (currency, _, balance) in MultiCurrency.Balances(new HeldCurrency(account.Currency, account.OpeningBalance), extra, flows))
+            {
+                var name = extra.Count == 0 && currency == account.Currency ? account.Name : $"{account.Name} ({currency})";
+                items.Add(Item(AccountType, account.Id, name, currency, balance, day, inputs, baseCurrency));
+            }
         }
 
         foreach (var holding in inputs.Holdings)

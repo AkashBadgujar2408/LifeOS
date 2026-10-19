@@ -77,7 +77,7 @@ import { openTransactionEditor } from './transaction-editor';
               }
               @for (t of totals(); track t.currency) {
                 <div>
-                  <div class="small text-body-secondary">In {{ t.currency }} accounts</div>
+                  <div class="small text-body-secondary">In {{ t.currency }}</div>
                   <div class="h4 mb-0">{{ money(t.total, t.currency) }}</div>
                 </div>
               }
@@ -119,19 +119,36 @@ import { openTransactionEditor } from './transaction-editor';
                         }
                       </div>
                     </div>
-                    <div class="text-end">
-                      <div class="fw-semibold" [class.text-danger]="a.balance < 0">
-                        {{ money(a.balance, a.currency) }}
+                    @if (a.balances.length > 1) {
+                      <div class="text-end">
+                        @for (b of a.balances; track b.currency) {
+                          <div class="fw-semibold" [class.text-danger]="b.balance < 0">
+                            {{ money(b.balance, b.currency) }}
+                          </div>
+                        }
+                        @if (a.balanceInBase !== null && baseCurrency()) {
+                          <div class="small">
+                            ≈ {{ money(a.balanceInBase, baseCurrency()!) }} in all
+                          </div>
+                        }
                       </div>
-                      @if (
-                        a.balanceInBase !== null && baseCurrency() && a.currency !== baseCurrency()
-                      ) {
-                        <div class="small">≈ {{ money(a.balanceInBase, baseCurrency()!) }}</div>
-                      }
-                      <div class="small text-body-secondary">
-                        opened with {{ money(a.openingBalance, a.currency) }}
+                    } @else {
+                      <div class="text-end">
+                        <div class="fw-semibold" [class.text-danger]="a.balance < 0">
+                          {{ money(a.balance, a.currency) }}
+                        </div>
+                        @if (
+                          a.balanceInBase !== null &&
+                          baseCurrency() &&
+                          a.currency !== baseCurrency()
+                        ) {
+                          <div class="small">≈ {{ money(a.balanceInBase, baseCurrency()!) }}</div>
+                        }
+                        <div class="small text-body-secondary">
+                          opened with {{ money(a.openingBalance, a.currency) }}
+                        </div>
                       </div>
-                    </div>
+                    }
                   </div>
                 </li>
               }
@@ -159,15 +176,21 @@ export class FinanceAccounts {
   protected readonly baseCurrency = computed(
     () => this.settingsService.settings()?.baseCurrency ?? null,
   );
-  protected readonly inBase = computed(() =>
-    baseTotal(
-      (this.accounts() ?? []).filter((a) => !a.isArchived),
-      this.baseCurrency(),
-    ),
+  /** Every currency of every open account as its own pocket (a multi-currency account is several). */
+  private readonly pockets = computed(() =>
+    (this.accounts() ?? [])
+      .filter((a) => !a.isArchived)
+      .flatMap((a) =>
+        a.balances.map((b) => ({
+          name: a.balances.length > 1 ? `${a.name} (${b.currency})` : a.name,
+          currency: b.currency,
+          balance: b.balance,
+          balanceInBase: b.balanceInBase,
+        })),
+      ),
   );
-  protected readonly totals = computed(() =>
-    totalsByCurrency((this.accounts() ?? []).filter((a) => !a.isArchived)),
-  );
+  protected readonly inBase = computed(() => baseTotal(this.pockets(), this.baseCurrency()));
+  protected readonly totals = computed(() => totalsByCurrency(this.pockets()));
 
   constructor() {
     this.load();

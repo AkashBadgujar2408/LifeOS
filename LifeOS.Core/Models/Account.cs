@@ -37,6 +37,8 @@ public partial class Account
 
     public Guid ImportKey { get; set; }
 
+    public virtual ICollection<AccountCurrency> AccountCurrencies { get; set; } = new List<AccountCurrency>();
+
     public virtual ICollection<Holding> Holdings { get; set; } = new List<Holding>();
 
     public virtual ICollection<Loan> Loans { get; set; } = new List<Loan>();

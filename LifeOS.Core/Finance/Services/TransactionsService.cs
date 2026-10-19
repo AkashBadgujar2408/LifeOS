@@ -168,7 +168,8 @@ public class TransactionsService(
 
         var accountIds = new[] { request.FromAccountId, request.ToAccountId }.OfType<int>().Distinct().ToList();
         var accounts = await db.Accounts.Where(a => accountIds.Contains(a.Id))
-            .ToDictionaryAsync(a => a.Id, a => new LedgerAccount(a.Id, a.Currency, a.OpeningDate, a.IsArchived));
+            .Select(a => new { a.Id, a.Currency, a.OpeningDate, a.IsArchived, Extra = a.AccountCurrencies.Select(c => c.Currency).ToList() })
+            .ToDictionaryAsync(a => a.Id, a => new LedgerAccount(a.Id, a.Currency, a.OpeningDate, a.IsArchived, a.Extra));
         if (accounts.Count != accountIds.Count)
         {
             return "Account not found.";
@@ -205,7 +206,9 @@ public class TransactionsService(
                 request.ToAmount,
                 request.FromAccountId is { } fromId ? accounts[fromId] : null,
                 request.ToAccountId is { } toId ? accounts[toId] : null,
-                request.EmploymentId is not null || request.SideIncomeSourceId is not null),
+                request.EmploymentId is not null || request.SideIncomeSourceId is not null,
+                FinanceRules.Code(request.Currency),
+                FinanceRules.Code(request.ToCurrency)),
             baseCurrency,
             kept);
         if (ok is null)
@@ -219,6 +222,7 @@ public class TransactionsService(
         transaction.Currency = ok.Currency;
         transaction.ExchangeRate = ok.ExchangeRate;
         transaction.ToAmount = ok.ToAmount;
+        transaction.ToCurrency = ok.ToCurrency;
         transaction.FromAccountId = request.FromAccountId;
         transaction.ToAccountId = request.ToAccountId;
         transaction.Payee = string.IsNullOrWhiteSpace(request.Payee) ? null : request.Payee.Trim();
@@ -242,7 +246,7 @@ public class TransactionsService(
         FromAccountName = t.FromAccount != null ? t.FromAccount.Name : null,
         ToAccountId = t.ToAccountId,
         ToAccountName = t.ToAccount != null ? t.ToAccount.Name : null,
-        ToCurrency = t.ToAccount != null ? t.ToAccount.Currency : null,
+        ToCurrency = t.ToCurrency,
         Payee = t.Payee,
         Note = t.Note,
         Reference = t.Reference,

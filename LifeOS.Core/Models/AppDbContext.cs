@@ -13,6 +13,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Account> Accounts { get; set; }
 
+    public virtual DbSet<AccountCurrency> AccountCurrencies { get; set; }
+
     public virtual DbSet<ApplicationStageChange> ApplicationStageChanges { get; set; }
 
     public virtual DbSet<Attachment> Attachments { get; set; }
@@ -203,6 +205,32 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Accounts_Users");
+        });
+
+        modelBuilder.Entity<AccountCurrency>(entity =>
+        {
+            entity.ToTable("AccountCurrencies", "finance");
+
+            entity.HasIndex(e => new { e.AccountId, e.Currency }, "UX_AccountCurrencies_Account_Currency")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_AccountCurrencies_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.OpeningBalance).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.AccountCurrencies)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AccountCurrencies_Accounts");
+
+            entity.HasOne(d => d.User).WithMany(p => p.AccountCurrencies)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AccountCurrencies_Users");
         });
 
         modelBuilder.Entity<ApplicationStageChange>(entity =>
@@ -1504,6 +1532,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RecurrenceFrequency).HasMaxLength(10);
             entity.Property(e => e.RecurrenceInterval).HasDefaultValue(1, "DF_RecurringTransactions_Interval");
             entity.Property(e => e.ToAmount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.ToCurrency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
 
             entity.HasOne(d => d.FromAccount).WithMany(p => p.RecurringTransactionFromAccounts)
                 .HasForeignKey(d => d.FromAccountId)
@@ -2001,6 +2033,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Payee).HasMaxLength(200);
             entity.Property(e => e.Reference).HasMaxLength(100);
             entity.Property(e => e.ToAmount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.ToCurrency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
 
             entity.HasOne(d => d.Employment).WithMany(p => p.Transactions)
                 .HasForeignKey(d => d.EmploymentId)

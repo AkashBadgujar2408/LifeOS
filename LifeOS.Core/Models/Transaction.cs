@@ -51,6 +51,8 @@ public partial class Transaction
 
     public string? ImportHash { get; set; }
 
+    public string? ToCurrency { get; set; }
+
     public virtual Employment? Employment { get; set; }
 
     public virtual Account? FromAccount { get; set; }

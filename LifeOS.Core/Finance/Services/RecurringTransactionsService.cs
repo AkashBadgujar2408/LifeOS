@@ -172,6 +172,7 @@ public class RecurringTransactionsService(AppDbContext db) : IRecurringTransacti
                     Currency = schedule.Currency,
                     ExchangeRate = schedule.ExchangeRate,
                     ToAmount = schedule.ToAmount,
+                    ToCurrency = schedule.ToCurrency,
                     FromAccountId = schedule.FromAccountId,
                     ToAccountId = schedule.ToAccountId,
                     Payee = schedule.Payee,
@@ -246,7 +247,8 @@ public class RecurringTransactionsService(AppDbContext db) : IRecurringTransacti
 
         var accountIds = new[] { request.FromAccountId, request.ToAccountId }.OfType<int>().Distinct().ToList();
         var accounts = await db.Accounts.Where(a => accountIds.Contains(a.Id))
-            .ToDictionaryAsync(a => a.Id, a => new LedgerAccount(a.Id, a.Currency, a.OpeningDate, a.IsArchived));
+            .Select(a => new { a.Id, a.Currency, a.OpeningDate, a.IsArchived, Extra = a.AccountCurrencies.Select(c => c.Currency).ToList() })
+            .ToDictionaryAsync(a => a.Id, a => new LedgerAccount(a.Id, a.Currency, a.OpeningDate, a.IsArchived, a.Extra));
         if (accounts.Count != accountIds.Count)
         {
             return "Account not found.";
@@ -284,6 +286,7 @@ public class RecurringTransactionsService(AppDbContext db) : IRecurringTransacti
         schedule.Currency = ok.Currency;
         schedule.ExchangeRate = ok.ExchangeRate;
         schedule.ToAmount = ok.ToAmount;
+        schedule.ToCurrency = ok.ToCurrency;
         schedule.FromAccountId = request.FromAccountId;
         schedule.ToAccountId = request.ToAccountId;
         schedule.Payee = string.IsNullOrWhiteSpace(request.Payee) ? null : request.Payee.Trim();
@@ -309,7 +312,7 @@ public class RecurringTransactionsService(AppDbContext db) : IRecurringTransacti
         FromAccountName = r.FromAccount != null ? r.FromAccount.Name : null,
         ToAccountId = r.ToAccountId,
         ToAccountName = r.ToAccount != null ? r.ToAccount.Name : null,
-        ToCurrency = r.ToAccount != null ? r.ToAccount.Currency : null,
+        ToCurrency = r.ToCurrency,
         Payee = r.Payee,
         Note = r.Note,
         RecurrenceFrequency = r.RecurrenceFrequency,

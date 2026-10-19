@@ -3,10 +3,17 @@ using LifeOS.Core.Finance.DTOs;
 
 namespace LifeOS.Core.Finance.Services;
 
-/// <summary>What the rules need to know about an account a transaction moves money in or out of.</summary>
-public sealed record LedgerAccount(int Id, string Currency, DateOnly OpeningDate, bool IsArchived);
+/// <summary>
+/// What the rules need to know about an account a transaction moves money in or out of. <paramref name="Extra"/> are
+/// the other currencies a multi-currency account holds (Session 61); none for a single-currency account.
+/// </summary>
+public sealed record LedgerAccount(int Id, string Currency, DateOnly OpeningDate, bool IsArchived, IReadOnlyCollection<string>? Extra = null)
+{
+    public bool Holds(string currency) => currency == Currency || (Extra?.Contains(currency) ?? false);
+}
 
-/// <summary>A transaction as typed, before it's checked.</summary>
+/// <summary>A transaction as typed, before it's checked. Currency / ToCurrency: the currency chosen on a multi-currency account
+/// (null = the account's main one; ToCurrency null = whatever the receiving account can take, preferring the one that left).</summary>
 public sealed record TransactionInput(
     string Kind,
     DateOnly OccurredOn,
@@ -15,10 +22,12 @@ public sealed record TransactionInput(
     decimal? ToAmount,
     LedgerAccount? From,
     LedgerAccount? To,
-    bool HasIncomeSource);
+    bool HasIncomeSource,
+    string? Currency = null,
+    string? ToCurrency = null);
 
-/// <summary>What gets stored once a transaction passes: its currency, and the rate/arrived amount cleaned up.</summary>
-public sealed record CheckedTransaction(string Currency, decimal? ExchangeRate, decimal? ToAmount);
+/// <summary>What gets stored once a transaction passes: its currency, the rate, and what arrived (both null when nothing changed on the way).</summary>
+public sealed record CheckedTransaction(string Currency, decimal? ExchangeRate, decimal? ToAmount, string? ToCurrency = null);
 
 /// <summary>One income/expense/transfer for the ledger totals.</summary>
 public sealed record LedgerLine(string Kind, decimal Amount, string Currency, decimal? ExchangeRate);
@@ -32,11 +41,15 @@ public static class FinanceRules
     /// <summary>The biggest amount DECIMAL(19,4) holds comfortably (15 digits before the point).</summary>
     public const decimal MaxAmount = 999_999_999_999_999m;
 
+    /// <summary>A currency code as typed (trimmed, upper case), or null when none was given.</summary>
+    public static string? Code(string? typed) => string.IsNullOrWhiteSpace(typed) ? null : typed.Trim().ToUpperInvariant();
+
     /// <summary>
     /// Checks a transaction. Income lands in To, an expense leaves From, a transfer needs both (different).
-    /// The amount is in the moving account's currency (From, else To); a transfer into an account in another
-    /// currency needs what arrived (ToAmount), otherwise ToAmount is dropped. Anything not in the base currency
-    /// needs a rate to it — except a transfer into a base-currency account, whose rate is what arrived ÷ what left.
+    /// The amount is in the moving account's currency (From, else To) — or, on a multi-currency account, the one of
+    /// its currencies chosen. A transfer whose money arrives in another currency (the receiving account's, or the one
+    /// chosen there) needs what arrived (ToAmount + ToCurrency); otherwise both are dropped. Anything not in the base
+    /// currency needs a rate to it — except when what arrived is in the base currency: the rate is arrived ÷ left.
     /// Nothing before an account's opening date; nothing new on an archived account (<paramref name="keptAccountIds"/>
     /// are the accounts the transaction was already on, which may stay archived).
     /// </summary>
@@ -96,22 +109,41 @@ public static class FinanceRules
             }
         }
 
-        var currency = (t.From ?? t.To)!.Currency;
-        decimal? toAmount = null;
-        if (t.Kind == TransactionKinds.Transfer && t.To!.Currency != currency)
+        // The currency it moved in: the one chosen on a multi-currency account, else the account's own.
+        var moving = (t.From ?? t.To)!;
+        var currency = string.IsNullOrEmpty(t.Currency) ? moving.Currency : t.Currency;
+        if (!moving.Holds(currency))
         {
-            if (t.ToAmount is not { } arrived || arrived <= 0)
+            return (null, $"That account doesn't hold {currency} — add the currency to the account first.");
+        }
+
+        decimal? toAmount = null;
+        string? toCurrency = null;
+        if (t.Kind == TransactionKinds.Transfer)
+        {
+            // What arrives: the currency chosen, else the one that left if the receiving account holds it, else its own.
+            var arrives = !string.IsNullOrEmpty(t.ToCurrency) ? t.ToCurrency : t.To!.Holds(currency) ? currency : t.To!.Currency;
+            if (!t.To!.Holds(arrives))
             {
-                return (null, $"Say how much arrived in {t.To.Currency}.");
+                return (null, $"The receiving account doesn't hold {arrives} — add the currency to it first.");
             }
 
-            toAmount = arrived;
+            if (arrives != currency)
+            {
+                if (t.ToAmount is not { } arrived || arrived <= 0)
+                {
+                    return (null, $"Say how much arrived in {arrives}.");
+                }
+
+                toAmount = arrived;
+                toCurrency = arrives;
+            }
         }
 
         decimal? rate = null;
         if (currency != baseCurrency)
         {
-            if (toAmount is { } arrived && t.To!.Currency == baseCurrency)
+            if (toAmount is { } arrived && toCurrency == baseCurrency)
             {
                 rate = Math.Round(arrived / t.Amount, 8, MidpointRounding.AwayFromZero);
             }
@@ -125,7 +157,7 @@ public static class FinanceRules
             }
         }
 
-        return (new CheckedTransaction(currency, rate, toAmount), null);
+        return (new CheckedTransaction(currency, rate, toAmount, toCurrency), null);
     }
 
     /// <summary>An amount in the base currency, or null when it's in another currency with no rate.</summary>
@@ -238,4 +270,71 @@ public static class RateRules
         : effectiveOn == default ? "Say from which day the rate applies."
         : effectiveOn > today ? "A rate can't start in the future — add it on the day."
         : null;
+}
+
+/// <summary>A currency an account holds — its main one or an extra — and what it opened with.</summary>
+public sealed record HeldCurrency(string Currency, decimal OpeningBalance);
+
+/// <summary>Money in and out of an account in one currency, as finance.GetAccountBalances sums it (null: no transactions).</summary>
+public sealed record CurrencyMoves(string? Currency, decimal MoneyIn, decimal MoneyOut);
+
+/// <summary>Multi-currency accounts (Session 61): one account, a balance per currency. Pure and unit-tested.</summary>
+public static class MultiCurrency
+{
+    /// <summary>Most extra currencies one account holds.</summary>
+    public const int MaxExtra = 20;
+
+    /// <summary>
+    /// The extra currencies asked for: real 3-letter codes, no repeats, not the main currency, opening balances that
+    /// fit — and none dropped while money has moved in it (<paramref name="used"/>: currencies with transactions).
+    /// </summary>
+    public static string? CheckExtras(string mainCurrency, IReadOnlyList<(string? Currency, decimal OpeningBalance)> extras, IReadOnlySet<string> used)
+    {
+        if (extras.Count > MaxExtra)
+        {
+            return $"An account holds at most {MaxExtra + 1} currencies.";
+        }
+
+        if (extras.Any(e => e.Currency is null))
+        {
+            return "Choose each extra currency.";
+        }
+
+        if (extras.Any(e => e.Currency == mainCurrency))
+        {
+            return $"{mainCurrency} is already the account's main currency.";
+        }
+
+        if (extras.GroupBy(e => e.Currency).FirstOrDefault(g => g.Count() > 1) is { } twice)
+        {
+            return $"{twice.Key} is listed twice.";
+        }
+
+        if (extras.Any(e => Math.Abs(e.OpeningBalance) > FinanceRules.MaxAmount))
+        {
+            return "That opening balance is too large.";
+        }
+
+        var dropped = used.Where(c => c != mainCurrency && extras.All(e => e.Currency != c)).Order().FirstOrDefault();
+        return dropped is null
+            ? null
+            : $"Money has moved in {dropped} on this account — it can't be taken off (archive the account instead).";
+    }
+
+    /// <summary>
+    /// Each currency's balance: its opening balance + money in − money out. The main currency first, then the extras
+    /// in order; a currency with transactions but no longer held (shouldn't happen) is still shown, last.
+    /// </summary>
+    public static List<(string Currency, decimal OpeningBalance, decimal Balance)> Balances(
+        HeldCurrency main, IReadOnlyList<HeldCurrency> extras, IReadOnlyList<CurrencyMoves> moves)
+    {
+        var held = new List<HeldCurrency> { main };
+        held.AddRange(extras);
+        var stray = moves.Where(m => m.Currency is not null && held.All(h => h.Currency != m.Currency))
+            .Select(m => new HeldCurrency(m.Currency!, 0)).DistinctBy(h => h.Currency);
+        return held.Concat(stray)
+            .Select(h => (h.Currency, h.OpeningBalance,
+                h.OpeningBalance + moves.Where(m => m.Currency == h.Currency).Sum(m => m.MoneyIn - m.MoneyOut)))
+            .ToList();
+    }
 }

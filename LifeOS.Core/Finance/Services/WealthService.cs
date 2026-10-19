@@ -103,13 +103,21 @@ public class WealthService(AppDbContext db) : IWealthService
             "finance.GetNetWorthFacts", parameters, commandType: CommandType.StoredProcedure))
         {
             // Read in exactly the order the procedure returns them.
-            flows = (await reader.ReadAsync<FlowRow>()).Select(f => new AccountFlow(f.AccountId, DateOnly.FromDateTime(f.Day), f.Net)).ToList();
+            flows = (await reader.ReadAsync<FlowRow>()).Select(f => new AccountFlow(f.AccountId, DateOnly.FromDateTime(f.Day), f.Net, f.Currency)).ToList();
             rates = (await reader.ReadAsync<RateRow>()).Select(r => new CurrencyRate(r.Currency, DateOnly.FromDateTime(r.Day), r.Rate)).ToList();
         }
 
-        var accounts = await db.Accounts
-            .Select(a => new WealthAccount(a.Id, a.Name, a.Currency, a.OpeningBalance, a.OpeningDate))
-            .ToListAsync();
+        var accounts = (await db.Accounts
+                .Select(a => new
+                {
+                    a.Id, a.Name, a.Currency, a.OpeningBalance, a.OpeningDate,
+                    Extra = a.AccountCurrencies.OrderBy(c => c.Currency).Select(c => new { c.Currency, c.OpeningBalance }).ToList(),
+                })
+                .AsSplitQuery()
+                .ToListAsync())
+            .Select(a => new WealthAccount(a.Id, a.Name, a.Currency, a.OpeningBalance, a.OpeningDate,
+                a.Extra.Select(c => new HeldCurrency(c.Currency, c.OpeningBalance)).ToList()))
+            .ToList();
         var holdings = (await db.Holdings
                 .Select(h => new
                 {
@@ -137,6 +145,7 @@ public class WealthService(AppDbContext db) : IWealthService
     private sealed class FlowRow
     {
         public int AccountId { get; init; }
+        public string Currency { get; init; } = string.Empty;
         public DateTime Day { get; init; }
         public decimal Net { get; init; }
     }

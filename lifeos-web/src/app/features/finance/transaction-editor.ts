@@ -33,6 +33,8 @@ import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
 import {
   TRANSACTION_KIND_ICONS,
   TRANSACTION_KIND_LABELS,
+  heldCurrencies,
+  pickCurrency,
   rateOn,
   transactionTitle,
 } from './finance-view';
@@ -184,7 +186,7 @@ type IncomeFor = string;
                 </option>
                 @for (a of pickable(); track a.id) {
                   <option [ngValue]="a.id" [selected]="a.id === form.controls.fromAccountId.value">
-                    {{ a.name }} ({{ a.currency }})
+                    {{ a.name }} ({{ held(a).join(', ') }})
                   </option>
                 }
               </select>
@@ -209,7 +211,7 @@ type IncomeFor = string;
                 </option>
                 @for (a of pickable(); track a.id) {
                   <option [ngValue]="a.id" [selected]="a.id === form.controls.toAccountId.value">
-                    {{ a.name }} ({{ a.currency }})
+                    {{ a.name }} ({{ held(a).join(', ') }})
                   </option>
                 }
               </select>
@@ -219,6 +221,36 @@ type IncomeFor = string;
             </div>
           }
         </div>
+        @if (movingHeld().length > 1 || arrivingHeld().length > 1) {
+          <div class="row g-3">
+            @if (movingHeld().length > 1) {
+              <div class="col-sm-6">
+                <label class="form-label" for="tx-currency">
+                  {{ kind() === 'Income' ? 'Arrived in' : 'Paid in' }}
+                </label>
+                <select id="tx-currency" class="form-select" formControlName="moveCurrency">
+                  @for (c of movingHeld(); track c) {
+                    <option [ngValue]="c" [selected]="c === currency()">{{ c }}</option>
+                  }
+                </select>
+              </div>
+            }
+            @if (arrivingHeld().length > 1) {
+              <div class="col-sm-6">
+                <label class="form-label" for="tx-arrive-currency">Arrives as</label>
+                <select
+                  id="tx-arrive-currency"
+                  class="form-select"
+                  formControlName="arriveCurrency"
+                >
+                  @for (c of arrivingHeld(); track c) {
+                    <option [ngValue]="c" [selected]="c === toCurrency()">{{ c }}</option>
+                  }
+                </select>
+              </div>
+            }
+          </div>
+        }
         @if (accounts().length === 0 && accountsLoaded()) {
           <p class="small text-body-secondary mb-0">
             Add an account first (Finance → Accounts) — every transaction moves money in or out of
@@ -410,6 +442,9 @@ export class TransactionEditor {
     occurredOn: this.fb.control<string | null>(todayIso(), Validators.required),
     fromAccountId: this.fb.control<number | null>(null),
     toAccountId: this.fb.control<number | null>(null),
+    // Multi-currency accounts: the currency chosen to move in / arrive in (null: the account's main one).
+    moveCurrency: this.fb.control<string | null>(null),
+    arriveCurrency: this.fb.control<string | null>(null),
     toAmount: this.fb.control<number | null>(null, Validators.min(0.01)),
     exchangeRate: this.fb.control<number | null>(null, Validators.min(0.00000001)),
     payee: this.fb.nonNullable.control('', Validators.maxLength(200)),
@@ -456,14 +491,25 @@ export class TransactionEditor {
     return id == null ? undefined : this.accounts().find((a) => a.id === id);
   }
 
-  /** The amount's currency: the account it leaves (expense, transfer), else the one it lands in. */
-  protected readonly currency = computed(() => {
+  /** The currencies the moving account holds (the one it leaves; for income, the one it lands in). */
+  /** The currency the rate box was last filled for (by the master or the saved transaction). */
+  private rateFilledFor: string | null = null;
+  protected readonly held = heldCurrencies;
+  protected readonly movingHeld = computed(() => {
     const v = this.value();
-    const moving = this.kind() === 'Income' ? v.toAccountId : v.fromAccountId;
-    return this.account(moving)?.currency ?? null;
+    return heldCurrencies(this.account(this.kind() === 'Income' ? v.toAccountId : v.fromAccountId));
   });
+  /** A transfer's receiving account's currencies. */
+  protected readonly arrivingHeld = computed(() =>
+    this.kind() === 'Transfer' ? heldCurrencies(this.account(this.value().toAccountId)) : [],
+  );
+  /** The amount's currency: the one chosen on a multi-currency account, else the account's own. */
+  protected readonly currency = computed(() =>
+    pickCurrency(this.movingHeld(), this.value().moveCurrency),
+  );
+  /** What a transfer arrives in: the one chosen, else as it left if held, else the receiving account's own. */
   protected readonly toCurrency = computed(() =>
-    this.kind() === 'Transfer' ? (this.account(this.value().toAccountId)?.currency ?? null) : null,
+    pickCurrency(this.arrivingHeld(), this.value().arriveCurrency, this.currency()),
   );
   protected readonly needsToAmount = computed(() => {
     const to = this.toCurrency();
@@ -506,15 +552,21 @@ export class TransactionEditor {
       const rate = rateOn(this.rates(), currency, day);
       untracked(() => {
         const control = this.form.controls.exchangeRate;
-        if (rate !== null && control.value === null && !control.dirty) {
+        // Refilled when the currency changes (a multi-currency account), unless a rate was typed by hand.
+        // Only when something changes — setting the box re-runs this effect, so an unchanged write would loop.
+        const stale = this.rateFilledFor !== currency || (control.value === null && rate !== null);
+        if (!control.dirty && stale && control.value !== rate) {
           control.setValue(rate);
         }
+        this.rateFilledFor = currency;
       });
     });
   }
 
   configure(options: TransactionEditorOptions): void {
     const t = options.transaction;
+    // A saved transaction's rate counts as filled for its own currency, so opening it never replaces it.
+    this.rateFilledFor = t?.currency ?? null;
     this.existing.set(t ?? null);
     this.tagIds.set(t?.tags.map((tag) => tag.id) ?? []);
     const kind = t?.kind ?? options.kind ?? 'Expense';
@@ -527,6 +579,8 @@ export class TransactionEditor {
       toAccountId: t ? t.toAccountId : kind === 'Income' ? startOn : null,
       toAmount: t?.toAmount ?? null,
       exchangeRate: t?.exchangeRate ?? null,
+      moveCurrency: t?.currency ?? null,
+      arriveCurrency: t ? (t.toCurrency ?? t.currency) : null,
       payee: t?.payee ?? '',
       incomeFor: t?.employmentId
         ? `e:${t.employmentId}`
@@ -618,6 +672,8 @@ export class TransactionEditor {
         amount: v.amount!,
         exchangeRate: this.needsRate() ? v.exchangeRate : null,
         toAmount: this.needsToAmount() ? v.toAmount : null,
+        currency: this.movingHeld().length > 1 ? this.currency() : null,
+        toCurrency: this.arrivingHeld().length > 1 ? this.toCurrency() : null,
         fromAccountId: v.kind === 'Income' ? null : v.fromAccountId,
         toAccountId: v.kind === 'Expense' ? null : v.toAccountId,
         payee: v.payee.trim() || null,

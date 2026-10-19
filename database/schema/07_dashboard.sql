@@ -59,3 +59,15 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dashboard.DismissedInsights') AND name = 'UX_DismissedInsights_User_Key')
     CREATE UNIQUE INDEX UX_DismissedInsights_User_Key ON dashboard.DismissedInsights(UserId, InsightKey) WHERE IsDeleted = 0;
 GO
+
+-- Session 61: the net-worth tile (Finance). Databases created before then have the shorter list, so the CHECK is
+-- dropped and re-added whenever it lacks the newest key.
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_KpiTiles_KpiKey' AND definition NOT LIKE '%net-worth%')
+    ALTER TABLE dashboard.KpiTiles DROP CONSTRAINT CK_KpiTiles_KpiKey;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_KpiTiles_KpiKey')
+    ALTER TABLE dashboard.KpiTiles ADD CONSTRAINT CK_KpiTiles_KpiKey
+        CHECK (KpiKey IN ('tasks-done-week', 'focus-week', 'habit-consistency-30', 'journal-days-30',
+                          'objectives-done-30', 'goals-passed-year', 'goals-active', 'net-worth'));
+GO

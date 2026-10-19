@@ -8,8 +8,9 @@ GO
 -- Net worth (Session 58): what NetWorth (C#) needs from the ledger to rebuild any day's account balances and convert
 -- other currencies — never stored. Accounts, holdings with their valuations and loans come through EF.
 --
--- Set 1, one row per account per day money moved:
---   AccountId, Day, Net   (money in − money out that day; a cross-currency transfer arrives as its ToAmount)
+-- Set 1, one row per account per currency per day money moved:
+--   AccountId, Currency, Day, Net   (money in − money out that day in that currency; a transfer that changed
+--   currency arrives as its ToAmount in ToCurrency — Session 61, multi-currency accounts)
 -- Set 2, the manual rates typed on transactions, one per currency per day (the latest entered that day):
 --   Currency, Day, Rate   (base-currency units per 1 Currency)
 --
@@ -22,19 +23,20 @@ BEGIN
 
     WITH Moves AS
     (
-        SELECT t.ToAccountId AS AccountId, t.OccurredOn AS Day, COALESCE(t.ToAmount, t.Amount) AS Net
+        SELECT t.ToAccountId AS AccountId, COALESCE(t.ToCurrency, t.Currency) AS Currency, t.OccurredOn AS Day,
+               COALESCE(t.ToAmount, t.Amount) AS Net
         FROM finance.Transactions t
         WHERE t.UserId = @UserId AND t.IsDeleted = 0 AND t.ToAccountId IS NOT NULL
 
         UNION ALL
 
-        SELECT t.FromAccountId, t.OccurredOn, -t.Amount
+        SELECT t.FromAccountId, t.Currency, t.OccurredOn, -t.Amount
         FROM finance.Transactions t
         WHERE t.UserId = @UserId AND t.IsDeleted = 0 AND t.FromAccountId IS NOT NULL
     )
-    SELECT AccountId, Day, SUM(Net) AS Net
+    SELECT AccountId, Currency, Day, SUM(Net) AS Net
     FROM Moves
-    GROUP BY AccountId, Day;
+    GROUP BY AccountId, Currency, Day;
 
     WITH Rated AS
     (

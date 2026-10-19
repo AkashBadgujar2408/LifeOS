@@ -28,7 +28,16 @@ export interface Account {
   balance: number;
   transactionCount: number;
   lastOn: string | null;
-  /** In the base currency at the exchange-rate master's rate (null: no rate for its currency yet). */
+  /** The whole account in the base currency at the rate master's rates (null: a currency holding money has no rate yet). */
+  balanceInBase: number | null;
+  /** Every currency it holds with its balance, the main one first (one entry for a single-currency account). */
+  balances: AccountCurrencyBalance[];
+}
+
+export interface AccountCurrencyBalance {
+  currency: string;
+  openingBalance: number;
+  balance: number;
   balanceInBase: number | null;
 }
 
@@ -43,6 +52,8 @@ export interface AccountPayload {
   openingDate: string;
   isArchived: boolean;
   notes: string | null;
+  /** The other currencies a multi-currency account holds (PayPal, Wise), with their opening balances; replaced whole. */
+  extraCurrencies: { currency: string; openingBalance: number }[];
 }
 
 /**
@@ -88,6 +99,10 @@ export interface TransactionPayload {
   reference: string | null;
   employmentId: number | null;
   sideIncomeSourceId: number | null;
+  /** On a multi-currency account: the currency it moved in (null = the account's main one). */
+  currency: string | null;
+  /** A transfer into a multi-currency account: the currency that arrived (null = as it left, if held). */
+  toCurrency: string | null;
   /** Replaces the transaction's tags as a whole. */
   tagIds: number[];
 }
@@ -150,6 +165,8 @@ export interface RecurringTransactionPayload {
   amount: number;
   exchangeRate: number | null;
   toAmount: number | null;
+  currency: string | null;
+  toCurrency: string | null;
   fromAccountId: number | null;
   toAccountId: number | null;
   payee: string | null;

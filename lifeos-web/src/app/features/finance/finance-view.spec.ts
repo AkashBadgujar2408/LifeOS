@@ -5,6 +5,8 @@ import {
   budgetBar,
   currentRates,
   formatMoney,
+  heldCurrencies,
+  pickCurrency,
   loanPaidPercent,
   monthLabel,
   monthRange,
@@ -259,5 +261,27 @@ describe('taxYearGroups', () => {
       taxDueDays(item({ dueOn: '2026-10-31', doneOn: '2026-10-19' }), '2026-10-19'),
     ).toBeNull();
     expect(taxDueDays(item({}), '2026-10-19')).toBeNull();
+  });
+});
+
+describe('multi-currency accounts', () => {
+  const wise = {
+    currency: 'USD',
+    balances: [{ currency: 'USD' }, { currency: 'EUR' }, { currency: 'GBP' }],
+  };
+
+  it('lists what an account holds, main currency first', () => {
+    expect(heldCurrencies(wise)).toEqual(['USD', 'EUR', 'GBP']);
+    expect(heldCurrencies({ currency: 'INR', balances: [] })).toEqual(['INR']);
+    expect(heldCurrencies(undefined)).toEqual([]);
+  });
+
+  it('picks the chosen currency if held, else the preferred one, else the main one', () => {
+    const held = heldCurrencies(wise);
+    expect(pickCurrency(held, 'GBP')).toBe('GBP');
+    expect(pickCurrency(held, 'JPY')).toBe('USD');
+    expect(pickCurrency(held, null, 'EUR')).toBe('EUR');
+    expect(pickCurrency(held, null, 'INR')).toBe('USD');
+    expect(pickCurrency([], 'GBP')).toBeNull();
   });
 });

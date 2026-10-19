@@ -9,6 +9,7 @@ const tile = (overrides: Partial<KpiTile>): KpiTile => ({
   comparedWith: 'last week',
   value: 5,
   previous: 2,
+  currency: null,
   ...overrides,
 });
 
@@ -58,5 +59,21 @@ describe('visibleKpis + moveKey', () => {
     expect(moveKey(['a', 'b', 'c'], 'b', 1)).toEqual(['a', 'c', 'b']);
     expect(moveKey(['a', 'b', 'c'], 'a', -1)).toEqual(['a', 'b', 'c']);
     expect(moveKey(['a', 'b', 'c'], 'x', 1)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('money tiles', () => {
+  it('read in whole units of their currency and compare in money', () => {
+    expect(kpiValueText(222320.4, 'Money', 'INR')).toBe('₹2,22,320');
+    const worth = tile({
+      key: 'net-worth',
+      unit: 'Money',
+      currency: 'INR',
+      value: 222320,
+      previous: 210000,
+      comparedWith: "last month's end",
+    });
+    expect(kpiComparison(worth)).toBe("Up ₹12,320 on last month's end");
+    expect(kpiComparison({ ...worth, value: 200000 })).toBe("Down ₹10,000 on last month's end");
   });
 });

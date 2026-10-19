@@ -457,3 +457,66 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('finance.Ac
     ALTER TABLE finance.Accounts ADD
         ImportKey UNIQUEIDENTIFIER NOT NULL CONSTRAINT DF_Accounts_ImportKey DEFAULT (NEWID());
 GO
+
+-- Session 61 (asked for 2026-10-18): multi-currency accounts — PayPal or Wise holding USD, GBP and EUR in one
+-- account. Accounts.Currency stays the account's main currency (with OpeningBalance); each extra currency it holds is
+-- a row here with its own opening balance (as of the account's OpeningDate). An account with no rows here is a
+-- single-currency account, exactly as before. Balances stay computed, per account per currency.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.AccountCurrencies'))
+BEGIN
+    CREATE TABLE finance.AccountCurrencies
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_AccountCurrencies PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_AccountCurrencies_Users REFERENCES shared.Users(Id),
+        AccountId       INT               NOT NULL CONSTRAINT FK_AccountCurrencies_Accounts REFERENCES finance.Accounts(Id),
+        Currency        CHAR(3)           NOT NULL CONSTRAINT CK_AccountCurrencies_Currency
+                            CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        OpeningBalance  DECIMAL(19, 4)    NOT NULL CONSTRAINT DF_AccountCurrencies_OpeningBalance DEFAULT (0),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_AccountCurrencies_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_AccountCurrencies_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.AccountCurrencies') AND name = 'UX_AccountCurrencies_Account_Currency')
+    CREATE UNIQUE INDEX UX_AccountCurrencies_Account_Currency ON finance.AccountCurrencies(AccountId, Currency) WHERE IsDeleted = 0;
+GO
+
+-- Session 61: what arrived is now said in its own currency (ToCurrency), since a multi-currency account can receive
+-- in any of its currencies. Both or neither with ToAmount; NULL = it arrived as it left (same amount, same currency).
+-- Rows from before carried ToAmount in the receiving account's currency, which is what the backfill writes.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'ToCurrency')
+    ALTER TABLE finance.Transactions ADD
+        ToCurrency CHAR(3) NULL CONSTRAINT CK_Transactions_ToCurrency
+            CHECK (ToCurrency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]');
+GO
+
+UPDATE t SET ToCurrency = a.Currency
+FROM finance.Transactions t
+JOIN finance.Accounts a ON a.Id = t.ToAccountId
+WHERE t.ToAmount IS NOT NULL AND t.ToCurrency IS NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Transactions_ToPair')
+    ALTER TABLE finance.Transactions ADD CONSTRAINT CK_Transactions_ToPair
+        CHECK ((ToAmount IS NULL AND ToCurrency IS NULL) OR (ToAmount IS NOT NULL AND ToCurrency IS NOT NULL AND ToCurrency <> Currency));
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('finance.RecurringTransactions') AND name = 'ToCurrency')
+    ALTER TABLE finance.RecurringTransactions ADD
+        ToCurrency CHAR(3) NULL CONSTRAINT CK_RecurringTransactions_ToCurrency
+            CHECK (ToCurrency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]');
+GO
+
+UPDATE r SET ToCurrency = a.Currency
+FROM finance.RecurringTransactions r
+JOIN finance.Accounts a ON a.Id = r.ToAccountId
+WHERE r.ToAmount IS NOT NULL AND r.ToCurrency IS NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_RecurringTransactions_ToPair')
+    ALTER TABLE finance.RecurringTransactions ADD CONSTRAINT CK_RecurringTransactions_ToPair
+        CHECK ((ToAmount IS NULL AND ToCurrency IS NULL) OR (ToAmount IS NOT NULL AND ToCurrency IS NOT NULL AND ToCurrency <> Currency));
+GO

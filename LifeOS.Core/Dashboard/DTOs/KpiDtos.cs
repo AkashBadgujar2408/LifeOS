@@ -13,14 +13,16 @@ public static class KpiKeys
     public const string ObjectivesDone30 = "objectives-done-30";
     public const string GoalsPassedYear = "goals-passed-year";
     public const string GoalsActive = "goals-active";
+    public const string NetWorth = "net-worth";
 }
 
-/// <summary>How a tile's number reads: a plain count, a percentage, or minutes (shown as hours and minutes).</summary>
+/// <summary>How a tile's number reads: a plain count, a percentage, minutes (shown as hours and minutes) or money (in the tile's currency).</summary>
 public static class KpiUnits
 {
     public const string Count = "Count";
     public const string Percent = "Percent";
     public const string Minutes = "Minutes";
+    public const string Money = "Money";
 }
 
 /// <summary>A figure that can be put on My Day, and the module it belongs to (hidden with it in Settings).</summary>
@@ -34,10 +36,12 @@ public class KpiTileDto
     public string Module { get; init; } = string.Empty;
     public string Unit { get; init; } = KpiUnits.Count;
     /// <summary>Null when there's nothing to measure yet (no habit was scheduled in the window).</summary>
-    public int? Value { get; init; }
+    public decimal? Value { get; init; }
     /// <summary>The same figure for the period before, when the tile compares ("last week").</summary>
-    public int? Previous { get; init; }
+    public decimal? Previous { get; init; }
     public string? ComparedWith { get; init; }
+    /// <summary>A money tile's currency (the base currency); null otherwise.</summary>
+    public string? Currency { get; init; }
 }
 
 public class KpisDto

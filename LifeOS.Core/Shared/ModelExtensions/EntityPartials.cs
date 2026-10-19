@@ -163,4 +163,6 @@ public partial class InsurancePolicy : ISoftDeletable, IUserOwned;
 
 public partial class TaxItem : ISoftDeletable, IUserOwned;
 
+public partial class AccountCurrency : ISoftDeletable, IUserOwned;
+
 public partial class ExchangeRate : ISoftDeletable, IUserOwned;

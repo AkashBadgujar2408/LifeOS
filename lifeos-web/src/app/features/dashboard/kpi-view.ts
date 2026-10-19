@@ -1,12 +1,27 @@
 import type { KpiDefinition, KpiTile, KpiUnit } from '../../core/services/dashboard.service';
 import type { ModuleKey } from '../../core/services/settings.service';
 
-/** A tile's number as it reads: "12", "87%", "1h 45m" (minutes); a dash when there's nothing to measure. */
-export function kpiValueText(value: number | null, unit: KpiUnit): string {
+/**
+ * A tile's number as it reads: "12", "87%", "1h 45m" (minutes), "₹2,22,320" (money, whole units in the tile's
+ * currency); a dash when there's nothing to measure.
+ */
+export function kpiValueText(
+  value: number | null,
+  unit: KpiUnit,
+  currency: string | null = null,
+): string {
   if (value === null) {
     return '—';
   }
   switch (unit) {
+    case 'Money':
+      return currency
+        ? new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency,
+            maximumFractionDigits: 0,
+          }).format(value)
+        : String(Math.round(value));
     case 'Percent':
       return `${value}%`;
     case 'Minutes': {
@@ -32,7 +47,7 @@ export function kpiComparison(tile: KpiTile): string | null {
     return null;
   }
   if (tile.value === null) {
-    return `${kpiValueText(tile.previous, tile.unit)} ${tile.comparedWith}`;
+    return `${kpiValueText(tile.previous, tile.unit, tile.currency)} ${tile.comparedWith}`;
   }
   const difference = tile.value - tile.previous;
   if (difference === 0) {
@@ -41,7 +56,7 @@ export function kpiComparison(tile: KpiTile): string | null {
   const amount =
     tile.unit === 'Percent'
       ? `${Math.abs(difference)} points`
-      : kpiValueText(Math.abs(difference), tile.unit);
+      : kpiValueText(Math.abs(difference), tile.unit, tile.currency);
   return `${difference > 0 ? 'Up' : 'Down'} ${amount} on ${tile.comparedWith}`;
 }
 

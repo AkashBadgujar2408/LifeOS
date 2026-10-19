@@ -45,6 +45,8 @@ public class AccountDto
     public decimal? BalanceInBase { get; set; }
     /// <summary>The latest day money moved in or out (null: never).</summary>
     public DateOnly? LastOn { get; set; }
+    /// <summary>Every currency the account holds with its balance — the main one first (one entry for a single-currency account).</summary>
+    public List<AccountCurrencyBalanceDto> Balances { get; set; } = [];
 }
 
 public class AccountRequest
@@ -74,6 +76,27 @@ public class AccountRequest
 
     [StringLength(2000)]
     public string? Notes { get; init; }
+
+    /// <summary>The other currencies it holds (PayPal, Wise); replaced as a whole on save. Empty: single-currency.</summary>
+    public List<AccountCurrencyRequest> ExtraCurrencies { get; init; } = [];
+}
+
+public class AccountCurrencyBalanceDto
+{
+    public string Currency { get; init; } = string.Empty;
+    public decimal OpeningBalance { get; init; }
+    public decimal Balance { get; init; }
+    /// <summary>In the base currency at the rate master's rate (null: no rate yet).</summary>
+    public decimal? BalanceInBase { get; init; }
+}
+
+/// <summary>An extra currency a multi-currency account holds, and what it opened with on the account's opening date.</summary>
+public class AccountCurrencyRequest
+{
+    [Required]
+    public string Currency { get; init; } = string.Empty;
+
+    public decimal OpeningBalance { get; init; }
 }
 
 // ---- Transactions ----
@@ -120,6 +143,14 @@ public class TransactionRequest
     public decimal? ExchangeRate { get; init; }
 
     public decimal? ToAmount { get; init; }
+
+    /// <summary>On a multi-currency account: the currency it moved in (null = the account's main one).</summary>
+    [StringLength(3)]
+    public string? Currency { get; init; }
+
+    /// <summary>A transfer into a multi-currency account: the currency that arrived (null = as it left, if held).</summary>
+    [StringLength(3)]
+    public string? ToCurrency { get; init; }
 
     public int? FromAccountId { get; init; }
 
@@ -207,6 +238,14 @@ public class RecurringTransactionRequest
     public decimal? ExchangeRate { get; init; }
 
     public decimal? ToAmount { get; init; }
+
+    /// <summary>On a multi-currency account: the currency it moves in (null = the account's main one).</summary>
+    [StringLength(3)]
+    public string? Currency { get; init; }
+
+    /// <summary>A transfer into a multi-currency account: the currency that arrives.</summary>
+    [StringLength(3)]
+    public string? ToCurrency { get; init; }
 
     public int? FromAccountId { get; init; }
 

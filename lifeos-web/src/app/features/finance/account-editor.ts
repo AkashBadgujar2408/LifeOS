@@ -177,6 +177,59 @@ export async function openAccountEditor(
         <p class="small text-body-secondary mb-0">
           What it held at the start of that day. Transactions from then on make up the balance.
         </p>
+        <div formArrayName="extras">
+          <span class="form-label d-block mb-1">
+            Other currencies it holds
+            <span class="text-body-secondary small">(PayPal, Wise — leave empty otherwise)</span>
+          </span>
+          @for (extra of form.controls.extras.controls; track extra; let i = $index) {
+            <div class="d-flex flex-wrap gap-2 align-items-start mb-2" [formGroupName]="i">
+              <div class="flex-grow-1" style="min-width: 9rem">
+                <select
+                  class="form-select"
+                  [class.is-invalid]="extraError(i)"
+                  formControlName="currency"
+                  [attr.aria-label]="'Currency ' + (i + 2)"
+                >
+                  <option [ngValue]="''" [selected]="!extra.controls.currency.value" disabled>
+                    Choose…
+                  </option>
+                  @for (c of currencies(); track c.code) {
+                    <option
+                      [ngValue]="c.code"
+                      [selected]="c.code === extra.controls.currency.value"
+                    >
+                      {{ c.code }} — {{ c.name }}
+                    </option>
+                  }
+                </select>
+                @if (extraError(i); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <input
+                type="number"
+                step="0.01"
+                class="form-control"
+                style="max-width: 10rem"
+                formControlName="openingBalance"
+                placeholder="Opening, e.g. 50"
+                [attr.aria-label]="'Opening balance in currency ' + (i + 2)"
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                [attr.aria-label]="'Remove currency ' + (i + 2)"
+                (click)="form.controls.extras.removeAt(i)"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+          }
+          <button type="button" class="btn btn-sm btn-link px-0" (click)="addExtra()">
+            <i class="bi bi-plus"></i> Add a currency
+          </button>
+        </div>
         <div>
           <label class="form-label" for="account-notes">
             Notes <span class="text-body-secondary small">(optional)</span>
@@ -248,10 +301,15 @@ export class AccountEditor {
     openingDate: this.fb.control<string | null>(todayIso(), Validators.required),
     isArchived: this.fb.nonNullable.control(false),
     notes: this.fb.nonNullable.control('', Validators.maxLength(2000)),
+    extras: this.fb.array<ReturnType<AccountEditor['extraGroup']>>([]),
   });
 
   configure(account?: Account): void {
     this.account.set(account ?? null);
+    this.form.controls.extras.clear();
+    for (const extra of account?.balances.slice(1) ?? []) {
+      this.form.controls.extras.push(this.extraGroup(extra.currency, extra.openingBalance));
+    }
     this.form.reset({
       name: account?.name ?? '',
       kind: account?.kind ?? 'Bank',
@@ -263,7 +321,36 @@ export class AccountEditor {
       openingDate: account?.openingDate ?? todayIso(),
       isArchived: account?.isArchived ?? false,
       notes: account?.notes ?? '',
+      extras: (account?.balances.slice(1) ?? []).map((b) => ({
+        currency: b.currency,
+        openingBalance: b.openingBalance,
+      })),
     });
+  }
+
+  private extraGroup(currency = '', openingBalance: number | null = 0) {
+    return this.fb.nonNullable.group({
+      currency: this.fb.nonNullable.control(currency, Validators.required),
+      openingBalance: this.fb.control<number | null>(openingBalance),
+    });
+  }
+
+  protected addExtra(): void {
+    this.form.controls.extras.push(this.extraGroup());
+  }
+
+  /** An extra currency's problem: not chosen, the main currency again, or listed twice. */
+  protected extraError(index: number): string | null {
+    const control = this.form.controls.extras.at(index).controls.currency;
+    const code = control.value;
+    if (!code) {
+      return control.touched ? 'Choose the currency.' : null;
+    }
+    if (code === this.form.controls.currency.value) {
+      return 'That is the main currency already.';
+    }
+    const all = this.form.controls.extras.controls.map((e) => e.controls.currency.value);
+    return all.indexOf(code) !== index ? 'Listed twice.' : null;
   }
 
   protected fieldError(
@@ -288,7 +375,8 @@ export class AccountEditor {
   protected submit(): void {
     const name = this.form.controls.name;
     name.setValue(name.value.trim());
-    if (this.form.invalid) {
+    const extrasWrong = this.form.controls.extras.controls.some((_, i) => this.extraError(i));
+    if (this.form.invalid || extrasWrong) {
       this.form.markAllAsTouched();
       return;
     }
@@ -305,6 +393,10 @@ export class AccountEditor {
         openingDate: v.openingDate!,
         isArchived: v.isArchived,
         notes: v.notes.trim() || null,
+        extraCurrencies: v.extras.map((e) => ({
+          currency: e.currency,
+          openingBalance: e.openingBalance ?? 0,
+        })),
       })
       .subscribe({
         next: (account) => this.activeModal.close({ kind: 'saved', account }),

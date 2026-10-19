@@ -47,7 +47,9 @@ import { kpiComparison, kpiValueText, visibleKpis } from './kpi-view';
                 <li class="col">
                   <div class="kpi-tile h-100">
                     <div class="small text-body-secondary">{{ tile.label }}</div>
-                    <div class="kpi-value">{{ valueText(tile.value, tile.unit) }}</div>
+                    <div class="kpi-value">
+                      {{ valueText(tile.value, tile.unit, tile.currency) }}
+                    </div>
                     @if (comparison(tile); as text) {
                       <div class="small text-body-secondary">{{ text }}</div>
                     }

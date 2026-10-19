@@ -34,6 +34,7 @@ public static class KpiFigures
         new(KpiKeys.ObjectivesDone30, "Milestones done, 30 days", ModuleKeys.Goals, KpiUnits.Count, "the 30 days before"),
         new(KpiKeys.GoalsPassedYear, "Goals completed this year", ModuleKeys.Goals, KpiUnits.Count, null),
         new(KpiKeys.GoalsActive, "Goals in motion", ModuleKeys.Goals, KpiUnits.Count, null),
+        new(KpiKeys.NetWorth, "Net worth", ModuleKeys.Finance, KpiUnits.Money, "last month's end"),
     ];
 
     public static bool IsKnown(string key) => All.Any(k => k.Key == key);

@@ -49,6 +49,8 @@ public partial class RecurringTransaction
 
     public DateTime? DeletedAt { get; set; }
 
+    public string? ToCurrency { get; set; }
+
     public virtual Account? FromAccount { get; set; }
 
     public virtual ICollection<RecurringTransactionTag> RecurringTransactionTags { get; set; } = new List<RecurringTransactionTag>();
