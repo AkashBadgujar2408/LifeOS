@@ -3,7 +3,12 @@ import {
   doseCounts,
   followUpsDue,
   medicationGroups,
+  changeText,
+  durationText,
+  measurementText,
   medicationState,
+  nightSeries,
+  sleepSpan,
   timeLabel,
   visitBuckets,
 } from './health-view';
@@ -118,5 +123,45 @@ describe('health view', () => {
       done: 2,
       taken: 1,
     });
+  });
+
+  it('writes durations, measurements and changes', () => {
+    expect(durationText(455)).toBe('7 h 35 min');
+    expect(durationText(60)).toBe('1 h');
+    expect(durationText(45)).toBe('45 min');
+    expect(measurementText({ kind: 'BloodPressure', value: 120, value2: 80 })).toBe('120/80 mmHg');
+    expect(measurementText({ kind: 'Weight', value: 80.9, value2: null })).toBe('80.9 kg');
+    expect(measurementText({ kind: 'BodyFat', value: 21.5, value2: null })).toBe('21.5%');
+    expect(changeText(-0.6, 'Weight')).toBe('−0.6 kg');
+    expect(changeText(2, 'Waist')).toBe('+2 cm');
+    expect(changeText(-1.5, 'BodyFat')).toBe('−1.5 points');
+    expect(changeText(0, 'Weight')).toBe('no change');
+  });
+
+  it('puts a bedtime later on the clock than waking on the evening before', () => {
+    const local = (iso: string) => {
+      const d = new Date(iso);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
+    const night = sleepSpan('2026-10-19', { hour: 23, minute: 0 }, { hour: 7, minute: 0 });
+    expect(local(night.startedAt)).toBe('2026-10-18 23:00');
+    expect(local(night.endedAt)).toBe('2026-10-19 7:00');
+
+    const late = sleepSpan('2026-10-19', { hour: 1, minute: 30 }, { hour: 7, minute: 0 });
+    expect(local(late.startedAt)).toBe('2026-10-19 1:30');
+
+    const nap = sleepSpan('2026-10-19', { hour: 14, minute: 0 }, { hour: 14, minute: 30 });
+    expect(local(nap.startedAt)).toBe('2026-10-19 14:00');
+    expect(local(nap.endedAt)).toBe('2026-10-19 14:30');
+  });
+
+  it('fills every day of the range for the sleep chart', () => {
+    expect(
+      nightSeries([{ wokeOn: '2026-10-18', minutes: 480, quality: 4 }], '2026-10-17', '2026-10-19'),
+    ).toEqual([
+      { day: '2026-10-17', minutes: null },
+      { day: '2026-10-18', minutes: 480 },
+      { day: '2026-10-19', minutes: null },
+    ]);
   });
 });

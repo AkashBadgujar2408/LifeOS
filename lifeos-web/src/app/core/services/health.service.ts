@@ -130,6 +130,137 @@ export interface DoseSummary {
   done: number;
 }
 
+export const WORKOUT_KINDS = [
+  'Walk',
+  'Run',
+  'Cycle',
+  'Swim',
+  'Strength',
+  'Yoga',
+  'Sport',
+  'Other',
+] as const;
+export type WorkoutKind = (typeof WORKOUT_KINDS)[number];
+export const INTENSITIES = ['Light', 'Moderate', 'Hard'] as const;
+export type Intensity = (typeof INTENSITIES)[number];
+export const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snack'] as const;
+export type MealType = (typeof MEAL_TYPES)[number];
+export const MEASUREMENT_KINDS = [
+  'Weight',
+  'BodyFat',
+  'Waist',
+  'Chest',
+  'Hips',
+  'BloodPressure',
+  'RestingHeartRate',
+  'BloodSugar',
+] as const;
+export type MeasurementKind = (typeof MEASUREMENT_KINDS)[number];
+
+export interface Workout {
+  id: number;
+  kind: WorkoutKind;
+  occurredOn: string;
+  minutes: number;
+  steps: number | null;
+  distanceKm: number | null;
+  calories: number | null;
+  intensity: Intensity | null;
+  notes: string | null;
+}
+
+export type WorkoutPayload = Omit<Workout, 'id'> & { today: string };
+
+export interface WorkoutWeek {
+  weekStart: string;
+  minutes: number;
+  sessions: number;
+  steps: number;
+}
+
+export interface Fitness {
+  workouts: Workout[];
+  weeks: WorkoutWeek[];
+}
+
+export interface SleepRecord {
+  id: number;
+  wokeOn: string;
+  startedAt: string;
+  endedAt: string;
+  minutes: number;
+  quality: number | null;
+  isNap: boolean;
+  notes: string | null;
+}
+
+export type SleepPayload = Omit<SleepRecord, 'id' | 'minutes'> & { today: string };
+
+export interface SleepNight {
+  wokeOn: string;
+  minutes: number;
+  quality: number | null;
+}
+
+export interface SleepSummary {
+  records: SleepRecord[];
+  nights: SleepNight[];
+  average7Minutes: number | null;
+  average30Minutes: number | null;
+  averageQuality30: number | null;
+  nightsLogged30: number;
+}
+
+export interface Measurement {
+  id: number;
+  kind: MeasurementKind;
+  measuredOn: string;
+  value: number;
+  value2: number | null;
+  notes: string | null;
+}
+
+export type MeasurementPayload = Omit<Measurement, 'id'> & { today: string };
+
+export interface MeasurementLatest {
+  kind: MeasurementKind;
+  unit: string;
+  latest: Measurement;
+  change: number | null;
+  previousOn: string | null;
+  count: number;
+}
+
+export interface Meal {
+  id: number;
+  eatenOn: string;
+  mealType: MealType;
+  description: string;
+  calories: number | null;
+  proteinG: number | null;
+  carbsG: number | null;
+  fatG: number | null;
+  notes: string | null;
+}
+
+export type MealPayload = Omit<Meal, 'id'> & { today: string };
+
+export interface NutritionDay {
+  day: string;
+  meals: Meal[];
+  water: { id: number; millilitres: number; createdAt: string }[];
+  waterMl: number;
+  calories: number | null;
+  proteinG: number | null;
+}
+
+export interface NutritionTrendDay {
+  day: string;
+  calories: number | null;
+  waterMl: number;
+  meals: number;
+}
+
 /** Thrown when Health is locked and the user dismissed the password prompt. */
 export class HealthLockedError extends Error {
   constructor() {
@@ -374,6 +505,131 @@ export class HealthService {
         headers: this.vault.headers(),
       }),
     ).pipe(map((response) => response.data!));
+  }
+
+  // ---- Fitness, sleep, body, nutrition ----
+
+  fitness(from: string, to: string, today: string, weeks = 12): Observable<Fitness> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<Fitness>>(`${this.base}/Workouts`, {
+        params: { from, to, today, weeks },
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data!));
+  }
+
+  saveWorkout(id: number | null, payload: WorkoutPayload): Observable<Workout> {
+    return this.save<Workout>('Workouts', id, payload);
+  }
+
+  removeWorkout(id: number): Observable<void> {
+    return this.remove(`Workouts/${id}`);
+  }
+
+  sleep(from: string, to: string, today: string): Observable<SleepSummary> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<SleepSummary>>(`${this.base}/Sleep`, {
+        params: { from, to, today },
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data!));
+  }
+
+  saveSleep(id: number | null, payload: SleepPayload): Observable<SleepRecord> {
+    return this.save<SleepRecord>('Sleep', id, payload);
+  }
+
+  removeSleep(id: number): Observable<void> {
+    return this.remove(`Sleep/${id}`);
+  }
+
+  latestMeasurements(): Observable<MeasurementLatest[]> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<MeasurementLatest[]>>(`${this.base}/Measurements/latest`, {
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data ?? []));
+  }
+
+  measurements(kind: MeasurementKind): Observable<Measurement[]> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<Measurement[]>>(`${this.base}/Measurements`, {
+        params: { kind },
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data ?? []));
+  }
+
+  saveMeasurement(id: number | null, payload: MeasurementPayload): Observable<Measurement> {
+    return this.save<Measurement>('Measurements', id, payload);
+  }
+
+  removeMeasurement(id: number): Observable<void> {
+    return this.remove(`Measurements/${id}`);
+  }
+
+  nutritionDay(day: string): Observable<NutritionDay> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<NutritionDay>>(`${this.base}/Nutrition/day/${day}`, {
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data!));
+  }
+
+  nutritionTrend(from: string, to: string): Observable<NutritionTrendDay[]> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<NutritionTrendDay[]>>(`${this.base}/Nutrition`, {
+        params: { from, to },
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data ?? []));
+  }
+
+  saveMeal(id: number | null, payload: MealPayload): Observable<Meal> {
+    return this.save<Meal>('Nutrition/meals', id, payload);
+  }
+
+  removeMeal(id: number): Observable<void> {
+    return this.remove(`Nutrition/meals/${id}`);
+  }
+
+  addWater(drunkOn: string, millilitres: number, today: string): Observable<NutritionDay> {
+    return this.guarded(() =>
+      this.http.post<ApiResponse<NutritionDay>>(
+        `${this.base}/Nutrition/water`,
+        { drunkOn, millilitres, today },
+        { headers: this.vault.headers() },
+      ),
+    ).pipe(map((response) => response.data!));
+  }
+
+  removeWater(id: number): Observable<NutritionDay> {
+    return this.guarded(() =>
+      this.http.delete<ApiResponse<NutritionDay>>(`${this.base}/Nutrition/water/${id}`, {
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data!));
+  }
+
+  /** POST for a new one, PUT to `{path}/{id}` for an existing one. */
+  private save<T>(path: string, id: number | null, payload: object): Observable<T> {
+    return this.guarded(() =>
+      id
+        ? this.http.put<ApiResponse<T>>(`${this.base}/${path}/${id}`, payload, {
+            headers: this.vault.headers(),
+          })
+        : this.http.post<ApiResponse<T>>(`${this.base}/${path}`, payload, {
+            headers: this.vault.headers(),
+          }),
+    ).pipe(map((response) => response.data!));
+  }
+
+  private remove(path: string): Observable<void> {
+    return this.guarded(() =>
+      this.http.delete<ApiResponse<boolean>>(`${this.base}/${path}`, {
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map(() => undefined));
   }
 
   /** Unlocks first if needed, then makes the call; a 423 locks, asks again and retries once. */

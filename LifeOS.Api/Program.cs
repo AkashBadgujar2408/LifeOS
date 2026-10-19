@@ -126,6 +126,10 @@ try
     builder.Services.AddScoped<IMedicalConditionsService, MedicalConditionsService>();
     builder.Services.AddScoped<IDoctorVisitsService, DoctorVisitsService>();
     builder.Services.AddScoped<IMedicationsService, MedicationsService>();
+    builder.Services.AddScoped<IWorkoutsService, WorkoutsService>();
+    builder.Services.AddScoped<ISleepService, SleepService>();
+    builder.Services.AddScoped<IMeasurementsService, MeasurementsService>();
+    builder.Services.AddScoped<INutritionService, NutritionService>();
     builder.Services.AddScoped<IStatementImportService, StatementImportService>();
     builder.Services.AddScoped<IFinanceReportsService, FinanceReportsService>();
     builder.Services.AddScoped<IAccountDataService, AccountDataService>();

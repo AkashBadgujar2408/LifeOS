@@ -298,6 +298,26 @@ export const routes: Routes = [
           import('./features/health/medications').then((m) => m.HealthMedications),
       },
       {
+        path: 'health/fitness',
+        title: 'Exercise | LifeOS',
+        loadComponent: () => import('./features/health/fitness').then((m) => m.HealthFitness),
+      },
+      {
+        path: 'health/sleep',
+        title: 'Sleep | LifeOS',
+        loadComponent: () => import('./features/health/sleep').then((m) => m.HealthSleep),
+      },
+      {
+        path: 'health/body',
+        title: 'Body | LifeOS',
+        loadComponent: () => import('./features/health/body').then((m) => m.HealthBody),
+      },
+      {
+        path: 'health/nutrition',
+        title: 'Food & water | LifeOS',
+        loadComponent: () => import('./features/health/nutrition').then((m) => m.HealthNutrition),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

@@ -72,3 +72,62 @@ public interface IMedicationsService
 
     Task<DoseSummaryDto> GetSummaryAsync(DateOnly today);
 }
+
+/// <summary>Exercise, with weekly totals.</summary>
+public interface IWorkoutsService
+{
+    /// <summary>Workouts from..to and the <paramref name="weeks"/> ISO weeks up to today's.</summary>
+    Task<FitnessDto> GetAsync(DateOnly from, DateOnly to, DateOnly today, int weeks);
+
+    Task<OperationResult<WorkoutDto>> CreateAsync(WorkoutRequest request);
+
+    Task<OperationResult<WorkoutDto>> UpdateAsync(int id, WorkoutRequest request);
+
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+/// <summary>Sleep, with nights and averages.</summary>
+public interface ISleepService
+{
+    Task<SleepSummaryDto> GetAsync(DateOnly from, DateOnly to, DateOnly today);
+
+    Task<OperationResult<SleepRecordDto>> CreateAsync(SleepRequest request);
+
+    Task<OperationResult<SleepRecordDto>> UpdateAsync(int id, SleepRequest request);
+
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+/// <summary>Body measurements: the latest of each kind, and the history of one.</summary>
+public interface IMeasurementsService
+{
+    Task<List<MeasurementLatestDto>> GetLatestAsync();
+
+    /// <summary>Every measurement of a kind, oldest first.</summary>
+    Task<List<MeasurementDto>> GetKindAsync(string kind);
+
+    Task<OperationResult<MeasurementDto>> CreateAsync(MeasurementRequest request);
+
+    Task<OperationResult<MeasurementDto>> UpdateAsync(int id, MeasurementRequest request);
+
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+/// <summary>Meals and water.</summary>
+public interface INutritionService
+{
+    Task<NutritionDayDto> GetDayAsync(DateOnly day);
+
+    Task<List<NutritionTrendDayDto>> GetTrendAsync(DateOnly from, DateOnly to);
+
+    Task<OperationResult<MealDto>> CreateMealAsync(MealRequest request);
+
+    Task<OperationResult<MealDto>> UpdateMealAsync(int id, MealRequest request);
+
+    Task<OperationResult<bool>> DeleteMealAsync(int id);
+
+    /// <summary>Adds a glass/bottle; returns the day.</summary>
+    Task<OperationResult<NutritionDayDto>> AddWaterAsync(WaterRequest request);
+
+    Task<OperationResult<NutritionDayDto>> RemoveWaterAsync(int id);
+}

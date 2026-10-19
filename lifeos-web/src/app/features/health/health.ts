@@ -15,14 +15,18 @@ import { APP_TIME_FORMAT } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
 import {
   DoctorVisit,
+  Fitness,
   HealthLockedError,
   HealthProfile,
   HealthService,
   MedicalCondition,
+  MeasurementLatest,
+  NutritionDay,
+  SleepSummary,
 } from '../../core/services/health.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
-import { followUpsDue, visitBuckets } from './health-view';
+import { durationText, followUpsDue, measurementText, visitBuckets } from './health-view';
 import { openProfileEditor } from './profile-editor';
 import { TodaysDoses } from './todays-doses';
 import { openVisitEditor } from './visit-editor';
@@ -50,6 +54,18 @@ import { openVisitEditor } from './visit-editor';
       @if (loadFailed(); as message) {
         <app-load-error [message]="message" (retry)="load()" />
       } @else if (data(); as d) {
+        <div class="row g-3 mb-3">
+          @for (f of glance(); track f.label) {
+            <div class="col-6 col-md-3">
+              <a class="card h-100 text-decoration-none link-body-emphasis" [routerLink]="f.link">
+                <span class="card-body d-block">
+                  <span class="small text-body-secondary d-block">{{ f.label }}</span>
+                  <span class="h5 mb-0 d-block">{{ f.value }}</span>
+                </span>
+              </a>
+            </div>
+          }
+        </div>
         <div class="row g-3">
           <div class="col-lg-6">
             <div class="card h-100">
@@ -200,6 +216,10 @@ export class Health {
     profile: HealthProfile;
     conditions: MedicalCondition[];
     visits: DoctorVisit[];
+    fitness: Fitness;
+    sleep: SleepSummary;
+    measurements: MeasurementLatest[];
+    nutrition: NutritionDay;
   } | null>(null);
   protected readonly loadFailed = signal<string | null>(null);
   private readonly today = todayIso();
@@ -210,6 +230,34 @@ export class Health {
   protected readonly upcoming = computed(
     () => visitBuckets(this.data()?.visits ?? [], this.today).upcoming,
   );
+  /** The everyday logs at a glance; each tile opens its page. */
+  protected readonly glance = computed(() => {
+    const d = this.data();
+    if (!d) {
+      return [];
+    }
+    const week = d.fitness.weeks.at(-1);
+    const night = d.sleep.nights.at(-1);
+    const weight = d.measurements.find((m) => m.kind === 'Weight');
+    return [
+      {
+        label: 'Exercise this week',
+        value: durationText(week?.minutes ?? 0),
+        link: '/health/fitness',
+      },
+      {
+        label: 'Last night',
+        value: night ? durationText(night.minutes) : 'Not logged',
+        link: '/health/sleep',
+      },
+      {
+        label: 'Weight',
+        value: weight ? measurementText(weight.latest) : '—',
+        link: '/health/body',
+      },
+      { label: 'Water today', value: `${d.nutrition.waterMl} ml`, link: '/health/nutrition' },
+    ];
+  });
   protected readonly followUps = computed(() =>
     followUpsDue(this.data()?.visits ?? [], this.today),
   );
@@ -223,6 +271,10 @@ export class Health {
       profile: this.healthService.profile(this.today),
       conditions: this.healthService.conditions(),
       visits: this.healthService.visits(),
+      fitness: this.healthService.fitness(this.today, this.today, this.today, 1),
+      sleep: this.healthService.sleep(this.today, this.today, this.today),
+      measurements: this.healthService.latestMeasurements(),
+      nutrition: this.healthService.nutritionDay(this.today),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

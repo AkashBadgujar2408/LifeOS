@@ -1004,3 +1004,11 @@
 - Test data: `health63` (doubled rows from two curl runs: two Penicillin allergies, two Vitamin D, two Ibuprofen; Metformin, Amlodipine; the Dr Mehta visit).
 
 - Next up: **Session 64 — Health 3** (fitness, sleep, body, nutrition).
+
+## Last session: 2026-10-19 — Session 64 — Health 3: fitness, sleep, body, nutrition
+- Shipped: `WorkoutsService`, `SleepService`, `MeasurementsService`, `NutritionService`, pure `HealthLogRules` + `HealthTrends` (6 xUnit cases); `HealthLogControllers.cs`; client `/health/fitness`, `/health/sleep`, `/health/body`, `/health/nutrition`, four editors, `<app-health-trend>`, glance tiles on `/health`; `sleepSpan`/`nightSeries`/`measurementText`/`changeText`/`durationText` (+ specs).
+- Verified: see plan row 64. 389 backend + 226 frontend tests, all six zones.
+- Decisions (mine — say if you want them changed): a night belongs to the morning you woke; naps are logged but kept out of averages; overlapping sleeps are refused; averages are per night *logged* (a night you didn't log isn't a zero); measurements keep one unit (kg, cm, mmHg, mg/dL) — no imperial display yet; per-kind bounds refuse obvious typos; calories with an unknown meal add up only what's known; water comes in 250/500 ml taps (any amount through the API); no daily targets or "you should" wording.
+- Test data: `health64` (workouts, three nights + a nap, weights, two BP readings, meals, water).
+
+- Next up: **Session 65 — Health 4** (labs, mental wellness, health goals, export check).
