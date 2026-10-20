@@ -21,6 +21,7 @@ import {
   GoalSource,
   GoalsService,
 } from '../../core/services/goals.service';
+import { HealthService } from '../../core/services/health.service';
 import { ToastService } from '../../core/services/toast.service';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -42,6 +43,7 @@ import { GoalSourcePicker } from './goal-source-picker';
 export class GoalProgressCard {
   private readonly goalsService = inject(GoalsService);
   private readonly toast = inject(ToastService);
+  private readonly healthService = inject(HealthService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
 
@@ -202,6 +204,11 @@ export class GoalProgressCard {
   }
 
   protected async removeSource(source: GoalSource): Promise<void> {
+    // What it counted is kept as a Carried over entry, so it has to be read first.
+    if (source.locked) {
+      this.unlock();
+      return;
+    }
     const counted =
       source.counted === null
         ? ''
@@ -224,6 +231,15 @@ export class GoalProgressCard {
         next: () => this.refresh(),
         error: (err) => this.toast.error(apiErrorMessage(err, 'Could not remove it.')),
       });
+  }
+
+  /** Counted from workouts: the figure shows only once the vault is open (asked for here, never on page open). */
+  protected unlock(): void {
+    void this.healthService.unlock().then((ok) => {
+      if (ok) {
+        this.refresh();
+      }
+    });
   }
 
   protected sourceAdded(): void {

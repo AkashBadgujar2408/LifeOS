@@ -43,6 +43,9 @@ public interface IGoalProgressSource
     /// <summary>Health data: only read with the vault unlocked, and named by a neutral word otherwise.</summary>
     bool IsSensitive => false;
 
+    /// <summary>What a sensitive source is called wherever the vault can't be assumed open ("Workouts").</summary>
+    string NeutralTitle => "Health data";
+
     /// <summary>Title + unit of each source whose item still exists (missing ones are left out).</summary>
     Task<Dictionary<int, SourceDescription>> DescribeAsync(IReadOnlyCollection<GoalSourceRef> sources);
 

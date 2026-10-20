@@ -182,14 +182,14 @@ public class GoalMeasureService(AppDbContext db, GoalSourceReader sourceReader, 
             return OperationResult<GoalSourceDto>.Fail("That can't be counted toward a goal yet.");
         }
 
-        if (!(await provider.DescribeAsync([candidate])).TryGetValue(0, out var description))
-        {
-            return OperationResult<GoalSourceDto>.Fail("Item not found.");
-        }
-
         if (await provider.CheckAsync(candidate) is { } providerError)
         {
             return OperationResult<GoalSourceDto>.Fail(providerError);
+        }
+
+        if (!(await provider.DescribeAsync([candidate])).TryGetValue(0, out var description))
+        {
+            return OperationResult<GoalSourceDto>.Fail("Item not found.");
         }
 
         if (!GoalMeasureRules.SameUnit(goal.MeasureUnit, description.Unit))
@@ -341,7 +341,10 @@ public class GoalMeasureService(AppDbContext db, GoalSourceReader sourceReader, 
             var total = Round(amounts.Total(source.Id));
             if (total > 0)
             {
-                var title = descriptions.TryGetValue(source.Id, out var d) ? d.Title : "a removed item";
+                // The note stays in the goals schema and shows without the vault, so Health data keeps its neutral word.
+                var title = sourceReader.ProviderFor(source.Kind) is { IsSensitive: true } sensitive
+                    ? sensitive.NeutralTitle
+                    : descriptions.TryGetValue(source.Id, out var d) ? d.Title : "a removed item";
                 db.GoalMeasureEntries.Add(new GoalMeasureEntry
                 {
                     UserId = source.UserId,

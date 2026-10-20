@@ -1175,3 +1175,14 @@
 - Test data: `g71a…`/`g71b…` accounts (three runs: `g71a951176`, `g71a987600`, `g71a028622`), `imp71iuser1/2` — left in UAT like earlier test accounts.
 
 - Next up: **Session 71h — Health workouts count toward goals** (deferred at your request; the source framework is ready: a `Workouts` provider + vault rules), then Session 72 — Family 1.
+
+## Last session: 2026-10-21 — Session 71h — Health workouts count toward goals
+- Shipped (backend): `WorkoutGoalSource` (sensitive, neutral title "Workouts") + pure `WorkoutGoalRules` (steps for Walk/Run, km for Walk/Run/Cycle/Swim, minutes for every kind, "any workout" for all three; 13 xUnit cases), registered next to the Health providers. `IGoalProgressSource.NeutralTitle`; a provider's own check now runs before "item not found" so a wrong workout source gets its reason. No schema change.
+- Shipped (frontend): the goal page's Progress card shows **"Unlock to see it"** on a locked counted goal (never prompts by itself); removing a locked source asks for the unlock first; goal create/update/status send the vault unlock (switching a workout-counted goal to Manual has to read what it counted). Wording mentions workouts.
+- Verified: see plan row 71h — `goals71h.mjs` (21 checks, all passed) and the browser (locked → unlock → 10 of 500 km, 2%; km-only options; 375 px; no console errors). 518 backend + 256 frontend tests; 0 warnings; lint/Prettier/build clean. No date code touched, so `test:tz` not rerun.
+- Fixed on the way: a Carried over note read "Walk workouts: steps" — plain text in the goals schema, visible without the vault — now "Carried over from Workouts".
+- Note: the API's console doesn't print "Now listening", so a `dotnet run` looked stuck at "Building..." while it was already serving — check with a request (401 = up) instead.
+- **Measurable goals & linked progress (71d–71h) is complete.**
+- Test data: `w71h485266`, `w71h541157` (walk/run workouts, "71h Run 500 km" counted from Run km, "71h Walk 1,00,000 steps" switched to Manual with 6,000 carried over).
+
+- Next up: **Session 72 — Family 1** (schema `16_people.sql`), then 73 — you asked for both straight after 71h.

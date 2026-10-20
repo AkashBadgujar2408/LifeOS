@@ -90,7 +90,7 @@ export const MEASURE_CHOICES: readonly { value: MeasureChoice; label: string; hi
   {
     value: 'Linked',
     label: 'A number counted for me',
-    hint: 'Counted from habits, study time, books, courses, roadmaps or projects — you choose them on the goal page.',
+    hint: 'Counted from habits, study time, books, courses, roadmaps, projects or workouts — you choose them on the goal page.',
   },
   {
     value: 'Savings',

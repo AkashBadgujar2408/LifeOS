@@ -218,6 +218,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, MedicationLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, MedicalConditionLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, LabResultLinkableProvider>();
+    builder.Services.AddScoped<IGoalProgressSource, WorkoutGoalSource>();
     builder.Services.AddScoped<ILinkableEntityProvider, PropertyLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, AssetLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, VehicleLinkableProvider>();

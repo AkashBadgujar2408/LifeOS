@@ -150,8 +150,9 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   in a few queries (one net-worth picture for all savings goals). Every screen that shows a goal's % goes through it;
   nothing is stored. A measure is logged by hand (`goals.GoalMeasureEntries`) or counted from other items
   (`goals.GoalSources`, then read-only). Each kind of source is an `IGoalProgressSource` registered by its module
-  (habits; learning: study time, books, courses, roadmaps; tasks: tasks done and focus time in a project) and read
-  through `GoalSourceReader`, which keeps sensitive ones locked without the vault. A source's item delete calls
+  (habits; learning: study time, books, courses, roadmaps; tasks: tasks done and focus time in a project; Health:
+  steps / km / minutes of workouts of a kind, `WorkoutGoalSource` + pure `WorkoutGoalRules`) and read
+  through `GoalSourceReader`, which keeps sensitive ones locked without the vault (named by their `NeutralTitle`, also in Carried over notes). A source's item delete calls
   `IGoalMeasureService.ReleaseEntityAsync`, turning what it counted into a Carried over entry. Item pages show the
   other end with `<app-counts-toward>`. Milestones can follow a task or project and are ticked only by
   `MilestoneLinksService`, which task/project changes call. `api/Goals/Goals/{id}/measure/{entries,sources}`,

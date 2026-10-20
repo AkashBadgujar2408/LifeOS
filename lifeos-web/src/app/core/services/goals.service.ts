@@ -340,19 +340,26 @@ export class GoalsService {
 
   create(payload: GoalPayload): Observable<GoalDetail> {
     return this.http
-      .post<ApiResponse<GoalDetail>>(this.baseUrl, payload)
+      .post<ApiResponse<GoalDetail>>(this.baseUrl, payload, { headers: this.vault.headers() })
       .pipe(map((response) => response.data!));
   }
 
+  /** Sends the vault's unlock: a goal counted from workouts switching to Manual has to read what they counted. */
   update(id: number, payload: GoalPayload): Observable<GoalDetail> {
     return this.http
-      .put<ApiResponse<GoalDetail>>(`${this.baseUrl}/${id}`, payload)
+      .put<ApiResponse<GoalDetail>>(`${this.baseUrl}/${id}`, payload, {
+        headers: this.vault.headers(),
+      })
       .pipe(map((response) => response.data!));
   }
 
   setStatus(id: number, status: GoalStatus, note: string | null): Observable<GoalDetail> {
     return this.http
-      .put<ApiResponse<GoalDetail>>(`${this.baseUrl}/${id}/status`, { status, note })
+      .put<ApiResponse<GoalDetail>>(
+        `${this.baseUrl}/${id}/status`,
+        { status, note },
+        { headers: this.vault.headers() },
+      )
       .pipe(map((response) => response.data!));
   }
 
