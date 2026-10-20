@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, map, of } from 'rxjs';
+import { saveBlob } from '../../core/files/files';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { FinanceService, ImportResult } from '../../core/services/finance.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -13,14 +14,18 @@ import { formatMoney } from './finance-view';
 import {
   DATE_FORMATS,
   MappedRow,
+  SAMPLE_STATEMENT_CSV,
   StatementMapping,
   guessMapping,
+  guessStatementMapping,
   mapStatement,
   parseCsv,
 } from './statement-csv';
 
 /** The most rows shown in the preview table (all of them are still checked and imported). */
 const PREVIEW_ROWS = 200;
+/** How many of the first rows can be picked as the one holding the column names. */
+const HEADER_CHOICE_ROWS = 30;
 /** Matches StatementImport.MaxLines on the server. */
 const MAX_LINES = 5000;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -89,6 +94,36 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
               }
             </div>
           </div>
+
+          <div class="border-top mt-3 pt-3">
+            <h3 class="h6 mb-2">What file works</h3>
+            <ul class="small mb-2 ps-3">
+              <li>
+                <strong>Any CSV your bank gives you</strong> — there's no fixed layout. After you
+                choose it, you say which column is which.
+              </li>
+              <li>
+                It needs a <strong>date</strong>, an <strong>amount</strong> (one column with minus
+                for money out, or separate money-out and money-in columns) and a
+                <strong>description</strong>. A reference number is optional.
+              </li>
+              <li>
+                Commas, semicolons or tabs between columns; dates like 14/10/2026, 10/14/2026,
+                2026-10-14, 14-10-2026, 14.10.2026, 14 Oct 2026 or 14/10/26; amounts like 1,234.56,
+                1.234,56, (1,234.56) or 1,234.56 Dr. Account details above the table are fine.
+              </li>
+              <li>
+                Bank gives Excel only? Open it and use <em>File › Save As › CSV UTF-8</em>. PDF
+                statements can't be read.
+              </li>
+            </ul>
+            <button type="button" class="btn btn-sm btn-outline-primary" (click)="downloadSample()">
+              <i class="bi bi-download"></i> Download a sample CSV
+            </button>
+            <span class="small text-body-secondary ms-2">
+              Fill it in by hand or copy your bank's lines into it.
+            </span>
+          </div>
         </div>
       </section>
 
@@ -96,17 +131,29 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
         <section class="card mb-4">
           <div class="card-body">
             <h2 class="h6">2. Which column is which</h2>
-            <div class="form-check mb-3">
-              <input
+            <div class="mb-3">
+              <label class="form-label" for="import-header">Column names are on</label>
+              <select
                 id="import-header"
-                type="checkbox"
-                class="form-check-input"
-                [ngModel]="mapping().hasHeader"
-                (ngModelChange)="patch({ hasHeader: $event })"
-              />
-              <label class="form-check-label" for="import-header"
-                >The first row is column names</label
+                class="form-select"
+                [ngModel]="mapping().headerRow"
+                (ngModelChange)="setHeaderRow($event)"
               >
+                <option [ngValue]="null" [selected]="mapping().headerRow === null">
+                  No row — the file has no column names
+                </option>
+                @for (h of headerChoices(); track h.index) {
+                  <option [ngValue]="h.index" [selected]="h.index === mapping().headerRow">
+                    {{ h.label }}
+                  </option>
+                }
+              </select>
+              @if (mapping().headerRow; as row) {
+                <div class="form-text">
+                  {{ row === 1 ? 'Row 1 is' : 'Rows 1–' + row + ' are' }} above the column names
+                  (account details) and left out.
+                </div>
+              }
             </div>
             <div class="row g-3">
               <div class="col-sm-6 col-lg-3">
@@ -451,12 +498,24 @@ export class StatementImport {
   protected readonly columns = computed(() => {
     const rows = this.rows();
     const width = Math.max(0, ...rows.slice(0, 20).map((r) => r.length));
-    const header = this.mapping().hasHeader ? (rows[0] ?? []) : [];
+    const headerRow = this.mapping().headerRow;
+    const header = headerRow === null ? [] : (rows[headerRow] ?? []);
     return Array.from({ length: width }, (_, index) => {
       const letter = index < 26 ? String.fromCharCode(65 + index) : `#${index + 1}`;
       return { index, label: header[index] ? `${letter} · ${header[index]}` : `Column ${letter}` };
     });
   });
+
+  /** Rows the column names could be on: "Row 4 · Date, Narration, Chq./Ref.No. …". */
+  protected readonly headerChoices = computed(() =>
+    this.rows()
+      .slice(0, HEADER_CHOICE_ROWS)
+      .map((cells, index) => {
+        const text = cells.filter((c) => c.trim()).join(', ');
+        const short = text.length > 60 ? `${text.slice(0, 60)}…` : text;
+        return { index, label: `Row ${index + 1} · ${short || '(empty)'}` };
+      }),
+  );
 
   protected readonly mapped = computed(() => mapStatement(this.rows(), this.mapping()));
   protected readonly readable = computed(() => this.mapped().filter((r) => r.line));
@@ -518,6 +577,29 @@ export class StatementImport {
     this.resetCheck();
   }
 
+  /**
+   * A different row holds the column names: guess the columns again from its names when they can be told (date
+   * format and number style stay as chosen), otherwise keep the column choices and just move the start.
+   */
+  protected setHeaderRow(headerRow: number | null): void {
+    const names = headerRow === null ? null : guessMapping(this.rows()[headerRow] ?? [], headerRow);
+    if (!names || names.date === null) {
+      this.patch({ headerRow });
+      return;
+    }
+    const { dateFormat, decimalComma } = this.mapping();
+    this.mapping.set({ ...names, dateFormat, decimalComma });
+    this.resetCheck();
+  }
+
+  protected downloadSample(): void {
+    // A byte-order mark so Excel opens it as UTF-8; the importer skips it.
+    saveBlob(
+      new Blob(['﻿' + SAMPLE_STATEMENT_CSV], { type: 'text/csv' }),
+      'lifeos-statement-sample.csv',
+    );
+  }
+
   protected resetCheck(): void {
     this.result.set(null);
     this.accountError.set(false);
@@ -548,7 +630,7 @@ export class StatementImport {
         return;
       }
       this.rows.set(rows);
-      this.mapping.set(guessMapping(rows[0]));
+      this.mapping.set(guessStatementMapping(rows));
     };
     reader.onerror = () => this.fileError.set('Could not read that file.');
     reader.readAsText(file);

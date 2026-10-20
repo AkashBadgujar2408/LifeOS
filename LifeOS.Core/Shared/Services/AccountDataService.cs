@@ -24,6 +24,9 @@ namespace LifeOS.Core.Shared.Services;
 /// </summary>
 public class AccountDataService(AppDbContext db, IFileStore fileStore, IVaultService vaultService) : IAccountDataService
 {
+    private const string NotAnExport =
+        "This isn't a LifeOS export. Choose the .zip that \"Download my data\" made in LifeOS.";
+
     private const string NotEmpty =
         "Import goes into an empty account, and this one already has {0}. Register a new account for the import, or delete this data first.";
 
@@ -168,7 +171,7 @@ public class AccountDataService(AppDbContext db, IFileStore fileStore, IVaultSer
         }
         catch (InvalidDataException)
         {
-            return OperationResult<ImportSummaryDto>.Fail("That isn't a LifeOS export (not a zip file).");
+            return OperationResult<ImportSummaryDto>.Fail(NotAnExport);
         }
 
         using (zip)
@@ -176,21 +179,37 @@ public class AccountDataService(AppDbContext db, IFileStore fileStore, IVaultSer
             var manifestEntry = zip.GetEntry("manifest.json");
             if (manifestEntry is null)
             {
-                return OperationResult<ImportSummaryDto>.Fail("That isn't a LifeOS export (no manifest.json).");
+                return OperationResult<ImportSummaryDto>.Fail(NotAnExport);
             }
 
             JsonElement manifest;
-            await using (var stream = manifestEntry.Open())
+            try
             {
+                await using var stream = manifestEntry.Open();
                 manifest = (await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken)).RootElement.Clone();
             }
-
-            if (!manifest.TryGetProperty("format", out var format) || format.GetString() != AccountData.Format)
+            catch (Exception ex) when (ex is JsonException or InvalidDataException)
             {
-                return OperationResult<ImportSummaryDto>.Fail("That isn't a LifeOS export.");
+                return OperationResult<ImportSummaryDto>.Fail(NotAnExport);
             }
 
-            if (!manifest.TryGetProperty("version", out var version) || version.GetInt32() > AccountData.Version)
+            // Any other zip that happens to hold a manifest.json is still not an export.
+            if (manifest.ValueKind != JsonValueKind.Object
+                || !manifest.TryGetProperty("format", out var format)
+                || format.ValueKind != JsonValueKind.String
+                || format.GetString() != AccountData.Format)
+            {
+                return OperationResult<ImportSummaryDto>.Fail(NotAnExport);
+            }
+
+            if (!manifest.TryGetProperty("version", out var version)
+                || version.ValueKind != JsonValueKind.Number
+                || !version.TryGetInt32(out var versionNumber))
+            {
+                return OperationResult<ImportSummaryDto>.Fail(NotAnExport);
+            }
+
+            if (versionNumber > AccountData.Version)
             {
                 return OperationResult<ImportSummaryDto>.Fail("That export was made by a newer LifeOS — update this one first.");
             }

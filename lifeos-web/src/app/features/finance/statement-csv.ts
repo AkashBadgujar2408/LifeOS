@@ -169,7 +169,8 @@ export function parseAmount(text: string, decimalComma = false): number | null {
 
 /** Which column holds what (indexes into a row; null = not in this file). */
 export interface StatementMapping {
-  hasHeader: boolean;
+  /** 0-based row holding the column names (rows above it — account details — are ignored); null = no names. */
+  headerRow: number | null;
   date: number | null;
   dateFormat: StatementDateFormat;
   /** One signed column ("amount"), or separate money-out / money-in columns ("split"). */
@@ -193,7 +194,7 @@ export interface MappedRow {
 
 /** Applies a mapping to the parsed rows: each row becomes an import line or says what's wrong with it. */
 export function mapStatement(rows: readonly string[][], mapping: StatementMapping): MappedRow[] {
-  const start = mapping.hasHeader ? 1 : 0;
+  const start = mapping.headerRow === null ? 0 : mapping.headerRow + 1;
   const out: MappedRow[] = [];
   for (let i = start; i < rows.length; i++) {
     const row = rows[i];
@@ -242,8 +243,43 @@ export function mapStatement(rows: readonly string[][], mapping: StatementMappin
   return out;
 }
 
+/** How far down a statement the column names are looked for (banks put account details above the table). */
+const HEADER_SEARCH_ROWS = 30;
+
+/**
+ * The row holding the column names: the first one (within the first 30) where a date column and an amount — one
+ * column or a money out/in pair — can be told by name. None found → the first row, as most CSVs have it.
+ */
+export function findHeaderRow(rows: readonly string[][]): number {
+  const limit = Math.min(rows.length, HEADER_SEARCH_ROWS);
+  for (let i = 0; i < limit; i++) {
+    const m = guessMapping(rows[i], i);
+    if (m.date !== null && (m.amount !== null || m.amountMode === 'split')) {
+      return i;
+    }
+  }
+  return 0;
+}
+
+/** A starting mapping for a whole file: find the column names, then guess from them. */
+export function guessStatementMapping(rows: readonly string[][]): StatementMapping {
+  const headerRow = findHeaderRow(rows);
+  return guessMapping(rows[headerRow] ?? [], headerRow);
+}
+
+/**
+ * The downloadable sample: the columns a statement needs, named so `guessStatementMapping` maps every one of them
+ * with nothing to change. Dates are dd/MM/yyyy, the default format.
+ */
+export const SAMPLE_STATEMENT_CSV = [
+  'Date,Description,Reference,Money out,Money in',
+  '01/10/2026,Salary October,SAL-1026,,52000.00',
+  '03/10/2026,Grocery store,UPI-48213,1250.50,',
+  '05/10/2026,"Electricity bill, September",BILL-7731,1840.00,',
+].join('\r\n');
+
 /** A starting mapping from the header names (Date / Narration / Withdrawal / Deposit / Amount / Ref ...). */
-export function guessMapping(header: readonly string[]): StatementMapping {
+export function guessMapping(header: readonly string[], headerRow = 0): StatementMapping {
   // Whole words only: "cr" mustn't match "desCRiption".
   const words = header.map((h) => ` ${h.toLowerCase().replace(/[^a-z0-9]+/g, ' ')} `);
   const find = (...wanted: string[]) => {
@@ -254,7 +290,7 @@ export function guessMapping(header: readonly string[]): StatementMapping {
   const credit = find('credit', 'deposit', 'paid in', 'money in', 'cr');
   const split = debit !== null && credit !== null && debit !== credit;
   return {
-    hasHeader: true,
+    headerRow,
     date: find('date'),
     dateFormat: 'dd/MM/yyyy',
     amountMode: split ? 'split' : 'amount',
@@ -263,7 +299,7 @@ export function guessMapping(header: readonly string[]): StatementMapping {
     debit: split ? debit : null,
     credit: split ? credit : null,
     description: find('description', 'narration', 'details', 'particulars', 'payee', 'memo'),
-    reference: find('ref', 'cheque', 'chq', 'transaction id'),
+    reference: find('ref', 'reference', 'cheque', 'chq', 'transaction id'),
     decimalComma: false,
   };
 }

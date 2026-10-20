@@ -49,11 +49,16 @@ import { ensureVaultUnlocked } from '../../shared/components/vault-unlock/vault-
           Moving from another LifeOS? Import its export here. This only works on an account that's
           still empty.
         </p>
+        <p class="small mb-2 text-body-secondary">
+          It takes only the <strong>.zip that "Download my data" made</strong> in a LifeOS account,
+          as it was downloaded — not a CSV or a zip you've changed or put together yourself.
+        </p>
         <div class="input-group">
           <input
             id="your-data-import"
             type="file"
             class="form-control"
+            [class.is-invalid]="importFileError()"
             accept=".zip,application/zip"
             aria-label="LifeOS export to import"
             (change)="chooseFile($event)"
@@ -67,6 +72,9 @@ import { ensureVaultUnlocked } from '../../shared/components/vault-unlock/vault-
             {{ importing() ? 'Importing…' : 'Import' }}
           </button>
         </div>
+        @if (importFileError(); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
         @if (summary(); as s) {
           <p class="small text-success-emphasis mt-2 mb-0">
             <i class="bi bi-check-circle"></i> Brought in {{ s.rows }}
@@ -147,6 +155,7 @@ export class YourData {
   protected readonly importing = signal(false);
   protected readonly deleting = signal(false);
   protected readonly importFile = signal<File | null>(null);
+  protected readonly importFileError = signal<string | null>(null);
   protected readonly summary = signal<ImportSummary | null>(null);
   protected readonly deleteForm = inject(FormBuilder).nonNullable.group({
     confirmation: ['', Validators.required],
@@ -193,8 +202,16 @@ export class YourData {
   }
 
   protected chooseFile(event: Event): void {
-    this.importFile.set((event.target as HTMLInputElement).files?.[0] ?? null);
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
     this.summary.set(null);
+    // Only a .zip can be an export; anything else is turned away here rather than uploaded.
+    const notZip = !!file && !file.name.toLowerCase().endsWith('.zip');
+    this.importFileError.set(
+      notZip
+        ? `"${file.name}" isn't a LifeOS export. Choose the .zip that "Download my data" made.`
+        : null,
+    );
+    this.importFile.set(notZip ? null : file);
   }
 
   protected async importNow(): Promise<void> {

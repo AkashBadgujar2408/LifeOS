@@ -1,10 +1,13 @@
 import {
   detectDelimiter,
+  findHeaderRow,
   guessMapping,
+  guessStatementMapping,
   mapStatement,
   parseAmount,
   parseCsv,
   parseStatementDate,
+  SAMPLE_STATEMENT_CSV,
   StatementMapping,
 } from './statement-csv';
 
@@ -65,7 +68,7 @@ describe('parseAmount', () => {
 
 describe('mapStatement', () => {
   const split: StatementMapping = {
-    hasHeader: true,
+    headerRow: 0,
     date: 0,
     dateFormat: 'dd/MM/yy',
     amountMode: 'split',
@@ -105,7 +108,7 @@ describe('mapStatement', () => {
   it('flips a card statement whose spending is positive', () => {
     const mapping: StatementMapping = {
       ...split,
-      hasHeader: false,
+      headerRow: null,
       amountMode: 'amount',
       amount: 2,
       amountOutIsPositive: true,
@@ -134,5 +137,65 @@ describe('guessMapping', () => {
       amount: 2,
       debit: null,
     });
+  });
+});
+
+describe('findHeaderRow', () => {
+  // How several banks export: account details above the table, a blank-ish line, then the column names.
+  const withDetails = [
+    ['Account Name', 'AKASH B'],
+    ['Account Number', 'XXXX1234'],
+    ['Statement From', '01/10/2026', 'To', '31/10/2026'],
+    ['Date', 'Narration', 'Chq./Ref.No.', 'Withdrawal Amt.', 'Deposit Amt.', 'Closing Balance'],
+    ['01/10/26', 'SALARY', 'NEFT1', '', '52,000.00', '52,000.00'],
+    ['03/10/26', 'CAFE', '', '150.00', '', '51,850.00'],
+  ];
+
+  it('finds the column names below the account details', () => {
+    expect(findHeaderRow(withDetails)).toBe(3);
+    const m = guessStatementMapping(withDetails);
+    expect(m).toMatchObject({
+      headerRow: 3,
+      date: 0,
+      description: 1,
+      reference: 2,
+      debit: 3,
+      credit: 4,
+    });
+  });
+
+  it('ignores the rows above the column names when mapping', () => {
+    const mapped = mapStatement(withDetails, {
+      ...guessStatementMapping(withDetails),
+      dateFormat: 'dd/MM/yy',
+    });
+    expect(mapped.map((r) => r.line?.amount)).toEqual([52000, -150]);
+    expect(mapped[0].fileLine).toBe(5);
+  });
+
+  it('falls back to the first row when no names can be told', () => {
+    expect(findHeaderRow([['01/10/2026', 'SALARY', '52000']])).toBe(0);
+    expect(findHeaderRow([])).toBe(0);
+  });
+});
+
+describe('SAMPLE_STATEMENT_CSV', () => {
+  it('maps itself with nothing to change and reads every line', () => {
+    const rows = parseCsv(SAMPLE_STATEMENT_CSV);
+    const mapping = guessStatementMapping(rows);
+    expect(mapping).toMatchObject({
+      headerRow: 0,
+      date: 0,
+      dateFormat: 'dd/MM/yyyy',
+      description: 1,
+      reference: 2,
+      amountMode: 'split',
+      debit: 3,
+      credit: 4,
+    });
+    const mapped = mapStatement(rows, mapping);
+    expect(mapped.every((r) => r.line)).toBe(true);
+    expect(mapped.map((r) => r.line!.amount)).toEqual([52000, -1250.5, -1840]);
+    expect(mapped[2].line!.description).toBe('Electricity bill, September');
   });
 });
