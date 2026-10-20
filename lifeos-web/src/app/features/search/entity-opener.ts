@@ -231,6 +231,16 @@ export class EntityOpener {
           error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the bill.')),
         });
         break;
+      // Purchases' pages open their own items (keeps their editors out of the shell bundle).
+      case 'Purchase':
+        void this.router.navigate(['/purchases'], { queryParams: { open: entityId } });
+        break;
+      case 'ShoppingList':
+        void this.router.navigate(['/purchases/lists', entityId]);
+        break;
+      case 'WishlistItem':
+        void this.router.navigate(['/purchases/wishlist'], { queryParams: { open: entityId } });
+        break;
       case 'InterviewQuestion':
         this.careerService.question(entityId).subscribe({
           next: async (question) => {

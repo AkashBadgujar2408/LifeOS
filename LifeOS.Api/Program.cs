@@ -20,6 +20,8 @@ using LifeOS.Core.Health.ServiceContracts;
 using LifeOS.Core.Health.Services;
 using LifeOS.Core.Home.ServiceContracts;
 using LifeOS.Core.Home.Services;
+using LifeOS.Core.Purchases.ServiceContracts;
+using LifeOS.Core.Purchases.Services;
 using LifeOS.Core.Learning.ServiceContracts;
 using LifeOS.Core.Learning.Services;
 using LifeOS.Core.Models;
@@ -145,6 +147,9 @@ try
     builder.Services.AddScoped<IHomeAgendaService, HomeAgendaService>();
     builder.Services.AddScoped<IUtilityBillsService, UtilityBillsService>();
     builder.Services.AddScoped<IHouseholdProjectsService, HouseholdProjectsService>();
+    builder.Services.AddScoped<IPurchasesService, PurchasesService>();
+    builder.Services.AddScoped<IShoppingListsService, ShoppingListsService>();
+    builder.Services.AddScoped<IWishlistService, WishlistService>();
     builder.Services.AddScoped<IStatementImportService, StatementImportService>();
     builder.Services.AddScoped<IFinanceReportsService, FinanceReportsService>();
     builder.Services.AddScoped<IAccountDataService, AccountDataService>();
@@ -204,6 +209,10 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, WarrantyLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, MaintenanceTaskLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, UtilityBillLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, PurchaseLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, ShoppingListLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, WishlistItemLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, ReturnLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

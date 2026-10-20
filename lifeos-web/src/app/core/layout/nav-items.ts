@@ -190,6 +190,19 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Purchases & rewards',
+    items: [
+      { label: 'Purchases', route: '/purchases', icon: 'bi-bag', exact: true, module: 'Purchases' },
+      {
+        label: 'Shopping lists',
+        route: '/purchases/lists',
+        icon: 'bi-cart3',
+        module: 'Purchases',
+      },
+      { label: 'Wishlist', route: '/purchases/wishlist', icon: 'bi-gift', module: 'Purchases' },
+    ],
+  },
+  {
     label: 'Your story',
     items: [
       { label: 'Story', route: '/story', icon: 'bi-book', module: 'Story' },

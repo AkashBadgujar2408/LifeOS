@@ -369,6 +369,28 @@ export const routes: Routes = [
         loadComponent: () => import('./features/home/maintenance').then((m) => m.HomeMaintenance),
       },
       {
+        path: 'purchases',
+        title: 'Purchases | LifeOS',
+        loadComponent: () => import('./features/purchases/purchases').then((m) => m.Purchases),
+      },
+      {
+        path: 'purchases/lists',
+        title: 'Shopping lists | LifeOS',
+        loadComponent: () =>
+          import('./features/purchases/shopping-lists').then((m) => m.ShoppingLists),
+      },
+      {
+        path: 'purchases/lists/:id',
+        title: 'Shopping list | LifeOS',
+        loadComponent: () =>
+          import('./features/purchases/shopping-lists').then((m) => m.ShoppingLists),
+      },
+      {
+        path: 'purchases/wishlist',
+        title: 'Wishlist | LifeOS',
+        loadComponent: () => import('./features/purchases/wishlist').then((m) => m.Wishlist),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

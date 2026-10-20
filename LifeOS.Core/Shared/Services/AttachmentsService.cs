@@ -4,6 +4,7 @@ using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Home.Services;
 using LifeOS.Core.Journal.Services;
 using LifeOS.Core.Models;
+using LifeOS.Core.Purchases.Services;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
 using LifeOS.Core.Tasks.Services;
@@ -22,7 +23,7 @@ public class AttachmentsService(AppDbContext db, IFileStore fileStore, IEnumerab
     /// </summary>
     public static readonly IReadOnlySet<string> AttachableTypes = new HashSet<string>(
         [GoalLinkableProvider.Type, TaskLinkableProvider.Type, JournalEntryLinkableProvider.Type, ResumeVersionLinkableProvider.Type,
-            TransactionLinkableProvider.Type, AssetLinkableProvider.Type],
+            TransactionLinkableProvider.Type, AssetLinkableProvider.Type, PurchaseLinkableProvider.Type],
         StringComparer.Ordinal);
 
     public async Task<OperationResult<List<AttachmentDto>>> ListAsync(string entityType, int entityId)

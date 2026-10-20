@@ -6,6 +6,7 @@ using LifeOS.Core.Home.ServiceContracts;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
+using LifeOS.Core.Shared.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace LifeOS.Core.Home.Services;
@@ -40,7 +41,7 @@ public class WarrantiesService(
             return OperationResult<WarrantyDto>.Fail(error);
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         db.Warranties.Add(warranty);
         await db.SaveChangesAsync();
         var reminderError = await SyncReminderAsync(warranty, coverName!, request.TimeZone);
@@ -68,7 +69,7 @@ public class WarrantiesService(
         }
 
         warranty.UpdatedAt = DateTime.UtcNow;
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         await db.SaveChangesAsync();
         var reminderError = await SyncReminderAsync(warranty, coverName!, request.TimeZone);
         if (reminderError is not null)
@@ -87,7 +88,7 @@ public class WarrantiesService(
             return OperationResult<bool>.Fail(NotFound);
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         await RemoveAsync([id]);
         await transaction.CommitAsync();
         return OperationResult<bool>.Ok(true);

@@ -155,12 +155,15 @@ public class AssetsService(
         }
 
         var now = DateTime.UtcNow;
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         await db.AssetTags.Where(t => t.AssetId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsDeleted, true).SetProperty(t => t.DeletedAt, now));
         await db.MaintenanceTasks.Where(m => m.AssetId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.AssetId, (int?)null).SetProperty(m => m.UpdatedAt, now));
         await warrantiesService.RemoveAsync(await db.Warranties.Where(w => w.AssetId == id).Select(w => w.Id).ToListAsync());
+        // The purchase that brought it stays (you did buy it).
+        await db.Purchases.Where(p => p.AssetId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.AssetId, (int?)null).SetProperty(p => p.UpdatedAt, now));
         asset.IsDeleted = true;
         asset.DeletedAt = now;
         await db.SaveChangesAsync();

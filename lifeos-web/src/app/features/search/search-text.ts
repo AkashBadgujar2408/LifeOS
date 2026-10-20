@@ -69,6 +69,10 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   Warranty: 'bi-patch-check',
   MaintenanceTask: 'bi-tools',
   UtilityBill: 'bi-receipt',
+  Purchase: 'bi-bag',
+  ShoppingList: 'bi-cart3',
+  WishlistItem: 'bi-gift',
+  Return: 'bi-arrow-return-left',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -121,4 +125,8 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   Warranty: 'Warranties',
   MaintenanceTask: 'Maintenance',
   UtilityBill: 'Bills',
+  Purchase: 'Purchases',
+  ShoppingList: 'Shopping lists',
+  WishlistItem: 'Wishlist',
+  Return: 'Returns',
 };

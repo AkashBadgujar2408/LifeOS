@@ -1096,3 +1096,12 @@
 - Decisions (mine — say if you want them changed): a subscription charged to an account owns a Finance repeating transaction, so each charge is a real transaction; refunds, cashback and points cashed in are each one income; one return per purchase.
 
 - Next up: **Session 70 — Purchases 2** (lists, wishlist, purchase history).
+
+## Last session: 2026-10-20 — Session 70 — Purchases 2: lists, wishlist, purchase history
+- Shipped (backend): `LifeOS.Core/Purchases/` services + `PurchaseRules` (4 xUnit cases) + providers, `api/Purchases/{Purchases,ShoppingLists,Wishlist}`, `Purchase` attachable, release hooks in transaction/asset deletes, shared `BeginOrJoinTransactionAsync` (warranties, asset delete, transaction delete now join a caller's transaction).
+- Shipped (frontend): `/purchases`, `/purchases/lists[/:id]`, `/purchases/wishlist`, purchase editor (Finance + inventory + warranty in one step), nav group "Purchases & rewards", search/reminder labels, opener; `purchases-view.ts` (+ spec).
+- Verified: see plan row 70. 436 backend + 240 frontend tests, all six zones; lint/Prettier/build clean.
+- Found: `WarrantiesService.CreateAsync` opened its own DB transaction, which can't nest — now it joins the caller's (`DbTransactions`), so a purchase with its expense, item and warranty is all-or-nothing (checked: a refused warranty left no expense or item). The earlier Chrome tab had been closed; a new one was used, and you weren't signed in there, so the test sign-in is simply removed at the end.
+- Test data: `home67` — Groceries list (Coffee to buy; Rice, Milk, Bread, Eggs bought), purchases Groceries (DMart, Nature's Basket) and Kindle (inventory + warranty), wish Camera.
+
+- Next up: **Session 70a — Rewards & vouchers**.
