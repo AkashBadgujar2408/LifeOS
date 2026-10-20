@@ -1186,3 +1186,10 @@
 - Test data: `w71h485266`, `w71h541157` (walk/run workouts, "71h Run 500 km" counted from Run km, "71h Walk 1,00,000 steps" switched to Manual with 6,000 carried over).
 
 - Next up: **Session 72 — Family 1** (schema `16_people.sql`), then 73 — you asked for both straight after 71h.
+
+## Last session: 2026-10-21 — Session 72 — Family 1: schema
+- Shipped: `16_people.sql` (schema `people`: Relationships, SignificantDates, Interactions + InteractionPeople, KeepInTouch, GiftIdeas, Responsibilities; UAT backed up, `C:\Users\Hp\LifeOS_UAT_pre72.bak`), `Family` switchable module (SQL CHECK, `ModuleKeys`, client `MODULES`), scaffolded models + partials.
+- Verified: see plan row 72 — 48 SQL checks in a rolled-back transaction, fresh-DB scaffold identical, 518 backend tests, 0 warnings, lint/Prettier clean.
+- Fixed on the way: the one-birthday unique index on `ContactId` alone scaffolded a contact's dates as one-to-one — keyed `(ContactId, Kind)` now (same trap as the loans' disbursement index).
+- Gotcha: the first scratch-DB scaffold timed out connecting to the brand-new database; a rerun with `Command Timeout=300` in the connection string worked.
+- Next up: **Session 73 — Family 2** (directory, tree, significant dates on the calendar and My Day), straight after this at your request.

@@ -93,6 +93,8 @@ public partial class User
 
     public virtual ICollection<FuelLog> FuelLogs { get; set; } = new List<FuelLog>();
 
+    public virtual ICollection<GiftIdea> GiftIdeas { get; set; } = new List<GiftIdea>();
+
     public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();
 
     public virtual ICollection<GoalMeasureEntry> GoalMeasureEntries { get; set; } = new List<GoalMeasureEntry>();
@@ -127,6 +129,10 @@ public partial class User
 
     public virtual ICollection<InsurancePolicy> InsurancePolicies { get; set; } = new List<InsurancePolicy>();
 
+    public virtual ICollection<InteractionPerson> InteractionPeople { get; set; } = new List<InteractionPerson>();
+
+    public virtual ICollection<Interaction> Interactions { get; set; } = new List<Interaction>();
+
     public virtual ICollection<InterviewQuestionTag> InterviewQuestionTags { get; set; } = new List<InterviewQuestionTag>();
 
     public virtual ICollection<InterviewQuestion> InterviewQuestions { get; set; } = new List<InterviewQuestion>();
@@ -140,6 +146,8 @@ public partial class User
     public virtual ICollection<JournalEntryTag> JournalEntryTags { get; set; } = new List<JournalEntryTag>();
 
     public virtual ICollection<JournalNote> JournalNotes { get; set; } = new List<JournalNote>();
+
+    public virtual ICollection<KeepInTouch> KeepInTouches { get; set; } = new List<KeepInTouch>();
 
     public virtual ICollection<KnowledgeNoteTag> KnowledgeNoteTags { get; set; } = new List<KnowledgeNoteTag>();
 
@@ -193,7 +201,11 @@ public partial class User
 
     public virtual ICollection<RecurringTransaction> RecurringTransactions { get; set; } = new List<RecurringTransaction>();
 
+    public virtual ICollection<Relationship> Relationships { get; set; } = new List<Relationship>();
+
     public virtual ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
+
+    public virtual ICollection<Responsibility> Responsibilities { get; set; } = new List<Responsibility>();
 
     public virtual ICollection<ResumeVersion> ResumeVersions { get; set; } = new List<ResumeVersion>();
 
@@ -218,6 +230,8 @@ public partial class User
     public virtual ICollection<ShoppingList> ShoppingLists { get; set; } = new List<ShoppingList>();
 
     public virtual ICollection<SideIncomeSource> SideIncomeSources { get; set; } = new List<SideIncomeSource>();
+
+    public virtual ICollection<SignificantDate> SignificantDates { get; set; } = new List<SignificantDate>();
 
     public virtual ICollection<SkillLevelChange> SkillLevelChanges { get; set; } = new List<SkillLevelChange>();
 

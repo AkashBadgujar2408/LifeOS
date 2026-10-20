@@ -244,3 +244,18 @@ public partial class PlanAssumption : ISoftDeletable, IUserOwned;
 public partial class Scenario : ISoftDeletable, IUserOwned;
 
 public partial class ScenarioLine : ISoftDeletable, IUserOwned;
+
+// Family & Relationships (Session 72)
+public partial class Relationship : ISoftDeletable, IUserOwned;
+
+public partial class SignificantDate : ISoftDeletable, IUserOwned;
+
+public partial class Interaction : ISoftDeletable, IUserOwned;
+
+public partial class InteractionPerson : ISoftDeletable, IUserOwned;
+
+public partial class KeepInTouch : ISoftDeletable, IUserOwned;
+
+public partial class GiftIdea : ISoftDeletable, IUserOwned;
+
+public partial class Responsibility : ISoftDeletable, IUserOwned;

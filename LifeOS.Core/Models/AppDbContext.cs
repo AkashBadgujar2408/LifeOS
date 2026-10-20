@@ -75,6 +75,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FuelLog> FuelLogs { get; set; }
 
+    public virtual DbSet<GiftIdea> GiftIdeas { get; set; }
+
     public virtual DbSet<Goal> Goals { get; set; }
 
     public virtual DbSet<GoalHistory> GoalHistories { get; set; }
@@ -109,6 +111,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<InsurancePolicy> InsurancePolicies { get; set; }
 
+    public virtual DbSet<Interaction> Interactions { get; set; }
+
+    public virtual DbSet<InteractionPerson> InteractionPeople { get; set; }
+
     public virtual DbSet<Interview> Interviews { get; set; }
 
     public virtual DbSet<InterviewQuestion> InterviewQuestions { get; set; }
@@ -122,6 +128,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<JournalEntryTag> JournalEntryTags { get; set; }
 
     public virtual DbSet<JournalNote> JournalNotes { get; set; }
+
+    public virtual DbSet<KeepInTouch> KeepInTouches { get; set; }
 
     public virtual DbSet<KnowledgeNote> KnowledgeNotes { get; set; }
 
@@ -177,7 +185,11 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<RecurringTransactionTag> RecurringTransactionTags { get; set; }
 
+    public virtual DbSet<Relationship> Relationships { get; set; }
+
     public virtual DbSet<Reminder> Reminders { get; set; }
+
+    public virtual DbSet<Responsibility> Responsibilities { get; set; }
 
     public virtual DbSet<ResumeVersion> ResumeVersions { get; set; }
 
@@ -202,6 +214,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<ShoppingListItem> ShoppingListItems { get; set; }
 
     public virtual DbSet<SideIncomeSource> SideIncomeSources { get; set; }
+
+    public virtual DbSet<SignificantDate> SignificantDates { get; set; }
 
     public virtual DbSet<Skill> Skills { get; set; }
 
@@ -1082,6 +1096,45 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_FuelLogs_Vehicles");
         });
 
+        modelBuilder.Entity<GiftIdea>(entity =>
+        {
+            entity.ToTable("GiftIdeas", "people");
+
+            entity.HasIndex(e => e.ContactId, "IX_GiftIdeas_Contact").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_GiftIdeas_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.EstimatedAmount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.Link).HasMaxLength(2000);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Occasion).HasMaxLength(100);
+            entity.Property(e => e.Status)
+                .HasMaxLength(10)
+                .HasDefaultValue("Idea", "DF_GiftIdeas_Status");
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.GiftIdeas)
+                .HasForeignKey(d => d.ContactId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GiftIdeas_Contacts");
+
+            entity.HasOne(d => d.Purchase).WithMany(p => p.GiftIdeas)
+                .HasForeignKey(d => d.PurchaseId)
+                .HasConstraintName("FK_GiftIdeas_Purchases");
+
+            entity.HasOne(d => d.SignificantDate).WithMany(p => p.GiftIdeas)
+                .HasForeignKey(d => d.SignificantDateId)
+                .HasConstraintName("FK_GiftIdeas_SignificantDates");
+
+            entity.HasOne(d => d.User).WithMany(p => p.GiftIdeas)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GiftIdeas_Users");
+        });
+
         modelBuilder.Entity<Goal>(entity =>
         {
             entity.ToTable("Goals", "goals");
@@ -1530,6 +1583,51 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_InsurancePolicies_Users");
         });
 
+        modelBuilder.Entity<Interaction>(entity =>
+        {
+            entity.ToTable("Interactions", "people");
+
+            entity.HasIndex(e => new { e.UserId, e.OccurredOn }, "IX_Interactions_User_OccurredOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Interactions_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(10);
+            entity.Property(e => e.Notes).HasMaxLength(4000);
+            entity.Property(e => e.Summary).HasMaxLength(500);
+
+            entity.HasOne(d => d.User).WithMany(p => p.Interactions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Interactions_Users");
+        });
+
+        modelBuilder.Entity<InteractionPerson>(entity =>
+        {
+            entity.ToTable("InteractionPeople", "people");
+
+            entity.HasIndex(e => e.ContactId, "IX_InteractionPeople_Contact").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.InteractionId, e.ContactId }, "UX_InteractionPeople_Pair")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_InteractionPeople_CreatedAt");
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.InteractionPeople)
+                .HasForeignKey(d => d.ContactId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InteractionPeople_Contacts");
+
+            entity.HasOne(d => d.Interaction).WithMany(p => p.InteractionPeople)
+                .HasForeignKey(d => d.InteractionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InteractionPeople_Interactions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.InteractionPeople)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_InteractionPeople_Users");
+        });
+
         modelBuilder.Entity<Interview>(entity =>
         {
             entity.ToTable("Interviews", "career");
@@ -1700,6 +1798,27 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_JournalNotes_Users");
+        });
+
+        modelBuilder.Entity<KeepInTouch>(entity =>
+        {
+            entity.ToTable("KeepInTouch", "people");
+
+            entity.HasIndex(e => e.ContactId, "UX_KeepInTouch_Contact")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_KeepInTouch_CreatedAt");
+
+            entity.HasOne(d => d.Contact).WithOne(p => p.KeepInTouch)
+                .HasForeignKey<KeepInTouch>(d => d.ContactId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_KeepInTouch_Contacts");
+
+            entity.HasOne(d => d.User).WithMany(p => p.KeepInTouches)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_KeepInTouch_Users");
         });
 
         modelBuilder.Entity<KnowledgeNote>(entity =>
@@ -2356,6 +2475,35 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_RecurringTransactionTags_Users");
         });
 
+        modelBuilder.Entity<Relationship>(entity =>
+        {
+            entity.ToTable("Relationships", "people");
+
+            entity.HasIndex(e => e.RelativeContactId, "IX_Relationships_Relative").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.UserId, e.PersonContactId, e.RelativeContactId, e.Kind }, "UX_Relationships_Pair")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Relationships_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(10);
+            entity.Property(e => e.Label).HasMaxLength(50);
+
+            entity.HasOne(d => d.PersonContact).WithMany(p => p.RelationshipPersonContacts)
+                .HasForeignKey(d => d.PersonContactId)
+                .HasConstraintName("FK_Relationships_PersonContacts");
+
+            entity.HasOne(d => d.RelativeContact).WithMany(p => p.RelationshipRelativeContacts)
+                .HasForeignKey(d => d.RelativeContactId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Relationships_RelativeContacts");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Relationships)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Relationships_Users");
+        });
+
         modelBuilder.Entity<Reminder>(entity =>
         {
             entity.ToTable("Reminders", "calendar");
@@ -2378,6 +2526,37 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Reminders_Users");
+        });
+
+        modelBuilder.Entity<Responsibility>(entity =>
+        {
+            entity.ToTable("Responsibilities", "people");
+
+            entity.HasIndex(e => e.UserId, "IX_Responsibilities_User").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Responsibilities_CreatedAt");
+            entity.Property(e => e.HeldBy)
+                .HasMaxLength(10)
+                .HasDefaultValue("Me", "DF_Responsibilities_HeldBy");
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.ResponsibilityContacts)
+                .HasForeignKey(d => d.ContactId)
+                .HasConstraintName("FK_Responsibilities_Contacts");
+
+            entity.HasOne(d => d.HolderContact).WithMany(p => p.ResponsibilityHolderContacts)
+                .HasForeignKey(d => d.HolderContactId)
+                .HasConstraintName("FK_Responsibilities_HolderContacts");
+
+            entity.HasOne(d => d.TaskItem).WithMany(p => p.Responsibilities)
+                .HasForeignKey(d => d.TaskItemId)
+                .HasConstraintName("FK_Responsibilities_TaskItems");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Responsibilities)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Responsibilities_Users");
         });
 
         modelBuilder.Entity<ResumeVersion>(entity =>
@@ -2677,6 +2856,36 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_SideIncomeSources_Users");
+        });
+
+        modelBuilder.Entity<SignificantDate>(entity =>
+        {
+            entity.ToTable("SignificantDates", "people");
+
+            entity.HasIndex(e => new { e.UserId, e.Month, e.Day }, "IX_SignificantDates_User_MonthDay").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.ContactId, e.Kind }, "UX_SignificantDates_Birthday")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [Kind]='Birthday')");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_SignificantDates_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(12);
+            entity.Property(e => e.Label).HasMaxLength(100);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.SignificantDateContacts)
+                .HasForeignKey(d => d.ContactId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SignificantDates_Contacts");
+
+            entity.HasOne(d => d.OtherContact).WithMany(p => p.SignificantDateOtherContacts)
+                .HasForeignKey(d => d.OtherContactId)
+                .HasConstraintName("FK_SignificantDates_OtherContacts");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SignificantDates)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SignificantDates_Users");
         });
 
         modelBuilder.Entity<Skill>(entity =>

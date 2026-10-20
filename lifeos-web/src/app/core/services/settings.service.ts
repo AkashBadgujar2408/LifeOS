@@ -20,7 +20,8 @@ export type ModuleKey =
   | 'Finance'
   | 'Health'
   | 'Home'
-  | 'Purchases';
+  | 'Purchases'
+  | 'Family';
 
 export interface ModuleInfo {
   key: ModuleKey;
@@ -66,6 +67,12 @@ export const MODULES: ModuleInfo[] = [
     key: 'Purchases',
     label: 'Purchases & rewards',
     hides: 'shopping lists, wishlist, purchases, subscriptions, returns and rewards',
+  },
+  {
+    key: 'Family',
+    label: 'Family & relationships',
+    hides:
+      'the family directory and tree, birthdays and anniversaries (also on the calendar and My Day)',
   },
   {
     key: 'Documents',

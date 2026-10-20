@@ -41,6 +41,8 @@ public partial class Purchase
 
     public virtual ICollection<Benefit> Benefits { get; set; } = new List<Benefit>();
 
+    public virtual ICollection<GiftIdea> GiftIdeas { get; set; } = new List<GiftIdea>();
+
     public virtual ICollection<PointBatch> PointBatches { get; set; } = new List<PointBatch>();
 
     public virtual ICollection<PurchaseTag> PurchaseTags { get; set; } = new List<PurchaseTag>();

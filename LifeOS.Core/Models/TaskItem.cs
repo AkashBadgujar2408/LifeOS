@@ -51,6 +51,8 @@ public partial class TaskItem
 
     public virtual Project? Project { get; set; }
 
+    public virtual ICollection<Responsibility> Responsibilities { get; set; } = new List<Responsibility>();
+
     public virtual ICollection<TaskDependency> TaskDependencyBlockedByTasks { get; set; } = new List<TaskDependency>();
 
     public virtual ICollection<TaskDependency> TaskDependencyTaskItems { get; set; } = new List<TaskDependency>();
