@@ -1055,3 +1055,8 @@
 - Other gaps discussed but not scheduled (say if you want any): shared household between users, dependents/care (children, parents, pets), estate & nominees, meals & recipes, digital-accounts inventory, workout programs, fuel log, freelance invoicing.
 
 - Next up: **Session 69 — Purchases 1** (schema).
+
+## 2026-10-20 — Plan update (no code): fuel & mileage, rewards & vouchers
+- **68a Fuel & mileage log** (next session, before Purchases): fills with amount + rate *or* quantity, odometer, optional one-time Finance expense; mileage is **one overall average** as you described — (latest odometer − first odometer of the run) ÷ (all fill quantities except the latest, still in the tank) — because most fills are partial and made near empty, so the tank-level difference fades as fills add up. A "missed logging a fill before this" tick starts a new run. No per-fill or full-tank figures (dropped at your request).
+- **Rewards & vouchers**: tables added to Session 69 (`Benefits`, `BenefitRedemptions`, `PointBatches`), UI/API in new **Session 70a** — vouchers/gift cards/store credit (encrypted codes, remaining balance computed), coupons, cashback (received once into Finance, overdue nudge), reward points with expiring batches, promotional wallet credit; expiry reminders, My Day card, offered when logging a purchase at that store; pending cashback feeds the 71a forecast.
+- Totals now 108 sessions ≈ 218 hours. Next up: **Session 68a — Fuel & mileage log**.
