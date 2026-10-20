@@ -37,6 +37,20 @@ public interface IVehiclesService
     Task<OperationResult<bool>> DeleteAsync(int id);
 }
 
+public interface IFuelLogsService
+{
+    /// <summary>The fills (newest first) with the average, its trend and spend per month.</summary>
+    Task<OperationResult<FuelHistoryDto>> GetHistoryAsync(int vehicleId);
+    Task<OperationResult<FuelLogDto>> CreateAsync(int vehicleId, FuelLogRequest request);
+    Task<OperationResult<FuelLogDto>> UpdateAsync(int vehicleId, int id, FuelLogRequest request);
+    /// <summary>Records it in Finance as one expense (once).</summary>
+    Task<OperationResult<FuelLogDto>> RecordExpenseAsync(int vehicleId, int id, FuelExpenseRequest request);
+    /// <summary>Deletes the expense it created.</summary>
+    Task<OperationResult<FuelLogDto>> RemoveExpenseAsync(int vehicleId, int id);
+    /// <summary>Deletes the fill and the expense it created.</summary>
+    Task<OperationResult<bool>> DeleteAsync(int vehicleId, int id);
+}
+
 public interface IWarrantiesService
 {
     Task<List<WarrantyDto>> GetAllAsync();

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -9,7 +10,14 @@ import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { formatMoney } from '../finance/finance-view';
 import { openDisposal, takeBack } from './disposal-dialog';
-import { DISPOSAL_KIND_LABELS, VEHICLE_KIND_ICONS, dueStatus, runsOutStatus } from './home-view';
+import {
+  DISPOSAL_KIND_LABELS,
+  VEHICLE_KIND_ICONS,
+  dueStatus,
+  mileageLine,
+  runsOutStatus,
+} from './home-view';
+import { openFuelFill } from './fuel-fill-editor';
 import { openMaintenanceDone, openMaintenanceEditor } from './maintenance-editor';
 import { openVehicleEditor } from './vehicle-editor';
 
@@ -22,7 +30,7 @@ interface PaperLine {
 @Component({
   selector: 'app-home-vehicles',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, LoadError],
+  imports: [DatePipe, DecimalPipe, RouterLink, LoadError],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -146,6 +154,27 @@ interface PaperLine {
                           }
                         </dd>
                       </dl>
+                      @if (v.kind !== 'Bicycle') {
+                        <div
+                          class="d-flex flex-wrap gap-2 align-items-baseline small mt-2 pt-2 border-top"
+                        >
+                          <i class="bi bi-fuel-pump text-body-secondary" aria-hidden="true"></i>
+                          <span class="flex-grow-1">{{ mileage(v) }}</span>
+                          <button
+                            type="button"
+                            class="btn btn-link btn-sm p-0 align-baseline"
+                            (click)="addFill(v)"
+                          >
+                            Add fill
+                          </button>
+                          <a
+                            class="btn btn-link btn-sm p-0 align-baseline"
+                            [routerLink]="['/home/vehicles', v.id, 'fuel']"
+                          >
+                            Fuel log
+                          </a>
+                        </div>
+                      }
                       @if (v.reminderDays !== null) {
                         <p class="small text-body-secondary mb-0 mt-2">
                           <i class="bi bi-bell" aria-hidden="true"></i>
@@ -215,6 +244,24 @@ export class HomeVehicles {
       { label: 'PUC', on: v.pucValidUntil },
       { label: 'Registration', on: v.registrationValidUntil },
     ];
+  }
+
+  protected mileage(v: Vehicle): string {
+    return mileageLine(v);
+  }
+
+  protected async addFill(vehicle: Vehicle): Promise<void> {
+    const result = await openFuelFill(this.modal, {
+      id: vehicle.id,
+      name: vehicle.name,
+      fuelUnit: vehicle.fuelUnit,
+      odometerKm: vehicle.odometerKm,
+      currency: vehicle.mileage?.currency ?? null,
+    });
+    if (result) {
+      this.load();
+      this.toast.success('Fill saved.');
+    }
   }
 
   protected runsOut(day: string) {

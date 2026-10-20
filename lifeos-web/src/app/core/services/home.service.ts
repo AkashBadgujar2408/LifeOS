@@ -17,6 +17,9 @@ export type Ownership = (typeof OWNERSHIPS)[number];
 export const VEHICLE_KINDS = ['Car', 'Motorcycle', 'Scooter', 'Bicycle', 'Other'] as const;
 export type VehicleKind = (typeof VEHICLE_KINDS)[number];
 
+export const FUEL_UNITS = ['Litre', 'Kg', 'kWh'] as const;
+export type FuelUnit = (typeof FUEL_UNITS)[number];
+
 export const WARRANTY_KINDS = ['Warranty', 'Extended', 'AMC'] as const;
 export type WarrantyKind = (typeof WARRANTY_KINDS)[number];
 
@@ -131,6 +134,83 @@ export interface Vehicle {
   nextServiceTaskId: number | null;
   nextServiceTitle: string | null;
   nextServiceOn: string | null;
+  fuelUnit: FuelUnit;
+  /** The overall average of the current run of fills (null until two fills). */
+  mileage: FuelAverage | null;
+  fuelFills: number;
+}
+
+/** Mileage from partial fills: distance ÷ the fuel of every fill but the latest (FuelEconomy on the server). */
+export interface FuelAverage {
+  perUnit: number;
+  distanceKm: number;
+  fuelUsed: number;
+  fills: number;
+  /** Only when the fuel burnt was all paid in one currency. */
+  costPerKm: number | null;
+  currency: string | null;
+}
+
+export interface FuelFill {
+  id: number;
+  vehicleId: number;
+  filledOn: string;
+  odometerKm: number;
+  amount: number;
+  currency: string;
+  /** Both filled in — whichever wasn't entered is worked out (quantityGiven says which). */
+  pricePerUnit: number;
+  quantity: number;
+  quantityGiven: boolean;
+  missedFillBefore: boolean;
+  transactionId: number | null;
+  paidFromAccountName: string | null;
+  notes: string | null;
+}
+
+export interface FuelTrendPoint {
+  fillId: number;
+  filledOn: string;
+  odometerKm: number;
+  perUnit: number;
+}
+
+export interface FuelMonth {
+  /** The month's first day. */
+  monthStart: string;
+  currency: string;
+  amount: number;
+}
+
+export interface FuelHistory {
+  vehicleId: number;
+  fuelUnit: FuelUnit;
+  /** Newest first. */
+  fills: FuelFill[];
+  average: FuelAverage | null;
+  trend: FuelTrendPoint[];
+  monthly: FuelMonth[];
+}
+
+export interface FuelExpensePayload {
+  accountId: number;
+  exchangeRate: number | null;
+  tagIds: number[];
+}
+
+export interface FuelFillPayload {
+  filledOn: string;
+  odometerKm: number;
+  amount: number;
+  currency: string;
+  /** The price per unit or the quantity — never both. */
+  pricePerUnit: number | null;
+  quantity: number | null;
+  missedFillBefore: boolean;
+  notes: string | null;
+  /** On create only: record it in Finance. */
+  expense: FuelExpensePayload | null;
+  today: string;
 }
 
 export interface VehiclePayload {
@@ -147,6 +227,7 @@ export interface VehiclePayload {
   pucValidUntil: string | null;
   registrationValidUntil: string | null;
   reminderDays: number | null;
+  fuelUnit: FuelUnit;
   notes: string | null;
   today: string;
   timeZone: string;
@@ -446,6 +527,51 @@ export class HomeService {
       tap(() => this.remindersService.notifyChanged()),
       map(() => undefined),
     );
+  }
+
+  // ---- Fuel ----
+
+  fuelHistory(vehicleId: number): Observable<FuelHistory> {
+    return this.http
+      .get<ApiResponse<FuelHistory>>(`${this.base}/Vehicles/${vehicleId}/fuel`)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** With `expense`, one Finance expense is recorded for the fill too. */
+  saveFuelFill(
+    vehicleId: number,
+    id: number | null,
+    payload: FuelFillPayload,
+  ): Observable<FuelFill> {
+    const url = `${this.base}/Vehicles/${vehicleId}/fuel`;
+    const request = id
+      ? this.http.put<ApiResponse<FuelFill>>(`${url}/${id}`, payload)
+      : this.http.post<ApiResponse<FuelFill>>(url, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  recordFuelExpense(
+    vehicleId: number,
+    id: number,
+    payload: FuelExpensePayload,
+  ): Observable<FuelFill> {
+    return this.http
+      .put<ApiResponse<FuelFill>>(`${this.base}/Vehicles/${vehicleId}/fuel/${id}/expense`, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Takes the expense the fill created back out of Finance. */
+  removeFuelExpense(vehicleId: number, id: number): Observable<FuelFill> {
+    return this.http
+      .delete<ApiResponse<FuelFill>>(`${this.base}/Vehicles/${vehicleId}/fuel/${id}/expense`)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Deletes the fill and the expense it created. */
+  removeFuelFill(vehicleId: number, id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.base}/Vehicles/${vehicleId}/fuel/${id}`)
+      .pipe(map(() => undefined));
   }
 
   // ---- Warranties ----

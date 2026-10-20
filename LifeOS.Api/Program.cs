@@ -139,6 +139,7 @@ try
     builder.Services.AddScoped<IPropertiesService, PropertiesService>();
     builder.Services.AddScoped<IAssetsService, AssetsService>();
     builder.Services.AddScoped<IVehiclesService, VehiclesService>();
+    builder.Services.AddScoped<IFuelLogsService, FuelLogsService>();
     builder.Services.AddScoped<IWarrantiesService, WarrantiesService>();
     builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
     builder.Services.AddScoped<IHomeAgendaService, HomeAgendaService>();

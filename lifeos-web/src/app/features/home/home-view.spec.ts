@@ -3,8 +3,10 @@ import {
   billTotals,
   dueStatus,
   filterAssets,
+  fuelTrendByFill,
   groupByRoom,
   knownRooms,
+  mileageLine,
   runsOutStatus,
 } from './home-view';
 
@@ -141,5 +143,52 @@ describe('home view', () => {
       'Electricity:1800 INR (1)',
       'Internet:10 USD (1)',
     ]);
+  });
+});
+
+describe('mileageLine', () => {
+  it('shows the average, distance and cost per km (your example)', () => {
+    const line = mileageLine({
+      fuelUnit: 'Litre',
+      fuelFills: 2,
+      mileage: {
+        perUnit: 62.4,
+        distanceKm: 1240,
+        fuelUsed: 19.87,
+        fills: 2,
+        costPerKm: 1.6667,
+        currency: 'INR',
+      },
+    });
+    expect(line).toBe('62.4 km/L over 1,240 km · ₹1.67/km');
+  });
+
+  it('leaves out cost per km when the fuel was paid in more than one currency', () => {
+    const line = mileageLine({
+      fuelUnit: 'kWh',
+      fuelFills: 3,
+      mileage: {
+        perUnit: 7,
+        distanceKm: 300,
+        fuelUsed: 42.86,
+        fills: 3,
+        costPerKm: null,
+        currency: null,
+      },
+    });
+    expect(line).toBe('7.0 km/kWh over 300 km');
+  });
+
+  it('says what is still needed before there is an average', () => {
+    expect(mileageLine({ fuelUnit: 'Litre', fuelFills: 0, mileage: null })).toBe(
+      'No fills logged yet.',
+    );
+    expect(mileageLine({ fuelUnit: 'Litre', fuelFills: 1, mileage: null })).toBe(
+      'Log one more fill to see the mileage.',
+    );
+  });
+
+  it('maps the trend by fill', () => {
+    expect(fuelTrendByFill([{ fillId: 4, perUnit: 50 }]).get(4)).toBe(50);
   });
 });

@@ -147,6 +147,9 @@ public class TransactionsService(
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.TransactionId, (int?)null).SetProperty(t => t.UpdatedAt, now));
         await db.MaintenanceLogs.Where(l => l.TransactionId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(l => l.TransactionId, (int?)null).SetProperty(l => l.UpdatedAt, now));
+        // A fill stays logged; it just no longer points at an expense.
+        await db.FuelLogs.Where(f => f.TransactionId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(f => f.TransactionId, (int?)null).SetProperty(f => f.UpdatedAt, now));
         // A paid bill stays paid; it just no longer points at an expense.
         await db.UtilityBills.Where(b => b.TransactionId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(b => b.TransactionId, (int?)null).SetProperty(b => b.UpdatedAt, now));

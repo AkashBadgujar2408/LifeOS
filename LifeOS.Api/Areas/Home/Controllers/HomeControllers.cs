@@ -95,6 +95,38 @@ public class VehiclesController(IVehiclesService vehiclesService) : HomeControll
 
 [ApiController]
 [Area("Home")]
+[Route("api/[area]/Vehicles/{vehicleId:int}/fuel")]
+[Authorize]
+public class FuelLogsController(IFuelLogsService fuelLogsService) : HomeControllerBase
+{
+    /// <summary>GET api/Home/Vehicles/{vehicleId}/fuel — fills newest first, the overall average, its trend, spend per month.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Get(int vehicleId) => Found(await fuelLogsService.GetHistoryAsync(vehicleId));
+
+    /// <summary>POST — a fill (the price per unit or the quantity); with an expense, one Finance expense too.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Create(int vehicleId, FuelLogRequest request) => Result(await fuelLogsService.CreateAsync(vehicleId, request));
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int vehicleId, int id, FuelLogRequest request) =>
+        Result(await fuelLogsService.UpdateAsync(vehicleId, id, request));
+
+    /// <summary>PUT …/{id}/expense — record it in Finance (once).</summary>
+    [HttpPut("{id:int}/expense")]
+    public async Task<IActionResult> RecordExpense(int vehicleId, int id, FuelExpenseRequest request) =>
+        Result(await fuelLogsService.RecordExpenseAsync(vehicleId, id, request));
+
+    /// <summary>DELETE …/{id}/expense — take the expense back.</summary>
+    [HttpDelete("{id:int}/expense")]
+    public async Task<IActionResult> RemoveExpense(int vehicleId, int id) => Result(await fuelLogsService.RemoveExpenseAsync(vehicleId, id));
+
+    /// <summary>DELETE …/{id} — the fill and the expense it created.</summary>
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int vehicleId, int id) => Found(await fuelLogsService.DeleteAsync(vehicleId, id));
+}
+
+[ApiController]
+[Area("Home")]
 [Route("api/[area]/[controller]")]
 [Authorize]
 public class WarrantiesController(IWarrantiesService warrantiesService) : HomeControllerBase

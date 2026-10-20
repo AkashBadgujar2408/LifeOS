@@ -3,14 +3,17 @@ import {
   BillKind,
   UtilityBill,
   DisposalKind,
+  FuelUnit,
   HomeAgendaItem,
   HomeTargetType,
   Ownership,
   PropertyKind,
+  Vehicle,
   VehicleKind,
   WarrantyKind,
 } from '../../core/services/home.service';
 import { daysBetween } from '../dashboard/my-day-view';
+import { formatMoney } from '../finance/finance-view';
 
 export const PROPERTY_KIND_LABELS: Record<PropertyKind, string> = {
   House: 'House',
@@ -42,6 +45,47 @@ export const VEHICLE_KIND_LABELS: Record<VehicleKind, string> = {
   Bicycle: 'Bicycle',
   Other: 'Other',
 };
+
+export const FUEL_UNIT_LABELS: Record<FuelUnit, string> = {
+  Litre: 'Litres (petrol, diesel)',
+  Kg: 'Kilograms (CNG)',
+  kWh: 'kWh (electric)',
+};
+
+/** The short unit after a number: "4.81 L", "km/L". */
+export const FUEL_UNIT_SHORT: Record<FuelUnit, string> = { Litre: 'L', Kg: 'kg', kWh: 'kWh' };
+
+/** "62.4 km/L" — the overall average, one decimal. */
+export function mileageText(perUnit: number, unit: FuelUnit): string {
+  return `${perUnit.toLocaleString('en-IN', { maximumFractionDigits: 1, minimumFractionDigits: 1 })} km/${FUEL_UNIT_SHORT[unit]}`;
+}
+
+/**
+ * The vehicle card's line: "62.4 km/L over 300 km · ₹1.67/km" (cost per km only when the fuel was paid in one
+ * currency), or what's still needed for an average.
+ */
+export function mileageLine(vehicle: Pick<Vehicle, 'mileage' | 'fuelUnit' | 'fuelFills'>): string {
+  const m = vehicle.mileage;
+  if (!m) {
+    return vehicle.fuelFills === 0
+      ? 'No fills logged yet.'
+      : 'Log one more fill to see the mileage.';
+  }
+  const parts = [
+    `${mileageText(m.perUnit, vehicle.fuelUnit)} over ${m.distanceKm.toLocaleString('en-IN')} km`,
+  ];
+  if (m.costPerKm !== null && m.currency) {
+    parts.push(`${formatMoney(m.costPerKm, m.currency)}/km`);
+  }
+  return parts.join(' · ');
+}
+
+/** The average as it stood after each fill, by fill id (fills that complete no run have none). */
+export function fuelTrendByFill(
+  trend: readonly { fillId: number; perUnit: number }[],
+): Map<number, number> {
+  return new Map(trend.map((p) => [p.fillId, p.perUnit]));
+}
 
 export const VEHICLE_KIND_ICONS: Record<VehicleKind, string> = {
   Car: 'bi-car-front',

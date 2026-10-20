@@ -8,12 +8,19 @@ import { dateFieldError } from '../../core/dates/date-format';
 import { browserTimeZone, todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { FinanceService } from '../../core/services/finance.service';
-import { HomeService, VEHICLE_KINDS, Vehicle, VehicleKind } from '../../core/services/home.service';
+import {
+  FUEL_UNITS,
+  FuelUnit,
+  HomeService,
+  VEHICLE_KINDS,
+  Vehicle,
+  VehicleKind,
+} from '../../core/services/home.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ToastService } from '../../core/services/toast.service';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
-import { VEHICLE_KIND_LABELS } from './home-view';
+import { FUEL_UNIT_LABELS, VEHICLE_KIND_LABELS } from './home-view';
 
 export type VehicleEditorResult = { kind: 'saved'; vehicle: Vehicle } | { kind: 'deleted' };
 
@@ -265,6 +272,17 @@ export async function openVehicleEditor(
           </div>
         </div>
         <div>
+          <label class="form-label" for="vehicle-fuel-unit">Fuel is measured in</label>
+          <select id="vehicle-fuel-unit" class="form-select" formControlName="fuelUnit">
+            @for (unit of fuelUnits; track unit) {
+              <option [ngValue]="unit" [selected]="unit === form.controls.fuelUnit.value">
+                {{ fuelUnitLabels[unit] }}
+              </option>
+            }
+          </select>
+          <div class="form-text">Used by the fuel log for mileage (km per litre, kg or kWh).</div>
+        </div>
+        <div>
           <label class="form-label" for="vehicle-notes">
             Notes <span class="text-body-secondary small">(optional)</span>
           </label>
@@ -311,6 +329,8 @@ export class VehicleEditor {
 
   protected readonly kinds = VEHICLE_KINDS;
   protected readonly kindLabels = VEHICLE_KIND_LABELS;
+  protected readonly fuelUnits = FUEL_UNITS;
+  protected readonly fuelUnitLabels = FUEL_UNIT_LABELS;
   protected readonly minDate = { year: 1950, month: 1, day: 1 };
   protected readonly maxDate = { year: new Date().getFullYear() + 20, month: 12, day: 31 };
   protected readonly dateFields = [
@@ -355,6 +375,7 @@ export class VehicleEditor {
       Validators.max(999_999_999_999_999),
     ]),
     currency: this.fb.nonNullable.control(''),
+    fuelUnit: this.fb.nonNullable.control<FuelUnit>('Litre'),
     notes: this.fb.nonNullable.control('', Validators.maxLength(2000)),
   });
 
@@ -375,6 +396,7 @@ export class VehicleEditor {
       reminderDays: vehicle?.reminderDays ?? 15,
       purchasePrice: vehicle?.purchasePrice ?? null,
       currency: vehicle?.currency ?? this.settingsService.settings()?.baseCurrency ?? '',
+      fuelUnit: vehicle?.fuelUnit ?? 'Litre',
       notes: vehicle?.notes ?? '',
     });
   }
@@ -460,6 +482,7 @@ export class VehicleEditor {
         pucValidUntil: v.pucValidUntil,
         registrationValidUntil: v.registrationValidUntil,
         reminderDays: remind ? v.reminderDays : null,
+        fuelUnit: v.fuelUnit,
         notes: v.notes.trim() || null,
         today,
         timeZone: browserTimeZone(),

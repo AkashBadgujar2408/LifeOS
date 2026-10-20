@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using LifeOS.Core.Home.Services;
 using LifeOS.Core.Shared.DTOs;
 
 namespace LifeOS.Core.Home.DTOs;
@@ -24,6 +25,9 @@ public static class HomeKinds
         ["Sold", "Donated", "Discarded", "Lost"], StringComparer.Ordinal);
 
     public const string Sold = "Sold";
+
+    /// <summary>Matches CK_Vehicles_FuelUnit: litres, kg (CNG) or kWh (an EV).</summary>
+    public static readonly IReadOnlySet<string> FuelUnits = new HashSet<string>(["Litre", "Kg", "kWh"], StringComparer.Ordinal);
 }
 
 /// <summary>What a warranty covers or a maintenance task is about (the linkable type strings).</summary>
@@ -191,6 +195,11 @@ public class VehicleDto
     public int? NextServiceTaskId { get; set; }
     public string? NextServiceTitle { get; set; }
     public DateOnly? NextServiceOn { get; set; }
+    /// <summary>Litre / Kg / kWh.</summary>
+    public string FuelUnit { get; init; } = "Litre";
+    /// <summary>The overall mileage of the current run of fills (null until two fills; <see cref="FuelEconomy"/>).</summary>
+    public FuelAverage? Mileage { get; set; }
+    public int FuelFills { get; set; }
 }
 
 public class VehicleRequest
@@ -223,6 +232,9 @@ public class VehicleRequest
     /// <summary>Remind this many days before the PUC / registration run out (null: no reminders).</summary>
     public int? ReminderDays { get; init; }
 
+    /// <summary>Litre / Kg / kWh — what its fuel is measured in.</summary>
+    public string FuelUnit { get; init; } = "Litre";
+
     [StringLength(2000)]
     public string? Notes { get; init; }
 
@@ -231,6 +243,75 @@ public class VehicleRequest
     /// <summary>The browser's IANA zone, for the reminders' 09:00 when Settings has none.</summary>
     [StringLength(100)]
     public string? TimeZone { get; init; }
+}
+
+// ---- Fuel ----
+
+public class FuelLogDto
+{
+    public int Id { get; init; }
+    public int VehicleId { get; init; }
+    public DateOnly FilledOn { get; init; }
+    public int OdometerKm { get; init; }
+    public decimal Amount { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    /// <summary>Given or worked out (whichever wasn't entered is computed — see <see cref="QuantityGiven"/>).</summary>
+    public decimal PricePerUnit { get; set; }
+    public decimal Quantity { get; set; }
+    /// <summary>True: the quantity was entered; false: the price per unit was.</summary>
+    public bool QuantityGiven { get; init; }
+    public bool MissedFillBefore { get; init; }
+    /// <summary>The Finance expense it was paid with (null: not in the ledger).</summary>
+    public int? TransactionId { get; init; }
+    public string? PaidFromAccountName { get; init; }
+    public string? Notes { get; init; }
+}
+
+/// <summary>A vehicle's fuel log with everything computed from it.</summary>
+public class FuelHistoryDto
+{
+    public int VehicleId { get; init; }
+    public string FuelUnit { get; init; } = "Litre";
+    /// <summary>Newest first.</summary>
+    public List<FuelLogDto> Fills { get; init; } = [];
+    public FuelAverage? Average { get; init; }
+    /// <summary>The average after each fill, oldest first.</summary>
+    public List<FuelTrendPoint> Trend { get; init; } = [];
+    /// <summary>Spent per month and currency, latest first.</summary>
+    public List<FuelMonth> Monthly { get; init; } = [];
+}
+
+public class FuelLogRequest
+{
+    public DateOnly FilledOn { get; init; }
+    public int OdometerKm { get; init; }
+    public decimal Amount { get; init; }
+
+    [Required]
+    public string Currency { get; init; } = string.Empty;
+
+    /// <summary>The price per unit <b>or</b> the quantity — the other is worked out.</summary>
+    public decimal? PricePerUnit { get; init; }
+    public decimal? Quantity { get; init; }
+
+    /// <summary>A fill before this one wasn't logged: the average starts again here.</summary>
+    public bool MissedFillBefore { get; init; }
+
+    [StringLength(500)]
+    public string? Notes { get; init; }
+
+    /// <summary>On create only: record it in Finance as one expense from this account.</summary>
+    public FuelExpenseRequest? Expense { get; init; }
+
+    public DateOnly Today { get; init; }
+}
+
+/// <summary>Recording a fill in Finance: the account and (as for any transaction) a rate when it isn't the base currency.</summary>
+public class FuelExpenseRequest
+{
+    public int AccountId { get; init; }
+    public decimal? ExchangeRate { get; init; }
+    public List<int> TagIds { get; init; } = [];
 }
 
 // ---- Warranties ----

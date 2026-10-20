@@ -343,6 +343,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/home/vehicles').then((m) => m.HomeVehicles),
       },
       {
+        path: 'home/vehicles/:id/fuel',
+        title: 'Fuel | LifeOS',
+        loadComponent: () => import('./features/home/fuel-log').then((m) => m.HomeFuelLog),
+      },
+      {
         path: 'home/warranties',
         title: 'Warranties | LifeOS',
         loadComponent: () => import('./features/home/warranties').then((m) => m.HomeWarranties),

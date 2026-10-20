@@ -176,6 +176,9 @@ public class VehiclesService(
         await db.MaintenanceTasks.Where(m => m.VehicleId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.VehicleId, (int?)null).SetProperty(m => m.UpdatedAt, now));
         await warrantiesService.RemoveAsync(await db.Warranties.Where(w => w.VehicleId == id).Select(w => w.Id).ToListAsync());
+        // Its fuel log goes with it; expenses already in Finance stay (that money really left).
+        await db.FuelLogs.Where(f => f.VehicleId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(f => f.IsDeleted, true).SetProperty(f => f.DeletedAt, now));
         vehicle.IsDeleted = true;
         vehicle.DeletedAt = now;
         await db.SaveChangesAsync();
@@ -209,6 +212,11 @@ public class VehiclesService(
             return error;
         }
 
+        if (!HomeKinds.FuelUnits.Contains(request.FuelUnit))
+        {
+            return "Choose what its fuel is measured in.";
+        }
+
         if (await db.Vehicles.AnyAsync(v => v.Name == name && v.Id != id))
         {
             return Duplicate;
@@ -233,6 +241,7 @@ public class VehiclesService(
         vehicle.RegistrationValidUntil = request.RegistrationValidUntil;
         vehicle.ReminderDays = request.ReminderDays;
         vehicle.Notes = Clean(request.Notes);
+        vehicle.FuelUnit = request.FuelUnit;
         return null;
     }
 
@@ -280,10 +289,15 @@ public class VehiclesService(
         return null;
     }
 
-    /// <summary>Odometer (highest logged) and the next service (its maintenance due soonest, not paused).</summary>
+    /// <summary>
+    /// Odometer (highest of fills and service logs), mileage (<see cref="FuelEconomy"/>) and the next service (its
+    /// maintenance due soonest, not paused).
+    /// </summary>
     private async Task FillAsync(List<VehicleDto> vehicles)
     {
         var ids = vehicles.Select(v => v.Id).ToList();
+        var fills = (await db.FuelLogs.Where(f => ids.Contains(f.VehicleId)).Select(FuelLogsService.ToRow).ToListAsync())
+            .ToLookup(r => r.VehicleId, r => r.Fill);
         var tasks = await db.MaintenanceTasks
             .Where(m => m.VehicleId != null && ids.Contains(m.VehicleId.Value))
             .Select(m => new
@@ -302,7 +316,10 @@ public class VehiclesService(
         foreach (var vehicle in vehicles)
         {
             var own = tasks.Where(t => t.VehicleId == vehicle.Id).ToList();
-            vehicle.OdometerKm = own.Max(t => t.Odometer);
+            var fuel = fills[vehicle.Id].ToList();
+            vehicle.OdometerKm = own.Select(t => t.Odometer).Append(fuel.Count > 0 ? fuel.Max(f => f.OdometerKm) : null).Max();
+            vehicle.FuelFills = fuel.Count;
+            vehicle.Mileage = FuelEconomy.Average(fuel);
             var next = own
                 .Where(t => !t.IsPaused)
                 .Select(t => (t.Id, t.Title, On: HomeRules.NextDue(t.RecurrenceFrequency, t.RecurrenceInterval, t.FirstDueOn, t.LastDoneOn)))
@@ -342,5 +359,6 @@ public class VehiclesService(
         DisposalKind = v.DisposalKind,
         DisposalAmount = v.DisposalAmount,
         Notes = v.Notes,
+        FuelUnit = v.FuelUnit,
     };
 }
