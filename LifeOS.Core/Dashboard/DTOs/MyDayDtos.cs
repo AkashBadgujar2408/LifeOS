@@ -138,6 +138,7 @@ public static class InsightKinds
     public const string OverBudget = "OverBudget";
     public const string LowBalanceAhead = "LowBalanceAhead";
     public const string GoalTargetReached = "GoalTargetReached";
+    public const string KeepInTouch = "KeepInTouch";
 }
 
 public static class InsightTones

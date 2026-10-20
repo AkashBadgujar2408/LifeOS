@@ -303,6 +303,9 @@ public class PurchasesService(
             .ExecuteUpdateAsync(s => s.SetProperty(i => i.PurchaseId, (int?)null).SetProperty(i => i.UpdatedAt, now));
         await db.WishlistItems.Where(w => w.PurchaseId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(w => w.PurchaseId, (int?)null).SetProperty(w => w.UpdatedAt, now));
+        // A gift bought with it stays bought (or given) — only the pointer to the purchase goes.
+        await db.GiftIdeas.Where(g => g.PurchaseId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(g => g.PurchaseId, (int?)null).SetProperty(g => g.UpdatedAt, now));
         await PurchaseReferences.ReleaseAsync(db, id, remindersService, now);
         await db.Purchases.Where(p => p.Id == id)
             .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsDeleted, true).SetProperty(p => p.DeletedAt, now));
