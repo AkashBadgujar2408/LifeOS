@@ -1193,3 +1193,14 @@
 - Fixed on the way: the one-birthday unique index on `ContactId` alone scaffolded a contact's dates as one-to-one — keyed `(ContactId, Kind)` now (same trap as the loans' disbursement index).
 - Gotcha: the first scratch-DB scaffold timed out connecting to the brand-new database; a rerun with `Command Timeout=300` in the connection string worked.
 - Next up: **Session 73 — Family 2** (directory, tree, significant dates on the calendar and My Day), straight after this at your request.
+
+## Last session: 2026-10-21 — Sessions 73 + 74 — Family 2 & 3 (74 built by a parallel agent, merged)
+- Shipped (73): tree, people directory, person page, significant dates on the calendar (every year) and My Day (a week ahead); pure `FamilyTree` + `SignificantDays`; your children are stored with you as the relative (`RelativeContactId` nullable, Parent only); contact delete releases edges, days and cadence.
+- Shipped (74, forked agent in a git worktree → merged in `27f13ff`): times in touch (several people, keeps LastContactedOn), keep-in-touch cadence + gentle My Day nudge, gifts (idea → bought → given, money stays on the Purchase), responsibilities (Me / Shared / Someone, optional task); `IFamilyLogCleanup.ReleaseContactAsync` wired into contact delete.
+- Also: **My Day is lazy-loaded now** (initial bundle 1.51 MB → 973 kB — it had gone over budget); renewals' calendar colour was never defined — fixed.
+- Verified: see plan rows 73/74 — `family73.mjs` (39), `family74-merged.mjs`, `family-delete.mjs` all passed on the merged build; every Family page + My Day at 375 px, no console errors. 600 backend + 264 frontend tests; 0 warnings; lint/Prettier/build clean.
+- Gotchas: (1) `git add -A` picked up the agent's `.claude/worktrees/…` folder as an embedded repo in `433917d` — removed in the merge and `.claude/worktrees/` is now in `.gitignore`. (2) `dotnet ef dbcontext scaffold` timed out against LocalDB twice — add `Connect Timeout=60;Command Timeout=300` to the connection string and rerun. (3) Not re-run this session: `npm run test:tz` (the new date code is server-side; client date helpers didn't change).
+- **Family (Sessions 72–74) is complete.** The agent's worktree branch `worktree-agent-a77192a6ae1fe755d` is merged and can be deleted.
+- Test data: `fam73…`, `f74a…`/`f74b…`, `famdel…` accounts left in UAT.
+
+- Next up: **Session 75 — Phase 3 polish**, per the plan.
