@@ -13,7 +13,8 @@ public record InsightInputs(
     DateOnly? LatestJournalDate,
     int OverdueTaskCount,
     IReadOnlyList<InsightDocument>? ExpiringDocuments = null,
-    IReadOnlyList<InsightBudget>? OverBudgets = null);
+    IReadOnlyList<InsightBudget>? OverBudgets = null,
+    IReadOnlyList<InsightLowBalance>? LowBalances = null);
 
 public record InsightHabit(int Id, string Title, byte ScheduleDays, DateOnly StartDate, IReadOnlyCollection<DateOnly> DoneDates, HabitStreak Streak);
 
@@ -23,6 +24,9 @@ public record InsightDocument(int Id, string Title, DateOnly ExpiresOn);
 
 /// <summary>A tag past its budget this month (spent and budget in the same currency).</summary>
 public record InsightBudget(int TagId, string TagName, decimal Spent, decimal Budget, string Currency);
+
+/// <summary>An account the cash-flow forecast says will drop below zero, the first day it does, and how low it is then.</summary>
+public record InsightLowBalance(int AccountId, string Name, string Currency, DateOnly Day, decimal Balance);
 
 /// <summary>
 /// The lightweight, deterministic "insights" (plan, Section 2 #6 — no AI): a handful of plain rules over data the
@@ -137,6 +141,20 @@ public static class DashboardInsights
             });
         }
 
+        // Keyed by the account and the day it would go below zero: a change that moves the day (or lifts the balance)
+        // makes it a different situation — or clears it.
+        foreach (var low in (inputs.LowBalances ?? []).OrderBy(l => l.Day))
+        {
+            insights.Add(new InsightDto
+            {
+                Kind = InsightKinds.LowBalanceAhead,
+                Key = Invariant($"{InsightKinds.LowBalanceAhead}:{low.AccountId}:{low.Day:yyyy-MM-dd}"),
+                Tone = InsightTones.Nudge,
+                Message = LowBalanceMessage(low),
+                EntityType = "Forecast",
+            });
+        }
+
         foreach (var habit in inputs.Habits.Where(h => h.Streak.DoneToday && StreakMilestones.Contains(h.Streak.Current)))
         {
             insights.Add(new InsightDto
@@ -160,6 +178,14 @@ public static class DashboardInsights
         return Invariant(
             $"\"{budget.TagName}\" has gone past its {month} budget: {Amount(budget.Spent)} {budget.Currency} of {Amount(budget.Budget)}. Worth a look before the month is out.");
     }
+
+    /// <summary>How far ahead the forecast looks for an account dropping below zero.</summary>
+    public const int LowBalanceDays = 60;
+
+    /// <summary>"HDFC Savings could go below zero around 15/Nov/2026 (−2,300 INR then), with what's planned to go out."</summary>
+    public static string LowBalanceMessage(InsightLowBalance low) =>
+        Invariant(
+            $"{low.Name} could go below zero around {low.Day.ToString("dd'/'MMM'/'yyyy", System.Globalization.CultureInfo.InvariantCulture)} ({(low.Balance < 0 ? "−" : string.Empty)}{Amount(Math.Abs(low.Balance))} {low.Currency} then), with what's already planned to go out. A transfer in time would cover it.");
 
     /// <summary>"9,250" for a whole amount, "1,650.50" otherwise (invariant, like every insight).</summary>
     private static string Amount(decimal value) =>

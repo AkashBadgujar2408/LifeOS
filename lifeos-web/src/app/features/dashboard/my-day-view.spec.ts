@@ -178,6 +178,9 @@ describe('insightLink', () => {
     expect(insightLink({ ...base, entityType: 'Budgets', entityId: null })?.link).toEqual([
       '/finance/budgets',
     ]);
+    expect(insightLink({ ...base, entityType: 'Forecast', entityId: null })?.link).toEqual([
+      '/finance/forecast',
+    ]);
   });
 
   it('has nothing to open without a target', () => {

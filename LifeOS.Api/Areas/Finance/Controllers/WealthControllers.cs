@@ -153,3 +153,33 @@ public class NetWorthController(IWealthService wealthService) : ControllerBase
             : NotFound(ApiResponse<SavingsProgressDto?>.Fail(result.Error!));
     }
 }
+
+[ApiController]
+[Area("Finance")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class ForecastController(IForecastService forecastService) : ControllerBase
+{
+    /// <summary>
+    /// GET api/Finance/Forecast?today=&amp;months=3|6|12 — every account's balance carried forward with the money already
+    /// known to be coming, and the overall line in the base currency. Computed per request, never stored.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Get([FromQuery] DateOnly today, [FromQuery] int months = 3)
+    {
+        if (today == default)
+        {
+            return BadRequest(ApiResponse<ForecastDto>.Fail("Today's date is required."));
+        }
+
+        if (months is not (3 or 6 or 12))
+        {
+            return BadRequest(ApiResponse<ForecastDto>.Fail("Forecast 3, 6 or 12 months ahead."));
+        }
+
+        var forecast = await forecastService.GetAsync(today, months);
+        return forecast is null
+            ? BadRequest(ApiResponse<ForecastDto>.Fail("Choose your base currency in Settings first — the forecast adds everything up in it."))
+            : Ok(ApiResponse<ForecastDto>.Ok(forecast));
+    }
+}

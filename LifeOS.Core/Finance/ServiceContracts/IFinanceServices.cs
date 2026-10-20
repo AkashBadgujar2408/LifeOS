@@ -126,3 +126,12 @@ public interface IFinanceReportsService
     /// <summary>The last <paramref name="months"/> months up to today's, in the base currency.</summary>
     Task<CashFlowReportDto> GetCashFlowAsync(DateOnly today, int months);
 }
+
+/// <summary>The cash-flow forecast: balances carried forward with money already known to be coming — never stored.</summary>
+public interface IForecastService
+{
+    /// <summary>Null when no base currency is set (nothing can be added up).</summary>
+    Task<ForecastDto?> GetAsync(DateOnly today, int months);
+    /// <summary>Accounts that would drop below zero within <paramref name="days"/> (for My Day's insight).</summary>
+    Task<List<(int AccountId, string Name, string Currency, DateOnly Day, decimal Balance)>> LowAheadAsync(DateOnly today, int days);
+}

@@ -1124,3 +1124,11 @@
 - Test data: `home67` — Netflix (cancelled, one charge in Finance), Amazon Prime (yearly, decide by 14 Nov), Spotify (decide by 24 Oct), returns for the Mixer (refunded) and the book (by 26 Oct).
 
 - Next up: **Session 71a — Financial planning 1** (cash-flow forecast), per the plan.
+
+## Last session: 2026-10-20 — Session 71a — Financial planning 1: cash-flow forecast
+- Shipped (backend): pure `CashForecast` (4 xUnit cases) + `ForecastService` (repeating transactions, bills + expected bills, EMIs, subscriptions, premiums, tax payments, cashback; rates via `NetWorth.RateFor`), `GET api/Finance/Forecast`, "low balance ahead" insight on My Day (2 xUnit cases).
+- Shipped (frontend): `/finance/forecast` (3/6/12 months, all accounts or one, lowest point, what takes it down, coming-up table with balance after each), nav, insight link; `forecast-view.ts` (+ spec).
+- Verified: see plan row 71a — the test account's forecast matched a hand-worked schedule day by day. 452 backend + 246 frontend tests, all six zones; lint/Prettier/build clean. No schema change.
+- Test data: `home67` — account "71a Forecast" with three repeating transactions and a 0% EMI loan (goes below zero 10 Nov).
+
+- Next up: **Session 71b — Financial planning 2** (savings and retirement projections).

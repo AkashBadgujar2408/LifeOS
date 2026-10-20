@@ -129,6 +129,7 @@ public static class InsightKinds
     public const string HabitStreakMilestone = "HabitStreakMilestone";
     public const string DocumentExpiring = "DocumentExpiring";
     public const string OverBudget = "OverBudget";
+    public const string LowBalanceAhead = "LowBalanceAhead";
 }
 
 public static class InsightTones

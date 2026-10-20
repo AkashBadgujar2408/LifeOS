@@ -563,6 +563,61 @@ export interface CashFlowReport {
   untaggedSpending: number;
 }
 
+// ---- Cash-flow forecast (Session 71a) ----
+
+export type ForecastSource =
+  | 'Repeating'
+  | 'Bill'
+  | 'ExpectedBill'
+  | 'Loan'
+  | 'Subscription'
+  | 'Insurance'
+  | 'Tax'
+  | 'Cashback';
+
+export interface ForecastPoint {
+  day: string;
+  /** At the end of the day, after its money. */
+  balance: number;
+}
+
+export interface ForecastLine {
+  /** Null for the overall line (all accounts, in the base currency). */
+  accountId: number | null;
+  name: string;
+  currency: string;
+  start: number;
+  end: number;
+  lowest: ForecastPoint;
+  /** Today, each day money moves, and the last day. */
+  points: ForecastPoint[];
+}
+
+export interface ForecastItem {
+  day: string;
+  source: ForecastSource;
+  title: string;
+  /** Null: not tied to an account yet — it counts in the overall line only. */
+  accountId: number | null;
+  accountName: string | null;
+  /** In (+) or out (−), in its own currency. */
+  amount: number;
+  currency: string;
+  amountInBase: number | null;
+  /** Worked out from a pattern (expected bills). */
+  isEstimate: boolean;
+}
+
+export interface Forecast {
+  from: string;
+  until: string;
+  baseCurrency: string;
+  overall: ForecastLine;
+  accounts: ForecastLine[];
+  items: ForecastItem[];
+  unconverted: string[];
+}
+
 /** The Finance API: accounts with computed balances, the ledger, repeating transactions and budgets. */
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
@@ -829,6 +884,17 @@ export class FinanceService {
       tap(() => this.remindersService.notifyChanged()),
       map(() => undefined),
     );
+  }
+
+  // ---- Cash-flow forecast ----
+
+  /** Balances carried forward 3, 6 or 12 months with the money already known to be coming (never stored). */
+  forecast(months: 3 | 6 | 12): Observable<Forecast> {
+    return this.http
+      .get<ApiResponse<Forecast>>(`${this.base}/Forecast`, {
+        params: { today: todayIso(), months },
+      })
+      .pipe(map((response) => response.data!));
   }
 
   // ---- Net worth + savings goals ----

@@ -119,6 +119,8 @@ export function insightLink(insight: Insight): { link: (string | number)[]; labe
         : null;
     case 'Budgets':
       return { link: ['/finance/budgets'], label: 'Open budgets' };
+    case 'Forecast':
+      return { link: ['/finance/forecast'], label: 'See the forecast' };
     default:
       return null;
   }
@@ -154,6 +156,7 @@ const INSIGHT_MODULES: Record<string, ModuleKey> = {
   Tasks: 'Tasks',
   Document: 'Documents',
   Budgets: 'Finance',
+  Forecast: 'Finance',
 };
 
 /**

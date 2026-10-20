@@ -21,7 +21,8 @@ namespace LifeOS.Core.Dashboard.Services;
 /// user/soft-delete filtering; this class only turns rows into DTOs and works out what's computed, never stored
 /// (goal progress via GoalProgress, habit streaks via HabitStreaks).
 /// </summary>
-public class DashboardService(AppDbContext db, IBudgetsService budgetsService, IHomeAgendaService homeAgendaService) : IDashboardService
+public class DashboardService(
+    AppDbContext db, IBudgetsService budgetsService, IHomeAgendaService homeAgendaService, IForecastService forecastService) : IDashboardService
 {
     // A local day is 23-25 hours (DST); anything much longer means the client sent the wrong span.
     private static readonly TimeSpan MaxDayLength = TimeSpan.FromHours(26);
@@ -46,6 +47,7 @@ public class DashboardService(AppDbContext db, IBudgetsService budgetsService, I
         // Before the My Day reader opens: one connection runs one command at a time.
         var overBudget = await budgetsService.OverBudgetAsync(today);
         var homeAgenda = await homeAgendaService.UpcomingAsync(today);
+        var lowAhead = await forecastService.LowAheadAsync(today, DashboardInsights.LowBalanceDays);
 
         var parameters = new DynamicParameters();
         parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
@@ -184,7 +186,8 @@ public class DashboardService(AppDbContext db, IBudgetsService budgetsService, I
             myDay.LatestJournalEntry?.EntryDate,
             myDay.Tasks.Count(t => !t.IsDone && t.DueDate < today),
             myDay.ExpiringDocuments.Select(d => new InsightDocument(d.Id, d.Title, d.ExpiresOn)).ToList(),
-            overBudget.Select(b => new InsightBudget(b.TagId, b.TagName, b.Spent, b.Budget!.Value, b.BudgetCurrency!)).ToList()));
+            overBudget.Select(b => new InsightBudget(b.TagId, b.TagName, b.Spent, b.Budget!.Value, b.BudgetCurrency!)).ToList(),
+            lowAhead.Select(l => new InsightLowBalance(l.AccountId, l.Name, l.Currency, l.Day, l.Balance)).ToList()));
 
         // Dismissed insights stay hidden while their situation (the key) is unchanged.
         var keys = myDay.Insights.Select(i => i.Key).ToList();

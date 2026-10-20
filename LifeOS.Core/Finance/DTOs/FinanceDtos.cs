@@ -630,3 +630,56 @@ public class ExchangeRateRequest
 
     public DateOnly Today { get; init; }
 }
+
+// ---- Cash-flow forecast (Session 71a) ----
+
+public class ForecastPointDto
+{
+    public DateOnly Day { get; init; }
+    /// <summary>The balance at the end of the day, after its money.</summary>
+    public decimal Balance { get; init; }
+}
+
+public class ForecastLineDto
+{
+    /// <summary>Null for the overall line (all accounts, in the base currency).</summary>
+    public int? AccountId { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Currency { get; init; } = string.Empty;
+    public decimal Start { get; init; }
+    public decimal End { get; init; }
+    public ForecastPointDto Lowest { get; init; } = new();
+    /// <summary>Today, each day money moves, and the last day.</summary>
+    public List<ForecastPointDto> Points { get; init; } = [];
+}
+
+public class ForecastItemDto
+{
+    public DateOnly Day { get; init; }
+    /// <summary>Repeating / Bill / ExpectedBill / Loan / Subscription / Insurance / Tax / Cashback.</summary>
+    public string Source { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    /// <summary>The account it moves (null: not tied to one yet — it counts in the overall line only).</summary>
+    public int? AccountId { get; init; }
+    public string? AccountName { get; init; }
+    /// <summary>In (+) or out (−), in its own currency.</summary>
+    public decimal Amount { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    /// <summary>In the base currency (null: no rate for that currency yet).</summary>
+    public decimal? AmountInBase { get; init; }
+    /// <summary>Worked out from a pattern (expected bills), not a fixed amount.</summary>
+    public bool IsEstimate { get; init; }
+}
+
+public class ForecastDto
+{
+    public DateOnly From { get; init; }
+    public DateOnly Until { get; init; }
+    public string BaseCurrency { get; init; } = string.Empty;
+    public ForecastLineDto Overall { get; init; } = new();
+    public List<ForecastLineDto> Accounts { get; init; } = [];
+    /// <summary>Everything coming, soonest first.</summary>
+    public List<ForecastItemDto> Items { get; init; } = [];
+    /// <summary>Currencies left out of the overall line for want of a rate.</summary>
+    public List<string> Unconverted { get; init; } = [];
+}
