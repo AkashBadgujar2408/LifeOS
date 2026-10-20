@@ -205,6 +205,10 @@ public partial class User
 
     public virtual ICollection<SalaryRecord> SalaryRecords { get; set; } = new List<SalaryRecord>();
 
+    public virtual ICollection<ScenarioLine> ScenarioLines { get; set; } = new List<ScenarioLine>();
+
+    public virtual ICollection<Scenario> Scenarios { get; set; } = new List<Scenario>();
+
     public virtual ICollection<ShoppingListItem> ShoppingListItems { get; set; } = new List<ShoppingListItem>();
 
     public virtual ICollection<ShoppingList> ShoppingLists { get; set; } = new List<ShoppingList>();

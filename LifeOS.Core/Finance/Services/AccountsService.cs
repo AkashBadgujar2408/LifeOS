@@ -106,6 +106,8 @@ public class AccountsService(AppDbContext db, IEntityLinksService entityLinksSer
             .ExecuteUpdateAsync(s => s.SetProperty(h => h.AccountId, (int?)null).SetProperty(h => h.UpdatedAt, now));
         await db.Loans.Where(l => l.AccountId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(l => l.AccountId, (int?)null).SetProperty(l => l.UpdatedAt, now));
+        await db.ScenarioLines.Where(l => l.AccountId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(l => l.AccountId, (int?)null).SetProperty(l => l.UpdatedAt, now));
         await db.AccountCurrencies.Where(c => c.AccountId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.IsDeleted, true).SetProperty(c => c.DeletedAt, now));
         account.IsDeleted = true;

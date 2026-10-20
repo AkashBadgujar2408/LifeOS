@@ -683,6 +683,80 @@ export interface FinancialPlan {
 
 export type PlanAssumptionsPayload = Omit<PlanAssumptions, 'isSaved'> & { today: string };
 
+// ---- "Can I afford it?" scenarios (Session 71c) ----
+
+export type ScenarioLineKind = 'Purchase' | 'MonthlyCost' | 'MonthlyIncome' | 'PayChange' | 'Loan';
+
+/** One what-if, in the base currency. */
+export interface ScenarioLine {
+  kind: ScenarioLineKind;
+  title: string;
+  /** A pay change may be negative; everything else is more than zero. */
+  amount: number;
+  startsOn: string;
+  /** Monthly kinds only. */
+  endsOn: string | null;
+  accountId: number | null;
+  /** Loan only. */
+  annualRate: number | null;
+  termMonths: number | null;
+}
+
+export interface SavedScenarioLine extends ScenarioLine {
+  id: number;
+  accountName: string | null;
+}
+
+export interface Scenario {
+  id: number;
+  name: string;
+  notes: string | null;
+  lines: SavedScenarioLine[];
+}
+
+export interface ScenarioPayload {
+  name: string;
+  notes: string | null;
+  lines: ScenarioLine[];
+}
+
+export interface ScenarioLow {
+  /** Null for all accounts. */
+  accountId: number | null;
+  name: string;
+  before: ForecastPoint;
+  after: ForecastPoint;
+  endBefore: number;
+  endAfter: number;
+}
+
+export interface ScenarioGoal {
+  goalId: number;
+  title: string;
+  /** Months until reached (0: reached; null: not within 100 years). */
+  monthsBefore: number | null;
+  monthsAfter: number | null;
+}
+
+export interface ScenarioRetirement {
+  ageBefore: number | null;
+  ageAfter: number | null;
+  projectedBefore: number;
+  projectedAfter: number;
+  retirementAge: number;
+}
+
+/** Before → after, computed in memory — nothing is written. */
+export interface ScenarioImpact {
+  baseCurrency: string | null;
+  until: string;
+  /** All accounts first, then each account a line moves. */
+  lows: ScenarioLow[];
+  goals: ScenarioGoal[];
+  retirement: ScenarioRetirement | null;
+  nextTwelveMonths: number;
+}
+
 /** The Finance API: accounts with computed balances, the ledger, repeating transactions and budgets. */
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
@@ -974,6 +1048,56 @@ export class FinanceService {
   savePlanAssumptions(payload: PlanAssumptionsPayload): Observable<FinancialPlan> {
     return this.http
       .put<ApiResponse<FinancialPlan>>(`${this.base}/Plan/assumptions`, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  // ---- "Can I afford it?" scenarios ----
+
+  scenarios(): Observable<Scenario[]> {
+    return this.http
+      .get<ApiResponse<Scenario[]>>(`${this.base}/Scenarios`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  scenario(id: number): Observable<Scenario> {
+    return this.http
+      .get<ApiResponse<Scenario>>(`${this.base}/Scenarios/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  createScenario(payload: ScenarioPayload): Observable<Scenario> {
+    return this.http
+      .post<ApiResponse<Scenario>>(`${this.base}/Scenarios`, { ...payload, today: todayIso() })
+      .pipe(map((response) => response.data!));
+  }
+
+  updateScenario(id: number, payload: ScenarioPayload): Observable<Scenario> {
+    return this.http
+      .put<ApiResponse<Scenario>>(`${this.base}/Scenarios/${id}`, { ...payload, today: todayIso() })
+      .pipe(map((response) => response.data!));
+  }
+
+  removeScenario(id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.base}/Scenarios/${id}`)
+      .pipe(map(() => undefined));
+  }
+
+  scenarioImpact(id: number): Observable<ScenarioImpact> {
+    return this.http
+      .get<ApiResponse<ScenarioImpact>>(`${this.base}/Scenarios/${id}/impact`, {
+        params: { today: todayIso() },
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Before → after for lines that aren't saved yet. */
+  previewScenario(lines: ScenarioLine[]): Observable<ScenarioImpact> {
+    return this.http
+      .post<ApiResponse<ScenarioImpact>>(`${this.base}/Scenarios/preview`, {
+        lines,
+        today: todayIso(),
+      })
       .pipe(map((response) => response.data!));
   }
 

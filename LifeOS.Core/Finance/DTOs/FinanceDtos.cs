@@ -769,3 +769,110 @@ public class FinancialPlanDto
     public RetirementProjectionDto? Retirement { get; init; }
     public List<string> Missing { get; init; } = [];
 }
+
+// ---- "Can I afford it?" scenarios (Session 71c) ----
+
+public class ScenarioLineDto
+{
+    public int Id { get; init; }
+    /// <summary>Purchase / MonthlyCost / MonthlyIncome / PayChange / Loan.</summary>
+    public string Kind { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    /// <summary>In the base currency; a pay change may be negative.</summary>
+    public decimal Amount { get; init; }
+    public DateOnly StartsOn { get; init; }
+    public DateOnly? EndsOn { get; init; }
+    public int? AccountId { get; init; }
+    public string? AccountName { get; init; }
+    public decimal? AnnualRate { get; init; }
+    public int? TermMonths { get; init; }
+}
+
+public class ScenarioDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string? Notes { get; init; }
+    public List<ScenarioLineDto> Lines { get; init; } = [];
+}
+
+public class ScenarioLineRequest
+{
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    [Required]
+    [StringLength(200)]
+    public string Title { get; init; } = string.Empty;
+
+    public decimal Amount { get; init; }
+    public DateOnly StartsOn { get; init; }
+    public DateOnly? EndsOn { get; init; }
+    public int? AccountId { get; init; }
+    public decimal? AnnualRate { get; init; }
+    public int? TermMonths { get; init; }
+}
+
+public class ScenarioRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    /// <summary>The whole set, replaced on every save.</summary>
+    public List<ScenarioLineRequest> Lines { get; init; } = [];
+
+    public DateOnly Today { get; init; }
+}
+
+/// <summary>Trying lines out before saving them.</summary>
+public class ScenarioPreviewRequest
+{
+    public List<ScenarioLineRequest> Lines { get; init; } = [];
+    public DateOnly Today { get; init; }
+}
+
+public class ScenarioLowDto
+{
+    /// <summary>Null for all accounts.</summary>
+    public int? AccountId { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public ForecastPointDto Before { get; init; } = new();
+    public ForecastPointDto After { get; init; } = new();
+    public decimal EndBefore { get; init; }
+    public decimal EndAfter { get; init; }
+}
+
+public class ScenarioGoalDto
+{
+    public int GoalId { get; init; }
+    public string Title { get; init; } = string.Empty;
+    /// <summary>Months until it's reached (0: reached; null: not within 100 years at this pace).</summary>
+    public int? MonthsBefore { get; init; }
+    public int? MonthsAfter { get; init; }
+}
+
+public class ScenarioRetirementDto
+{
+    public int? AgeBefore { get; init; }
+    public int? AgeAfter { get; init; }
+    public decimal ProjectedBefore { get; init; }
+    public decimal ProjectedAfter { get; init; }
+    public int RetirementAge { get; init; }
+}
+
+/// <summary>Before → after for a set of what-ifs — computed in memory, nothing written.</summary>
+public class ScenarioImpactDto
+{
+    public string? BaseCurrency { get; init; }
+    public DateOnly Until { get; init; }
+    /// <summary>All accounts first, then each account a line moves.</summary>
+    public List<ScenarioLowDto> Lows { get; init; } = [];
+    public List<ScenarioGoalDto> Goals { get; init; } = [];
+    public ScenarioRetirementDto? Retirement { get; init; }
+    /// <summary>The scenario's money over the next 12 months (in − out).</summary>
+    public decimal NextTwelveMonths { get; init; }
+}

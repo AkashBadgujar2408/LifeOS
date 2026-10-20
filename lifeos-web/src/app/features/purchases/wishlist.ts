@@ -12,7 +12,7 @@ import {
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
@@ -317,7 +317,7 @@ export class WishEditor {
 @Component({
   selector: 'app-wishlist',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, LoadError],
+  imports: [DatePipe, LoadError, RouterLink],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -384,6 +384,19 @@ export class WishEditor {
                       >
                         Bought it
                       </button>
+                      @if (financeOn() && (w.price ?? w.targetPrice) !== null) {
+                        <a
+                          class="btn btn-link btn-sm mt-1 d-block p-0"
+                          routerLink="/finance/scenarios"
+                          [queryParams]="{
+                            name: w.name,
+                            amount: w.price ?? w.targetPrice,
+                            currency: w.currency,
+                          }"
+                        >
+                          Can I afford it?
+                        </a>
+                      }
                     </div>
                   </div>
                 </li>
@@ -424,6 +437,12 @@ export class Wishlist {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly settingsService = inject(SettingsService);
+
+  /** "Can I afford it?" lives in Finance — offered only while Finance is switched on. */
+  protected readonly financeOn = computed(
+    () => !this.settingsService.hiddenModules().has('Finance'),
+  );
 
   /** `?open=<id>` (from search or a reminder) opens that wish. */
   readonly open = input<string>();

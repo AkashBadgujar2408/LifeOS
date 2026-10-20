@@ -1139,3 +1139,12 @@
 - Test data: `home67` — goals "71b Car fund" (behind) and "71b Gadget fund" (reached), both linked to the "71a Forecast" account; assumptions 12 % / 6 %, retire at 55.
 
 - Next up: **Session 71c — Financial planning 3** ("Can I afford it?" scenarios).
+
+## Last session: 2026-10-20 — Session 71c — Financial planning 3: "Can I afford it?" scenarios
+- Shipped (backend): `finance.Scenarios` + `finance.ScenarioLines` (UAT backed up, `LifeOS_UAT_pre71c.bak`), pure `ScenarioMath` (7 xUnit cases), `ForecastService.ResultAsync` with extra flows, `ScenariosService` + `api/Finance/Scenarios` (CRUD, `{id}/impact`, `preview`); account deletes release scenario lines.
+- Shipped (frontend): `/finance/scenarios` (saved scenarios with their lowest balance, editor with a live before → after preview, up to 3 side by side), nav "Can I afford it?", links from wishlist items and shopping lists' "left to buy"; `scenario-view.ts` (+ spec), `<app-scenario-impact>`.
+- Fixed on the way: a loan line first counted the borrowed money as saving (goal reached sooner) — now only its EMIs move; a line dated today showed no change — now counted from tomorrow, and lines can't start in the past.
+- Verified: see plan row 71c. 463 backend + 252 frontend tests, all six zones (the first `test:tz` run had 5 money-format failures in New York only, in untouched specs; the rerun was green in every zone); fresh DB scaffolds identically; lint/Prettier/build clean; 375 px, no console errors.
+- Test data: none left behind (test scenarios and the "71c Sofa" list deleted).
+
+- Next up: **Session 72 — Family 1** (schema `16_people.sql`), per the plan.

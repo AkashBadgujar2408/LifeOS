@@ -205,3 +205,39 @@ public class PlanController(IPlanService planService) : ControllerBase
         return result.Success ? Ok(ApiResponse<FinancialPlanDto>.Ok(result.Data)) : BadRequest(ApiResponse<FinancialPlanDto>.Fail(result.Error!));
     }
 }
+
+[ApiController]
+[Area("Finance")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class ScenariosController(IScenariosService scenariosService) : ControllerBase
+{
+    /// <summary>GET api/Finance/Scenarios — saved what-ifs with their lines.</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<ScenarioDto>>.Ok(await scenariosService.GetAllAsync()));
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id) => Reply(await scenariosService.GetAsync(id), notFound: true);
+
+    [HttpPost]
+    public async Task<IActionResult> Create(ScenarioRequest request) => Reply(await scenariosService.CreateAsync(request));
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, ScenarioRequest request) => Reply(await scenariosService.UpdateAsync(id, request));
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id) => Reply(await scenariosService.DeleteAsync(id), notFound: true);
+
+    /// <summary>GET …/{id}/impact?today= — before → after (forecast, goals, retirement), computed in memory.</summary>
+    [HttpGet("{id:int}/impact")]
+    public async Task<IActionResult> Impact(int id, [FromQuery] DateOnly today) => Reply(await scenariosService.ImpactAsync(id, today));
+
+    /// <summary>POST …/preview — before → after for lines not saved yet.</summary>
+    [HttpPost("preview")]
+    public async Task<IActionResult> Preview(ScenarioPreviewRequest request) => Reply(await scenariosService.PreviewAsync(request));
+
+    private IActionResult Reply<T>(OperationResult<T> result, bool notFound = false) =>
+        result.Success ? Ok(ApiResponse<T>.Ok(result.Data))
+        : notFound ? NotFound(ApiResponse<T>.Fail(result.Error!))
+        : BadRequest(ApiResponse<T>.Fail(result.Error!));
+}

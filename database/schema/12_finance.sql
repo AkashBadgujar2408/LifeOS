@@ -606,3 +606,65 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.PlanAssumptions') AND name = 'UX_PlanAssumptions_User')
     CREATE UNIQUE INDEX UX_PlanAssumptions_User ON finance.PlanAssumptions(UserId) WHERE IsDeleted = 0;
 GO
+
+-- Session 71c: "Can I afford it?" scenarios. A scenario is a named set of what-ifs, applied in memory to the forecast
+-- (71a) and the projections (71b) — nothing in it ever touches real transactions. Lines are in the base currency:
+--   Purchase       — a one-off Amount out on StartsOn;
+--   MonthlyCost    — Amount out every month from StartsOn (to EndsOn, if any);
+--   MonthlyIncome  — Amount in every month from StartsOn (to EndsOn);
+--   PayChange      — pay up (+) or down (−) by Amount a month from StartsOn (to EndsOn);
+--   Loan           — Amount received on StartsOn, repaid by EMI at AnnualRate over TermMonths (LoanSchedule).
+-- AccountId: the account the money moves through (null: the overall line only).
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.Scenarios'))
+BEGIN
+    CREATE TABLE finance.Scenarios
+    (
+        Id          INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Scenarios PRIMARY KEY,
+        UserId      INT               NOT NULL CONSTRAINT FK_Scenarios_Users REFERENCES shared.Users(Id),
+        Name        NVARCHAR(200)     NOT NULL CONSTRAINT CK_Scenarios_Name CHECK (LEN(Name) > 0),
+        Notes       NVARCHAR(2000)    NULL,
+        CreatedAt   DATETIME2         NOT NULL CONSTRAINT DF_Scenarios_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt   DATETIME2         NULL,
+        IsDeleted   BIT               NOT NULL CONSTRAINT DF_Scenarios_IsDeleted DEFAULT (0),
+        DeletedAt   DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Scenarios') AND name = 'UX_Scenarios_User_Name')
+    CREATE UNIQUE INDEX UX_Scenarios_User_Name ON finance.Scenarios(UserId, Name) WHERE IsDeleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.ScenarioLines'))
+BEGIN
+    CREATE TABLE finance.ScenarioLines
+    (
+        Id          INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ScenarioLines PRIMARY KEY,
+        UserId      INT               NOT NULL CONSTRAINT FK_ScenarioLines_Users REFERENCES shared.Users(Id),
+        ScenarioId  INT               NOT NULL CONSTRAINT FK_ScenarioLines_Scenarios REFERENCES finance.Scenarios(Id),
+        Kind        NVARCHAR(15)      NOT NULL CONSTRAINT CK_ScenarioLines_Kind
+                        CHECK (Kind IN ('Purchase', 'MonthlyCost', 'MonthlyIncome', 'PayChange', 'Loan')),
+        Title       NVARCHAR(200)     NOT NULL CONSTRAINT CK_ScenarioLines_Title CHECK (LEN(Title) > 0),
+        Amount      DECIMAL(19, 4)    NOT NULL,
+        StartsOn    DATE              NOT NULL,
+        EndsOn      DATE              NULL,
+        AccountId   INT               NULL     CONSTRAINT FK_ScenarioLines_Accounts REFERENCES finance.Accounts(Id),
+        AnnualRate  DECIMAL(7, 4)     NULL     CONSTRAINT CK_ScenarioLines_AnnualRate CHECK (AnnualRate BETWEEN 0 AND 100),
+        TermMonths  INT               NULL     CONSTRAINT CK_ScenarioLines_TermMonths CHECK (TermMonths BETWEEN 1 AND 600),
+        SortOrder   INT               NOT NULL CONSTRAINT DF_ScenarioLines_SortOrder DEFAULT (0),
+        CreatedAt   DATETIME2         NOT NULL CONSTRAINT DF_ScenarioLines_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt   DATETIME2         NULL,
+        IsDeleted   BIT               NOT NULL CONSTRAINT DF_ScenarioLines_IsDeleted DEFAULT (0),
+        DeletedAt   DATETIME2         NULL,
+        -- Pay can go down (a negative change); every other amount is positive.
+        CONSTRAINT CK_ScenarioLines_Amount CHECK ((Kind = 'PayChange' AND Amount <> 0) OR (Kind <> 'PayChange' AND Amount > 0)),
+        CONSTRAINT CK_ScenarioLines_Ends CHECK (EndsOn IS NULL OR (EndsOn >= StartsOn AND Kind IN ('MonthlyCost', 'MonthlyIncome', 'PayChange'))),
+        CONSTRAINT CK_ScenarioLines_Loan CHECK ((Kind = 'Loan' AND AnnualRate IS NOT NULL AND TermMonths IS NOT NULL)
+            OR (Kind <> 'Loan' AND AnnualRate IS NULL AND TermMonths IS NULL))
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.ScenarioLines') AND name = 'IX_ScenarioLines_Scenario')
+    CREATE INDEX IX_ScenarioLines_Scenario ON finance.ScenarioLines(ScenarioId, SortOrder) WHERE IsDeleted = 0;
+GO

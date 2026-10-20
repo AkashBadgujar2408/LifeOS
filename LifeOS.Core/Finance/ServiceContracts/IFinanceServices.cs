@@ -1,4 +1,5 @@
 using LifeOS.Core.Finance.DTOs;
+using LifeOS.Core.Finance.Services;
 using LifeOS.Core.Shared.DTOs;
 
 namespace LifeOS.Core.Finance.ServiceContracts;
@@ -134,6 +135,8 @@ public interface IForecastService
     Task<ForecastDto?> GetAsync(DateOnly today, int months);
     /// <summary>Accounts that would drop below zero within <paramref name="days"/> (for My Day's insight).</summary>
     Task<List<(int AccountId, string Name, string Currency, DateOnly Day, decimal Balance)>> LowAheadAsync(DateOnly today, int days);
+    /// <summary>The forecast with extra in-memory money on top (a scenario); null without a base currency.</summary>
+    Task<ForecastResult?> ResultAsync(DateOnly today, DateOnly until, IReadOnlyCollection<ForecastFlow>? extra);
 }
 
 /// <summary>Savings goals' monthly plans and the retirement projection — all computed from the assumptions, never stored.</summary>
@@ -142,4 +145,18 @@ public interface IPlanService
     Task<FinancialPlanDto> GetAsync(DateOnly today);
     /// <summary>Rewrites the one row of assumptions (created on first save).</summary>
     Task<OperationResult<FinancialPlanDto>> SaveAssumptionsAsync(PlanAssumptionsRequest request);
+}
+
+/// <summary>"Can I afford it?" scenarios: saved what-ifs, applied in memory to the forecast and the projections.</summary>
+public interface IScenariosService
+{
+    Task<List<ScenarioDto>> GetAllAsync();
+    Task<OperationResult<ScenarioDto>> GetAsync(int id);
+    Task<OperationResult<ScenarioDto>> CreateAsync(ScenarioRequest request);
+    Task<OperationResult<ScenarioDto>> UpdateAsync(int id, ScenarioRequest request);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+    /// <summary>A saved scenario's before → after.</summary>
+    Task<OperationResult<ScenarioImpactDto>> ImpactAsync(int id, DateOnly today);
+    /// <summary>Unsaved lines' before → after.</summary>
+    Task<OperationResult<ScenarioImpactDto>> PreviewAsync(ScenarioPreviewRequest request);
 }

@@ -63,7 +63,10 @@ public class ForecastService(AppDbContext db, IAccountsService accountsService, 
                 .ToList();
     }
 
-    private async Task<(ForecastResult Result, string BaseCurrency, DateOnly Until, Dictionary<int, string> AccountNames)?> BuildAsync(DateOnly today, DateOnly until)
+    public async Task<ForecastResult?> ResultAsync(DateOnly today, DateOnly until, IReadOnlyCollection<ForecastFlow>? extra) =>
+        (await BuildAsync(today, until, extra))?.Result;
+
+    private async Task<(ForecastResult Result, string BaseCurrency, DateOnly Until, Dictionary<int, string> AccountNames)?> BuildAsync(DateOnly today, DateOnly until, IReadOnlyCollection<ForecastFlow>? extra = null)
     {
         var baseCurrency = await db.Users.Where(u => u.Id == db.CurrentUserId).Select(u => u.BaseCurrency).FirstOrDefaultAsync();
         if (baseCurrency is null)
@@ -86,6 +89,8 @@ public class ForecastService(AppDbContext db, IAccountsService accountsService, 
         await AddSubscriptionsAsync(flows, today, until);
         await AddPremiumsAsync(flows, today, until);
         await AddTaxAndCashbackAsync(flows, today);
+        // What-ifs (Session 71c scenarios) ride on top, in memory only.
+        flows.AddRange(extra ?? []);
 
         var master = await FinanceRates.MasterAsync(db, baseCurrency);
         var typed = await FinanceRates.TypedAsync(db);
