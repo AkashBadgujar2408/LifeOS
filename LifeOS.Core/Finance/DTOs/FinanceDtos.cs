@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using LifeOS.Core.Finance.Services;
 using LifeOS.Core.Shared.DTOs;
 
 namespace LifeOS.Core.Finance.DTOs;
@@ -419,7 +420,7 @@ public class LoanDto
     public decimal Principal { get; init; }
     public string Currency { get; init; } = string.Empty;
     public decimal AnnualRate { get; init; }
-    public int TermMonths { get; init; }
+    public int? TermMonths { get; init; }
     public DateOnly StartDate { get; init; }
     /// <summary>The lender's own instalment, if given (else <see cref="Emi"/> is computed).</summary>
     public decimal? EmiAmount { get; init; }
@@ -427,15 +428,73 @@ public class LoanDto
     public string? AccountName { get; init; }
     public DateOnly? ClosedOn { get; init; }
     public string? Notes { get; init; }
-    /// <summary>The monthly instalment the schedule uses.</summary>
-    public decimal Emi { get; set; }
-    /// <summary>Still owed at the end of the day asked for, if every instalment due by then was paid.</summary>
+    /// <summary>Emi (a fixed monthly instalment over a term) or Flexible (pay as you go).</summary>
+    public string RepaymentKind { get; init; } = LoanLedger.Emi;
+    /// <summary>EMI only: instalments due on or before this day count as paid.</summary>
+    public DateOnly? AssumedPaidThrough { get; init; }
+    /// <summary>The transaction that recorded the money at the start (null: not in Finance).</summary>
+    public int? DisbursementTransactionId { get; set; }
+    public string? DisbursementAccountName { get; set; }
+    /// <summary>Still owed at the end of the day asked for, from the payments actually made (<see cref="LoanLedger"/>).</summary>
     public decimal Outstanding { get; set; }
-    public int InstalmentsPaid { get; set; }
-    public int InstalmentCount { get; set; }
+    /// <summary>Interest charged and not yet paid (part of <see cref="Outstanding"/>).</summary>
+    public decimal InterestDue { get; set; }
+    /// <summary>Interest charged so far.</summary>
+    public decimal InterestCharged { get; set; }
+    /// <summary>Paid back so far (recorded payments, plus instalments taken as paid).</summary>
+    public decimal Repaid { get; set; }
+    public int PaymentCount { get; set; }
+    public DateOnly? LastPaidOn { get; set; }
+    // ---- EMI loans only (null for a flexible loan) ----
+    /// <summary>The monthly instalment the schedule uses.</summary>
+    public decimal? Emi { get; set; }
+    /// <summary>What the schedule says is owed today if every instalment due was paid on time.</summary>
+    public decimal? ScheduledOutstanding { get; set; }
+    /// <summary>Outstanding − scheduled: above zero = behind (owed more than planned), below = ahead.</summary>
+    public decimal? Behind { get; set; }
+    public int? InstalmentsDue { get; set; }
+    public int? InstalmentCount { get; set; }
     public DateOnly? NextDueOn { get; set; }
     public DateOnly? LastDueOn { get; set; }
-    public decimal TotalInterest { get; set; }
+    public decimal? TotalInterest { get; set; }
+}
+
+/// <summary>A payment on a loan (a transaction with its LoanId), and how it split.</summary>
+public class LoanPaymentDto
+{
+    public int TransactionId { get; init; }
+    public DateOnly PaidOn { get; init; }
+    /// <summary>In the loan's currency; negative = more drawn on the loan.</summary>
+    public decimal Amount { get; init; }
+    public decimal Interest { get; init; }
+    public decimal Principal { get; init; }
+    public string? AccountName { get; init; }
+    public string? Note { get; init; }
+    /// <summary>Paid on or before the "paid up to" day — it was already counted by the schedule.</summary>
+    public bool CoveredBySchedule { get; init; }
+}
+
+/// <summary>Recording money for a loan in Finance: the account, and a rate when the loan isn't in the base currency.</summary>
+public class LoanMoneyRequest
+{
+    public int AccountId { get; init; }
+    public decimal? ExchangeRate { get; init; }
+    public List<int> TagIds { get; init; } = [];
+}
+
+/// <summary>A repayment: the day, how much (in the loan's currency) and the account it left from / arrived in.</summary>
+public class LoanPaymentRequest
+{
+    public DateOnly PaidOn { get; init; }
+    public decimal Amount { get; init; }
+    public int AccountId { get; init; }
+    public decimal? ExchangeRate { get; init; }
+    public List<int> TagIds { get; init; } = [];
+
+    [StringLength(500)]
+    public string? Note { get; init; }
+
+    public DateOnly Today { get; init; }
 }
 
 public class LoanInstalmentDto
@@ -451,7 +510,10 @@ public class LoanInstalmentDto
 public class LoanDetailDto
 {
     public LoanDto Loan { get; init; } = new();
+    /// <summary>EMI loans only (empty for a flexible loan).</summary>
     public List<LoanInstalmentDto> Schedule { get; init; } = [];
+    /// <summary>Newest first.</summary>
+    public List<LoanPaymentDto> Payments { get; init; } = [];
 }
 
 public class LoanRequest
@@ -476,11 +538,21 @@ public class LoanRequest
     public string Currency { get; init; } = string.Empty;
 
     public decimal AnnualRate { get; init; }
-    public int TermMonths { get; init; }
+    /// <summary>EMI only: the term (null for a flexible loan).</summary>
+    public int? TermMonths { get; init; }
     public DateOnly StartDate { get; init; }
     public decimal? EmiAmount { get; init; }
     public int? AccountId { get; init; }
     public DateOnly? ClosedOn { get; init; }
+
+    /// <summary>Emi / Flexible.</summary>
+    public string RepaymentKind { get; init; } = LoanLedger.Emi;
+
+    /// <summary>EMI only: instalments due on or before this day were paid (an older loan you don't want to type in).</summary>
+    public DateOnly? AssumedPaidThrough { get; init; }
+
+    /// <summary>On create only: record the money that changed hands at the start (borrowed: in, lent: out).</summary>
+    public LoanMoneyRequest? Disbursement { get; init; }
 
     [StringLength(2000)]
     public string? Notes { get; init; }

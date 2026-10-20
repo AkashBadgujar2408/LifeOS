@@ -4,6 +4,7 @@ import type {
   ExchangeRate,
   HoldingKind,
   InsurancePolicy,
+  Loan,
   LoanKind,
   NetWorthPoint,
   PolicyKind,
@@ -210,9 +211,41 @@ export function netWorthChange(history: NetWorthPoint[]): { change: number; sinc
   return { change: Math.round((last.net - first.net) * 100) / 100, since: first.day };
 }
 
-/** "3 of 240 paid" share of a loan's instalments, as a whole % (0 when it has none). */
-export function loanPaidPercent(paid: number, count: number): number {
-  return count === 0 ? 0 : Math.floor((paid * 100) / count);
+/** "12% · ₹10,661.85 a month", "Interest-free · pay as you go". */
+export function loanTermsText(
+  loan: Pick<Loan, 'annualRate' | 'repaymentKind' | 'emi' | 'currency'>,
+): string {
+  const rate = loan.annualRate === 0 ? 'Interest-free' : `${loan.annualRate}%`;
+  return loan.repaymentKind === 'Emi' && loan.emi !== null
+    ? `${rate} · ${formatMoney(loan.emi, loan.currency)} a month`
+    : `${rate} · pay as you go`;
+}
+
+/** Whole % of the principal paid back (capped 0–100): what's still owed against what was lent or borrowed. */
+export function loanRepaidPercent(loan: Pick<Loan, 'principal' | 'outstanding'>): number {
+  if (loan.principal <= 0) {
+    return 0;
+  }
+  const share = Math.floor(((loan.principal - loan.outstanding) * 100) / loan.principal);
+  return Math.min(100, Math.max(0, share));
+}
+
+/**
+ * Where an EMI loan stands against its schedule, in words — "On schedule", "Behind by ₹10,758.37", "Ahead by …"
+ * (under one unit of the currency counts as on schedule). Null for a flexible or closed loan.
+ */
+export function loanScheduleText(
+  loan: Pick<Loan, 'behind' | 'currency' | 'closedOn' | 'repaymentKind'>,
+): { text: string; state: 'on' | 'behind' | 'ahead' } | null {
+  if (loan.repaymentKind !== 'Emi' || loan.behind === null || loan.closedOn) {
+    return null;
+  }
+  if (Math.abs(loan.behind) < 1) {
+    return { text: 'On schedule', state: 'on' };
+  }
+  return loan.behind > 0
+    ? { text: `Behind by ${formatMoney(loan.behind, loan.currency)}`, state: 'behind' }
+    : { text: `Ahead by ${formatMoney(-loan.behind, loan.currency)}`, state: 'ahead' };
 }
 
 /** The rate the master gives a currency on a day: the latest set on or before it (null: none). */

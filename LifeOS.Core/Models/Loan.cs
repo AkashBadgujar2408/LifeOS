@@ -25,7 +25,7 @@ public partial class Loan
 
     public decimal AnnualRate { get; set; }
 
-    public int TermMonths { get; set; }
+    public int? TermMonths { get; set; }
 
     public DateOnly StartDate { get; set; }
 
@@ -44,6 +44,10 @@ public partial class Loan
     public bool IsDeleted { get; set; }
 
     public DateTime? DeletedAt { get; set; }
+
+    public string RepaymentKind { get; set; } = null!;
+
+    public DateOnly? AssumedPaidThrough { get; set; }
 
     public virtual Account? Account { get; set; }
 

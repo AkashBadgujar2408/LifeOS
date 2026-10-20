@@ -7,7 +7,13 @@ import { FinanceService, Loan } from '../../core/services/finance.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { BaseCurrencyPrompt } from './base-currency-prompt';
-import { LOAN_KIND_LABELS, formatMoney, loanPaidPercent } from './finance-view';
+import {
+  LOAN_KIND_LABELS,
+  formatMoney,
+  loanRepaidPercent,
+  loanScheduleText,
+  loanTermsText,
+} from './finance-view';
 import { openLoanEditor } from './loan-editor';
 
 /** Money borrowed and lent: what's still owed today, the instalment, how far along; closed ones last. */
@@ -21,7 +27,7 @@ import { openLoanEditor } from './loan-editor';
         <div>
           <h1 class="h3 mb-1">Loans</h1>
           <p class="text-body-secondary mb-0 small">
-            What you owe and what you're owed, instalment by instalment.
+            What you owe and what you're owed, from the payments you've made.
           </p>
         </div>
         <button type="button" class="btn btn-primary" (click)="add()">
@@ -36,7 +42,8 @@ import { openLoanEditor } from './loan-editor';
       } @else if (loans(); as loans) {
         @if (loans.length === 0) {
           <p class="text-body-secondary">
-            No loans. Add a home or car loan to see its EMI schedule — or money you lent someone.
+            No loans. Add a home or car loan with its EMIs, money a friend lent you to pay back as
+            you go, or money you lent someone.
           </p>
         } @else {
           <div class="card">
@@ -63,18 +70,28 @@ import { openLoanEditor } from './loan-editor';
                           · {{ l.direction === 'Lent' ? 'to' : 'from' }}
                           {{ l.counterparty ?? l.contactName }}
                         }
-                        · {{ l.annualRate }}% · {{ money(l.emi, l.currency) }} a month
+                        · {{ terms(l) }}
                       </div>
                       <div class="small">
                         @if (l.closedOn) {
                           Closed {{ l.closedOn | date }}
                         } @else {
-                          {{ l.instalmentsPaid }} of {{ l.instalmentCount }} instalments ({{
-                            paid(l.instalmentsPaid, l.instalmentCount)
-                          }}%)
+                          {{ repaid(l) }}% paid back
+                          @if (scheduleOf(l); as s) {
+                            ·
+                            <span
+                              [class.text-danger-emphasis]="s.state === 'behind'"
+                              [class.fw-semibold]="s.state === 'behind'"
+                              >{{ s.text }}</span
+                            >
+                          }
                           @if (l.nextDueOn) {
                             <span class="text-body-secondary">
                               · next {{ l.nextDueOn | date }}</span
+                            >
+                          } @else if (l.lastPaidOn) {
+                            <span class="text-body-secondary">
+                              · last paid {{ l.lastPaidOn | date }}</span
                             >
                           }
                         }
@@ -107,7 +124,9 @@ export class FinanceLoans {
 
   protected readonly kindLabels = LOAN_KIND_LABELS;
   protected readonly money = formatMoney;
-  protected readonly paid = loanPaidPercent;
+  protected readonly terms = loanTermsText;
+  protected readonly repaid = loanRepaidPercent;
+  protected readonly scheduleOf = loanScheduleText;
   protected readonly loans = signal<Loan[] | null>(null);
   protected readonly loadFailed = signal(false);
 

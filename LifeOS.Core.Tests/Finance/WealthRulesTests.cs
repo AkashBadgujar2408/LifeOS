@@ -52,13 +52,13 @@ public class WealthRulesTests
     public void Loans_follow_their_constraints()
     {
         var start = new DateOnly(2026, 1, 15);
-        Assert.Null(WealthRules.CheckLoan("Home", "Borrowed", "INR", 1_000_000m, 8.5m, 240, start, null, null, Today));
-        Assert.NotNull(WealthRules.CheckLoan("Home", "Gifted", "INR", 1_000_000m, 8.5m, 240, start, null, null, Today));
-        Assert.NotNull(WealthRules.CheckLoan("Home", "Borrowed", "INR", 0m, 8.5m, 240, start, null, null, Today));
-        Assert.NotNull(WealthRules.CheckLoan("Home", "Borrowed", "INR", 1_000m, 101m, 12, start, null, null, Today));
-        Assert.NotNull(WealthRules.CheckLoan("Home", "Borrowed", "INR", 1_000m, 8m, 601, start, null, null, Today));
-        Assert.NotNull(WealthRules.CheckLoan("Home", "Borrowed", "INR", 1_000m, 8m, 12, start, null, start.AddDays(-1), Today));
-        Assert.NotNull(WealthRules.CheckLoan("Home", "Borrowed", "INR", 1_000_000m, 8.5m, 240, start, 7_000m, null, Today));
+        Assert.Null(WealthRules.CheckLoan("Home", "Borrowed", "INR", 1_000_000m, 8.5m, "Emi", 240, start, null, null, null, Today));
+        Assert.NotNull(WealthRules.CheckLoan("Home", "Gifted", "INR", 1_000_000m, 8.5m, "Emi", 240, start, null, null, null, Today));
+        Assert.NotNull(WealthRules.CheckLoan("Home", "Borrowed", "INR", 0m, 8.5m, "Emi", 240, start, null, null, null, Today));
+        Assert.NotNull(WealthRules.CheckLoan("Home", "Borrowed", "INR", 1_000m, 101m, "Emi", 12, start, null, null, null, Today));
+        Assert.NotNull(WealthRules.CheckLoan("Home", "Borrowed", "INR", 1_000m, 8m, "Emi", 601, start, null, null, null, Today));
+        Assert.NotNull(WealthRules.CheckLoan("Home", "Borrowed", "INR", 1_000m, 8m, "Emi", 12, start, null, null, start.AddDays(-1), Today));
+        Assert.NotNull(WealthRules.CheckLoan("Home", "Borrowed", "INR", 1_000_000m, 8.5m, "Emi", 240, start, 7_000m, null, null, Today));
     }
 }
 

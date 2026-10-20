@@ -1668,6 +1668,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.Notes).HasMaxLength(2000);
             entity.Property(e => e.Principal).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.RepaymentKind)
+                .HasMaxLength(10)
+                .HasDefaultValue("Emi", "DF_Loans_RepaymentKind");
 
             entity.HasOne(d => d.Account).WithMany(p => p.Loans)
                 .HasForeignKey(d => d.AccountId)
@@ -2514,9 +2517,15 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.FromAccountId, "IX_Transactions_FromAccount").HasFilter("([IsDeleted]=(0) AND [FromAccountId] IS NOT NULL)");
 
+            entity.HasIndex(e => new { e.LoanId, e.OccurredOn }, "IX_Transactions_Loan").HasFilter("([IsDeleted]=(0) AND [LoanId] IS NOT NULL)");
+
             entity.HasIndex(e => e.ToAccountId, "IX_Transactions_ToAccount").HasFilter("([IsDeleted]=(0) AND [ToAccountId] IS NOT NULL)");
 
             entity.HasIndex(e => new { e.UserId, e.OccurredOn }, "IX_Transactions_User_Day").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.LoanId, e.IsLoanDisbursement }, "UX_Transactions_LoanDisbursement")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [IsLoanDisbursement]=(1))");
 
             entity.HasIndex(e => new { e.RecurringTransactionId, e.OccurrenceDate }, "UX_Transactions_Occurrence")
                 .IsUnique()

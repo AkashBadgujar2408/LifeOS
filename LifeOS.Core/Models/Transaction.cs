@@ -53,6 +53,8 @@ public partial class Transaction
 
     public string? ToCurrency { get; set; }
 
+    public bool IsLoanDisbursement { get; set; }
+
     public virtual Employment? Employment { get; set; }
 
     public virtual Account? FromAccount { get; set; }

@@ -273,7 +273,12 @@ export const LOAN_KINDS = [
 export type LoanKind = (typeof LOAN_KINDS)[number];
 export type LoanDirection = 'Borrowed' | 'Lent';
 
-/** A loan borrowed or lent; its instalment and what's owed are computed from the schedule. */
+export type LoanRepaymentKind = 'Emi' | 'Flexible';
+
+/**
+ * A loan borrowed or lent, repaid by EMI or as you go. What's owed comes from the payments actually recorded (each a
+ * transaction tied to the loan); an EMI loan also has its schedule.
+ */
 export interface Loan {
   id: number;
   name: string;
@@ -285,20 +290,36 @@ export interface Loan {
   principal: number;
   currency: string;
   annualRate: number;
-  termMonths: number;
+  repaymentKind: LoanRepaymentKind;
+  /** EMI only. */
+  termMonths: number | null;
   startDate: string;
   emiAmount: number | null;
+  /** EMI only: instalments due on or before this day count as paid. */
+  assumedPaidThrough: string | null;
   accountId: number | null;
   accountName: string | null;
   closedOn: string | null;
   notes: string | null;
-  emi: number;
+  /** The transaction recording the money at the start (null: not in Finance). */
+  disbursementTransactionId: number | null;
+  disbursementAccountName: string | null;
   outstanding: number;
-  instalmentsPaid: number;
-  instalmentCount: number;
+  interestDue: number;
+  interestCharged: number;
+  repaid: number;
+  paymentCount: number;
+  lastPaidOn: string | null;
+  // EMI loans only (null for a flexible loan):
+  emi: number | null;
+  scheduledOutstanding: number | null;
+  /** Outstanding − scheduled: > 0 behind, < 0 ahead. */
+  behind: number | null;
+  instalmentsDue: number | null;
+  instalmentCount: number | null;
   nextDueOn: string | null;
   lastDueOn: string | null;
-  totalInterest: number;
+  totalInterest: number | null;
 }
 
 export interface LoanInstalment {
@@ -310,9 +331,38 @@ export interface LoanInstalment {
   balance: number;
 }
 
+/** A repayment (a transaction tied to the loan) and how it split: interest first, then principal. */
+export interface LoanPayment {
+  transactionId: number;
+  paidOn: string;
+  amount: number;
+  interest: number;
+  principal: number;
+  accountName: string | null;
+  note: string | null;
+  /** On or before "paid up to" — already counted by the schedule. */
+  coveredBySchedule: boolean;
+}
+
 export interface LoanDetail {
   loan: Loan;
+  /** EMI loans only. */
   schedule: LoanInstalment[];
+  /** Newest first. */
+  payments: LoanPayment[];
+}
+
+export interface LoanMoneyPayload {
+  accountId: number;
+  exchangeRate: number | null;
+  tagIds: number[];
+}
+
+export interface LoanPaymentPayload extends LoanMoneyPayload {
+  paidOn: string;
+  amount: number;
+  note: string | null;
+  today: string;
 }
 
 export interface LoanPayload {
@@ -324,12 +374,16 @@ export interface LoanPayload {
   principal: number;
   currency: string;
   annualRate: number;
-  termMonths: number;
+  repaymentKind: LoanRepaymentKind;
+  termMonths: number | null;
   startDate: string;
   emiAmount: number | null;
+  assumedPaidThrough: string | null;
   accountId: number | null;
   closedOn: string | null;
   notes: string | null;
+  /** On create only: record the money at the start in Finance. */
+  disbursement: LoanMoneyPayload | null;
   today: string;
 }
 
@@ -734,6 +788,40 @@ export class FinanceService {
       ? this.http.put<ApiResponse<LoanDetail>>(`${this.base}/Loans/${id}`, payload)
       : this.http.post<ApiResponse<LoanDetail>>(`${this.base}/Loans`, payload);
     return request.pipe(map((response) => response.data!));
+  }
+
+  /** Records the money at the start as one transaction (once). */
+  recordLoanStart(id: number, payload: LoanMoneyPayload): Observable<LoanDetail> {
+    return this.http
+      .put<ApiResponse<LoanDetail>>(`${this.base}/Loans/${id}/disbursement`, payload, {
+        params: { today: todayIso() },
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Deletes the start's transaction; the loan stays. */
+  removeLoanStart(id: number): Observable<LoanDetail> {
+    return this.http
+      .delete<ApiResponse<LoanDetail>>(`${this.base}/Loans/${id}/disbursement`, {
+        params: { today: todayIso() },
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** A repayment: one transaction tied to the loan. */
+  addLoanPayment(id: number, payload: LoanPaymentPayload): Observable<LoanDetail> {
+    return this.http
+      .post<ApiResponse<LoanDetail>>(`${this.base}/Loans/${id}/payments`, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Deletes a repayment's transaction. */
+  removeLoanPayment(id: number, transactionId: number): Observable<LoanDetail> {
+    return this.http
+      .delete<ApiResponse<LoanDetail>>(`${this.base}/Loans/${id}/payments/${transactionId}`, {
+        params: { today: todayIso() },
+      })
+      .pipe(map((response) => response.data!));
   }
 
   removeLoan(id: number): Observable<void> {

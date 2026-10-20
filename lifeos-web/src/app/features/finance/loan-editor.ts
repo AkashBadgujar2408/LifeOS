@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { catchError, of } from 'rxjs';
+import { catchError, map, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
@@ -15,6 +15,7 @@ import {
   LoanDetail,
   LoanDirection,
   LoanKind,
+  LoanRepaymentKind,
 } from '../../core/services/finance.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -160,23 +161,56 @@ export async function openLoanEditor(
             }
           </div>
         </div>
-        <div class="row g-3">
-          <div class="col-sm-4">
-            <label class="form-label" for="loan-term">Term (months)</label>
+        <fieldset>
+          <legend class="form-label fs-6 mb-1">Paid back</legend>
+          <div class="btn-group btn-group-sm" role="group" aria-label="How it's paid back">
             <input
-              id="loan-term"
-              type="number"
-              min="1"
-              max="600"
-              class="form-control"
-              [class.is-invalid]="fieldError('termMonths')"
-              formControlName="termMonths"
-              placeholder="e.g. 240"
+              type="radio"
+              class="btn-check"
+              id="loan-repay-emi"
+              value="Emi"
+              formControlName="repaymentKind"
             />
-            @if (fieldError('termMonths'); as error) {
-              <div class="invalid-feedback d-block">{{ error }}</div>
+            <label class="btn btn-outline-secondary" for="loan-repay-emi"
+              >EMI (fixed monthly)</label
+            >
+            <input
+              type="radio"
+              class="btn-check"
+              id="loan-repay-flexible"
+              value="Flexible"
+              formControlName="repaymentKind"
+            />
+            <label class="btn btn-outline-secondary" for="loan-repay-flexible">As you go</label>
+          </div>
+          <div class="form-text">
+            @if (isEmi()) {
+              A fixed instalment over a term — the schedule shows if you're behind or ahead.
+            } @else {
+              No term, no instalment: pay whatever, whenever. Interest (if any) is charged monthly
+              on what's left.
             }
           </div>
+        </fieldset>
+        <div class="row g-3">
+          @if (isEmi()) {
+            <div class="col-sm-4">
+              <label class="form-label" for="loan-term">Term (months)</label>
+              <input
+                id="loan-term"
+                type="number"
+                min="1"
+                max="600"
+                class="form-control"
+                [class.is-invalid]="fieldError('termMonths')"
+                formControlName="termMonths"
+                placeholder="e.g. 240"
+              />
+              @if (fieldError('termMonths'); as error) {
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              }
+            </div>
+          }
           <div class="col-sm-4">
             <label class="form-label" for="loan-start">Started</label>
             <div class="input-group">
@@ -206,25 +240,66 @@ export async function openLoanEditor(
               <div class="invalid-feedback d-block">{{ error }}</div>
             }
           </div>
-          <div class="col-sm-4">
-            <label class="form-label" for="loan-emi">
-              EMI <span class="text-body-secondary small">(if the lender's differs)</span>
+          @if (isEmi()) {
+            <div class="col-sm-4">
+              <label class="form-label" for="loan-emi">
+                EMI <span class="text-body-secondary small">(if the lender's differs)</span>
+              </label>
+              <input
+                id="loan-emi"
+                type="number"
+                step="0.01"
+                min="0"
+                class="form-control"
+                [class.is-invalid]="fieldError('emiAmount')"
+                formControlName="emiAmount"
+                placeholder="Worked out if blank"
+              />
+              @if (fieldError('emiAmount'); as error) {
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              }
+            </div>
+          }
+        </div>
+        @if (isEmi()) {
+          <div>
+            <label class="form-label" for="loan-assumed">
+              Instalments already paid up to
+              <span class="text-body-secondary small">(optional)</span>
             </label>
-            <input
-              id="loan-emi"
-              type="number"
-              step="0.01"
-              min="0"
-              class="form-control"
-              [class.is-invalid]="fieldError('emiAmount')"
-              formControlName="emiAmount"
-              placeholder="Worked out if blank"
-            />
-            @if (fieldError('emiAmount'); as error) {
+            <div class="input-group">
+              <input
+                id="loan-assumed"
+                type="text"
+                class="form-control"
+                [class.is-invalid]="fieldError('assumedPaidThrough')"
+                formControlName="assumedPaidThrough"
+                placeholder="e.g. 20/Oct/2026"
+                autocomplete="off"
+                ngbDatepicker
+                #assumedPicker="ngbDatepicker"
+                [minDate]="minDate"
+                container="body"
+              />
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                aria-label="Pick the day instalments were paid up to"
+                (click)="assumedPicker.toggle()"
+              >
+                <i class="bi bi-calendar3"></i>
+              </button>
+            </div>
+            @if (fieldError('assumedPaidThrough'); as error) {
               <div class="invalid-feedback d-block">{{ error }}</div>
+            } @else {
+              <div class="form-text">
+                For a loan that's been running a while: every instalment due up to this day counts
+                as paid, so you only record payments from then on.
+              </div>
             }
           </div>
-        </div>
+        }
         <div class="row g-3">
           <div class="col-sm-4">
             <label class="form-label" for="loan-counterparty">
@@ -272,6 +347,29 @@ export async function openLoanEditor(
             </select>
           </div>
         </div>
+        @if (!loan()) {
+          <div class="form-check">
+            <input
+              id="loan-record-start"
+              type="checkbox"
+              class="form-check-input"
+              formControlName="recordStart"
+            />
+            <label class="form-check-label" for="loan-record-start">
+              Record the
+              {{ form.controls.direction.value === 'Lent' ? 'money I lent' : 'money I received' }}
+              in Finance
+            </label>
+            <div class="form-text">
+              One transaction on the start day,
+              {{ form.controls.direction.value === 'Lent' ? 'out of' : 'into' }}
+              the account above. You can also do it later from the loan's page.
+            </div>
+            @if (fieldError('recordStart'); as error) {
+              <div class="invalid-feedback d-block">{{ error }}</div>
+            }
+          </div>
+        }
         @if (loan()) {
           <div class="col-sm-6">
             <label class="form-label" for="loan-closed">
@@ -377,11 +475,10 @@ export class LoanEditor {
       Validators.min(0),
       Validators.max(100),
     ]),
-    termMonths: this.fb.control<number | null>(null, [
-      Validators.required,
-      Validators.min(1),
-      Validators.max(600),
-    ]),
+    repaymentKind: this.fb.nonNullable.control<LoanRepaymentKind>('Emi'),
+    assumedPaidThrough: this.fb.control<string | null>(null),
+    recordStart: this.fb.nonNullable.control(false),
+    termMonths: this.fb.control<number | null>(null, [Validators.min(1), Validators.max(600)]),
     startDate: this.fb.control<string | null>(todayIso(), Validators.required),
     emiAmount: this.fb.control<number | null>(null, Validators.min(0.01)),
     counterparty: this.fb.nonNullable.control('', Validators.maxLength(200)),
@@ -390,6 +487,12 @@ export class LoanEditor {
     closedOn: this.fb.control<string | null>(null),
     notes: this.fb.nonNullable.control('', Validators.maxLength(2000)),
   });
+
+  /** EMI loans have a term, an instalment and "paid up to"; a pay-as-you-go loan has none. */
+  protected readonly isEmi = toSignal(
+    this.form.controls.repaymentKind.valueChanges.pipe(map((kind) => kind === 'Emi')),
+    { initialValue: true },
+  );
 
   configure(loan?: Loan): void {
     this.loan.set(loan ?? null);
@@ -400,6 +503,9 @@ export class LoanEditor {
       principal: loan?.principal ?? null,
       currency: loan?.currency ?? this.settingsService.settings()?.baseCurrency ?? '',
       annualRate: loan?.annualRate ?? null,
+      repaymentKind: loan?.repaymentKind ?? 'Emi',
+      assumedPaidThrough: loan?.assumedPaidThrough ?? null,
+      recordStart: false,
       termMonths: loan?.termMonths ?? null,
       startDate: loan?.startDate ?? todayIso(),
       emiAmount: loan?.emiAmount ?? null,
@@ -418,6 +524,8 @@ export class LoanEditor {
       | 'currency'
       | 'annualRate'
       | 'termMonths'
+      | 'assumedPaidThrough'
+      | 'recordStart'
       | 'startDate'
       | 'emiAmount'
       | 'closedOn',
@@ -438,11 +546,25 @@ export class LoanEditor {
           ? 'Enter the rate (0 if none).'
           : 'A % between 0 and 100.';
       case 'termMonths':
-        return '1 to 600 months.';
+        return control.errors['required']
+          ? 'Give the term — or choose "As you go".'
+          : '1 to 600 months.';
       case 'emiAmount':
         return 'Has to be more than zero — or leave it blank.';
       case 'startDate':
         return control.errors['required'] ? 'Say when it started.' : dateFieldError(control.errors);
+      case 'assumedPaidThrough':
+        return control.errors['future']
+          ? 'That can’t be in the future.'
+          : control.errors['early']
+            ? 'That’s before it started.'
+            : dateFieldError(control.errors);
+      case 'recordStart':
+        return control.errors['account']
+          ? 'Choose the account above.'
+          : control.errors['future']
+            ? 'It starts in the future — record the money once it has changed hands.'
+            : 'It’s not in your base currency — record it from the loan’s page (it needs a rate).';
       default:
         return dateFieldError(control.errors);
     }
@@ -451,11 +573,37 @@ export class LoanEditor {
   protected submit(): void {
     const name = this.form.controls.name;
     name.setValue(name.value.trim());
+    const v = this.form.getRawValue();
+    const emi = v.repaymentKind === 'Emi';
+    const today = todayIso();
+    // Checks that depend on the repayment kind (the server checks the same).
+    this.form.controls.termMonths.updateValueAndValidity();
+    this.form.controls.assumedPaidThrough.updateValueAndValidity();
+    this.form.controls.recordStart.updateValueAndValidity();
+    if (emi && v.termMonths === null) {
+      this.form.controls.termMonths.setErrors({ required: true });
+    }
+    if (emi && v.assumedPaidThrough) {
+      if (v.assumedPaidThrough > today) {
+        this.form.controls.assumedPaidThrough.setErrors({ future: true });
+      } else if (v.startDate && v.assumedPaidThrough < v.startDate) {
+        this.form.controls.assumedPaidThrough.setErrors({ early: true });
+      }
+    }
+    if (!this.loan() && v.recordStart) {
+      const base = this.settingsService.settings()?.baseCurrency;
+      if (v.accountId === null) {
+        this.form.controls.recordStart.setErrors({ account: true });
+      } else if (v.startDate && v.startDate > today) {
+        this.form.controls.recordStart.setErrors({ future: true });
+      } else if (base && v.currency !== base) {
+        this.form.controls.recordStart.setErrors({ rate: true });
+      }
+    }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    const v = this.form.getRawValue();
     this.saving.set(true);
     this.financeService
       .saveLoan(this.loan()?.id ?? null, {
@@ -467,13 +615,19 @@ export class LoanEditor {
         principal: v.principal!,
         currency: v.currency,
         annualRate: v.annualRate!,
-        termMonths: v.termMonths!,
+        repaymentKind: v.repaymentKind,
+        termMonths: emi ? v.termMonths : null,
         startDate: v.startDate!,
-        emiAmount: v.emiAmount,
+        emiAmount: emi ? v.emiAmount : null,
+        assumedPaidThrough: emi ? v.assumedPaidThrough : null,
+        disbursement:
+          !this.loan() && v.recordStart && v.accountId !== null
+            ? { accountId: v.accountId, exchangeRate: null, tagIds: [] }
+            : null,
         accountId: v.accountId,
         closedOn: v.closedOn,
         notes: v.notes.trim() || null,
-        today: todayIso(),
+        today,
       })
       .subscribe({
         next: (detail) => this.activeModal.close({ kind: 'saved', detail }),

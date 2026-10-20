@@ -520,3 +520,60 @@ IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_RecurringTra
     ALTER TABLE finance.RecurringTransactions ADD CONSTRAINT CK_RecurringTransactions_ToPair
         CHECK ((ToAmount IS NULL AND ToCurrency IS NULL) OR (ToAmount IS NOT NULL AND ToCurrency IS NOT NULL AND ToCurrency <> Currency));
 GO
+
+-- Session 68b: loans rework. Every loan movement is a transaction: the money that changed hands at the start
+-- (IsLoanDisbursement — one per loan) and each repayment (a transaction with LoanId). Outstanding is
+-- worked out from those actual payments (LoanLedger), never stored. RepaymentKind: Emi = a fixed monthly instalment
+-- over TermMonths (the schedule); Flexible = pay as you go, no term, no instalment. AnnualRate 0 = interest-free.
+-- AssumedPaidThrough (EMI only): instalments due on or before it count as paid, so an old loan doesn't need years of
+-- past payments typed in; loans from before this session get the day of the upgrade, so their figures don't change.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('finance.Loans') AND name = 'RepaymentKind')
+BEGIN
+    ALTER TABLE finance.Loans ADD
+        RepaymentKind NVARCHAR(10) NOT NULL CONSTRAINT DF_Loans_RepaymentKind DEFAULT ('Emi')
+                                            CONSTRAINT CK_Loans_RepaymentKind CHECK (RepaymentKind IN ('Emi', 'Flexible')),
+        AssumedPaidThrough DATE NULL;
+    -- Once, with the columns: the loans that existed keep "every instalment due so far was paid".
+    EXEC ('UPDATE finance.Loans SET AssumedPaidThrough = CAST(SYSUTCDATETIME() AS DATE) WHERE StartDate <= CAST(SYSUTCDATETIME() AS DATE)');
+END
+GO
+
+-- A flexible loan has no term: TermMonths becomes optional (the CHECK has to be dropped around the change).
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('finance.Loans') AND name = 'TermMonths' AND is_nullable = 0)
+BEGIN
+    ALTER TABLE finance.Loans DROP CONSTRAINT CK_Loans_TermMonths;
+    ALTER TABLE finance.Loans ALTER COLUMN TermMonths INT NULL;
+    ALTER TABLE finance.Loans ADD CONSTRAINT CK_Loans_TermMonths CHECK (TermMonths BETWEEN 1 AND 600);
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Loans_RepaymentShape')
+    ALTER TABLE finance.Loans ADD CONSTRAINT CK_Loans_RepaymentShape CHECK (
+        (RepaymentKind = 'Emi' AND TermMonths IS NOT NULL)
+        OR (RepaymentKind = 'Flexible' AND TermMonths IS NULL AND EmiAmount IS NULL AND AssumedPaidThrough IS NULL));
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Loans_AssumedPaidThrough')
+    ALTER TABLE finance.Loans ADD CONSTRAINT CK_Loans_AssumedPaidThrough
+        CHECK (AssumedPaidThrough IS NULL OR AssumedPaidThrough >= StartDate);
+GO
+
+-- The money that changed hands at the start is the loan's one transaction marked IsLoanDisbursement (unique per loan).
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'IsLoanDisbursement')
+    ALTER TABLE finance.Transactions ADD
+        IsLoanDisbursement BIT NOT NULL CONSTRAINT DF_Transactions_IsLoanDisbursement DEFAULT (0);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Transactions_LoanDisbursement')
+    ALTER TABLE finance.Transactions ADD CONSTRAINT CK_Transactions_LoanDisbursement
+        CHECK (IsLoanDisbursement = 0 OR LoanId IS NOT NULL);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'UX_Transactions_LoanDisbursement')
+    CREATE UNIQUE INDEX UX_Transactions_LoanDisbursement ON finance.Transactions(LoanId, IsLoanDisbursement)
+        WHERE IsDeleted = 0 AND IsLoanDisbursement = 1;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'IX_Transactions_Loan')
+    CREATE INDEX IX_Transactions_Loan ON finance.Transactions(LoanId, OccurredOn) WHERE IsDeleted = 0 AND LoanId IS NOT NULL;
+GO

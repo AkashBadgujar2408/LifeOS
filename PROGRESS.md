@@ -1078,3 +1078,14 @@
 - Test data: `home67` — Activa (fills at 5,000 / 6,000 missed / 6,200 / 6,350 km, the last one in Finance from HDFC Savings).
 
 - Next up: **Session 68b — Loans rework**, then Session 69.
+
+## Last session: 2026-10-20 — Session 68b — Loans rework: every movement a transaction, EMI or pay as you go
+- Shipped (backend): `12_finance.sql` upgrade (`RepaymentKind`, optional `TermMonths`, `AssumedPaidThrough`, `Transactions.IsLoanDisbursement` + one-start-per-loan index; UAT backed up, `LifeOS_UAT_pre68b.bak`), pure `LoanLedger` (8 xUnit cases), `LoansService` rewritten (start and repayments through `ITransactionsService`, outstanding from actual payments, behind/ahead for EMI), new endpoints `PUT/DELETE api/Finance/Loans/{id}/disbursement`, `POST api/Finance/Loans/{id}/payments`, `DELETE …/payments/{transactionId}`; net worth now uses the same ledger.
+- Shipped (frontend): loan editor "Paid back: EMI / As you go", "instalments already paid up to", record the start on create; loans list and loan page rebuilt around what's owed and paid back; shared payment / start dialog; `loanTermsText`/`loanRepaidPercent`/`loanScheduleText` (+ spec).
+- Verified: see plan row 68b. 432 backend + 237 frontend tests, all six zones; lint, Prettier, `ng build` clean (1.48 MB); fresh DB scaffolds identically; NuGet audit clean.
+- Found: a unique index on `LoanId` alone made EF scaffold Loan↔Transaction as one-to-one (renaming `Transaction.Loan`); keying it on `(LoanId, IsLoanDisbursement)` keeps the one-to-many. A first attempt with a `Loans.DisbursementTransactionId` FK was dropped for the same navigation churn. Chrome screenshots timed out again; the check drove the DOM. Your browser session was switched to `home67` for the checks and restored afterwards.
+- Your earlier loans (two EMI loans in UAT) were marked "paid up to 20/Oct/2026", so they show exactly what they showed before.
+- Plan: **75b Searchable dropdowns** added (ng-select, or Slim Select wrapped, decided then); totals 114 sessions ≈ 230 hours.
+- Test data: `home67` — "68b Friend loan" (flexible, ₹25,000 owed), "68b Bike loan" (EMI, behind), "68b Old car loan" (paid up to today), "68b Lent to Priya" (₹5,000 to come back), "Sister loan" (₹18,000 owed).
+
+- Next up: **Session 69 — Purchases 1** (schema, including the rewards tables — every money movement through Finance).

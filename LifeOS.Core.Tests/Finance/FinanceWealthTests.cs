@@ -78,7 +78,8 @@ public class FinanceWealthTests
             new WealthHolding(2, "Old FD", "INR", 100_000m, new DateOnly(2025, 1, 1), new DateOnly(2026, 2, 1), []),
         ],
         [
-            new WealthLoan(1, "Car loan", false, "INR", 120_000m, 0m, 12, new DateOnly(2026, 1, 15), null, null),
+            new WealthLoan(1, "Car loan", false, "INR", 120_000m, 0m, 12, new DateOnly(2026, 1, 15), null, null,
+                Moves: [new LoanMove(1, new DateOnly(2026, 2, 15), -10_000m), new LoanMove(2, new DateOnly(2026, 3, 15), -10_000m)]),
             new WealthLoan(2, "Lent to Ravi", true, "INR", 20_000m, 0m, 2, new DateOnly(2026, 3, 1), null, null),
         ],
         [new CurrencyRate("USD", new DateOnly(2026, 2, 10), 83m), new CurrencyRate("USD", new DateOnly(2026, 4, 1), 84m)]);

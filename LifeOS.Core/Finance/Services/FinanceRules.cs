@@ -241,19 +241,39 @@ public static class WealthRules
         : value < 0 || value > FinanceRules.MaxAmount ? "The value can't be negative or that large."
         : null;
 
+    /// <summary>
+    /// A loan: an EMI loan needs a term (its instalment is worked out unless the lender's is given) and may say its
+    /// instalments up to a day were paid; a flexible (pay-as-you-go) loan has none of those. A rate of 0 = interest-free.
+    /// </summary>
     public static string? CheckLoan(
-        string kind, string direction, string? currency, decimal principal, decimal rate, int months, DateOnly start, decimal? emi, DateOnly? closed, DateOnly today) =>
+        string kind, string direction, string? currency, decimal principal, decimal rate, string repaymentKind, int? months,
+        DateOnly start, decimal? emi, DateOnly? assumedPaidThrough, DateOnly? closed, DateOnly today) =>
         !LoanKinds.All.Contains(kind) ? "Unknown kind of loan."
         : direction is not (LoanKinds.Borrowed or LoanKinds.Lent) ? "Say whether you borrowed or lent it."
+        : repaymentKind is not (LoanLedger.Emi or LoanLedger.Flexible) ? "Say whether it's repaid by EMI or as you go."
         : currency is null ? "Choose its currency."
         : principal <= 0 || principal > FinanceRules.MaxAmount ? "The amount has to be more than zero."
-        : rate is < 0 or > 100 ? "The interest rate is a % between 0 and 100."
-        : months is < 1 or > 600 ? "The term is 1 to 600 months."
+        : rate is < 0 or > 100 ? "The interest rate is a % between 0 and 100 (0 for interest-free)."
         : start == default ? "Say when it started."
-        : emi is <= 0 ? "The instalment has to be more than zero (leave it blank to work it out)."
         : closed is { } c && c < start ? "It can't close before it started."
         : closed is { } c2 && c2 > today ? "It can't be closed in the future."
+        : repaymentKind == LoanLedger.Flexible ? null
+        : months is not { } m ? "Give the term in months (or make it pay as you go)."
+        : m is < 1 or > 600 ? "The term is 1 to 600 months."
+        : emi is <= 0 ? "The instalment has to be more than zero (leave it blank to work it out)."
+        : assumedPaidThrough is { } a && a < start ? "\"Paid up to\" can't be before it started."
+        : assumedPaidThrough is { } a2 && a2 > today ? "\"Paid up to\" can't be in the future."
         : LoanSchedule.CheckEmi(principal, rate, emi);
+
+    /// <summary>A repayment: an amount, on a day from the start to today, not after it was closed.</summary>
+    public static string? CheckLoanPayment(DateOnly paidOn, decimal amount, DateOnly start, DateOnly? closed, DateOnly today) =>
+        today == default ? "Today's date is required."
+        : paidOn == default ? "Say when it was paid."
+        : paidOn > today ? "It can't be paid in the future."
+        : paidOn < start ? "That's before the loan started."
+        : closed is { } c && paidOn > c ? "That's after the loan was closed."
+        : amount <= 0 || amount > FinanceRules.MaxAmount ? "The amount has to be more than zero."
+        : null;
 }
 
 /// <summary>The exchange-rate master's rules (pure, unit-tested).</summary>

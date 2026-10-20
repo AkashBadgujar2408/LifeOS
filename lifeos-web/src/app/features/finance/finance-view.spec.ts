@@ -7,7 +7,9 @@ import {
   formatMoney,
   heldCurrencies,
   pickCurrency,
-  loanPaidPercent,
+  loanRepaidPercent,
+  loanScheduleText,
+  loanTermsText,
   monthLabel,
   monthRange,
   netWorthChange,
@@ -141,10 +143,19 @@ describe('net worth and loans in words', () => {
     ).toEqual({ change: -820412.43, since: '2025-10-31' });
   });
 
-  it('counts instalments paid as a share', () => {
-    expect(loanPaidPercent(9, 240)).toBe(3);
-    expect(loanPaidPercent(0, 0)).toBe(0);
-    expect(loanPaidPercent(240, 240)).toBe(100);
+  it('describes a loan: terms, share paid back, against its schedule', () => {
+    const emi = { annualRate: 12, repaymentKind: 'Emi' as const, emi: 10661.85, currency: 'INR' };
+    expect(loanTermsText(emi)).toBe('12% · ₹10,661.85 a month');
+    expect(loanTermsText({ ...emi, annualRate: 0, repaymentKind: 'Flexible', emi: null })).toBe(
+      'Interest-free · pay as you go',
+    );
+    expect(loanRepaidPercent({ principal: 50000, outstanding: 20000 })).toBe(60);
+    expect(loanRepaidPercent({ principal: 50000, outstanding: 51000 })).toBe(0);
+    const base = { currency: 'INR', closedOn: null, repaymentKind: 'Emi' as const };
+    expect(loanScheduleText({ ...base, behind: 0.4 })?.state).toBe('on');
+    expect(loanScheduleText({ ...base, behind: 10758.37 })?.text).toBe('Behind by ₹10,758.37');
+    expect(loanScheduleText({ ...base, behind: -500 })?.text).toBe('Ahead by ₹500.00');
+    expect(loanScheduleText({ ...base, repaymentKind: 'Flexible', behind: null })).toBeNull();
   });
 });
 

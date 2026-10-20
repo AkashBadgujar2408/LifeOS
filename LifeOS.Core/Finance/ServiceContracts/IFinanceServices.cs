@@ -57,13 +57,21 @@ public interface IHoldingsService
     Task<OperationResult<HoldingDto>> DeleteValuationAsync(int holdingId, int valuationId, DateOnly today);
 }
 
-/// <summary>Loans borrowed and lent, with their instalment schedules.</summary>
+/// <summary>Loans borrowed and lent: EMI or pay as you go, every movement a transaction, outstanding from actual payments.</summary>
 public interface ILoansService
 {
     Task<List<LoanDto>> GetAllAsync(DateOnly today);
     Task<OperationResult<LoanDetailDto>> GetAsync(int id, DateOnly today);
     Task<OperationResult<LoanDetailDto>> CreateAsync(LoanRequest request);
     Task<OperationResult<LoanDetailDto>> UpdateAsync(int id, LoanRequest request);
+    /// <summary>Records the money that changed hands at the start as one transaction (once).</summary>
+    Task<OperationResult<LoanDetailDto>> RecordDisbursementAsync(int id, LoanMoneyRequest request, DateOnly today);
+    /// <summary>Deletes the start's transaction (the loan stays).</summary>
+    Task<OperationResult<LoanDetailDto>> RemoveDisbursementAsync(int id, DateOnly today);
+    /// <summary>A repayment: one transaction with this loan's id.</summary>
+    Task<OperationResult<LoanDetailDto>> AddPaymentAsync(int id, LoanPaymentRequest request);
+    /// <summary>Deletes a repayment's transaction.</summary>
+    Task<OperationResult<LoanDetailDto>> RemovePaymentAsync(int id, int transactionId, DateOnly today);
     Task<OperationResult<bool>> DeleteAsync(int id);
 }
 

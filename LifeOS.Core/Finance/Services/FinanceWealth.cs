@@ -1,3 +1,5 @@
+using LifeOS.Core.Finance.DTOs;
+
 namespace LifeOS.Core.Finance.Services;
 
 /// <summary>One instalment of a loan: when it falls due, what it pays, how that splits, and what's left after it.</summary>
@@ -91,6 +93,131 @@ public static class LoanSchedule
     }
 }
 
+/// <summary>
+/// One movement of a loan's money in the loan's currency: negative = repaid (paid back to the lender, or back to
+/// you when you lent it), positive = more drawn on it. The money that changed hands at the start isn't a move — that's
+/// the principal.
+/// </summary>
+public sealed record LoanMove(int Id, DateOnly Day, decimal Amount);
+
+/// <summary>How one move split: the interest it paid off first, then the principal.</summary>
+public sealed record LoanMoveSplit(int Id, decimal Interest, decimal Principal);
+
+/// <summary>Where a loan stands at the end of a day.</summary>
+public sealed record LoanPosition(decimal PrincipalLeft, decimal InterestDue, decimal InterestCharged, decimal Repaid, IReadOnlyList<LoanMoveSplit> Splits)
+{
+    /// <summary>What is still owed: principal left + interest charged and not yet paid.</summary>
+    public decimal Outstanding => PrincipalLeft + InterestDue;
+}
+
+/// <summary>
+/// What a loan really stands at, from the payments actually made (Session 68b) — never stored. Interest is charged
+/// monthly on the principal left, on each monthly anniversary of the start (the same days and rounding as
+/// <see cref="LoanSchedule"/>, so an EMI loan paid on time matches its schedule to the paisa); a rate of 0 charges
+/// nothing. A payment pays off interest due first, then principal; on the same day interest is charged before
+/// payments land. An EMI loan can say its instalments up to a day were paid (<c>assumedPaidThrough</c>): it starts
+/// from the schedule's balance after them, and only payments after that day count. Closed = nothing owed from the
+/// closing day. Pure and unit-tested.
+/// </summary>
+public static class LoanLedger
+{
+    public const string Emi = "Emi";
+    public const string Flexible = "Flexible";
+
+    public static LoanPosition At(
+        decimal principal, decimal annualRatePercent, DateOnly start, DateOnly? closedOn, DateOnly day,
+        IEnumerable<LoanMove> moves, IReadOnlyList<LoanInstalment>? schedule = null, DateOnly? assumedPaidThrough = null)
+    {
+        if (day < start || closedOn is { } closed && closed <= day)
+        {
+            return new LoanPosition(0, 0, 0, 0, []);
+        }
+
+        var r = LoanSchedule.MonthlyRate(annualRatePercent);
+        var left = principal;
+        var from = start;
+        var anniversary = 1;
+        if (assumedPaidThrough is { } assumed && schedule is not null)
+        {
+            var through = assumed < day ? assumed : day;
+            var paid = schedule.LastOrDefault(i => i.DueOn <= through);
+            left = paid?.Balance ?? principal;
+            from = through;
+            // Interest restarts on the first anniversary after the assumed day.
+            while (start.AddMonths(anniversary) <= through)
+            {
+                anniversary++;
+            }
+        }
+
+        decimal due = 0, charged = 0, repaid = 0;
+        var splits = new List<LoanMoveSplit>();
+        foreach (var move in moves.Where(m => m.Day > from || (assumedPaidThrough is null && m.Day >= start))
+                     .Where(m => m.Day <= day)
+                     .OrderBy(m => m.Day).ThenBy(m => m.Id))
+        {
+            (left, due, charged) = ChargeUntil(start, ref anniversary, move.Day, left, due, charged, r);
+            if (move.Amount >= 0)
+            {
+                left += move.Amount;
+                splits.Add(new LoanMoveSplit(move.Id, 0, move.Amount));
+                continue;
+            }
+
+            var pay = -move.Amount;
+            repaid += pay;
+            var toInterest = Math.Min(pay, due);
+            due -= toInterest;
+            // Anything beyond what's owed is an overpayment: it clears the loan, it doesn't make it negative.
+            var toPrincipal = Math.Min(pay - toInterest, left);
+            left -= toPrincipal;
+            splits.Add(new LoanMoveSplit(move.Id, toInterest, toPrincipal));
+        }
+
+        (left, due, charged) = ChargeUntil(start, ref anniversary, day, left, due, charged, r);
+        return new LoanPosition(left, due, charged, repaid, splits);
+    }
+
+    /// <summary>
+    /// A transaction as a move on the loan, or null when it doesn't count. Borrowed: money out (an expense, a transfer)
+    /// repays, money in draws more. Lent: money in repays, money out lends more. Only the loan's currency counts (a
+    /// transfer by what left or what arrived); the start's own transaction is the principal, not a move.
+    /// </summary>
+    public static decimal? MoveOf(
+        bool isLent, string kind, bool isDisbursement, decimal amount, string currency, decimal? toAmount, string? toCurrency, string loanCurrency)
+    {
+        if (isDisbursement)
+        {
+            return null;
+        }
+
+        var inLoanCurrency = currency == loanCurrency ? amount : toCurrency == loanCurrency ? toAmount : null;
+        if (inLoanCurrency is not { } value)
+        {
+            return null;
+        }
+
+        var repays = kind == TransactionKinds.Transfer
+            || (isLent ? kind == TransactionKinds.Income : kind == TransactionKinds.Expense);
+        return repays ? -value : value;
+    }
+
+    /// <summary>Interest on every anniversary up to and including <paramref name="until"/>.</summary>
+    private static (decimal Left, decimal Due, decimal Charged) ChargeUntil(
+        DateOnly start, ref int anniversary, DateOnly until, decimal left, decimal due, decimal charged, decimal r)
+    {
+        while (start.AddMonths(anniversary) <= until)
+        {
+            var interest = Math.Round(left * r, 2, MidpointRounding.AwayFromZero);
+            due += interest;
+            charged += interest;
+            anniversary++;
+        }
+
+        return (left, due, charged);
+    }
+}
+
 // ---- Net worth ----
 
 /// <summary>An account for net worth; <paramref name="Extra"/> are a multi-currency account's other currencies (Session 61).</summary>
@@ -104,9 +231,17 @@ public sealed record WealthHolding(
     int Id, string Name, string Currency, decimal? InvestedAmount, DateOnly? AcquiredOn, DateOnly? DisposedOn,
     IReadOnlyList<(DateOnly Day, decimal Value)> Valuations);
 
+/// <summary>A loan for net worth: its schedule only when it has a term (EMI), and its actual moves (<see cref="LoanLedger"/>).</summary>
 public sealed record WealthLoan(
-    int Id, string Name, bool IsLent, string Currency, decimal Principal, decimal AnnualRate, int TermMonths,
-    DateOnly StartDate, decimal? EmiAmount, DateOnly? ClosedOn);
+    int Id, string Name, bool IsLent, string Currency, decimal Principal, decimal AnnualRate, int? TermMonths,
+    DateOnly StartDate, decimal? EmiAmount, DateOnly? ClosedOn, DateOnly? AssumedPaidThrough = null, IReadOnlyList<LoanMove>? Moves = null)
+{
+    public List<LoanInstalment>? Schedule() =>
+        TermMonths is { } months ? LoanSchedule.Build(Principal, AnnualRate, months, StartDate, EmiAmount) : null;
+
+    public LoanPosition PositionAt(DateOnly day) =>
+        LoanLedger.At(Principal, AnnualRate, StartDate, ClosedOn, day, Moves ?? [], Schedule(), AssumedPaidThrough);
+}
 
 /// <summary>A manual rate to the base currency, as typed on a transaction that day.</summary>
 public sealed record CurrencyRate(string Currency, DateOnly Day, decimal Rate);
@@ -134,7 +269,7 @@ public sealed record WealthSnapshot(DateOnly Day, decimal Assets, decimal Liabil
 /// Net worth on a day = what accounts hold + what investments are worth + money lent − money borrowed still owed
 /// (a card's negative balance is a liability). All in the base currency: anything else counts at the latest manual
 /// rate typed for its currency on or before that day (no live rates); without one it's shown but left out. Computed
-/// per request from the ledger, valuations and loan schedules — never stored. Pure and unit-tested.
+/// per request from the ledger, valuations and loans' actual payments (LoanLedger) — never stored. Pure and unit-tested.
 /// </summary>
 public static class NetWorth
 {
@@ -170,8 +305,7 @@ public static class NetWorth
 
         foreach (var loan in inputs.Loans.Where(l => l.StartDate <= day))
         {
-            var schedule = LoanSchedule.Build(loan.Principal, loan.AnnualRate, loan.TermMonths, loan.StartDate, loan.EmiAmount);
-            var owed = LoanSchedule.OutstandingOn(schedule, loan.Principal, loan.StartDate, loan.ClosedOn, day);
+            var owed = loan.PositionAt(day).Outstanding;
             if (owed != 0)
             {
                 items.Add(Item(LoanType, loan.Id, loan.Name, loan.Currency, loan.IsLent ? owed : -owed, day, inputs, baseCurrency));

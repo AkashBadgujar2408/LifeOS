@@ -95,6 +95,25 @@ public class LoansController(ILoansService loansService) : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, LoanRequest request) => Result(await loansService.UpdateAsync(id, request));
 
+    /// <summary>PUT api/Finance/Loans/{id}/disbursement?today= — record the money at the start as one transaction (once).</summary>
+    [HttpPut("{id:int}/disbursement")]
+    public async Task<IActionResult> RecordDisbursement(int id, LoanMoneyRequest request, DateOnly today) =>
+        Result(await loansService.RecordDisbursementAsync(id, request, today));
+
+    /// <summary>DELETE api/Finance/Loans/{id}/disbursement?today= — take the start's transaction back.</summary>
+    [HttpDelete("{id:int}/disbursement")]
+    public async Task<IActionResult> RemoveDisbursement(int id, DateOnly today) =>
+        Result(await loansService.RemoveDisbursementAsync(id, today));
+
+    /// <summary>POST api/Finance/Loans/{id}/payments — a repayment, as one transaction tied to the loan.</summary>
+    [HttpPost("{id:int}/payments")]
+    public async Task<IActionResult> AddPayment(int id, LoanPaymentRequest request) => Result(await loansService.AddPaymentAsync(id, request));
+
+    /// <summary>DELETE api/Finance/Loans/{id}/payments/{transactionId}?today= — delete a repayment's transaction.</summary>
+    [HttpDelete("{id:int}/payments/{transactionId:int}")]
+    public async Task<IActionResult> RemovePayment(int id, int transactionId, DateOnly today) =>
+        Result(await loansService.RemovePaymentAsync(id, transactionId, today));
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {

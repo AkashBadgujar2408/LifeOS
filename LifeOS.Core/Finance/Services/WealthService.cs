@@ -129,10 +129,13 @@ public class WealthService(AppDbContext db) : IWealthService
             .Select(h => new WealthHolding(h.Id, h.Name, h.Currency, h.InvestedAmount, h.AcquiredOn, h.DisposedOn,
                 h.Valuations.Select(v => (v.ValuedOn, v.Value)).ToList()))
             .ToList();
-        var loans = await db.Loans
-            .Select(l => new WealthLoan(l.Id, l.Name, l.Direction == LoanKinds.Lent, l.Currency, l.Principal, l.AnnualRate,
-                l.TermMonths, l.StartDate, l.EmiAmount, l.ClosedOn))
-            .ToListAsync();
+        var moves = await LoanMoves.LoadAsync(db);
+        var loans = (await db.Loans
+                .Select(l => new WealthLoan(l.Id, l.Name, l.Direction == LoanKinds.Lent, l.Currency, l.Principal, l.AnnualRate,
+                    l.TermMonths, l.StartDate, l.EmiAmount, l.ClosedOn, l.AssumedPaidThrough, null))
+                .ToListAsync())
+            .Select(l => l with { Moves = moves.GetValueOrDefault(l.Id) ?? [] })
+            .ToList();
         return new WealthInputs(accounts, flows, holdings, loans, rates, await FinanceRates.MasterAsync(db, baseCurrency));
     }
 
