@@ -176,6 +176,12 @@
           </div>
         </div>
 
+        <app-counts-toward
+          [entityType]="projectEntityType"
+          [entityId]="project.id"
+          [version]="countsVersion()"
+        />
+
         <div class="card">
           <div class="card-body">
             <app-linked-items

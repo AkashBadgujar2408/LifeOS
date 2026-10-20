@@ -33,6 +33,7 @@ import { ToastService } from '../../core/services/toast.service';
 import { pickableLifeAreas } from '../../core/settings/visibility';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { CountsToward } from '../../shared/components/counts-toward/counts-toward';
 import { COURSE_STATUS_LABELS } from './learning-view';
 
 export type CourseEditorResult = { kind: 'saved'; course: Course } | { kind: 'deleted' };
@@ -73,7 +74,7 @@ function courseRules(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-course-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, LinkedItems, EntityReminders],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, LinkedItems, CountsToward, EntityReminders],
   templateUrl: './course-editor.html',
 })
 export class CourseEditor {

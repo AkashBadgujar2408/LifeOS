@@ -144,6 +144,18 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   `tasks.TaskTags`). No per-module category enums.
 - **History**: goals log status changes and revisions to `goals.GoalHistory`. New audit trails follow the same
   small per-module table pattern.
+- **Goal progress + linked progress** (Sessions 71d–71g): a goal's headline % comes from one pure rule,
+  `GoalProgress.Of` — its own measure (target + free-text unit), else a savings amount, else a Health body target
+  (locked without the vault), else its milestones — fed by `IGoalProgressService.ForGoalsAsync` for any set of goals
+  in a few queries (one net-worth picture for all savings goals). Every screen that shows a goal's % goes through it;
+  nothing is stored. A measure is logged by hand (`goals.GoalMeasureEntries`) or counted from other items
+  (`goals.GoalSources`, then read-only). Each kind of source is an `IGoalProgressSource` registered by its module
+  (habits; learning: study time, books, courses, roadmaps; tasks: tasks done and focus time in a project) and read
+  through `GoalSourceReader`, which keeps sensitive ones locked without the vault. A source's item delete calls
+  `IGoalMeasureService.ReleaseEntityAsync`, turning what it counted into a Carried over entry. Item pages show the
+  other end with `<app-counts-toward>`. Milestones can follow a task or project and are ticked only by
+  `MilestoneLinksService`, which task/project changes call. `api/Goals/Goals/{id}/measure/{entries,sources}`,
+  `api/Goals/SourceOptions`, `api/Goals/CountsToward`.
 - **Your data: export / import / permanent deletion** (Session 60): `IAccountDataService` (`AccountDataService`,
   `api/Shared/Account/{export,import,delete}`) reads the EF model — every entity with a `UserId` column is the user's
   data, so later modules are covered without code. Export: one zip (`manifest.json`, `data/<schema>.<Table>.json`
@@ -231,6 +243,8 @@ Swagger UI (`/swagger`, Development only) has the full request/response shapes.
 2. Partial classes `: ISoftDeletable, IUserOwned` in `Shared/ModelExtensions/EntityPartials.cs`.
 3. `LifeOS.Core/<Module>/{DTOs,ServiceContracts,Services,AutoMapper}`; register the service in `Program.cs`. If its
    items should be linkable or remindable, add an `ILinkableEntityProvider`; its delete removes links and reminders.
+   If a goal could be counted from its items, add an `IGoalProgressSource` (plus a `GoalSourceKinds` constant and the
+   `CK_GoalSources_*` checks); its delete calls `IGoalMeasureService.ReleaseEntityAsync` first.
 4. Thin controllers in `LifeOS.Api/Areas/<Module>/Controllers/`.
    Export, import and account deletion pick up the new tables by themselves (they have `UserId`); a linkable type
    named differently from its model class needs an entry in `AccountData.ModelTypeFor`.

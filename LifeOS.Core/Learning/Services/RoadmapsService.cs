@@ -1,4 +1,5 @@
 using LifeOS.Core.Calendar.ServiceContracts;
+using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Learning.DTOs;
 using LifeOS.Core.Learning.ServiceContracts;
 using LifeOS.Core.Models;
@@ -12,8 +13,8 @@ namespace LifeOS.Core.Learning.Services;
 /// Learning roadmaps: ordered steps, each optionally a course, book or goal. Progress is computed
 /// (RoadmapProgress); ticking the last step finishes the roadmap and unticking one reopens it.
 /// </summary>
-public class RoadmapsService(AppDbContext db, IEntityLinksService entityLinksService, IRemindersService remindersService)
-    : IRoadmapsService
+public class RoadmapsService(AppDbContext db, IEntityLinksService entityLinksService, IRemindersService remindersService,
+    IGoalMeasureService goalMeasureService) : IRoadmapsService
 {
     private const string NotFound = "Roadmap not found.";
     private const string StepNotFound = "Step not found.";
@@ -130,6 +131,8 @@ public class RoadmapsService(AppDbContext db, IEntityLinksService entityLinksSer
 
         var now = DateTime.UtcNow;
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // Goals counted from it keep what it counted (Carried over), read before anything it serves is released.
+        await goalMeasureService.ReleaseEntityAsync(RoadmapLinkableProvider.Type, id);
         await db.RoadmapSteps.Where(s => s.RoadmapId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.IsDeleted, true).SetProperty(x => x.DeletedAt, now));
         roadmap.IsDeleted = true;

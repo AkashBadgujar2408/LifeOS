@@ -28,6 +28,7 @@ import {
 import { ToastService } from '../../core/services/toast.service';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { CountsToward } from '../../shared/components/counts-toward/counts-toward';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { openCourseEditor } from './course-editor';
 import { ROADMAP_STATUS_LABELS } from './learning-plan-view';
@@ -50,7 +51,7 @@ const TARGET_STATUS_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-roadmap-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, ReactiveFormsModule, LinkedItems, EntityReminders, LoadError],
+  imports: [RouterLink, ReactiveFormsModule, LinkedItems, CountsToward, EntityReminders, LoadError],
   templateUrl: './roadmap-detail.html',
 })
 export class RoadmapDetail {

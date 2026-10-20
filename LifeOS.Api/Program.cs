@@ -82,6 +82,7 @@ try
     builder.Services.AddScoped<IGoalProgressService, GoalProgressService>();
     builder.Services.AddScoped<IGoalMeasureService, GoalMeasureService>();
     builder.Services.AddScoped<GoalSourceReader>();
+    builder.Services.AddScoped<MilestoneLinksService>();
     builder.Services.AddScoped<ITasksService, TasksService>();
     builder.Services.AddScoped<IProjectsService, ProjectsService>();
     builder.Services.AddScoped<ICalendarFeedService, CalendarFeedService>();
@@ -187,8 +188,10 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, GoalLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, TaskLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, ProjectLinkableProvider>();
+    builder.Services.AddScoped<IGoalProgressSource, TaskGoalSources>();
     builder.Services.AddScoped<ILinkableEntityProvider, EventLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, HabitLinkableProvider>();
+    builder.Services.AddScoped<IGoalProgressSource, HabitGoalSource>();
     builder.Services.AddScoped<ILinkableEntityProvider, JournalEntryLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, DocumentLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, DecisionLinkableProvider>();
@@ -196,6 +199,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, CourseLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, BookLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, RoadmapLinkableProvider>();
+    builder.Services.AddScoped<IGoalProgressSource, LearningGoalSources>();
     builder.Services.AddScoped<ILinkableEntityProvider, CertificationLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, KnowledgeNoteLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, ContactLinkableProvider>();

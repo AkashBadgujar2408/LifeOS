@@ -57,6 +57,8 @@ function token(name: string, fallback: string): string {
         <p class="small text-body-secondary mb-0">
           @if (points.length > 0 && points[0].percent === 100) {
             Done from the start: there's no climb to draw.
+          } @else if (measured()) {
+            The line starts moving once the number grows on another day.
           } @else {
             The line starts moving with your first ticked milestone.
           }
@@ -85,6 +87,8 @@ export class GoalTrend {
   readonly goalId = input.required<number>();
   /** Anything that changes when the goal's progress may have (the page passes its milestone/status state). */
   readonly version = input<string>('');
+  /** Measured by a number (71d), not milestones: only the empty-state wording differs. */
+  readonly measured = input(false);
 
   protected readonly points = signal<GoalTrendPoint[] | null>(null);
 

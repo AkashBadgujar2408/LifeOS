@@ -1,6 +1,8 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using LifeOS.Core.Calendar.ServiceContracts;
+using LifeOS.Core.Goals.ServiceContracts;
+using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
@@ -12,7 +14,8 @@ using Microsoft.EntityFrameworkCore;
 namespace LifeOS.Core.Tasks.Services;
 
 public class ProjectsService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
-    IRemindersService remindersService) : IProjectsService
+    IRemindersService remindersService, MilestoneLinksService milestoneLinks, IGoalMeasureService goalMeasureService)
+    : IProjectsService
 {
     private const string NotFound = "Project not found.";
     private const string DuplicateName = "A project with this name already exists.";
@@ -115,6 +118,8 @@ public class ProjectsService(AppDbContext db, IMapper mapper, IEntityLinksServic
         project.Status = status;
         project.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
+        // Marking it Completed (or reopening it) ticks or unticks the milestones that track it.
+        await milestoneLinks.SyncAsync([], [id]);
 
         return await GetAsync(id);
     }
@@ -129,6 +134,11 @@ public class ProjectsService(AppDbContext db, IMapper mapper, IEntityLinksServic
 
         var now = DateTime.UtcNow;
         await using var transaction = await db.Database.BeginTransactionAsync();
+
+        // Goals counted from it keep what it counted (read while its tasks still belong to it); milestones that
+        // tracked it keep their tick and stop pointing at it.
+        await goalMeasureService.ReleaseEntityAsync(ProjectLinkableProvider.Type, id);
+        await milestoneLinks.ReleaseAsync(null, id);
 
         // The tasks are real work in their own right: they stay, just without a project. (Already-deleted tasks
         // keep their ProjectId; the project row is only soft-deleted, so the FK still holds.)

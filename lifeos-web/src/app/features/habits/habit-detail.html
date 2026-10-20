@@ -321,6 +321,8 @@
       </div>
 
       <div class="col-lg-4 d-flex flex-column gap-3">
+        <app-counts-toward [entityType]="habitEntityType" [entityId]="habit.id" [version]="habit" />
+
         <div class="card">
           <div class="card-body">
             <app-linked-items

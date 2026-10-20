@@ -256,6 +256,7 @@
             </div>
           </div>
         }
+        <app-counts-toward [entityType]="bookEntityType" [entityId]="book.id" [version]="book" />
         <div class="card">
           <div class="card-body">
             <app-linked-items [entityType]="bookEntityType" [entityId]="book.id" />

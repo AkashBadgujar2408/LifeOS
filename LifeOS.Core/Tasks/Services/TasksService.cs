@@ -1,6 +1,7 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using LifeOS.Core.Calendar.ServiceContracts;
+using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
@@ -12,7 +13,8 @@ using Microsoft.EntityFrameworkCore;
 namespace LifeOS.Core.Tasks.Services;
 
 public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
-    IRemindersService remindersService, IAttachmentsService attachmentsService) : ITasksService
+    IRemindersService remindersService, IAttachmentsService attachmentsService, MilestoneLinksService milestoneLinks)
+    : ITasksService
 {
     private const string NotFound = "Task not found.";
     private const int DoneListLimit = 100;
@@ -61,6 +63,8 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         var task = NewTask(request);
         db.TaskItems.Add(task);
         await db.SaveChangesAsync();
+        // A new open task in a project un-finishes it, so milestones tracking the project untick.
+        await milestoneLinks.SyncAsync([], [task.ProjectId]);
 
         return await GetAsync(task.Id);
     }
@@ -78,6 +82,8 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         {
             return OperationResult<TaskItemDto>.Fail(error);
         }
+
+        var previousProjectId = task.ProjectId;
 
         // Re-anchor the series when the schedule itself changes (new rule, or the due date was moved): the edited
         // due date becomes occurrence zero. Unchanged rule + date keeps the original anchor (no month-end drift).
@@ -133,6 +139,9 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
             return OperationResult<TaskItemDto>.Fail("This task was changed somewhere else at the same time. Reload and try again.");
         }
 
+        // Moving a task between projects can finish one and reopen the other.
+        await milestoneLinks.SyncAsync([id], [previousProjectId, task.ProjectId]);
+
         return await GetAsync(id);
     }
 
@@ -151,6 +160,7 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
             task.CompletedAt = null;
             task.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
+            await milestoneLinks.SyncAsync([id], []);
             return OperationResult<SetTaskCompletedResult>.Ok(new SetTaskCompletedResult { Task = (await GetAsync(id)).Data! });
         }
 
@@ -191,6 +201,8 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         }
 
         await db.SaveChangesAsync();
+        // Its milestones tick; a next occurrence in the same project keeps a project milestone open.
+        await milestoneLinks.SyncAsync([id], []);
         await transaction.CommitAsync();
 
         return OperationResult<SetTaskCompletedResult>.Ok(new SetTaskCompletedResult
@@ -222,9 +234,14 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
             .Where(f => f.TaskItemId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(f => f.IsDeleted, true).SetProperty(f => f.DeletedAt, now));
 
+        // Milestones that tracked it keep their tick and stop pointing at it.
+        await milestoneLinks.ReleaseAsync(id, null);
+
         task.IsDeleted = true;
         task.DeletedAt = now;
         await db.SaveChangesAsync();
+        // Without it, its project may now be all done (or no longer have any tasks).
+        await milestoneLinks.SyncAsync([], [task.ProjectId]);
         await entityLinksService.RemoveAllForEntityAsync(TaskLinkableProvider.Type, id);
         await remindersService.RemoveAllForEntityAsync(TaskLinkableProvider.Type, id);
         await attachmentsService.RemoveAllForEntityAsync(TaskLinkableProvider.Type, id);
@@ -264,6 +281,7 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
         // the inbox item's own links so the goal doesn't list the same thing twice (processed item + task).
         await entityLinksService.CopyLinksAsync(InboxLinkableProvider.Type, inboxItemId, TaskLinkableProvider.Type, task.Id);
         await entityLinksService.RemoveAllForEntityAsync(InboxLinkableProvider.Type, inboxItemId);
+        await milestoneLinks.SyncAsync([], [task.ProjectId]);
 
         await transaction.CommitAsync();
         return await GetAsync(task.Id);

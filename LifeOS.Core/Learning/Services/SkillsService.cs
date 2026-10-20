@@ -1,4 +1,5 @@
 using LifeOS.Core.Calendar.ServiceContracts;
+using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Learning.DTOs;
 using LifeOS.Core.Learning.ServiceContracts;
 using LifeOS.Core.Models;
@@ -13,8 +14,8 @@ namespace LifeOS.Core.Learning.Services;
 /// The skills inventory. A skill's level is its current Proficiency; every change of level (and where it started)
 /// is logged to learning.SkillLevelChanges on the user's local day, so the history shows how it grew.
 /// </summary>
-public class SkillsService(AppDbContext db, IEntityLinksService entityLinksService, IRemindersService remindersService)
-    : ISkillsService
+public class SkillsService(AppDbContext db, IEntityLinksService entityLinksService, IRemindersService remindersService,
+    IGoalMeasureService goalMeasureService) : ISkillsService
 {
     private const string NotFound = "Skill not found.";
     private const string DuplicateName = "You already have a skill with that name.";
@@ -184,6 +185,8 @@ public class SkillsService(AppDbContext db, IEntityLinksService entityLinksServi
 
         var now = DateTime.UtcNow;
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // Goals counted from it keep what it counted (Carried over), read before anything it serves is released.
+        await goalMeasureService.ReleaseEntityAsync(SkillLinkableProvider.Type, id);
         await db.SkillLevelChanges.Where(c => c.SkillId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.IsDeleted, true).SetProperty(c => c.DeletedAt, now));
         await db.SkillTags.Where(t => t.SkillId == id)

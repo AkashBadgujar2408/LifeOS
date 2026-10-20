@@ -28,6 +28,7 @@ import {
 import { TaskItem, TasksService } from '../../core/services/tasks.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { CountsToward } from '../../shared/components/counts-toward/counts-toward';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { openTaskEditor } from '../tasks/task-editor';
 import { TaskRow } from '../tasks/task-row';
@@ -64,7 +65,15 @@ const STATUS_ACTIONS: Record<ProjectStatus, StatusAction[]> = {
 @Component({
   selector: 'app-project-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, RouterLink, LinkedItems, EntityReminders, TaskRow],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    RouterLink,
+    LinkedItems,
+    EntityReminders,
+    TaskRow,
+    CountsToward,
+  ],
   templateUrl: './project-detail.html',
 })
 export class ProjectDetail implements OnInit {
@@ -95,6 +104,10 @@ export class ProjectDetail implements OnInit {
 
   /** Soonest first, undated last: inside one project, "what's next" matters more than priority. */
   protected readonly sortedOpenTasks = computed(() => sortTasks(this.openTasks(), 'dueDate'));
+  /** Ticking or adding tasks here moves the goals the project counts toward: re-read them. */
+  protected readonly countsVersion = computed(
+    () => `${this.project()?.status}|${this.openTasks().length}|${this.doneTasks().length}`,
+  );
 
   protected readonly quickAddForm = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(300)]],

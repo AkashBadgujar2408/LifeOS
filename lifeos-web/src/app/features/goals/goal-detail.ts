@@ -11,12 +11,15 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { catchError, forkJoin, map, of } from 'rxjs';
 import { DatePipe, formatDate } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { ToastService } from '../../core/services/toast.service';
+import { TasksService } from '../../core/services/tasks.service';
+import { ProjectsService } from '../../core/services/projects.service';
 import Swal from 'sweetalert2';
 import {
   GOAL_ENTITY_TYPE,
@@ -54,6 +57,15 @@ import { apiErrorMessage } from '../../core/services/api-error';
 
 const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(200)];
 
+/** "task:12" / "project:3" / "" (ticked by hand) → what the milestone API takes. */
+function followsPayload(follows: string): { taskItemId: number | null; projectId: number | null } {
+  const [kind, id] = follows.split(':');
+  return {
+    taskItemId: kind === 'task' ? Number(id) : null,
+    projectId: kind === 'project' ? Number(id) : null,
+  };
+}
+
 @Component({
   selector: 'app-goal-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -76,6 +88,8 @@ const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(20
 export class GoalDetail implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly goalsService = inject(GoalsService);
+  private readonly tasksService = inject(TasksService);
+  private readonly projectsService = inject(ProjectsService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly modal = inject(NgbModal);
@@ -123,11 +137,29 @@ export class GoalDetail implements OnInit {
   protected readonly addForm = this.fb.nonNullable.group({
     title: ['', MILESTONE_TITLE_VALIDATORS],
     targetDate: this.fb.control<string | null>(null),
+    follows: this.fb.nonNullable.control(''),
   });
   protected readonly editForm = this.fb.nonNullable.group({
     title: ['', MILESTONE_TITLE_VALIDATORS],
     targetDate: this.fb.control<string | null>(null),
+    follows: this.fb.nonNullable.control(''),
   });
+
+  /** What a milestone can follow: open tasks and projects ("task:12" / "project:3"); loaded once, quietly. */
+  protected readonly followOptions = toSignal(
+    forkJoin({
+      tasks: this.tasksService.list('Open').pipe(catchError(() => of([]))),
+      projects: this.projectsService.list().pipe(catchError(() => of([]))),
+    }).pipe(
+      map(({ tasks, projects }) => ({
+        projects: projects
+          .filter((p) => p.status !== 'Archived')
+          .map((p) => ({ value: `project:${p.id}`, label: p.name })),
+        tasks: tasks.map((t) => ({ value: `task:${t.id}`, label: t.title })),
+      })),
+    ),
+    { initialValue: { projects: [], tasks: [] } },
+  );
 
   private get goalId(): number {
     return Number(this.id());
@@ -172,7 +204,11 @@ export class GoalDetail implements OnInit {
     const value = this.addForm.getRawValue();
     this.adding.set(true);
     this.goalsService
-      .addMilestone(this.goalId, { title: value.title, targetDate: value.targetDate || null })
+      .addMilestone(this.goalId, {
+        title: value.title,
+        targetDate: value.targetDate || null,
+        ...followsPayload(value.follows),
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -205,9 +241,31 @@ export class GoalDetail implements OnInit {
       });
   }
 
+  /** The task/project a milestone follows when it isn't among the choices (a finished task): keep it pickable. */
+  protected followsElsewhere(milestone: GoalMilestone): { value: string; label: string } | null {
+    if (!milestone.followsTitle) {
+      return null;
+    }
+    const value = milestone.taskItemId
+      ? `task:${milestone.taskItemId}`
+      : `project:${milestone.projectId}`;
+    const options = this.followOptions();
+    return [...options.tasks, ...options.projects].some((o) => o.value === value)
+      ? null
+      : { value, label: milestone.followsTitle };
+  }
+
   protected startEdit(milestone: GoalMilestone): void {
     this.editingMilestoneId.set(milestone.id);
-    this.editForm.reset({ title: milestone.title, targetDate: milestone.targetDate });
+    this.editForm.reset({
+      title: milestone.title,
+      targetDate: milestone.targetDate,
+      follows: milestone.taskItemId
+        ? `task:${milestone.taskItemId}`
+        : milestone.projectId
+          ? `project:${milestone.projectId}`
+          : '',
+    });
     afterNextRender(() => document.getElementById('edit-milestone-title')?.focus(), {
       injector: this.injector,
     });
@@ -230,6 +288,7 @@ export class GoalDetail implements OnInit {
       .updateMilestone(this.goalId, milestone.id, {
         title: value.title,
         targetDate: value.targetDate || null,
+        ...followsPayload(value.follows),
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

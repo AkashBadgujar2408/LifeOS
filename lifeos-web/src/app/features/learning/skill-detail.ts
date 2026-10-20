@@ -29,6 +29,7 @@ import {
 import { ToastService } from '../../core/services/toast.service';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { CountsToward } from '../../shared/components/counts-toward/counts-toward';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { openCourseEditor } from './course-editor';
 import {
@@ -46,7 +47,15 @@ import { SkillLevel } from './skill-level';
 @Component({
   selector: 'app-skill-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, LinkedItems, EntityReminders, LoadError, SkillLevel],
+  imports: [
+    DatePipe,
+    RouterLink,
+    LinkedItems,
+    CountsToward,
+    EntityReminders,
+    LoadError,
+    SkillLevel,
+  ],
   templateUrl: './skill-detail.html',
 })
 export class SkillDetail {

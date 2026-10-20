@@ -115,6 +115,49 @@
                             <div class="invalid-feedback d-block">{{ error }}</div>
                           }
                         </div>
+                        <div style="width: 14rem">
+                          <select
+                            class="form-select form-select-sm"
+                            formControlName="follows"
+                            aria-label="What this milestone follows"
+                          >
+                            <option value="" [selected]="!editForm.controls.follows.value">
+                              Ticked by hand
+                            </option>
+                            @if (followsElsewhere(milestone); as current) {
+                              <option
+                                [value]="current.value"
+                                [selected]="current.value === editForm.controls.follows.value"
+                              >
+                                {{ current.label }}
+                              </option>
+                            }
+                            @if (followOptions().projects.length) {
+                              <optgroup label="When a project is done">
+                                @for (o of followOptions().projects; track o.value) {
+                                  <option
+                                    [value]="o.value"
+                                    [selected]="o.value === editForm.controls.follows.value"
+                                  >
+                                    {{ o.label }}
+                                  </option>
+                                }
+                              </optgroup>
+                            }
+                            @if (followOptions().tasks.length) {
+                              <optgroup label="When a task is done">
+                                @for (o of followOptions().tasks; track o.value) {
+                                  <option
+                                    [value]="o.value"
+                                    [selected]="o.value === editForm.controls.follows.value"
+                                  >
+                                    {{ o.label }}
+                                  </option>
+                                }
+                              </optgroup>
+                            }
+                          </select>
+                        </div>
                         <button type="submit" class="btn btn-sm btn-primary">Save</button>
                         <button
                           type="button"
@@ -131,7 +174,14 @@
                           type="checkbox"
                           [id]="'milestone-' + milestone.id"
                           [checked]="!!milestone.completedAt"
-                          [disabled]="busyMilestoneId() === milestone.id"
+                          [disabled]="
+                            busyMilestoneId() === milestone.id || !!milestone.followsTitle
+                          "
+                          [attr.title]="
+                            milestone.followsTitle
+                              ? 'Ticks itself when what it follows is done'
+                              : null
+                          "
                           (change)="toggleMilestone(milestone)"
                         />
                         <label
@@ -156,6 +206,17 @@
                             >
                               <i class="bi bi-calendar-event"></i>
                               {{ milestone.targetDate | date }}
+                            </span>
+                          }
+                          @if (milestone.followsTitle) {
+                            <span class="d-block small text-body-secondary">
+                              <i
+                                class="bi"
+                                [class.bi-check2-square]="milestone.taskItemId"
+                                [class.bi-kanban]="milestone.projectId"
+                              ></i>
+                              Follows {{ milestone.taskItemId ? 'task' : 'project' }}
+                              {{ milestone.followsTitle }}
                             </span>
                           }
                         </label>
@@ -252,13 +313,53 @@
                     <div class="invalid-feedback d-block">{{ error }}</div>
                   }
                 </div>
+                <div style="width: 15rem">
+                  <select
+                    class="form-select"
+                    formControlName="follows"
+                    aria-label="What the new milestone follows"
+                  >
+                    <option value="" [selected]="!addForm.controls.follows.value">
+                      Ticked by hand
+                    </option>
+                    @if (followOptions().projects.length) {
+                      <optgroup label="When a project is done">
+                        @for (o of followOptions().projects; track o.value) {
+                          <option
+                            [value]="o.value"
+                            [selected]="o.value === addForm.controls.follows.value"
+                          >
+                            {{ o.label }}
+                          </option>
+                        }
+                      </optgroup>
+                    }
+                    @if (followOptions().tasks.length) {
+                      <optgroup label="When a task is done">
+                        @for (o of followOptions().tasks; track o.value) {
+                          <option
+                            [value]="o.value"
+                            [selected]="o.value === addForm.controls.follows.value"
+                          >
+                            {{ o.label }}
+                          </option>
+                        }
+                      </optgroup>
+                    }
+                  </select>
+                </div>
                 <button type="submit" class="btn btn-primary" [disabled]="adding()">Add</button>
               </div>
             </form>
           </div>
         </div>
 
-        @if (goal.lifeAreaName === 'Health' && !healthHidden()) {
+        @if (
+          goal.lifeAreaName === 'Health' &&
+          !healthHidden() &&
+          goal.measureTarget === null &&
+          goal.targetAmount === null
+        ) {
           <div class="card">
             <div class="card-body">
               <h2 class="h6 mb-3">Health target</h2>
@@ -283,7 +384,11 @@
           <div class="card">
             <div class="card-body">
               <h2 class="h6 mb-3">Progress over time</h2>
-              <app-goal-trend [goalId]="goal.id" [version]="trendVersion(goal)" />
+              <app-goal-trend
+                [goalId]="goal.id"
+                [version]="trendVersion(goal)"
+                [measured]="goal.progressKind === 'Measure'"
+              />
             </div>
           </div>
         }

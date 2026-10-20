@@ -43,7 +43,10 @@ public class GoalMilestonesController(IGoalMilestonesService milestonesService) 
         var result = await milestonesService.SetCompletedAsync(goalId, id, request.Completed);
         if (!result.Success)
         {
-            return NotFound(ApiResponse<GoalMilestoneDto>.Fail(result.Error!));
+            // A milestone that follows a task/project can't be ticked by hand: a refusal, not a missing milestone.
+            return result.Error == "Milestone not found."
+                ? NotFound(ApiResponse<GoalMilestoneDto>.Fail(result.Error))
+                : BadRequest(ApiResponse<GoalMilestoneDto>.Fail(result.Error!));
         }
 
         return Ok(ApiResponse<GoalMilestoneDto>.Ok(result.Data));

@@ -9,7 +9,8 @@ public class GoalsProfile : Profile
 {
     public GoalsProfile()
     {
-        CreateMap<GoalMilestone, GoalMilestoneDto>();
+        CreateMap<GoalMilestone, GoalMilestoneDto>()
+            .ForMember(d => d.FollowsTitle, o => o.MapFrom(m => m.TaskItem != null ? m.TaskItem.Title : m.Project != null ? m.Project.Name : null));
         CreateMap<GoalHistory, GoalHistoryDto>()
             .ForMember(d => d.ChangedFieldsCsv, o => o.MapFrom(h => h.ChangedFields))
             .ForMember(d => d.ChangedFields, o => o.Ignore());

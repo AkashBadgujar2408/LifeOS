@@ -33,8 +33,8 @@
         <h3 class="h6 small fw-semibold mt-4 mb-2">Counted from</h3>
         @if (sources().length === 0) {
           <p class="small text-body-secondary mb-2">
-            Nothing yet. Choose what adds to this goal — a habit, study time, books, a project or
-            workouts — and it counts by itself from then on.
+            Nothing yet. Choose what adds to this goal — a habit, study time, books, courses, a
+            roadmap or a project — and it counts by itself from then on.
           </p>
         } @else {
           <ul class="list-group list-group-flush border-top mb-2">
@@ -142,7 +142,7 @@
                 [class.is-invalid]="entryError('note')"
                 formControlName="note"
                 aria-label="Note (optional)"
-                placeholder="Note (optional), e.g. Morning walk"
+                placeholder="Note (optional), e.g. Evening session"
                 autocomplete="off"
               />
               @if (entryError('note'); as error) {

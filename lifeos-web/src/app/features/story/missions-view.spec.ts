@@ -19,6 +19,8 @@ function mission(id: number, overrides: Partial<Mission> = {}): Mission {
     createdAt: `2026-10-0${id}T10:00:00Z`,
     completedAt: null,
     progressPercent: 0,
+    progressLocked: false,
+    progressKind: 'Milestones',
     objectives: [],
     prerequisites: [],
     blockedBy: [],

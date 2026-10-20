@@ -1,4 +1,5 @@
 using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using LifeOS.Core.Goals.DTOs;
 using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Models;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LifeOS.Core.Goals.Services;
 
-public class GoalMilestonesService(AppDbContext db, IMapper mapper) : IGoalMilestonesService
+public class GoalMilestonesService(AppDbContext db, IMapper mapper, MilestoneLinksService milestoneLinks) : IGoalMilestonesService
 {
     private const string GoalNotFound = "Goal not found.";
     private const string MilestoneNotFound = "Milestone not found.";
@@ -26,6 +27,12 @@ public class GoalMilestonesService(AppDbContext db, IMapper mapper) : IGoalMiles
             return OperationResult<GoalMilestoneDto>.Fail("Title is required.");
         }
 
+        var trackError = await ValidateTrackedAsync(request);
+        if (trackError is not null)
+        {
+            return OperationResult<GoalMilestoneDto>.Fail(trackError);
+        }
+
         var lastSortOrder = await db.GoalMilestones
             .Where(m => m.GoalId == goalId)
             .MaxAsync(m => (int?)m.SortOrder) ?? 0;
@@ -37,12 +44,16 @@ public class GoalMilestonesService(AppDbContext db, IMapper mapper) : IGoalMiles
             Title = title,
             TargetDate = request.TargetDate,
             SortOrder = lastSortOrder + 1,
+            TaskItemId = request.TaskItemId,
+            ProjectId = request.ProjectId,
         };
         db.GoalMilestones.Add(milestone);
+        // Pointing at a task that's already done ticks it straight away.
+        await milestoneLinks.ApplyAsync([milestone]);
         Touch(goal);
         await db.SaveChangesAsync();
 
-        return OperationResult<GoalMilestoneDto>.Ok(mapper.Map<GoalMilestoneDto>(milestone));
+        return OperationResult<GoalMilestoneDto>.Ok(await ToDtoAsync(milestone.Id));
     }
 
     public async Task<OperationResult<GoalMilestoneDto>> UpdateAsync(int goalId, int id, GoalMilestoneRequest request)
@@ -59,13 +70,22 @@ public class GoalMilestonesService(AppDbContext db, IMapper mapper) : IGoalMiles
             return OperationResult<GoalMilestoneDto>.Fail("Title is required.");
         }
 
+        var trackError = await ValidateTrackedAsync(request);
+        if (trackError is not null)
+        {
+            return OperationResult<GoalMilestoneDto>.Fail(trackError);
+        }
+
         milestone.Title = title;
         milestone.TargetDate = request.TargetDate;
+        milestone.TaskItemId = request.TaskItemId;
+        milestone.ProjectId = request.ProjectId;
+        await milestoneLinks.ApplyAsync([milestone]);
         milestone.UpdatedAt = DateTime.UtcNow;
         Touch(goal);
         await db.SaveChangesAsync();
 
-        return OperationResult<GoalMilestoneDto>.Ok(mapper.Map<GoalMilestoneDto>(milestone));
+        return OperationResult<GoalMilestoneDto>.Ok(await ToDtoAsync(milestone.Id));
     }
 
     public async Task<OperationResult<GoalMilestoneDto>> SetCompletedAsync(int goalId, int id, bool completed)
@@ -76,12 +96,18 @@ public class GoalMilestonesService(AppDbContext db, IMapper mapper) : IGoalMiles
             return OperationResult<GoalMilestoneDto>.Fail(MilestoneNotFound);
         }
 
+        if (milestone.TaskItemId is not null || milestone.ProjectId is not null)
+        {
+            return OperationResult<GoalMilestoneDto>.Fail(
+                "This milestone follows a task or project and ticks itself when that's done — change it there.");
+        }
+
         milestone.CompletedAt = completed ? milestone.CompletedAt ?? DateTime.UtcNow : null;
         milestone.UpdatedAt = DateTime.UtcNow;
         Touch(goal);
         await db.SaveChangesAsync();
 
-        return OperationResult<GoalMilestoneDto>.Ok(mapper.Map<GoalMilestoneDto>(milestone));
+        return OperationResult<GoalMilestoneDto>.Ok(await ToDtoAsync(milestone.Id));
     }
 
     public async Task<OperationResult<bool>> ReorderAsync(int goalId, List<int> milestoneIds)
@@ -145,4 +171,29 @@ public class GoalMilestonesService(AppDbContext db, IMapper mapper) : IGoalMiles
 
     // Milestone work counts as activity on the goal, which keeps "goal untouched for 14+ days" (Session 24) honest.
     private static void Touch(Goal goal) => goal.UpdatedAt = DateTime.UtcNow;
+
+    /// <summary>A milestone follows at most one task or project (CK_GoalMilestones_OneTarget), and it has to be yours.</summary>
+    private async Task<string?> ValidateTrackedAsync(GoalMilestoneRequest request)
+    {
+        if (request.TaskItemId is not null && request.ProjectId is not null)
+        {
+            return "A milestone can follow a task or a project, not both.";
+        }
+
+        if (request.TaskItemId is { } taskId && !await db.TaskItems.AnyAsync(t => t.Id == taskId))
+        {
+            return "Task not found.";
+        }
+
+        if (request.ProjectId is { } projectId && !await db.Projects.AnyAsync(p => p.Id == projectId))
+        {
+            return "Project not found.";
+        }
+
+        return null;
+    }
+
+    /// <summary>Read back through the projection, so what it follows comes with its name.</summary>
+    private async Task<GoalMilestoneDto> ToDtoAsync(int id) =>
+        await db.GoalMilestones.Where(m => m.Id == id).ProjectTo<GoalMilestoneDto>(mapper.ConfigurationProvider).FirstAsync();
 }

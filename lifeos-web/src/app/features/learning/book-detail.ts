@@ -28,6 +28,7 @@ import {
 import { ToastService } from '../../core/services/toast.service';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { CountsToward } from '../../shared/components/counts-toward/counts-toward';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { openBookEditor } from './book-editor';
 import { BOOK_STATUS_LABELS, pagesText } from './learning-view';
@@ -39,7 +40,15 @@ import { BOOK_STATUS_LABELS, pagesText } from './learning-view';
 @Component({
   selector: 'app-book-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, ReactiveFormsModule, LinkedItems, EntityReminders, LoadError],
+  imports: [
+    DatePipe,
+    RouterLink,
+    ReactiveFormsModule,
+    LinkedItems,
+    CountsToward,
+    EntityReminders,
+    LoadError,
+  ],
   templateUrl: './book-detail.html',
   styles: `
     .book-highlight {

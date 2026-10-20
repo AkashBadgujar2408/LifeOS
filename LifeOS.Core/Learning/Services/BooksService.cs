@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using LifeOS.Core.Calendar.ServiceContracts;
+using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Learning.DTOs;
 using LifeOS.Core.Learning.ServiceContracts;
 using LifeOS.Core.Models;
@@ -13,8 +14,8 @@ namespace LifeOS.Core.Learning.Services;
 /// The reading list: books with their progress (LearningRules keeps status, pages and dates consistent) and the
 /// notes and highlights each one left behind.
 /// </summary>
-public class BooksService(AppDbContext db, IEntityLinksService entityLinksService, IRemindersService remindersService)
-    : IBooksService
+public class BooksService(AppDbContext db, IEntityLinksService entityLinksService, IRemindersService remindersService,
+    IGoalMeasureService goalMeasureService) : IBooksService
 {
     private const string NotFound = "Book not found.";
     private const string NoteNotFound = "Note not found.";
@@ -150,6 +151,8 @@ public class BooksService(AppDbContext db, IEntityLinksService entityLinksServic
 
         var now = DateTime.UtcNow;
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // Goals counted from it keep what it counted (Carried over), read before anything it serves is released.
+        await goalMeasureService.ReleaseEntityAsync(BookLinkableProvider.Type, id);
         await db.BookNotes.Where(n => n.BookId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsDeleted, true).SetProperty(n => n.DeletedAt, now));
         await db.BookTags.Where(t => t.BookId == id)

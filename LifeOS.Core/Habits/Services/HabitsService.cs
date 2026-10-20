@@ -1,6 +1,7 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using LifeOS.Core.Calendar.ServiceContracts;
+using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Habits.DTOs;
 using LifeOS.Core.Habits.ServiceContracts;
 using LifeOS.Core.Models;
@@ -12,7 +13,7 @@ using Microsoft.EntityFrameworkCore;
 namespace LifeOS.Core.Habits.Services;
 
 public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
-    IRemindersService remindersService) : IHabitsService
+    IRemindersService remindersService, IGoalMeasureService goalMeasureService) : IHabitsService
 {
     private const string NotFound = HabitErrors.NotFound;
     private const string DuplicateTitle = "A habit with this name already exists.";
@@ -253,6 +254,9 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
 
         var now = DateTime.UtcNow;
         await using var transaction = await db.Database.BeginTransactionAsync();
+
+        // Goals counted from it keep what it counted (as Carried over) — read before its entries go.
+        await goalMeasureService.ReleaseEntityAsync(HabitLinkableProvider.Type, id);
 
         await db.HabitEntries
             .Where(e => e.HabitId == id)

@@ -393,6 +393,7 @@ export class MyDay {
               : data,
           );
           this.toast.success(`${routine.name}: done.`);
+          this.refreshCountedGoals();
         },
         error: (err) => {
           this.busyRoutineId.set(null);
@@ -419,12 +420,23 @@ export class MyDay {
                 }
               : data,
           );
+          this.refreshCountedGoals();
         },
         error: (err) => {
           this.busyHabitId.set(null);
           this.toast.error(apiErrorMessage(err, 'Could not update the habit.'));
         },
       });
+  }
+
+  /**
+   * A goal counted from habits moved when one was ticked: re-read the day so its figure (and a "target reached"
+   * insight) is current. Only when such a goal is on My Day, so a plain tick stays a single call.
+   */
+  private refreshCountedGoals(): void {
+    if (this.loaded()?.goals.some((g) => g.measureSource === 'Linked')) {
+      this.load();
+    }
   }
 
   /** An all-day event that started before today or runs past it. */

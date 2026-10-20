@@ -148,6 +148,11 @@ export interface GoalMilestone {
   targetDate: string | null;
   completedAt: string | null;
   sortOrder: number;
+  /** The task or project it follows — it ticks itself when that's done (never by hand). */
+  taskItemId: number | null;
+  projectId: number | null;
+  /** The followed task's title or project's name. */
+  followsTitle: string | null;
 }
 
 export interface GoalDetail extends GoalSummary {
@@ -196,6 +201,9 @@ export interface GoalPayload {
 export interface MilestonePayload {
   title: string;
   targetDate: string | null;
+  /** Follow a task or a project (at most one); null for a milestone you tick yourself. */
+  taskItemId: number | null;
+  projectId: number | null;
 }
 
 /** From this moment on (UTC, "…Z") the goal stood at this percent; the last point is "now". */

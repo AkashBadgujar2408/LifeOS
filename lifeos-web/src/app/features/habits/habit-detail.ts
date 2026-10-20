@@ -24,6 +24,7 @@ import { HABIT_ENTITY_TYPE, Habit, HabitsService } from '../../core/services/hab
 import { ToastService } from '../../core/services/toast.service';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
+import { CountsToward } from '../../shared/components/counts-toward/counts-toward';
 import { HabitDay } from './habit-day';
 import { openHabitEditor } from './habit-editor';
 import { entryChangeFor } from './habit-entry';
@@ -47,7 +48,7 @@ const HISTORY_WEEKS = 12;
 @Component({
   selector: 'app-habit-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, HabitDay, LinkedItems, EntityReminders],
+  imports: [DatePipe, RouterLink, HabitDay, LinkedItems, EntityReminders, CountsToward],
   templateUrl: './habit-detail.html',
   styleUrl: './habit-detail.scss',
 })

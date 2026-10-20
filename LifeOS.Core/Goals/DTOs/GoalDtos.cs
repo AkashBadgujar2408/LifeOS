@@ -103,6 +103,11 @@ public class GoalMilestoneDto
     public DateOnly? TargetDate { get; init; }
     public DateTime? CompletedAt { get; init; }
     public int SortOrder { get; init; }
+    /// <summary>The task or project it follows (Session 71g) — it ticks itself when that's done.</summary>
+    public int? TaskItemId { get; init; }
+    public int? ProjectId { get; init; }
+    /// <summary>The followed task's title or project's name.</summary>
+    public string? FollowsTitle { get; init; }
 }
 
 /// <summary>
@@ -162,6 +167,11 @@ public class GoalMilestoneRequest
     public string Title { get; init; } = string.Empty;
 
     public DateOnly? TargetDate { get; init; }
+
+    /// <summary>Follow a task (ticks when it's done) — or a project (when all its tasks are done); at most one.</summary>
+    public int? TaskItemId { get; init; }
+
+    public int? ProjectId { get; init; }
 }
 
 public class SetMilestoneCompletedRequest

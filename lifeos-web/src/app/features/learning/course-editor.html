@@ -213,6 +213,7 @@
     </div>
 
     @if (course(); as existing) {
+      <app-counts-toward [entityType]="courseEntityType" [entityId]="existing.id" />
       <div class="border-top pt-3">
         <app-linked-items [entityType]="courseEntityType" [entityId]="existing.id" />
       </div>

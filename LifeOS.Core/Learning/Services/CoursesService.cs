@@ -1,4 +1,5 @@
 using LifeOS.Core.Calendar.ServiceContracts;
+using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Learning.DTOs;
 using LifeOS.Core.Learning.ServiceContracts;
 using LifeOS.Core.Models;
@@ -9,8 +10,8 @@ using Microsoft.EntityFrameworkCore;
 namespace LifeOS.Core.Learning.Services;
 
 /// <summary>Courses: CRUD, with status/progress/dates kept consistent by LearningRules.Course.</summary>
-public class CoursesService(AppDbContext db, IEntityLinksService entityLinksService, IRemindersService remindersService)
-    : ICoursesService
+public class CoursesService(AppDbContext db, IEntityLinksService entityLinksService, IRemindersService remindersService,
+    IGoalMeasureService goalMeasureService) : ICoursesService
 {
     private const string NotFound = "Course not found.";
 
@@ -80,6 +81,8 @@ public class CoursesService(AppDbContext db, IEntityLinksService entityLinksServ
 
         var now = DateTime.UtcNow;
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // Goals counted from it keep what it counted (Carried over), read before anything it serves is released.
+        await goalMeasureService.ReleaseEntityAsync(CourseLinkableProvider.Type, id);
         await db.RoadmapSteps.Where(s => s.CourseId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.CourseId, (int?)null).SetProperty(x => x.UpdatedAt, now));
         await db.Certifications.Where(c => c.CourseId == id)
