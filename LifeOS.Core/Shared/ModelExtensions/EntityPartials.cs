@@ -212,3 +212,5 @@ public partial class MaintenanceLog : ISoftDeletable, IUserOwned;
 public partial class UtilityBill : ISoftDeletable, IUserOwned;
 
 public partial class HouseholdProject : ISoftDeletable, IUserOwned;
+
+public partial class FuelLog : ISoftDeletable, IUserOwned;

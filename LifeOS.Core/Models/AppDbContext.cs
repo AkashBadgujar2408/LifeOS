@@ -69,6 +69,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FocusSession> FocusSessions { get; set; }
 
+    public virtual DbSet<FuelLog> FuelLogs { get; set; }
+
     public virtual DbSet<Goal> Goals { get; set; }
 
     public virtual DbSet<GoalHistory> GoalHistories { get; set; }
@@ -936,6 +938,41 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FocusSessions_Users");
+        });
+
+        modelBuilder.Entity<FuelLog>(entity =>
+        {
+            entity.ToTable("FuelLogs", "home");
+
+            entity.HasIndex(e => new { e.VehicleId, e.FilledOn, e.OdometerKm }, "IX_FuelLogs_Vehicle_FilledOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.TransactionId, "UX_FuelLogs_Transaction")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [TransactionId] IS NOT NULL)");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_FuelLogs_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Notes).HasMaxLength(500);
+            entity.Property(e => e.PricePerUnit).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.Quantity).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.Transaction).WithOne(p => p.FuelLog)
+                .HasForeignKey<FuelLog>(d => d.TransactionId)
+                .HasConstraintName("FK_FuelLogs_Transactions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.FuelLogs)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FuelLogs_Users");
+
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.FuelLogs)
+                .HasForeignKey(d => d.VehicleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_FuelLogs_Vehicles");
         });
 
         modelBuilder.Entity<Goal>(entity =>
@@ -2701,6 +2738,9 @@ public partial class AppDbContext : DbContext
                 .IsFixedLength();
             entity.Property(e => e.DisposalAmount).HasColumnType("decimal(19, 4)");
             entity.Property(e => e.DisposalKind).HasMaxLength(10);
+            entity.Property(e => e.FuelUnit)
+                .HasMaxLength(5)
+                .HasDefaultValue("Litre", "DF_Vehicles_FuelUnit");
             entity.Property(e => e.Kind).HasMaxLength(20);
             entity.Property(e => e.Make).HasMaxLength(100);
             entity.Property(e => e.Model).HasMaxLength(100);

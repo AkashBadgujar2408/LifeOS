@@ -55,6 +55,10 @@ public partial class Vehicle
 
     public DateTime? DeletedAt { get; set; }
 
+    public string FuelUnit { get; set; } = null!;
+
+    public virtual ICollection<FuelLog> FuelLogs { get; set; } = new List<FuelLog>();
+
     public virtual InsurancePolicy? InsurancePolicy { get; set; }
 
     public virtual ICollection<MaintenanceTask> MaintenanceTasks { get; set; } = new List<MaintenanceTask>();

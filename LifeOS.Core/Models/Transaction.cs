@@ -57,6 +57,8 @@ public partial class Transaction
 
     public virtual Account? FromAccount { get; set; }
 
+    public virtual FuelLog? FuelLog { get; set; }
+
     public virtual Loan? Loan { get; set; }
 
     public virtual ICollection<MaintenanceLog> MaintenanceLogs { get; set; } = new List<MaintenanceLog>();

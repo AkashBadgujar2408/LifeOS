@@ -87,6 +87,8 @@ public partial class User
 
     public virtual ICollection<FocusSession> FocusSessions { get; set; } = new List<FocusSession>();
 
+    public virtual ICollection<FuelLog> FuelLogs { get; set; } = new List<FuelLog>();
+
     public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();
 
     public virtual ICollection<GoalMilestone> GoalMilestones { get; set; } = new List<GoalMilestone>();

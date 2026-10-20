@@ -341,3 +341,48 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('home.HouseholdProjects') AND name = 'UX_HouseholdProjects_Project')
     CREATE UNIQUE INDEX UX_HouseholdProjects_Project ON home.HouseholdProjects(ProjectId) WHERE IsDeleted = 0;
 GO
+
+-- Session 68a: fuel & mileage. A vehicle's fuel is measured in one unit (litres; kg for CNG; kWh for an EV).
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('home.Vehicles') AND name = 'FuelUnit')
+    ALTER TABLE home.Vehicles ADD
+        FuelUnit NVARCHAR(5) NOT NULL CONSTRAINT DF_Vehicles_FuelUnit DEFAULT ('Litre')
+                                      CONSTRAINT CK_Vehicles_FuelUnit CHECK (FuelUnit IN ('Litre', 'Kg', 'kWh'));
+GO
+
+-- One refuel: the day, the odometer, what was paid, and EITHER the price per unit OR the quantity (the other is
+-- computed). Most fills are partial, made when the tank is near empty, so mileage is one overall average over all
+-- fills (FuelEconomy, computed, never stored). MissedFillBefore: a fill before this one wasn't logged, so the
+-- average starts again here. TransactionId: the Finance expense it was paid with — unique, recorded once.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('home.FuelLogs'))
+BEGIN
+    CREATE TABLE home.FuelLogs
+    (
+        Id                  INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_FuelLogs PRIMARY KEY,
+        UserId              INT               NOT NULL CONSTRAINT FK_FuelLogs_Users REFERENCES shared.Users(Id),
+        VehicleId           INT               NOT NULL CONSTRAINT FK_FuelLogs_Vehicles REFERENCES home.Vehicles(Id),
+        FilledOn            DATE              NOT NULL,
+        OdometerKm          INT               NOT NULL CONSTRAINT CK_FuelLogs_OdometerKm CHECK (OdometerKm BETWEEN 0 AND 10000000),
+        Amount              DECIMAL(19, 4)    NOT NULL CONSTRAINT CK_FuelLogs_Amount CHECK (Amount > 0),
+        Currency            CHAR(3)           NOT NULL CONSTRAINT CK_FuelLogs_Currency
+                                CHECK (Currency COLLATE Latin1_General_BIN LIKE '[A-Z][A-Z][A-Z]'),
+        PricePerUnit        DECIMAL(19, 4)    NULL     CONSTRAINT CK_FuelLogs_PricePerUnit CHECK (PricePerUnit > 0),
+        Quantity            DECIMAL(19, 4)    NULL     CONSTRAINT CK_FuelLogs_Quantity CHECK (Quantity > 0),
+        MissedFillBefore    BIT               NOT NULL CONSTRAINT DF_FuelLogs_MissedFillBefore DEFAULT (0),
+        TransactionId       INT               NULL     CONSTRAINT FK_FuelLogs_Transactions REFERENCES finance.Transactions(Id),
+        Notes               NVARCHAR(500)     NULL,
+        CreatedAt           DATETIME2         NOT NULL CONSTRAINT DF_FuelLogs_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt           DATETIME2         NULL,
+        IsDeleted           BIT               NOT NULL CONSTRAINT DF_FuelLogs_IsDeleted DEFAULT (0),
+        DeletedAt           DATETIME2         NULL,
+        CONSTRAINT CK_FuelLogs_PriceOrQuantity CHECK ((PricePerUnit IS NULL AND Quantity IS NOT NULL) OR (PricePerUnit IS NOT NULL AND Quantity IS NULL))
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('home.FuelLogs') AND name = 'IX_FuelLogs_Vehicle_FilledOn')
+    CREATE INDEX IX_FuelLogs_Vehicle_FilledOn ON home.FuelLogs(VehicleId, FilledOn, OdometerKm) WHERE IsDeleted = 0;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('home.FuelLogs') AND name = 'UX_FuelLogs_Transaction')
+    CREATE UNIQUE INDEX UX_FuelLogs_Transaction ON home.FuelLogs(TransactionId) WHERE IsDeleted = 0 AND TransactionId IS NOT NULL;
+GO
