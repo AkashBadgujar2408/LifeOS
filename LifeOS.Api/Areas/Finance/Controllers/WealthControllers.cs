@@ -183,3 +183,25 @@ public class ForecastController(IForecastService forecastService) : ControllerBa
             : Ok(ApiResponse<ForecastDto>.Ok(forecast));
     }
 }
+
+[ApiController]
+[Area("Finance")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class PlanController(IPlanService planService) : ControllerBase
+{
+    /// <summary>GET api/Finance/Plan?today= — savings goals' monthly plans and the retirement projection (computed).</summary>
+    [HttpGet]
+    public async Task<IActionResult> Get([FromQuery] DateOnly today) =>
+        today == default
+            ? BadRequest(ApiResponse<FinancialPlanDto>.Fail("Today's date is required."))
+            : Ok(ApiResponse<FinancialPlanDto>.Ok(await planService.GetAsync(today)));
+
+    /// <summary>PUT api/Finance/Plan/assumptions — every figure recomputes from them.</summary>
+    [HttpPut("assumptions")]
+    public async Task<IActionResult> SaveAssumptions(PlanAssumptionsRequest request)
+    {
+        var result = await planService.SaveAssumptionsAsync(request);
+        return result.Success ? Ok(ApiResponse<FinancialPlanDto>.Ok(result.Data)) : BadRequest(ApiResponse<FinancialPlanDto>.Fail(result.Error!));
+    }
+}

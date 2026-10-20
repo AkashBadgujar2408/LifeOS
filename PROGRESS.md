@@ -1132,3 +1132,10 @@
 - Test data: `home67` — account "71a Forecast" with three repeating transactions and a 0% EMI loan (goes below zero 10 Nov).
 
 - Next up: **Session 71b — Financial planning 2** (savings and retirement projections).
+
+## Last session: 2026-10-20 — Session 71b — Financial planning 2: savings and retirement projections
+- Shipped: `finance.PlanAssumptions` (UAT backed up, `LifeOS_UAT_pre71b.bak`), pure `FinancialPlan` (5 xUnit cases vs spreadsheet figures), `PlanService` + `api/Finance/Plan`, `/finance/plan` (goal cards, retirement verdict + figures, projected vs needed chart with a table, assumptions in place), nav "Plan"; `plan-view.ts` (+ spec).
+- Verified: see plan row 71b — every figure equal to the same spreadsheet formulas. 457 backend + 248 frontend tests, all six zones; fresh DB scaffolds identically; lint/Prettier/build clean.
+- Test data: `home67` — goals "71b Car fund" (behind) and "71b Gadget fund" (reached), both linked to the "71a Forecast" account; assumptions 12 % / 6 %, retire at 55.
+
+- Next up: **Session 71c — Financial planning 3** ("Can I afford it?" scenarios).

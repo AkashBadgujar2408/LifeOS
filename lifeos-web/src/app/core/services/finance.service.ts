@@ -618,6 +618,71 @@ export interface Forecast {
   unconverted: string[];
 }
 
+// ---- Savings & retirement projections (Session 71b) ----
+
+export type SavingsPlanStatus = 'Reached' | 'OnTrack' | 'Behind' | 'NoDate' | 'Overdue';
+
+export interface PlanAssumptions {
+  expectedReturnPercent: number;
+  inflationPercent: number;
+  /** Typed only when Health has no date of birth. */
+  birthDate: string | null;
+  retirementAge: number;
+  yearsInRetirement: number;
+  /** Per month in retirement, in today's money. */
+  monthlySpending: number | null;
+  /** Typed to override the last three months' actual saving. */
+  monthlySaving: number | null;
+  /** False until saved: these are the defaults. */
+  isSaved: boolean;
+}
+
+export interface SavingsGoalPlan {
+  goalId: number;
+  title: string;
+  targetAmount: number;
+  currency: string;
+  saved: number;
+  percent: number;
+  targetDate: string | null;
+  monthsLeft: number;
+  neededPerMonth: number;
+  actualPerMonth: number;
+  status: SavingsPlanStatus;
+}
+
+export interface RetirementPoint {
+  age: number;
+  projected: number;
+  needed: number;
+}
+
+export interface RetirementProjection {
+  yearsToRetirement: number;
+  monthlySpendingAtRetirement: number;
+  corpusNeeded: number;
+  ruleOf25: number;
+  projectedCorpus: number;
+  /** The first age the projection covers what's needed then (null: not by 100). */
+  ageReached: number | null;
+  points: RetirementPoint[];
+}
+
+export interface FinancialPlan {
+  baseCurrency: string | null;
+  assumptions: PlanAssumptions;
+  age: number | null;
+  ageFromHealth: boolean;
+  investments: number;
+  monthlySavingActual: number | null;
+  monthlySavingUsed: number;
+  goals: SavingsGoalPlan[];
+  retirement: RetirementProjection | null;
+  missing: string[];
+}
+
+export type PlanAssumptionsPayload = Omit<PlanAssumptions, 'isSaved'> & { today: string };
+
 /** The Finance API: accounts with computed balances, the ledger, repeating transactions and budgets. */
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
@@ -894,6 +959,21 @@ export class FinanceService {
       .get<ApiResponse<Forecast>>(`${this.base}/Forecast`, {
         params: { today: todayIso(), months },
       })
+      .pipe(map((response) => response.data!));
+  }
+
+  // ---- Savings & retirement projections ----
+
+  plan(): Observable<FinancialPlan> {
+    return this.http
+      .get<ApiResponse<FinancialPlan>>(`${this.base}/Plan`, { params: { today: todayIso() } })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Every figure recomputes from the assumptions. */
+  savePlanAssumptions(payload: PlanAssumptionsPayload): Observable<FinancialPlan> {
+    return this.http
+      .put<ApiResponse<FinancialPlan>>(`${this.base}/Plan/assumptions`, payload)
       .pipe(map((response) => response.data!));
   }
 

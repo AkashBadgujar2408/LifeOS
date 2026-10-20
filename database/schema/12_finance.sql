@@ -577,3 +577,32 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.Transactions') AND name = 'IX_Transactions_Loan')
     CREATE INDEX IX_Transactions_Loan ON finance.Transactions(LoanId, OccurredOn) WHERE IsDeleted = 0 AND LoanId IS NOT NULL;
 GO
+
+-- Session 71b: the assumptions behind savings and retirement projections — one row per user, rewritten in place.
+-- Everything projected from them (needed per month, corpus needed, projected corpus, the age it's reached) is
+-- computed by FinancialPlan, never stored. BirthDate: only when Health has no date of birth. MonthlySpending: today's
+-- money, in the base currency. MonthlySaving: typed to override the last three months' actual saving.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('finance.PlanAssumptions'))
+BEGIN
+    CREATE TABLE finance.PlanAssumptions
+    (
+        Id                      INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_PlanAssumptions PRIMARY KEY,
+        UserId                  INT               NOT NULL CONSTRAINT FK_PlanAssumptions_Users REFERENCES shared.Users(Id),
+        ExpectedReturnPercent   DECIMAL(5, 2)     NOT NULL CONSTRAINT CK_PlanAssumptions_Return CHECK (ExpectedReturnPercent BETWEEN 0 AND 30),
+        InflationPercent        DECIMAL(5, 2)     NOT NULL CONSTRAINT CK_PlanAssumptions_Inflation CHECK (InflationPercent BETWEEN 0 AND 30),
+        BirthDate               DATE              NULL,
+        RetirementAge           INT               NOT NULL CONSTRAINT CK_PlanAssumptions_RetirementAge CHECK (RetirementAge BETWEEN 30 AND 100),
+        YearsInRetirement       INT               NOT NULL CONSTRAINT CK_PlanAssumptions_Years CHECK (YearsInRetirement BETWEEN 1 AND 60),
+        MonthlySpending         DECIMAL(19, 4)    NULL     CONSTRAINT CK_PlanAssumptions_Spending CHECK (MonthlySpending > 0),
+        MonthlySaving           DECIMAL(19, 4)    NULL     CONSTRAINT CK_PlanAssumptions_Saving CHECK (MonthlySaving >= 0),
+        CreatedAt               DATETIME2         NOT NULL CONSTRAINT DF_PlanAssumptions_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt               DATETIME2         NULL,
+        IsDeleted               BIT               NOT NULL CONSTRAINT DF_PlanAssumptions_IsDeleted DEFAULT (0),
+        DeletedAt               DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('finance.PlanAssumptions') AND name = 'UX_PlanAssumptions_User')
+    CREATE UNIQUE INDEX UX_PlanAssumptions_User ON finance.PlanAssumptions(UserId) WHERE IsDeleted = 0;
+GO

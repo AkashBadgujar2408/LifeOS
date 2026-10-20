@@ -245,6 +245,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/finance/forecast').then((m) => m.FinanceForecast),
       },
       {
+        path: 'finance/plan',
+        title: 'Savings & retirement plan | LifeOS',
+        loadComponent: () => import('./features/finance/plan').then((m) => m.FinancePlan),
+      },
+      {
         path: 'finance/investments',
         title: 'Investments | LifeOS',
         loadComponent: () =>

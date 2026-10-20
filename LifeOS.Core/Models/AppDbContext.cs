@@ -155,6 +155,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PerformanceReview> PerformanceReviews { get; set; }
 
+    public virtual DbSet<PlanAssumption> PlanAssumptions { get; set; }
+
     public virtual DbSet<PointBatch> PointBatches { get; set; }
 
     public virtual DbSet<Project> Projects { get; set; }
@@ -2043,6 +2045,26 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_PerformanceReviews_Users");
+        });
+
+        modelBuilder.Entity<PlanAssumption>(entity =>
+        {
+            entity.ToTable("PlanAssumptions", "finance");
+
+            entity.HasIndex(e => e.UserId, "UX_PlanAssumptions_User")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_PlanAssumptions_CreatedAt");
+            entity.Property(e => e.ExpectedReturnPercent).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.InflationPercent).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.MonthlySaving).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.MonthlySpending).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.User).WithOne(p => p.PlanAssumption)
+                .HasForeignKey<PlanAssumption>(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PlanAssumptions_Users");
         });
 
         modelBuilder.Entity<PointBatch>(entity =>

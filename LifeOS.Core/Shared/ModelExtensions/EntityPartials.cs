@@ -234,3 +234,5 @@ public partial class Benefit : ISoftDeletable, IUserOwned;
 public partial class BenefitRedemption : ISoftDeletable, IUserOwned;
 
 public partial class PointBatch : ISoftDeletable, IUserOwned;
+
+public partial class PlanAssumption : ISoftDeletable, IUserOwned;

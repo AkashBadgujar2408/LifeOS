@@ -683,3 +683,89 @@ public class ForecastDto
     /// <summary>Currencies left out of the overall line for want of a rate.</summary>
     public List<string> Unconverted { get; init; } = [];
 }
+
+// ---- Savings & retirement projections (Session 71b) ----
+
+public class PlanAssumptionsDto
+{
+    public decimal ExpectedReturnPercent { get; init; }
+    public decimal InflationPercent { get; init; }
+    /// <summary>Typed here only when Health has no date of birth.</summary>
+    public DateOnly? BirthDate { get; init; }
+    public int RetirementAge { get; init; }
+    public int YearsInRetirement { get; init; }
+    /// <summary>Spending per month in retirement, in today's money (base currency).</summary>
+    public decimal? MonthlySpending { get; init; }
+    /// <summary>Typed to override the last three months' actual saving.</summary>
+    public decimal? MonthlySaving { get; init; }
+    /// <summary>False until saved: these are the defaults.</summary>
+    public bool IsSaved { get; init; }
+}
+
+public class PlanAssumptionsRequest
+{
+    public decimal ExpectedReturnPercent { get; init; }
+    public decimal InflationPercent { get; init; }
+    public DateOnly? BirthDate { get; init; }
+    public int RetirementAge { get; init; }
+    public int YearsInRetirement { get; init; }
+    public decimal? MonthlySpending { get; init; }
+    public decimal? MonthlySaving { get; init; }
+    public DateOnly Today { get; init; }
+}
+
+public class SavingsGoalPlanDto
+{
+    public int GoalId { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public decimal TargetAmount { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    public decimal Saved { get; init; }
+    public int Percent { get; init; }
+    public DateOnly? TargetDate { get; init; }
+    public int MonthsLeft { get; init; }
+    public decimal NeededPerMonth { get; init; }
+    /// <summary>The last three months' average growth of what's linked to it.</summary>
+    public decimal ActualPerMonth { get; init; }
+    /// <summary>Reached / OnTrack / Behind / NoDate / Overdue.</summary>
+    public string Status { get; init; } = string.Empty;
+}
+
+public class RetirementPointDto
+{
+    public int Age { get; init; }
+    public decimal Projected { get; init; }
+    public decimal Needed { get; init; }
+}
+
+public class RetirementProjectionDto
+{
+    public int YearsToRetirement { get; init; }
+    public decimal MonthlySpendingAtRetirement { get; init; }
+    public decimal CorpusNeeded { get; init; }
+    public decimal RuleOf25 { get; init; }
+    public decimal ProjectedCorpus { get; init; }
+    /// <summary>The first age the projection covers what's needed then (null: not by 100).</summary>
+    public int? AgeReached { get; init; }
+    public List<RetirementPointDto> Points { get; init; } = [];
+}
+
+public class FinancialPlanDto
+{
+    /// <summary>Everything is in it (null: none chosen yet — nothing can be added up).</summary>
+    public string? BaseCurrency { get; init; }
+    public PlanAssumptionsDto Assumptions { get; init; } = new();
+    public int? Age { get; init; }
+    /// <summary>The age comes from Health's date of birth (else the typed one).</summary>
+    public bool AgeFromHealth { get; init; }
+    /// <summary>Investments today, in the base currency.</summary>
+    public decimal Investments { get; init; }
+    /// <summary>Income − spending, averaged over the last three full months (null: no base currency).</summary>
+    public decimal? MonthlySavingActual { get; init; }
+    /// <summary>The typed saving if there is one, else the actual (never below zero).</summary>
+    public decimal MonthlySavingUsed { get; init; }
+    public List<SavingsGoalPlanDto> Goals { get; init; } = [];
+    /// <summary>Null until an age and a monthly spending are known (see <see cref="Missing"/>).</summary>
+    public RetirementProjectionDto? Retirement { get; init; }
+    public List<string> Missing { get; init; } = [];
+}

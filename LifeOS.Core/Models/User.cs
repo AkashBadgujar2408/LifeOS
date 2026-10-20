@@ -171,6 +171,8 @@ public partial class User
 
     public virtual ICollection<PerformanceReview> PerformanceReviews { get; set; } = new List<PerformanceReview>();
 
+    public virtual PlanAssumption? PlanAssumption { get; set; }
+
     public virtual ICollection<PointBatch> PointBatches { get; set; } = new List<PointBatch>();
 
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();

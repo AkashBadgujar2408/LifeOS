@@ -135,3 +135,11 @@ public interface IForecastService
     /// <summary>Accounts that would drop below zero within <paramref name="days"/> (for My Day's insight).</summary>
     Task<List<(int AccountId, string Name, string Currency, DateOnly Day, decimal Balance)>> LowAheadAsync(DateOnly today, int days);
 }
+
+/// <summary>Savings goals' monthly plans and the retirement projection — all computed from the assumptions, never stored.</summary>
+public interface IPlanService
+{
+    Task<FinancialPlanDto> GetAsync(DateOnly today);
+    /// <summary>Rewrites the one row of assumptions (created on first save).</summary>
+    Task<OperationResult<FinancialPlanDto>> SaveAssumptionsAsync(PlanAssumptionsRequest request);
+}
