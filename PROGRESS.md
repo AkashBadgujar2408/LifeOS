@@ -1049,3 +1049,9 @@
 - Test data: `home67` — base currency INR (set directly in SQL for testing), HDFC Savings, bills MSEDCL/Water/Airtel/PMC (paid) and MNGL (unpaid, due 24 Oct), "Fix the balcony" and "New kitchen" projects, TV donated, Swift sold.
 
 - Next up: **Session 69 — Purchases 1** (schema).
+
+## 2026-10-20 — Plan update (no code): three additions before Session 69
+- At your request, added to Section 7 with lettered numbers (later sessions keep theirs): **71a–71c Financial planning & forecasts** (cash-flow forecast, savings/retirement projections, "can I afford it?" scenarios — after Purchases, since forecasts need subscriptions), **78a–78b Leisure & media** (films/series/games/music/podcasts, hobbies, year in media — after Travel), **85a–85b Guided weekly / monthly reviews** (a step per module, resumable, ending in the existing reflections — before the Phase 4 polish; Session 92's annual review reuses it). Deviation row 10 in Section 2; totals now 106 sessions ≈ 214 hours.
+- Other gaps discussed but not scheduled (say if you want any): shared household between users, dependents/care (children, parents, pets), estate & nominees, meals & recipes, digital-accounts inventory, workout programs, fuel log, freelance invoicing.
+
+- Next up: **Session 69 — Purchases 1** (schema).
