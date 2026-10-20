@@ -69,6 +69,7 @@ function myDay(overrides: Partial<MyDay>): MyDay {
     latestJournalEntry: null,
     expiringDocuments: [],
     homeAgenda: [],
+    upcomingDays: [],
     insights: [],
     hiddenInsightCount: 0,
     ...overrides,

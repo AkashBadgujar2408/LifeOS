@@ -1,3 +1,4 @@
+using LifeOS.Core.Family.DTOs;
 using LifeOS.Core.Habits.Services;
 using LifeOS.Core.Home.DTOs;
 
@@ -26,6 +27,8 @@ public class MyDayDto
     public List<MyDayDocumentDto> ExpiringDocuments { get; init; } = [];
     /// <summary>Home: warranties, PUC, registrations running out and maintenance due (IHomeAgendaService), soonest first.</summary>
     public List<HomeAgendaItemDto> HomeAgenda { get; init; } = [];
+    /// <summary>Family: birthdays and anniversaries from today to a week ahead, soonest first.</summary>
+    public List<UpcomingDayDto> UpcomingDays { get; init; } = [];
     /// <summary>Rule-based nudges and good news (DashboardInsights), nudges first — without the dismissed ones.</summary>
     public List<InsightDto> Insights { get; set; } = [];
     /// <summary>How many of today's insights the user dismissed (they come back when their situation changes).</summary>

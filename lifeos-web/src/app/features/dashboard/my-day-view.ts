@@ -179,6 +179,7 @@ export function withoutHiddenModules(myDay: MyDay, hidden: ReadonlySet<ModuleKey
     latestJournalEntry: hidden.has('Journal') ? null : myDay.latestJournalEntry,
     expiringDocuments: hidden.has('Documents') ? [] : myDay.expiringDocuments,
     homeAgenda: hidden.has('Home') ? [] : myDay.homeAgenda,
+    upcomingDays: hidden.has('Family') ? [] : myDay.upcomingDays,
     insights: myDay.insights.filter((insight) => {
       const module = insightModule(insight);
       return !module || !hidden.has(module);

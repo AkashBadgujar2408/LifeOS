@@ -3,6 +3,7 @@ using Dapper;
 using LifeOS.Core.Calendar.Services;
 using LifeOS.Core.Dashboard.DTOs;
 using LifeOS.Core.Dashboard.ServiceContracts;
+using LifeOS.Core.Family.ServiceContracts;
 using LifeOS.Core.Finance.ServiceContracts;
 using LifeOS.Core.Goals.DTOs;
 using LifeOS.Core.Goals.ServiceContracts;
@@ -24,13 +25,16 @@ namespace LifeOS.Core.Dashboard.Services;
 /// </summary>
 public class DashboardService(
     AppDbContext db, IBudgetsService budgetsService, IHomeAgendaService homeAgendaService, IForecastService forecastService,
-    IGoalProgressService goalProgressService) : IDashboardService
+    IGoalProgressService goalProgressService, ISignificantDatesService significantDatesService) : IDashboardService
 {
     // A local day is 23-25 hours (DST); anything much longer means the client sent the wrong span.
     private static readonly TimeSpan MaxDayLength = TimeSpan.FromHours(26);
 
     // A year is plenty for a balance view; beyond that the counts stop meaning "lately".
     private const int MaxBalanceDays = 366;
+
+    // Birthdays and anniversaries show on My Day from a week before (Family, Session 73).
+    private const int UpcomingDayWindow = 7;
 
     public async Task<OperationResult<MyDayDto>> GetMyDayAsync(DateOnly today, DateTime? dayStartUtc, DateTime? dayEndUtc)
     {
@@ -51,6 +55,7 @@ public class DashboardService(
         var homeAgenda = await homeAgendaService.UpcomingAsync(today);
         var lowAhead = await forecastService.LowAheadAsync(today, DashboardInsights.LowBalanceDays);
         var goalProgress = await ActiveGoalProgressAsync(today);
+        var upcomingDays = await significantDatesService.UpcomingAsync(today, UpcomingDayWindow);
 
         var parameters = new DynamicParameters();
         parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
@@ -188,6 +193,7 @@ public class DashboardService(
                 ExpiresOn = DateOnly.FromDateTime(d.ExpiresOn),
             }).ToList(),
             HomeAgenda = homeAgenda,
+            UpcomingDays = upcomingDays,
         };
 
         myDay.Insights = DashboardInsights.Evaluate(new InsightInputs(

@@ -1,3 +1,4 @@
+import type { UpcomingDay } from './family.service';
 import type { HomeAgendaItem } from './home.service';
 import type { DocumentKind } from './documents.service';
 import type { MeasureSource, ProgressKind } from './goals.service';
@@ -152,6 +153,8 @@ export interface MyDay {
   expiringDocuments: MyDayDocument[];
   /** Home: warranties, PUC, registrations running out and maintenance due, soonest first. */
   homeAgenda: HomeAgendaItem[];
+  /** Family: birthdays and anniversaries from today to a week ahead, soonest first. */
+  upcomingDays: UpcomingDay[];
   /** Nudges first, then good news — without the ones dismissed. */
   insights: Insight[];
   /** Today's insights the user dismissed (back once their situation changes, or on "Show"). */

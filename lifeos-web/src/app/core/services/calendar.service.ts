@@ -9,7 +9,14 @@ import { RecurrenceFrequency } from './tasks.service';
 export const EVENT_ENTITY_TYPE = 'Event';
 
 export type CalendarSourceType =
-  'Event' | 'Task' | 'Milestone' | 'Goal' | 'TaxItem' | 'UtilityBill' | 'Subscription';
+  | 'Event'
+  | 'Task'
+  | 'Milestone'
+  | 'Goal'
+  | 'TaxItem'
+  | 'UtilityBill'
+  | 'Subscription'
+  | 'SignificantDate';
 
 /**
  * One thing on the calendar, from any module. Date-based items have startDate/endDate ("yyyy-MM-dd", endDate

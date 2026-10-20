@@ -11,6 +11,8 @@ public static class CalendarSourceTypes
     public const string UtilityBill = "UtilityBill";
     /// <summary>A subscription's renewal (computed from its rhythm, never stored).</summary>
     public const string Subscription = "Subscription";
+    /// <summary>A birthday, anniversary or other yearly day (Family; ParentId is the contact).</summary>
+    public const string SignificantDate = "SignificantDate";
 }
 
 /// <summary>
@@ -31,7 +33,7 @@ public class CalendarFeedItemDto
     public bool IsDone { get; init; }
     /// <summary>Tasks only.</summary>
     public string? Priority { get; init; }
-    /// <summary>The goal a milestone belongs to, or the project a task is in.</summary>
+    /// <summary>The goal a milestone belongs to, the project a task is in, or the contact a significant date is about.</summary>
     public int? ParentId { get; init; }
     public string? ParentTitle { get; init; }
     public string? Location { get; init; }

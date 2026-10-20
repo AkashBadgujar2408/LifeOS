@@ -208,6 +208,14 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: 'Family & relationships',
+    items: [
+      { label: 'Family', route: '/family', icon: 'bi-house-heart', exact: true, module: 'Family' },
+      { label: 'People', route: '/family/people', icon: 'bi-people', module: 'Family' },
+      { label: 'Family tree', route: '/family/tree', icon: 'bi-diagram-3', module: 'Family' },
+    ],
+  },
+  {
     label: 'Purchases & rewards',
     items: [
       { label: 'Purchases', route: '/purchases', icon: 'bi-bag', exact: true, module: 'Purchases' },

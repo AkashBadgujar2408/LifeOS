@@ -379,6 +379,11 @@
           <app-rewards-card />
         }
 
+        <!-- Birthdays and anniversaries this week (Family) -->
+        @if (day.upcomingDays.length > 0) {
+          <app-family-days-card [days]="day.upcomingDays" />
+        }
+
         <!-- Documents expiring -->
         @if (day.expiringDocuments.length > 0) {
           <section class="card" aria-labelledby="documents-heading">

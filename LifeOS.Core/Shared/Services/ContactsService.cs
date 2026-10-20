@@ -136,6 +136,13 @@ public class ContactsService(AppDbContext db, IEntityLinksService entityLinksSer
             .ExecuteUpdateAsync(s => s.SetProperty(w => w.ContactId, (int?)null).SetProperty(w => w.UpdatedAt, now));
         await db.MaintenanceTasks.Where(m => m.ContactId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.ContactId, (int?)null).SetProperty(m => m.UpdatedAt, now));
+        // Family: their place in the tree, their days and their keep-in-touch cadence go with them.
+        await db.Relationships.Where(r => r.PersonContactId == id || r.RelativeContactId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsDeleted, true).SetProperty(r => r.DeletedAt, now));
+        await db.SignificantDates.Where(d => d.ContactId == id || d.OtherContactId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(d => d.IsDeleted, true).SetProperty(d => d.DeletedAt, now));
+        await db.KeepInTouches.Where(k => k.ContactId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(k => k.IsDeleted, true).SetProperty(k => k.DeletedAt, now));
         contact.IsDeleted = true;
         contact.DeletedAt = now;
         await db.SaveChangesAsync();

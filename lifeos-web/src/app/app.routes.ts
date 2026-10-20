@@ -1,7 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { Shell } from './core/layout/shell';
-import { MyDay } from './features/dashboard/my-day';
 import { ModulePlaceholderData } from './shared/components/module-placeholder/module-placeholder';
 
 const loadPlaceholder = () =>
@@ -40,7 +39,12 @@ export const routes: Routes = [
     component: Shell,
     canActivate: [authGuard],
     children: [
-      { path: '', title: 'My Day | LifeOS', component: MyDay },
+      {
+        path: '',
+        title: 'My Day | LifeOS',
+        // Lazy like every other page (Session 73): what My Day shows no longer counts toward the initial bundle.
+        loadComponent: () => import('./features/dashboard/my-day').then((m) => m.MyDay),
+      },
       {
         path: 'inbox',
         title: 'Inbox | LifeOS',
@@ -382,6 +386,26 @@ export const routes: Routes = [
         path: 'home/maintenance',
         title: 'Maintenance | LifeOS',
         loadComponent: () => import('./features/home/maintenance').then((m) => m.HomeMaintenance),
+      },
+      {
+        path: 'family',
+        title: 'Family | LifeOS',
+        loadComponent: () => import('./features/family/family').then((m) => m.Family),
+      },
+      {
+        path: 'family/people',
+        title: 'People | LifeOS',
+        loadComponent: () => import('./features/family/people').then((m) => m.FamilyPeople),
+      },
+      {
+        path: 'family/people/:id',
+        title: 'Person | LifeOS',
+        loadComponent: () => import('./features/family/person').then((m) => m.FamilyPersonPage),
+      },
+      {
+        path: 'family/tree',
+        title: 'Family tree | LifeOS',
+        loadComponent: () => import('./features/family/tree').then((m) => m.FamilyTree),
       },
       {
         path: 'purchases',

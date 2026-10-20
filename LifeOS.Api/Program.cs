@@ -16,6 +16,8 @@ using LifeOS.Core.Career.ServiceContracts;
 using LifeOS.Core.Career.Services;
 using LifeOS.Core.Finance.ServiceContracts;
 using LifeOS.Core.Finance.Services;
+using LifeOS.Core.Family.ServiceContracts;
+using LifeOS.Core.Family.Services;
 using LifeOS.Core.Health.ServiceContracts;
 using LifeOS.Core.Health.Services;
 using LifeOS.Core.Home.ServiceContracts;
@@ -219,6 +221,8 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, MedicalConditionLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, LabResultLinkableProvider>();
     builder.Services.AddScoped<IGoalProgressSource, WorkoutGoalSource>();
+    builder.Services.AddScoped<IRelationshipsService, RelationshipsService>();
+    builder.Services.AddScoped<ISignificantDatesService, SignificantDatesService>();
     builder.Services.AddScoped<ILinkableEntityProvider, PropertyLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, AssetLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, VehicleLinkableProvider>();

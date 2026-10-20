@@ -4,6 +4,7 @@ using LifeOS.Core.Calendar.DTOs;
 using LifeOS.Core.Calendar.ServiceContracts;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
+using LifeOS.Core.Family.Services;
 using LifeOS.Core.Purchases.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -66,9 +67,22 @@ public class CalendarFeedService(AppDbContext db) : ICalendarFeedService
             EndDate = r.Day,
         });
 
+        // Birthdays and anniversaries come round every year the same way (Family, Session 73).
+        var days = (await SignificantDatesService.OccurrencesAsync(db, from, to)).Select(d => new CalendarFeedItemDto
+        {
+            SourceType = CalendarSourceTypes.SignificantDate,
+            SourceId = d.Id,
+            Title = d.Title,
+            IsAllDay = true,
+            StartDate = d.On,
+            EndDate = d.On,
+            ParentId = d.ContactId,
+        });
+
         var items = rows.Select(ToDto)
             .Concat(RecurringEvents.Expand(series, skipped, from, to, startUtc, endUtc).Select(o => ToDto(o.Series, o.Occurrence)))
             .Concat(renewals)
+            .Concat(days)
             // The procedure's order, now with occurrences among the one-offs: date-based by date, then timed by start.
             .OrderByDescending(i => i.IsAllDay)
             .ThenBy(i => i.StartDate)

@@ -60,6 +60,7 @@ import { LoadError } from '../../shared/components/load-error/load-error';
 import { apiErrorMessage } from '../../core/services/api-error';
 import type { HomeAgendaItem } from '../../core/services/home.service';
 import { AGENDA_ICONS, agendaStatus } from '../home/home-view';
+import { FamilyDaysCard } from '../family/family-days-card';
 import { hasProgressBar, progressCaption } from '../goals/goal-measure';
 
 const KIND_LABELS: Record<InboxKind, [singular: string, plural: string]> = {
@@ -90,6 +91,7 @@ const GOALS_SHOWN = 4;
     DatePipe,
     DosesCard,
     RewardsCard,
+    FamilyDaysCard,
     NgTemplateOutlet,
     RouterLink,
     ReminderRow,

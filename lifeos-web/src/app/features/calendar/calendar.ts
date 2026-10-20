@@ -69,13 +69,14 @@ export class Calendar {
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly hiddenModules = inject(SettingsService).hiddenModules;
-  /** Tax deadlines belong to Finance and bills to Home: switched off with them in Settings. */
+  /** Tax deadlines belong to Finance, bills to Home, birthdays to Family: switched off with them in Settings. */
   protected readonly sourceTypes = computed(() =>
     SOURCE_TYPES.filter(
       (s) =>
         !(s === 'TaxItem' && this.hiddenModules().has('Finance')) &&
         !(s === 'UtilityBill' && this.hiddenModules().has('Home')) &&
-        !(s === 'Subscription' && this.hiddenModules().has('Purchases')),
+        !(s === 'Subscription' && this.hiddenModules().has('Purchases')) &&
+        !(s === 'SignificantDate' && this.hiddenModules().has('Family')),
     ),
   );
   protected readonly sourceLabels = SOURCE_LABELS;
@@ -322,6 +323,10 @@ export class Calendar {
         void this.router.navigate(['/purchases/subscriptions'], {
           queryParams: { open: item.sourceId },
         });
+        break;
+      case 'SignificantDate':
+        // A birthday or anniversary opens the person it's about.
+        void this.router.navigate(['/family/people', item.parentId]);
         break;
     }
   }
