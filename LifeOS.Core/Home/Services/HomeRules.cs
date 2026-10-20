@@ -98,6 +98,32 @@ public static class HomeRules
         : odometerKm is < 0 or > 10_000_000 ? "That isn't an odometer reading."
         : null;
 
+    public static string? CheckBill(string kind, DateOnly? periodStart, DateOnly? periodEnd, DateOnly dueOn, decimal amount, string? currency, decimal? unitsUsed) =>
+        !BillKinds.All.Contains(kind) ? "Unknown kind of bill."
+        : dueOn == default ? "Say when it's due."
+        : periodStart is { } s && periodEnd is { } e && e < s ? "The period can't end before it starts."
+        : amount <= 0 || amount > FinanceRules.MaxAmount ? "The amount has to be more than zero."
+        : currency is null ? "Choose the bill's currency."
+        : unitsUsed is < 0 ? "Units used can't be negative."
+        : null;
+
+    public static string? CheckPaid(DateOnly paidOn, DateOnly today) =>
+        paidOn == default ? "Say when it was paid."
+        : paidOn > today ? "It can't be paid in the future."
+        : null;
+
+    /// <summary>
+    /// What's been spent as a share of the budget, in whole percent (floor), from the spending in the budget's own
+    /// currency; may pass 100. Null without a budget.
+    /// </summary>
+    public static int? BudgetPercent(decimal? budget, string? currency, IEnumerable<(string Currency, decimal Amount)> spent) =>
+        budget is { } b && b > 0 && currency is not null
+            ? (int)Math.Floor(spent.Where(s => s.Currency == currency).Sum(s => s.Amount) * 100m / b)
+            : null;
+
+    /// <summary>Unpaid bills worth showing as coming up: due within 14 days, or overdue.</summary>
+    public static bool BillInWindow(DateOnly dueOn, DateOnly today) => dueOn <= today.AddDays(MaintenanceSoonDays);
+
     /// <summary>
     /// When a maintenance task is next due: its first due day until it's first done, then the last time it was done
     /// moved on by the interval (month ends clamp, as tasks: 31 Jan + 1 month = 28/29 Feb).

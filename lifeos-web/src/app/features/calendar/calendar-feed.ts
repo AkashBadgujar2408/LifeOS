@@ -7,7 +7,14 @@ import {
   EventSchedule,
 } from '../../core/services/calendar.service';
 
-export const SOURCE_TYPES: CalendarSourceType[] = ['Event', 'Task', 'Milestone', 'Goal', 'TaxItem'];
+export const SOURCE_TYPES: CalendarSourceType[] = [
+  'Event',
+  'Task',
+  'Milestone',
+  'Goal',
+  'TaxItem',
+  'UtilityBill',
+];
 
 export const SOURCE_LABELS: Record<CalendarSourceType, string> = {
   Event: 'Events',
@@ -15,6 +22,7 @@ export const SOURCE_LABELS: Record<CalendarSourceType, string> = {
   Milestone: 'Milestones',
   Goal: 'Goal targets',
   TaxItem: 'Tax deadlines',
+  UtilityBill: 'Bills',
 };
 
 /**

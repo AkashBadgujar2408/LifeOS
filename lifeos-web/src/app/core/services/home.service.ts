@@ -26,7 +26,7 @@ export type DisposalKind = (typeof DISPOSAL_KINDS)[number];
 /** What a warranty covers or maintenance is for — the linkable type strings. */
 export type HomeTargetType = 'Asset' | 'Vehicle' | 'Property';
 
-export type HomeAgendaKind = 'Warranty' | 'Puc' | 'Registration' | 'Maintenance';
+export type HomeAgendaKind = 'Warranty' | 'Puc' | 'Registration' | 'Maintenance' | 'Bill';
 
 export interface Property {
   id: number;
@@ -241,11 +241,95 @@ export interface MaintenanceDonePayload {
   timeZone: string;
 }
 
+export const BILL_KINDS = [
+  'Electricity',
+  'Water',
+  'Gas',
+  'Internet',
+  'Phone',
+  'Maintenance',
+  'Rent',
+  'Other',
+] as const;
+export type BillKind = (typeof BILL_KINDS)[number];
+
+/** A bill for running the house; paying it can record one Finance expense (transactionId). */
+export interface UtilityBill {
+  id: number;
+  propertyId: number | null;
+  propertyName: string | null;
+  kind: BillKind;
+  provider: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  dueOn: string;
+  amount: number;
+  currency: string;
+  unitsUsed: number | null;
+  paidOn: string | null;
+  transactionId: number | null;
+  paidFromAccountName: string | null;
+  notes: string | null;
+}
+
+export interface UtilityBillPayload {
+  propertyId: number | null;
+  kind: BillKind;
+  provider: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  dueOn: string;
+  amount: number;
+  currency: string;
+  unitsUsed: number | null;
+  notes: string | null;
+}
+
+export interface BillPaidPayload {
+  paidOn: string;
+  /** Null: paid, but not recorded in Finance. */
+  accountId: number | null;
+  exchangeRate: number | null;
+  tagIds: number[];
+  today: string;
+}
+
+export interface Money {
+  currency: string;
+  amount: number;
+}
+
+/** A tasks project with a property and a budget; spent = Finance expenses linked to the project. */
+export interface HouseholdProject {
+  id: number;
+  projectId: number;
+  name: string;
+  status: 'Active' | 'Completed' | 'Archived';
+  description: string | null;
+  propertyId: number | null;
+  propertyName: string | null;
+  budget: number | null;
+  currency: string | null;
+  openTasks: number;
+  doneTasks: number;
+  spent: Money[];
+  budgetPercent: number | null;
+}
+
+export interface HouseholdProjectPayload {
+  name: string;
+  description: string | null;
+  status: HouseholdProject['status'];
+  propertyId: number | null;
+  budget: number | null;
+  currency: string | null;
+}
+
 /** Something at home needing attention soon (a warranty/PUC/registration running out, maintenance due). */
 export interface HomeAgendaItem {
   kind: HomeAgendaKind;
   /** What opening it opens: Warranty / Vehicle / MaintenanceTask. */
-  entityType: 'Warranty' | 'Vehicle' | 'MaintenanceTask';
+  entityType: 'Warranty' | 'Vehicle' | 'MaintenanceTask' | 'UtilityBill';
   entityId: number;
   title: string;
   on: string;
@@ -452,6 +536,76 @@ export class HomeService {
         tap(() => this.remindersService.notifyChanged()),
         map((response) => response.data!),
       );
+  }
+
+  // ---- Bills ----
+
+  bills(): Observable<UtilityBill[]> {
+    return this.http
+      .get<ApiResponse<UtilityBill[]>>(`${this.base}/UtilityBills`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  bill(id: number): Observable<UtilityBill> {
+    return this.http
+      .get<ApiResponse<UtilityBill>>(`${this.base}/UtilityBills/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  saveBill(id: number | null, payload: UtilityBillPayload): Observable<UtilityBill> {
+    const request = id
+      ? this.http.put<ApiResponse<UtilityBill>>(`${this.base}/UtilityBills/${id}`, payload)
+      : this.http.post<ApiResponse<UtilityBill>>(`${this.base}/UtilityBills`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  /** Paid; with an account, one Finance expense is recorded for it. */
+  payBill(id: number, payload: BillPaidPayload): Observable<UtilityBill> {
+    return this.http
+      .put<ApiResponse<UtilityBill>>(`${this.base}/UtilityBills/${id}/paid`, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Takes the payment back, and the expense it created. */
+  unpayBill(id: number): Observable<UtilityBill> {
+    return this.http
+      .delete<ApiResponse<UtilityBill>>(`${this.base}/UtilityBills/${id}/paid`)
+      .pipe(map((response) => response.data!));
+  }
+
+  removeBill(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/UtilityBills/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  // ---- Household projects ----
+
+  householdProjects(): Observable<HouseholdProject[]> {
+    return this.http
+      .get<ApiResponse<HouseholdProject[]>>(`${this.base}/HouseholdProjects`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  saveHouseholdProject(
+    id: number | null,
+    payload: HouseholdProjectPayload,
+  ): Observable<HouseholdProject> {
+    const request = id
+      ? this.http.put<ApiResponse<HouseholdProject>>(
+          `${this.base}/HouseholdProjects/${id}`,
+          payload,
+        )
+      : this.http.post<ApiResponse<HouseholdProject>>(`${this.base}/HouseholdProjects`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  /** Stops tracking it as a household project; the tasks project stays. */
+  removeHouseholdProject(id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.base}/HouseholdProjects/${id}`)
+      .pipe(map(() => undefined));
   }
 
   // ---- Coming up ----

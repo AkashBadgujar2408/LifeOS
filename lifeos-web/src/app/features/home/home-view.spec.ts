@@ -1,5 +1,12 @@
-import type { Asset } from '../../core/services/home.service';
-import { dueStatus, filterAssets, groupByRoom, knownRooms, runsOutStatus } from './home-view';
+import type { Asset, UtilityBill } from '../../core/services/home.service';
+import {
+  billTotals,
+  dueStatus,
+  filterAssets,
+  groupByRoom,
+  knownRooms,
+  runsOutStatus,
+} from './home-view';
 
 const asset = (id: number, name: string, extra: Partial<Asset> = {}): Asset => ({
   id,
@@ -93,5 +100,46 @@ describe('home view', () => {
     expect(filterAssets(assets, 'living', null).map((a) => a.id)).toEqual([2]);
     expect(filterAssets(assets, '', 7).map((a) => a.id)).toEqual([1]);
     expect(filterAssets(assets, '', null)).toHaveLength(2);
+  });
+
+  it('adds up each kind of bill due in a span, per currency, biggest first', () => {
+    const bill = (
+      id: number,
+      kind: UtilityBill['kind'],
+      dueOn: string,
+      amount: number,
+      currency = 'INR',
+    ): UtilityBill => ({
+      id,
+      propertyId: null,
+      propertyName: null,
+      kind,
+      provider: null,
+      periodStart: null,
+      periodEnd: null,
+      dueOn,
+      amount,
+      currency,
+      unitsUsed: null,
+      paidOn: null,
+      transactionId: null,
+      paidFromAccountName: null,
+      notes: null,
+    });
+    const totals = billTotals(
+      [
+        bill(1, 'Electricity', '2026-09-25', 1800),
+        bill(2, 'Electricity', '2026-10-25', 1840),
+        bill(3, 'Water', '2026-10-25', 300),
+        bill(4, 'Internet', '2026-10-05', 10, 'USD'),
+        bill(5, 'Electricity', '2025-10-19', 999),
+      ],
+      '2025-10-21',
+      '2026-10-20',
+    );
+    expect(totals.map((t) => `${t.kind}:${t.total} ${t.currency} (${t.count})`)).toEqual([
+      'Electricity:1800 INR (1)',
+      'Internet:10 USD (1)',
+    ]);
   });
 });

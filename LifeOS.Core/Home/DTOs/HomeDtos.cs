@@ -43,6 +43,7 @@ public static class HomeAgendaKinds
     public const string Puc = "Puc";
     public const string Registration = "Registration";
     public const string Maintenance = "Maintenance";
+    public const string Bill = "Bill";
 }
 
 // ---- Properties ----
@@ -374,4 +375,120 @@ public class HomeAgendaItemDto
     public string Title { get; init; } = string.Empty;
     /// <summary>When it runs out / is due.</summary>
     public DateOnly On { get; init; }
+}
+
+// ---- Utility bills ----
+
+/// <summary>Matches CK_UtilityBills_Kind.</summary>
+public static class BillKinds
+{
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(
+        ["Electricity", "Water", "Gas", "Internet", "Phone", "Maintenance", "Rent", "Other"], StringComparer.Ordinal);
+}
+
+public class UtilityBillDto
+{
+    public int Id { get; init; }
+    public int? PropertyId { get; init; }
+    public string? PropertyName { get; init; }
+    public string Kind { get; init; } = string.Empty;
+    public string? Provider { get; init; }
+    public DateOnly? PeriodStart { get; init; }
+    public DateOnly? PeriodEnd { get; init; }
+    public DateOnly DueOn { get; init; }
+    public decimal Amount { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    public decimal? UnitsUsed { get; init; }
+    public DateOnly? PaidOn { get; init; }
+    /// <summary>The Finance expense it was paid with (null: paid outside the ledger, or not paid).</summary>
+    public int? TransactionId { get; init; }
+    public string? PaidFromAccountName { get; init; }
+    public string? Notes { get; init; }
+}
+
+public class UtilityBillRequest
+{
+    public int? PropertyId { get; init; }
+
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    [StringLength(200)]
+    public string? Provider { get; init; }
+
+    public DateOnly? PeriodStart { get; init; }
+    public DateOnly? PeriodEnd { get; init; }
+    public DateOnly DueOn { get; init; }
+    public decimal Amount { get; init; }
+
+    [Required]
+    public string Currency { get; init; } = string.Empty;
+
+    public decimal? UnitsUsed { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+}
+
+/// <summary>Paying a bill: the day and, to record it in Finance, the account it was paid from.</summary>
+public class BillPaidRequest
+{
+    public DateOnly PaidOn { get; init; }
+
+    /// <summary>Null: paid, but not recorded in Finance.</summary>
+    public int? AccountId { get; init; }
+
+    /// <summary>Only when the bill's currency isn't the base currency (as for any transaction).</summary>
+    public decimal? ExchangeRate { get; init; }
+
+    /// <summary>Categories for the expense.</summary>
+    public List<int> TagIds { get; init; } = [];
+
+    public DateOnly Today { get; init; }
+}
+
+// ---- Household projects ----
+
+/// <summary>Money in one currency.</summary>
+public class MoneyDto
+{
+    public string Currency { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+}
+
+public class HouseholdProjectDto
+{
+    public int Id { get; init; }
+    public int ProjectId { get; init; }
+    public string Name { get; init; } = string.Empty;
+    /// <summary>The tasks project's status (Active / Completed / Archived).</summary>
+    public string Status { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public int? PropertyId { get; init; }
+    public string? PropertyName { get; init; }
+    public decimal? Budget { get; init; }
+    public string? Currency { get; init; }
+    public int OpenTasks { get; init; }
+    public int DoneTasks { get; init; }
+    /// <summary>Expenses linked to the project, per currency (computed).</summary>
+    public List<MoneyDto> Spent { get; set; } = [];
+    /// <summary>Spent in the budget's currency as a % of the budget (null without a budget); may pass 100.</summary>
+    public int? BudgetPercent { get; set; }
+}
+
+public class HouseholdProjectRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    [StringLength(4000)]
+    public string? Description { get; init; }
+
+    /// <summary>Active / Completed / Archived (the tasks project's status).</summary>
+    public string Status { get; init; } = "Active";
+
+    public int? PropertyId { get; init; }
+    public decimal? Budget { get; init; }
+    public string? Currency { get; init; }
 }

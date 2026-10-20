@@ -7,6 +7,8 @@ import { apiErrorMessage } from '../../core/services/api-error';
 import { HomeService, Vehicle } from '../../core/services/home.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
+import { formatMoney } from '../finance/finance-view';
+import { openDisposal, takeBack } from './disposal-dialog';
 import { DISPOSAL_KIND_LABELS, VEHICLE_KIND_ICONS, dueStatus, runsOutStatus } from './home-view';
 import { openMaintenanceDone, openMaintenanceEditor } from './maintenance-editor';
 import { openVehicleEditor } from './vehicle-editor';
@@ -77,8 +79,18 @@ interface PaperLine {
                     </div>
                     @if (v.disposedOn) {
                       <p class="small mb-0">
-                        {{ disposalLabels[v.disposalKind!] }} on {{ v.disposedOn | date }} — kept in
-                        your history.
+                        {{ disposalLabels[v.disposalKind!] }} on {{ v.disposedOn | date }}
+                        @if (v.disposalAmount !== null && v.currency) {
+                          for {{ money(v.disposalAmount, v.currency) }}
+                        }
+                        — kept in your history.
+                        <button
+                          type="button"
+                          class="btn btn-link btn-sm p-0 align-baseline"
+                          (click)="takeBack(v)"
+                        >
+                          Take back
+                        </button>
                       </p>
                     } @else {
                       <dl class="row small mb-0 g-1">
@@ -140,6 +152,13 @@ interface PaperLine {
                           PUC and registration reminded {{ v.reminderDays }} days before.
                         </p>
                       }
+                      <button
+                        type="button"
+                        class="btn btn-link btn-sm p-0 mt-2 link-secondary"
+                        (click)="letGo(v)"
+                      >
+                        Sold it, or let it go…
+                      </button>
                     }
                   </div>
                 </section>
@@ -161,6 +180,7 @@ export class HomeVehicles {
 
   protected readonly kindIcons = VEHICLE_KIND_ICONS;
   protected readonly disposalLabels = DISPOSAL_KIND_LABELS;
+  protected readonly money = formatMoney;
   protected readonly vehicles = signal<Vehicle[] | null>(null);
   protected readonly loadFailed = signal(false);
   private readonly today = todayIso();
@@ -237,5 +257,29 @@ export class HomeVehicles {
       this.load();
       this.toast.success('Servicing planned.');
     }
+  }
+
+  protected async letGo(vehicle: Vehicle): Promise<void> {
+    const done = await openDisposal(this.modal, {
+      type: 'Vehicle',
+      id: vehicle.id,
+      name: vehicle.name,
+      currency: vehicle.currency,
+      purchasedOn: vehicle.purchasedOn,
+    });
+    if (done) {
+      this.load();
+      this.toast.success(`${vehicle.name} is kept in your history; its reminders have stopped.`);
+    }
+  }
+
+  protected takeBack(vehicle: Vehicle): void {
+    takeBack(this.homeService, 'Vehicle', vehicle.id).subscribe({
+      next: () => {
+        this.load();
+        this.toast.success(`${vehicle.name} is back — its reminders are on again.`);
+      },
+      error: (err) => this.toast.error(apiErrorMessage(err, 'Could not take it back.')),
+    });
   }
 }

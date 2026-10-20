@@ -67,6 +67,37 @@ public interface IMaintenanceService
 
 public interface IHomeAgendaService
 {
-    /// <summary>Warranties / PUC / registrations running out (60 days ahead to 30 days gone) and maintenance due within 14 days or overdue, soonest first.</summary>
+    /// <summary>Warranties / PUC / registrations running out (60 days ahead to 30 days gone), maintenance due and unpaid bills due within 14 days or overdue, soonest first.</summary>
     Task<List<HomeAgendaItemDto>> UpcomingAsync(DateOnly today);
+}
+
+public interface IUtilityBillsService
+{
+    /// <summary>Unpaid first (due soonest), then paid ones, latest first.</summary>
+    Task<List<UtilityBillDto>> GetAllAsync();
+    Task<OperationResult<UtilityBillDto>> GetAsync(int id);
+    Task<OperationResult<UtilityBillDto>> CreateAsync(UtilityBillRequest request);
+    Task<OperationResult<UtilityBillDto>> UpdateAsync(int id, UtilityBillRequest request);
+
+    /// <summary>Marks it paid; with an account, records one Finance expense for it.</summary>
+    Task<OperationResult<UtilityBillDto>> PayAsync(int id, BillPaidRequest request);
+
+    /// <summary>Takes the payment back (and the expense it created).</summary>
+    Task<OperationResult<UtilityBillDto>> UnpayAsync(int id);
+
+    /// <summary>The bill goes; an expense it created stays in Finance.</summary>
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+public interface IHouseholdProjectsService
+{
+    Task<List<HouseholdProjectDto>> GetAllAsync();
+    Task<OperationResult<HouseholdProjectDto>> GetAsync(int id);
+
+    /// <summary>Creates the tasks project and its household part together.</summary>
+    Task<OperationResult<HouseholdProjectDto>> CreateAsync(HouseholdProjectRequest request);
+    Task<OperationResult<HouseholdProjectDto>> UpdateAsync(int id, HouseholdProjectRequest request);
+
+    /// <summary>Stops tracking it as a household project; the tasks project stays.</summary>
+    Task<OperationResult<bool>> DeleteAsync(int id);
 }

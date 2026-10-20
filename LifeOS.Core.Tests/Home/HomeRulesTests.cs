@@ -103,3 +103,55 @@ public class HomeRulesTests
         Assert.Equal(200, HomeRules.RegistrationReminderTitle(new string('x', 200), Today).Length);
     }
 }
+
+public class HomeMoneyRulesTests
+{
+    private static readonly DateOnly Today = new(2026, 10, 20);
+
+    [Fact]
+    public void A_bill_needs_a_kind_a_due_day_an_amount_and_a_currency()
+    {
+        Assert.Null(HomeRules.CheckBill("Electricity", new DateOnly(2026, 9, 1), new DateOnly(2026, 9, 30), Today, 1800, "INR", 212));
+        Assert.NotNull(HomeRules.CheckBill("Cable", null, null, Today, 1800, "INR", null));
+        Assert.NotNull(HomeRules.CheckBill("Water", null, null, default, 1800, "INR", null));
+        Assert.NotNull(HomeRules.CheckBill("Water", new DateOnly(2026, 9, 30), new DateOnly(2026, 9, 1), Today, 1800, "INR", null));
+        Assert.NotNull(HomeRules.CheckBill("Water", null, null, Today, 0, "INR", null));
+        Assert.NotNull(HomeRules.CheckBill("Water", null, null, Today, 10, null, null));
+        Assert.NotNull(HomeRules.CheckBill("Water", null, null, Today, 10, "INR", -1));
+
+        Assert.Null(HomeRules.CheckPaid(Today, Today));
+        Assert.NotNull(HomeRules.CheckPaid(Today.AddDays(1), Today));
+    }
+
+    [Fact]
+    public void Budget_share_counts_only_the_budget_currency_and_can_pass_100()
+    {
+        (string, decimal)[] spent = [("INR", 30000), ("USD", 100), ("INR", 15500)];
+        Assert.Equal(56, HomeRules.BudgetPercent(80000, "INR", spent)); // 45,500 of 80,000 = 56.9 → 56
+        Assert.Equal(125, HomeRules.BudgetPercent(36400, "INR", spent));
+        Assert.Equal(0, HomeRules.BudgetPercent(80000, "EUR", spent));
+        Assert.Null(HomeRules.BudgetPercent(null, null, spent));
+    }
+
+    [Fact]
+    public void Unpaid_bills_come_up_two_weeks_ahead_and_stay_while_overdue()
+    {
+        Assert.True(HomeRules.BillInWindow(Today.AddDays(14), Today));
+        Assert.False(HomeRules.BillInWindow(Today.AddDays(15), Today));
+        Assert.True(HomeRules.BillInWindow(Today.AddDays(-60), Today));
+    }
+
+    [Fact]
+    public void A_paid_bill_expense_says_what_it_was_for()
+    {
+        var bill = new LifeOS.Core.Models.UtilityBill
+        {
+            Kind = "Electricity",
+            PeriodStart = new DateOnly(2026, 9, 1),
+            PeriodEnd = new DateOnly(2026, 9, 30),
+            Property = new LifeOS.Core.Models.Property { Name = "Flat 4B" },
+        };
+        Assert.Equal("Electricity bill, Flat 4B, 01/Sep/2026 – 30/Sep/2026", UtilityBillsService.BillNote(bill));
+        Assert.Equal("Bill", UtilityBillsService.BillPayee("Other"));
+    }
+}

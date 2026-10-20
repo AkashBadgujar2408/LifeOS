@@ -15,11 +15,19 @@ import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { forkJoin } from 'rxjs';
 import { todayIso } from '../../core/dates/today';
 import { Asset, HomeService, Property } from '../../core/services/home.service';
+import { apiErrorMessage } from '../../core/services/api-error';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { formatMoney } from '../finance/finance-view';
 import { openAssetEditor } from './asset-editor';
-import { RoomGroup, filterAssets, groupByRoom, runsOutStatus } from './home-view';
+import { openDisposal, takeBack } from './disposal-dialog';
+import {
+  DISPOSAL_KIND_LABELS,
+  RoomGroup,
+  filterAssets,
+  groupByRoom,
+  runsOutStatus,
+} from './home-view';
 import { openWarrantyEditor } from './warranty-editor';
 
 /** Everything you own, by property and room; search and categories (tags) narrow it down. */
@@ -44,12 +52,12 @@ import { openWarrantyEditor } from './warranty-editor';
       @if (loadFailed() && !assets()) {
         <app-load-error message="Couldn't load your inventory." (retry)="load()" />
       } @else if (assets(); as assets) {
-        @if (assets.length === 0) {
+        @if (assets.length === 0 && letGoItems().length === 0) {
           <p class="text-body-secondary">
             Nothing in your inventory yet. Start with the things you'd need to claim for — the
             fridge, the laptop, the TV — and add their bills and warranties.
           </p>
-        } @else {
+        } @else if (assets.length) {
           <div class="row g-2 mb-3">
             <div class="col-sm-6 col-lg-5">
               <input
@@ -150,7 +158,7 @@ import { openWarrantyEditor } from './warranty-editor';
                           }
                         </div>
                       </div>
-                      <div class="small text-end">
+                      <div class="small text-end d-flex flex-column align-items-end gap-1">
                         @if (a.coveredUntil; as until) {
                           @let status = runsOut(until);
                           <span
@@ -175,6 +183,13 @@ import { openWarrantyEditor } from './warranty-editor';
                             Add warranty
                           </button>
                         }
+                        <button
+                          type="button"
+                          class="btn btn-link btn-sm p-0 link-secondary"
+                          (click)="letGo(a)"
+                        >
+                          Let go…
+                        </button>
                       </div>
                     </div>
                   </li>
@@ -184,6 +199,53 @@ import { openWarrantyEditor } from './warranty-editor';
           } @empty {
             <p class="text-body-secondary">Nothing matches.</p>
           }
+        }
+        @if (letGoItems().length) {
+          <section class="mt-4" aria-labelledby="inventory-let-go">
+            <button
+              type="button"
+              class="btn btn-link p-0 text-decoration-none"
+              id="inventory-let-go"
+              [attr.aria-expanded]="showLetGo()"
+              (click)="showLetGo.set(!showLetGo())"
+            >
+              <i
+                class="bi"
+                [class.bi-chevron-down]="showLetGo()"
+                [class.bi-chevron-right]="!showLetGo()"
+              ></i>
+              {{ letGoItems().length }} {{ letGoItems().length === 1 ? 'thing' : 'things' }} you've
+              let go
+            </button>
+            @if (showLetGo()) {
+              <div class="card mt-2">
+                <ul class="list-group list-group-flush">
+                  @for (a of letGoItems(); track a.id) {
+                    <li class="list-group-item text-body-secondary">
+                      <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <button
+                          type="button"
+                          class="btn btn-link p-0 link-body-emphasis text-decoration-none text-start text-break me-auto"
+                          (click)="edit(a)"
+                        >
+                          {{ a.name }}
+                        </button>
+                        <span class="small">
+                          {{ disposalLabels[a.disposalKind!] }} {{ a.disposedOn | date }}
+                          @if (a.disposalAmount !== null && a.currency) {
+                            for {{ money(a.disposalAmount, a.currency) }}
+                          }
+                        </span>
+                        <button type="button" class="btn btn-link btn-sm p-0" (click)="takeBack(a)">
+                          Take back
+                        </button>
+                      </div>
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </section>
         }
       } @else {
         <p class="text-body-secondary">Loading...</p>
@@ -202,7 +264,18 @@ export class HomeInventory implements OnInit {
 
   protected readonly money = formatMoney;
   protected readonly isSet = (value: string | null): value is string => !!value;
-  protected readonly assets = signal<Asset[] | null>(null);
+  /** Everything, let go or not (null until loaded). */
+  private readonly all = signal<Asset[] | null>(null);
+  /** The inventory: what you still have. */
+  protected readonly assets = computed(() => this.all()?.filter((a) => !a.disposedOn) ?? null);
+  /** What you've let go, most recent first. */
+  protected readonly letGoItems = computed(() =>
+    (this.all() ?? [])
+      .filter((a) => a.disposedOn)
+      .sort((a, b) => b.disposedOn!.localeCompare(a.disposedOn!)),
+  );
+  protected readonly showLetGo = signal(false);
+  protected readonly disposalLabels = DISPOSAL_KIND_LABELS;
   protected readonly properties = signal<Property[]>([]);
   protected readonly loadFailed = signal(false);
   protected readonly search = signal('');
@@ -258,11 +331,11 @@ export class HomeInventory implements OnInit {
   }
 
   protected load(): void {
-    forkJoin({ assets: this.homeService.assets(), properties: this.homeService.properties() })
+    forkJoin({ assets: this.homeService.assets(true), properties: this.homeService.properties() })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ assets, properties }) => {
-          this.assets.set(assets);
+          this.all.set(assets);
           this.properties.set(properties);
           this.loadFailed.set(false);
         },
@@ -300,5 +373,29 @@ export class HomeInventory implements OnInit {
       this.load();
       this.toast.success('Warranty saved.');
     }
+  }
+
+  protected async letGo(asset: Asset): Promise<void> {
+    const done = await openDisposal(this.modal, {
+      type: 'Asset',
+      id: asset.id,
+      name: asset.name,
+      currency: asset.currency,
+      purchasedOn: asset.purchasedOn,
+    });
+    if (done) {
+      this.load();
+      this.toast.success(`${asset.name} is out of the inventory — kept in your history.`);
+    }
+  }
+
+  protected takeBack(asset: Asset): void {
+    takeBack(this.homeService, 'Asset', asset.id).subscribe({
+      next: () => {
+        this.load();
+        this.toast.success(`${asset.name} is back in the inventory.`);
+      },
+      error: (err) => this.toast.error(apiErrorMessage(err, 'Could not take it back.')),
+    });
   }
 }

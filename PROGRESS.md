@@ -1038,3 +1038,14 @@
 - Test data: `home67` (Flat 4B, Old flat, Work laptop, Television with a warranty to 30 Nov, donated dining chairs, Swift with PUC/registration and servicing, Clean the water tank (paused), Clean the AC filter), `home67b` (empty, for isolation). Password for both in `scratchpad/home67.mjs` (local only).
 
 - Next up: **Session 68 — Home 3** (bills, projects, documents, disposal).
+
+## Last session: 2026-10-20 — Session 68 — Home 3: bills, household projects, disposal
+- Resumed after the previous run stopped mid-session: the backend (already verified by curl) was intact and uncommitted; the frontend was finished from where it stopped.
+- Shipped (backend): `UtilityBillsService` (pay → one Finance expense, take back, release on transaction delete), `HouseholdProjectsService` (tasks project + budget, linked-expense spend), `UtilityBill` linkable provider, unpaid bills in `HomeAgendaService`, `UtilityBill` branch in `calendar.GetCalendarFeed`, project delete removes its household part; `HomeRules` bill/budget rules (+4 xUnit cases).
+- Shipped (frontend): `/home/bills` + bill editor + Pay dialog, `/home/projects` + editor, shared "Let go" dialog on inventory (with the let-go history and Take back) and vehicles, Pay in the coming-up list, calendar "Bills" source, nav, search/reminder labels, `EntityOpener` (lazy bill editor); `billTotals` (+ spec).
+- Verified: see plan row 68. 417 backend + 233 frontend tests, all six zones; lint/Prettier clean; NuGet audit clean.
+- Found: the Chrome extension was disconnected at first and then reconnected (you asked to use only Claude in Chrome — the headless fallback I'd started was dropped). A long in-page script hit the tool's 45 s limit; split into shorter ones. No schema change this session (only the feed proc), so the fresh-DB scaffold check wasn't re-run.
+- Decisions (mine — say if you want them changed): paying a bill without an account just marks it paid; "take back" on a bill deletes the expense it created, but deleting the bill keeps the expense; a paid-into-Finance bill can't change its amount until taken back; the "last 12 months" table counts bills by due day up to today; household projects count linked *expenses* only, and their % uses spending in the budget's currency; "stop tracking" keeps the tasks project; opening a bill from the calendar goes to the Bills page.
+- Test data: `home67` — base currency INR (set directly in SQL for testing), HDFC Savings, bills MSEDCL/Water/Airtel/PMC (paid) and MNGL (unpaid, due 24 Oct), "Fix the balcony" and "New kitchen" projects, TV donated, Swift sold.
+
+- Next up: **Session 69 — Purchases 1** (schema).

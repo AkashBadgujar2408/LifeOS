@@ -180,6 +180,13 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Vehicles', route: '/home/vehicles', icon: 'bi-car-front', module: 'Home' },
       { label: 'Warranties', route: '/home/warranties', icon: 'bi-patch-check', module: 'Home' },
       { label: 'Maintenance', route: '/home/maintenance', icon: 'bi-tools', module: 'Home' },
+      { label: 'Bills', route: '/home/bills', icon: 'bi-receipt', module: 'Home' },
+      {
+        label: 'Household projects',
+        route: '/home/projects',
+        icon: 'bi-hammer',
+        module: 'Home',
+      },
     ],
   },
   {

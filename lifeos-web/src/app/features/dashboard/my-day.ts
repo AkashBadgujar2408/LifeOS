@@ -242,7 +242,9 @@ export class MyDay {
       ? '/home/warranties'
       : item.entityType === 'Vehicle'
         ? '/home/vehicles'
-        : '/home/maintenance';
+        : item.entityType === 'UtilityBill'
+          ? '/home/bills'
+          : '/home/maintenance';
   }
 
   protected load(): void {

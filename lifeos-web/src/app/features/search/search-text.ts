@@ -68,6 +68,7 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   Vehicle: 'bi-car-front',
   Warranty: 'bi-patch-check',
   MaintenanceTask: 'bi-tools',
+  UtilityBill: 'bi-receipt',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -119,4 +120,5 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   Vehicle: 'Vehicles',
   Warranty: 'Warranties',
   MaintenanceTask: 'Maintenance',
+  UtilityBill: 'Bills',
 };

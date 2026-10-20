@@ -222,6 +222,15 @@ export class EntityOpener {
           error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the maintenance.')),
         });
         break;
+      case 'UtilityBill':
+        this.homeService.bill(entityId).subscribe({
+          next: async (bill) =>
+            this.homeSaved(
+              await (await import('../home/bill-editor')).openBillEditor(this.modal, bill),
+            ),
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the bill.')),
+        });
+        break;
       case 'InterviewQuestion':
         this.careerService.question(entityId).subscribe({
           next: async (question) => {

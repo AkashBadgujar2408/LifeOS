@@ -13,13 +13,14 @@ import { apiErrorMessage } from '../../core/services/api-error';
 import { HomeAgendaItem, HomeService } from '../../core/services/home.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AGENDA_ICONS, agendaStatus } from './home-view';
+import { openBillEditor, openBillPay } from './bill-editor';
 import { openMaintenanceDone, openMaintenanceEditor } from './maintenance-editor';
 import { openVehicleEditor } from './vehicle-editor';
 import { openWarrantyEditor } from './warranty-editor';
 
 /**
  * "Coming up at home": warranties, PUCs and registrations running out and maintenance due, soonest first. Each line
- * opens its item; maintenance can be marked done right here. Emits `changed` after anything was saved, so the host
+ * opens its item; maintenance can be marked done and bills paid right here. Emits `changed` after anything was saved, so the host
  * reloads.
  */
 @Component({
@@ -53,6 +54,10 @@ import { openWarrantyEditor } from './warranty-editor';
           @if (item.kind === 'Maintenance') {
             <button type="button" class="btn btn-outline-primary btn-sm" (click)="done(item)">
               <i class="bi bi-check2" aria-hidden="true"></i> Done
+            </button>
+          } @else if (item.kind === 'Bill') {
+            <button type="button" class="btn btn-outline-primary btn-sm" (click)="pay(item)">
+              Pay
             </button>
           }
         </li>
@@ -97,6 +102,12 @@ export class HomeAgendaList {
           error: failed,
         });
         break;
+      case 'UtilityBill':
+        this.homeService.bill(item.entityId).subscribe({
+          next: async (bill) => this.after(await openBillEditor(this.modal, bill)),
+          error: failed,
+        });
+        break;
     }
   }
 
@@ -108,6 +119,19 @@ export class HomeAgendaList {
           this.toast.success(
             `Done — next due ${formatDate(updated.nextDueOn, APP_DATE_FORMAT, this.locale)}.`,
           );
+          this.changed.emit();
+        }
+      },
+      error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open it.')),
+    });
+  }
+
+  protected pay(item: HomeAgendaItem): void {
+    this.homeService.bill(item.entityId).subscribe({
+      next: async (bill) => {
+        const paid = await openBillPay(this.modal, bill);
+        if (paid) {
+          this.toast.success(paid.transactionId ? 'Paid — recorded in Finance.' : 'Marked paid.');
           this.changed.emit();
         }
       },

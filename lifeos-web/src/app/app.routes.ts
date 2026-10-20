@@ -348,6 +348,17 @@ export const routes: Routes = [
         loadComponent: () => import('./features/home/warranties').then((m) => m.HomeWarranties),
       },
       {
+        path: 'home/bills',
+        title: 'Bills | LifeOS',
+        loadComponent: () => import('./features/home/bills').then((m) => m.HomeBills),
+      },
+      {
+        path: 'home/projects',
+        title: 'Household projects | LifeOS',
+        loadComponent: () =>
+          import('./features/home/household-projects').then((m) => m.HomeHouseholdProjects),
+      },
+      {
         path: 'home/maintenance',
         title: 'Maintenance | LifeOS',
         loadComponent: () => import('./features/home/maintenance').then((m) => m.HomeMaintenance),

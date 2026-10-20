@@ -7,7 +7,8 @@ namespace LifeOS.Core.Home.Services;
 
 /// <summary>
 /// What needs attention at home soon, for the Home overview and My Day: warranties/AMCs, PUCs and registrations
-/// running out (<see cref="HomeRules.ExpiryInWindow"/>) and maintenance due (<see cref="HomeRules.MaintenanceInWindow"/>).
+/// running out (<see cref="HomeRules.ExpiryInWindow"/>), maintenance due (<see cref="HomeRules.MaintenanceInWindow"/>) and unpaid
+/// bills due within 14 days or overdue (Session 68).
 /// Things you no longer have (disposed) and paused maintenance are left out. Computed per request, nothing stored.
 /// </summary>
 public class HomeAgendaService(AppDbContext db) : IHomeAgendaService
@@ -82,6 +83,15 @@ public class HomeAgendaService(AppDbContext db) : IHomeAgendaService
             {
                 Kind = HomeAgendaKinds.Maintenance, EntityType = MaintenanceTaskLinkableProvider.Type, EntityId = m.Id, Title = m.Title, On = m.Next,
             }));
+
+        var bills = await db.UtilityBills
+            .Where(b => b.PaidOn == null)
+            .Select(b => new { b.Id, Name = b.Provider ?? b.Kind, b.DueOn })
+            .ToListAsync();
+        items.AddRange(bills.Where(b => HomeRules.BillInWindow(b.DueOn, today)).Select(b => new HomeAgendaItemDto
+        {
+            Kind = HomeAgendaKinds.Bill, EntityType = UtilityBillLinkableProvider.Type, EntityId = b.Id, Title = b.Name + " bill", On = b.DueOn,
+        }));
 
         return items.OrderBy(i => i.On).ThenBy(i => i.Title, StringComparer.Ordinal).ThenBy(i => i.EntityId).ToList();
     }

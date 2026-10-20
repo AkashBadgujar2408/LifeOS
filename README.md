@@ -4,7 +4,8 @@ A personal "life operating system": goals, tasks and projects, calendar and remi
 with an encrypted vault, learning (skills, courses, books, roadmaps, study time), career (roles, pay, applications,
 interviews, network), finance (multi-currency accounts, ledger, budgets, investments, loans, insurance, taxes, net
 worth), health (history, visits, medicines, exercise, sleep, body, food, labs, wellbeing — encrypted and behind
-the vault), a **Story Mode** that reads your life as a biography, and a daily **My Day** dashboard that ties them
+the vault), home (properties, inventory by room, vehicles, warranties, maintenance, bills, household projects),
+a **Story Mode** that reads your life as a biography, and a daily **My Day** dashboard that ties them
 together. Everything links to everything else (a task to the goal it serves, a
 habit to its goal, a reminder to any of them). It's built to *improve* a life, not just log it, so it also gives
 plain, rule-based nudges ("your reading streak broke on Wednesday", "this goal hasn't moved in 20 days").
@@ -20,7 +21,7 @@ It runs on your own machine. It's multi-user at the data layer (registration + l
 ## Status
 
 Month 1 (the seven core modules, Sessions 1–27), Phase 2 (Story Mode, Documents, Learning, Career, Finance, data
-export/import, Sessions 28–61) and Health (Sessions 62–65, encrypted and behind the vault) are complete. Next is **Home** (Session 66).
+export/import, Sessions 28–61), Health (Sessions 62–65, encrypted and behind the vault) and Home (Sessions 66–68) are complete. Next is **Purchases** (Session 69).
 
 **The main document is [`LifeOS_Development_Plan.md`](LifeOS_Development_Plan.md)**: what LifeOS is, every decision
 and deviation from the original blueprint, the session-by-session roadmap with what's done, and the backlog for
@@ -132,7 +133,7 @@ LifeOS.Core/           Everything else on the server
                        Each: DTOs/, ServiceContracts/, Services/, AutoMapper/
 LifeOS.Core.Tests/     xUnit tests for the pure logic
 database/
-  schema/              00_create_database.sql ... 12_finance.sql (one SQL schema per module)
+  schema/              00_create_database.sql ... 14_home.sql (one SQL schema per module)
   procedures/          <schema>.<Name>.sql stored procedures (calendar feed, My Day, KPIs, life story, balances, ...)
 lifeos-web/            Angular app
   src/app/core/        Services (one per API area), layout/shell, guards, interceptor, date helpers

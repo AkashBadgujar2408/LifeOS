@@ -142,6 +142,8 @@ try
     builder.Services.AddScoped<IWarrantiesService, WarrantiesService>();
     builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
     builder.Services.AddScoped<IHomeAgendaService, HomeAgendaService>();
+    builder.Services.AddScoped<IUtilityBillsService, UtilityBillsService>();
+    builder.Services.AddScoped<IHouseholdProjectsService, HouseholdProjectsService>();
     builder.Services.AddScoped<IStatementImportService, StatementImportService>();
     builder.Services.AddScoped<IFinanceReportsService, FinanceReportsService>();
     builder.Services.AddScoped<IAccountDataService, AccountDataService>();
@@ -200,6 +202,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, VehicleLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, WarrantyLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, MaintenanceTaskLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, UtilityBillLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

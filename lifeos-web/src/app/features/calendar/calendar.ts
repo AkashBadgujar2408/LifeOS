@@ -69,11 +69,13 @@ export class Calendar {
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly hiddenModules = inject(SettingsService).hiddenModules;
-  /** Tax deadlines belong to Finance: switched off with it in Settings. */
+  /** Tax deadlines belong to Finance and bills to Home: switched off with them in Settings. */
   protected readonly sourceTypes = computed(() =>
-    this.hiddenModules().has('Finance')
-      ? SOURCE_TYPES.filter((s) => s !== 'TaxItem')
-      : SOURCE_TYPES,
+    SOURCE_TYPES.filter(
+      (s) =>
+        !(s === 'TaxItem' && this.hiddenModules().has('Finance')) &&
+        !(s === 'UtilityBill' && this.hiddenModules().has('Home')),
+    ),
   );
   protected readonly sourceLabels = SOURCE_LABELS;
 
@@ -310,6 +312,10 @@ export class Calendar {
             },
             error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the tax item.')),
           });
+        break;
+      case 'UtilityBill':
+        // Bills open on their page (pay / edit there), keeping the Home editors out of the calendar's chunk.
+        void this.router.navigate(['/home/bills']);
         break;
     }
   }

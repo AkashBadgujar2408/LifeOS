@@ -44,7 +44,8 @@ export type ReminderTargetType =
   | 'Asset'
   | 'Vehicle'
   | 'Warranty'
-  | 'MaintenanceTask';
+  | 'MaintenanceTask'
+  | 'UtilityBill';
 
 /** How each target type reads in the UI ("About Journal entry: 15/Oct/2026"), not the stored type string. */
 export const REMINDER_TARGET_LABELS: Record<ReminderTargetType, string> = {
@@ -83,6 +84,7 @@ export const REMINDER_TARGET_LABELS: Record<ReminderTargetType, string> = {
   Vehicle: 'Vehicle',
   Warranty: 'Warranty',
   MaintenanceTask: 'Maintenance',
+  UtilityBill: 'Bill',
 };
 
 export interface Reminder {

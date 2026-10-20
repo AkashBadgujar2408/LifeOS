@@ -136,6 +136,11 @@ public class ProjectsService(AppDbContext db, IMapper mapper, IEntityLinksServic
             .Where(t => t.ProjectId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.ProjectId, (int?)null).SetProperty(t => t.UpdatedAt, now));
 
+        // A household project is this project plus a budget: it goes with it.
+        await db.HouseholdProjects
+            .Where(h => h.ProjectId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(h => h.IsDeleted, true).SetProperty(h => h.DeletedAt, now));
+
         project.IsDeleted = true;
         project.DeletedAt = now;
         await db.SaveChangesAsync();

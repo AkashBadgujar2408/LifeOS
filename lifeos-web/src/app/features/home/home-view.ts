@@ -1,5 +1,7 @@
 import {
   Asset,
+  BillKind,
+  UtilityBill,
   DisposalKind,
   HomeAgendaItem,
   HomeTargetType,
@@ -73,6 +75,7 @@ export const AGENDA_ICONS: Record<HomeAgendaItem['kind'], string> = {
   Puc: 'bi-wind',
   Registration: 'bi-card-heading',
   Maintenance: 'bi-tools',
+  Bill: 'bi-receipt',
 };
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -120,9 +123,11 @@ export function dueStatus(on: string, today: string, soonDays = 14): DayStatus {
   };
 }
 
-/** An agenda line's status: maintenance is due, the rest run out. */
+/** An agenda line's status: maintenance and bills are due, the rest run out. */
 export function agendaStatus(item: HomeAgendaItem, today: string): DayStatus {
-  return item.kind === 'Maintenance' ? dueStatus(item.on, today) : runsOutStatus(item.on, today);
+  return item.kind === 'Maintenance' || item.kind === 'Bill'
+    ? dueStatus(item.on, today)
+    : runsOutStatus(item.on, today);
 }
 
 export interface RoomGroup {
@@ -200,4 +205,61 @@ export function filterAssets(
           (value) => value?.toLocaleLowerCase().includes(needle),
         )),
   );
+}
+
+export const BILL_KIND_LABELS: Record<BillKind, string> = {
+  Electricity: 'Electricity',
+  Water: 'Water',
+  Gas: 'Gas',
+  Internet: 'Internet',
+  Phone: 'Phone',
+  Maintenance: 'Society maintenance',
+  Rent: 'Rent',
+  Other: 'Other',
+};
+
+export const BILL_KIND_ICONS: Record<BillKind, string> = {
+  Electricity: 'bi-lightning-charge',
+  Water: 'bi-droplet',
+  Gas: 'bi-fire',
+  Internet: 'bi-wifi',
+  Phone: 'bi-phone',
+  Maintenance: 'bi-building',
+  Rent: 'bi-key',
+  Other: 'bi-receipt',
+};
+
+export interface BillKindTotal {
+  kind: BillKind;
+  currency: string;
+  total: number;
+  count: number;
+}
+
+/**
+ * What each kind of bill came to over a span (bills *due* from `from` to `to`, paid or not), per currency, biggest
+ * first — "what the house costs to run".
+ */
+export function billTotals(
+  bills: readonly UtilityBill[],
+  from: string,
+  to: string,
+): BillKindTotal[] {
+  const totals = new Map<string, BillKindTotal>();
+  for (const bill of bills) {
+    if (bill.dueOn < from || bill.dueOn > to) {
+      continue;
+    }
+    const key = `${bill.kind}|${bill.currency}`;
+    const entry = totals.get(key) ?? {
+      kind: bill.kind,
+      currency: bill.currency,
+      total: 0,
+      count: 0,
+    };
+    entry.total += bill.amount;
+    entry.count += 1;
+    totals.set(key, entry);
+  }
+  return [...totals.values()].sort((a, b) => b.total - a.total || a.kind.localeCompare(b.kind));
 }

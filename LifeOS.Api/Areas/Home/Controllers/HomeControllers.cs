@@ -165,3 +165,57 @@ public class AgendaController(IHomeAgendaService agendaService) : HomeController
             ? Ok(ApiResponse<List<HomeAgendaItemDto>>.Ok(await agendaService.UpcomingAsync(day)))
             : BadRequest(ApiResponse<List<HomeAgendaItemDto>>.Fail("Today's date is required."));
 }
+
+[ApiController]
+[Area("Home")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class UtilityBillsController(IUtilityBillsService billsService) : HomeControllerBase
+{
+    /// <summary>GET api/Home/UtilityBills — unpaid first (due soonest), then paid, latest first.</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<UtilityBillDto>>.Ok(await billsService.GetAllAsync()));
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id) => Found(await billsService.GetAsync(id));
+
+    [HttpPost]
+    public async Task<IActionResult> Create(UtilityBillRequest request) => Result(await billsService.CreateAsync(request));
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, UtilityBillRequest request) => Result(await billsService.UpdateAsync(id, request));
+
+    /// <summary>PUT api/Home/UtilityBills/{id}/paid — paid on a day; with an account, one Finance expense.</summary>
+    [HttpPut("{id:int}/paid")]
+    public async Task<IActionResult> Pay(int id, BillPaidRequest request) => Result(await billsService.PayAsync(id, request));
+
+    /// <summary>DELETE api/Home/UtilityBills/{id}/paid — take the payment (and its expense) back.</summary>
+    [HttpDelete("{id:int}/paid")]
+    public async Task<IActionResult> Unpay(int id) => Result(await billsService.UnpayAsync(id));
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id) => Found(await billsService.DeleteAsync(id));
+}
+
+[ApiController]
+[Area("Home")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class HouseholdProjectsController(IHouseholdProjectsService projectsService) : HomeControllerBase
+{
+    /// <summary>GET api/Home/HouseholdProjects — with tasks done/open and spend from linked expenses.</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<HouseholdProjectDto>>.Ok(await projectsService.GetAllAsync()));
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id) => Found(await projectsService.GetAsync(id));
+
+    [HttpPost]
+    public async Task<IActionResult> Create(HouseholdProjectRequest request) => Result(await projectsService.CreateAsync(request));
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, HouseholdProjectRequest request) => Result(await projectsService.UpdateAsync(id, request));
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id) => Found(await projectsService.DeleteAsync(id));
+}
