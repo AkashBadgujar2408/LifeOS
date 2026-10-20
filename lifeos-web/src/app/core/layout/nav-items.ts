@@ -200,6 +200,12 @@ export const NAV_GROUPS: NavGroup[] = [
         module: 'Purchases',
       },
       { label: 'Wishlist', route: '/purchases/wishlist', icon: 'bi-gift', module: 'Purchases' },
+      {
+        label: 'Rewards & vouchers',
+        route: '/purchases/rewards',
+        icon: 'bi-ticket-perforated',
+        module: 'Purchases',
+      },
     ],
   },
   {

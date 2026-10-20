@@ -1,4 +1,10 @@
-import type { MoneyAmount, Purchase, WishPriority } from '../../core/services/purchases.service';
+import type {
+  Benefit,
+  BenefitKind,
+  MoneyAmount,
+  Purchase,
+  WishPriority,
+} from '../../core/services/purchases.service';
 import { formatMoney } from '../finance/finance-view';
 
 export const WISH_PRIORITY_LABELS: Record<WishPriority, string> = {
@@ -94,4 +100,101 @@ export function leftText(left: readonly MoneyAmount[]): string | null {
   return left.length
     ? `${left.map((m) => formatMoney(m.amount, m.currency)).join(' + ')} left to buy`
     : null;
+}
+
+// ---- Rewards & vouchers ----
+
+export const BENEFIT_KIND_LABELS: Record<BenefitKind, string> = {
+  Voucher: 'Voucher',
+  GiftCard: 'Gift card',
+  StoreCredit: 'Store credit',
+  Coupon: 'Coupon / promo code',
+  Cashback: 'Cashback',
+  Points: 'Reward points',
+  WalletCredit: 'Wallet credit',
+};
+
+export const BENEFIT_KIND_ICONS: Record<BenefitKind, string> = {
+  Voucher: 'bi-ticket-perforated',
+  GiftCard: 'bi-gift',
+  StoreCredit: 'bi-shop',
+  Coupon: 'bi-percent',
+  Cashback: 'bi-arrow-counterclockwise',
+  Points: 'bi-stars',
+  WalletCredit: 'bi-wallet2',
+};
+
+/**
+ * What a reward is worth in words: "₹200.00 left of ₹500.00", "10% off (spend ₹1,000.00+)", "₹150.00 cashback",
+ * "1,300 points ≈ ₹650.00".
+ */
+export function benefitWorth(
+  b: Pick<
+    Benefit,
+    | 'kind'
+    | 'value'
+    | 'currency'
+    | 'balance'
+    | 'discountPercent'
+    | 'minSpend'
+    | 'pointsAvailable'
+    | 'pointsValue'
+  >,
+): string {
+  const money = (amount: number) => formatMoney(amount, b.currency ?? 'INR');
+  switch (b.kind) {
+    case 'Coupon': {
+      const off =
+        b.discountPercent !== null ? `${b.discountPercent}% off` : `${money(b.value ?? 0)} off`;
+      return b.minSpend !== null ? `${off} (spend ${money(b.minSpend)}+)` : off;
+    }
+    case 'Cashback':
+      return `${money(b.value ?? 0)} cashback`;
+    case 'Points':
+      return `${(b.pointsAvailable ?? 0).toLocaleString('en-IN')} points ≈ ${money(b.pointsValue ?? 0)}`;
+    default:
+      return b.balance !== null && b.balance !== b.value
+        ? `${money(b.balance)} left of ${money(b.value ?? 0)}`
+        : money(b.value ?? 0);
+  }
+}
+
+/** What a coupon takes off a bill (the server's BenefitRules.CouponSaving): its share, never below the minimum spend. */
+export function couponSaving(
+  flat: number | null,
+  percent: number | null,
+  minSpend: number | null,
+  bill: number,
+): number {
+  if (bill <= 0 || (minSpend !== null && bill < minSpend)) {
+    return 0;
+  }
+  return Math.min(bill, flat ?? Math.round(bill * (percent ?? 0)) / 100);
+}
+
+export interface RewardGroups {
+  usable: Benefit[];
+  cashback: Benefit[];
+  points: Benefit[];
+  finished: Benefit[];
+}
+
+/**
+ * The rewards page's sections: usable money and coupons (running out soonest first), cashback still to come (overdue
+ * first), points programmes, and what's used up, expired or received.
+ */
+export function groupRewards(benefits: readonly Benefit[]): RewardGroups {
+  const soonest = (b: Benefit) => b.nextExpiry ?? b.expiresOn ?? '9999-12-31';
+  return {
+    usable: benefits
+      .filter((b) => b.status === 'Usable' && b.kind !== 'Points')
+      .sort((a, b) => soonest(a).localeCompare(soonest(b)) || a.name.localeCompare(b.name)),
+    cashback: benefits
+      .filter((b) => b.status === 'Pending')
+      .sort((a, b) => (a.expectedBy ?? '9999').localeCompare(b.expectedBy ?? '9999')),
+    points: benefits.filter((b) => b.kind === 'Points'),
+    finished: benefits.filter(
+      (b) => b.kind !== 'Points' && b.status !== 'Usable' && b.status !== 'Pending',
+    ),
+  };
 }

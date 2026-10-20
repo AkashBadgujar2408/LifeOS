@@ -128,7 +128,7 @@ public class ShoppingListsService(AppDbContext db, IEntityLinksService entityLin
         }
 
         var now = DateTime.UtcNow;
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         // Its items go with it; purchases made from them stay.
         await db.ShoppingListItems.Where(i => i.ListId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(i => i.IsDeleted, true).SetProperty(i => i.DeletedAt, now));
@@ -366,7 +366,7 @@ public class WishlistService(AppDbContext db, IEntityLinksService entityLinksSer
             return OperationResult<bool>.Fail(NotFound);
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         item.IsDeleted = true;
         item.DeletedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();

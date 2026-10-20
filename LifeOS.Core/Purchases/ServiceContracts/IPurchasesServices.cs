@@ -49,3 +49,28 @@ public interface IWishlistService
     Task<OperationResult<WishlistItemDto>> UpdateAsync(int id, WishlistItemRequest request);
     Task<OperationResult<bool>> DeleteAsync(int id);
 }
+
+/// <summary>Rewards & vouchers: balances, points and expiries computed; money that moves goes through Finance once.</summary>
+public interface IBenefitsService
+{
+    Task<List<BenefitDto>> GetAllAsync(DateOnly today);
+    /// <summary>With its code and PIN (decrypted), uses and points batches.</summary>
+    Task<OperationResult<BenefitDetailDto>> GetAsync(int id, DateOnly today);
+    Task<RewardsSummaryDto> SummaryAsync(DateOnly today);
+    /// <summary>What can be used at a store today (anything without a store too; points only at their programme).</summary>
+    Task<List<BenefitDto>> UsableAtAsync(string? store, DateOnly today);
+    /// <summary>Expiring within 30 days, or cashback overdue — for My Day.</summary>
+    Task<List<BenefitDto>> AttentionAsync(DateOnly today);
+    Task<OperationResult<BenefitDetailDto>> CreateAsync(BenefitRequest request);
+    Task<OperationResult<BenefitDetailDto>> UpdateAsync(int id, BenefitRequest request);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+    Task<OperationResult<BenefitDetailDto>> RedeemAsync(int id, RedemptionRequest request);
+    Task<OperationResult<BenefitDetailDto>> RemoveRedemptionAsync(int id, int redemptionId, DateOnly today);
+    Task<OperationResult<BenefitDetailDto>> AddPointsAsync(int id, PointBatchRequest request);
+    Task<OperationResult<BenefitDetailDto>> RemovePointsAsync(int id, int batchId, DateOnly today);
+    /// <summary>Cashback arrived: with an account, one Finance income.</summary>
+    Task<OperationResult<BenefitDetailDto>> MarkReceivedAsync(int id, CashbackReceivedRequest request);
+    Task<OperationResult<BenefitDetailDto>> UndoReceivedAsync(int id, DateOnly today);
+    /// <summary>Uses applied while recording a purchase (inside its transaction); an error refuses the purchase.</summary>
+    Task<string?> RedeemOnPurchaseAsync(int purchaseId, DateOnly day, IReadOnlyList<PurchaseRedemptionRequest> uses, DateOnly today, string? zone);
+}

@@ -124,6 +124,9 @@ public class PurchaseRequest
     /// <summary>Ticked shopping-list items it covers (they're marked bought).</summary>
     public List<int> ShoppingListItemIds { get; init; } = [];
 
+    /// <summary>Vouchers, coupons or points used on it (each recorded as a redemption of this purchase).</summary>
+    public List<PurchaseRedemptionRequest> Redemptions { get; init; } = [];
+
     /// <summary>The wishlist item it fulfils (it leaves the wishlist).</summary>
     public int? WishlistItemId { get; init; }
 
@@ -234,4 +237,204 @@ public class WishlistItemRequest
 
     [StringLength(2000)]
     public string? Notes { get; init; }
+}
+
+// ---- Rewards & vouchers (Session 70a) ----
+
+public class BenefitDto
+{
+    public int Id { get; init; }
+    /// <summary>Voucher / GiftCard / StoreCredit / Coupon / Cashback / Points / WalletCredit.</summary>
+    public string Kind { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    /// <summary>Where it can be used — or, for points, the programme.</summary>
+    public string? Store { get; init; }
+    public decimal? Value { get; init; }
+    public string? Currency { get; init; }
+    public decimal? DiscountPercent { get; init; }
+    public decimal? MinSpend { get; init; }
+    public decimal? ValuePerPoint { get; init; }
+    public bool HasCode { get; init; }
+    public bool HasPin { get; init; }
+    /// <summary>Only on a single benefit's read (decrypted).</summary>
+    public string? Code { get; set; }
+    public string? Pin { get; set; }
+    public DateOnly? ExpiresOn { get; init; }
+    public int? ReminderDays { get; init; }
+    /// <summary>The purchase it came from (a gift card bought, cashback on an order).</summary>
+    public int? PurchaseId { get; init; }
+    public string? PurchaseTitle { get; init; }
+    /// <summary>Wallet credit: the wallet it's in.</summary>
+    public int? AccountId { get; init; }
+    public string? AccountName { get; init; }
+    public DateOnly? ExpectedBy { get; init; }
+    public DateOnly? ReceivedOn { get; init; }
+    /// <summary>Cashback: the Finance income it arrived as.</summary>
+    public int? TransactionId { get; init; }
+    public string? Notes { get; init; }
+    // ---- Computed (BenefitRules.State) ----
+    public string Status { get; set; } = string.Empty;
+    public decimal? Balance { get; set; }
+    public int? PointsAvailable { get; set; }
+    public decimal? PointsValue { get; set; }
+    public decimal Lost { get; set; }
+    public DateOnly? LostOn { get; set; }
+    public bool ExpiringSoon { get; set; }
+    public bool Overdue { get; set; }
+    public DateOnly? NextExpiry { get; set; }
+}
+
+public class BenefitRedemptionDto
+{
+    public int Id { get; init; }
+    public DateOnly RedeemedOn { get; init; }
+    public decimal? Amount { get; init; }
+    public int? Points { get; init; }
+    public int? PurchaseId { get; init; }
+    public string? PurchaseTitle { get; init; }
+    /// <summary>Points cashed in: the Finance income they became.</summary>
+    public int? TransactionId { get; init; }
+    public string? Notes { get; init; }
+}
+
+public class PointBatchDto
+{
+    public int Id { get; init; }
+    public DateOnly EarnedOn { get; init; }
+    public int Points { get; init; }
+    public DateOnly? ExpiresOn { get; init; }
+    public int? PurchaseId { get; init; }
+    public string? PurchaseTitle { get; init; }
+    public string? Notes { get; init; }
+    /// <summary>Points of this batch not yet spent (computed).</summary>
+    public int Remaining { get; set; }
+}
+
+public class BenefitDetailDto
+{
+    public BenefitDto Benefit { get; init; } = new();
+    /// <summary>Newest first.</summary>
+    public List<BenefitRedemptionDto> Redemptions { get; init; } = [];
+    /// <summary>Points only, newest first.</summary>
+    public List<PointBatchDto> Batches { get; init; } = [];
+}
+
+/// <summary>Money in Finance for a benefit: the account (and a rate when not in the base currency).</summary>
+public class BenefitMoneyRequest
+{
+    public int AccountId { get; init; }
+    public decimal? ExchangeRate { get; init; }
+}
+
+public class BenefitRequest
+{
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    [Required]
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    [StringLength(200)]
+    public string? Store { get; init; }
+
+    public decimal? Value { get; init; }
+    public string? Currency { get; init; }
+    public decimal? DiscountPercent { get; init; }
+    public decimal? MinSpend { get; init; }
+    public decimal? ValuePerPoint { get; init; }
+
+    /// <summary>Kept encrypted; send the current one back on an edit (null removes it).</summary>
+    [StringLength(200)]
+    public string? Code { get; init; }
+
+    [StringLength(50)]
+    public string? Pin { get; init; }
+
+    public DateOnly? ExpiresOn { get; init; }
+    public int? ReminderDays { get; init; }
+    public int? PurchaseId { get; init; }
+    public int? AccountId { get; init; }
+    public DateOnly? ExpectedBy { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    /// <summary>On create only (voucher / gift card / store credit): you paid for it — one purchase with its Finance expense.</summary>
+    public BenefitMoneyRequest? Bought { get; init; }
+
+    public DateOnly Today { get; init; }
+
+    [StringLength(100)]
+    public string? TimeZone { get; init; }
+}
+
+public class RedemptionRequest
+{
+    public DateOnly RedeemedOn { get; init; }
+    public decimal? Amount { get; init; }
+    public int? Points { get; init; }
+    public int? PurchaseId { get; init; }
+
+    [StringLength(500)]
+    public string? Notes { get; init; }
+
+    /// <summary>Points cashed in to an account: one Finance income worth points × value per point.</summary>
+    public BenefitMoneyRequest? CashIn { get; init; }
+
+    public DateOnly Today { get; init; }
+
+    [StringLength(100)]
+    public string? TimeZone { get; init; }
+}
+
+public class PointBatchRequest
+{
+    public DateOnly EarnedOn { get; init; }
+    public int Points { get; init; }
+    public DateOnly? ExpiresOn { get; init; }
+    public int? PurchaseId { get; init; }
+
+    [StringLength(500)]
+    public string? Notes { get; init; }
+
+    public DateOnly Today { get; init; }
+
+    [StringLength(100)]
+    public string? TimeZone { get; init; }
+}
+
+/// <summary>Cashback landed: the day and, to record it in Finance, the account it arrived in.</summary>
+public class CashbackReceivedRequest
+{
+    public DateOnly ReceivedOn { get; init; }
+
+    /// <summary>Null: received, but not recorded in Finance.</summary>
+    public int? AccountId { get; init; }
+
+    public decimal? ExchangeRate { get; init; }
+    public DateOnly Today { get; init; }
+}
+
+/// <summary>The rewards page's totals, per currency.</summary>
+public class RewardsSummaryDto
+{
+    /// <summary>Money you can still spend (vouchers, cards, credit) plus points' worth.</summary>
+    public List<MoneyAmountDto> Usable { get; init; } = [];
+    /// <summary>What ran out unused this calendar year.</summary>
+    public List<MoneyAmountDto> LostThisYear { get; init; } = [];
+    /// <summary>Cashback received this calendar year.</summary>
+    public List<MoneyAmountDto> CashbackThisYear { get; init; } = [];
+    /// <summary>Cashback still to come (exposed for the forecasts of Session 71a).</summary>
+    public List<MoneyAmountDto> CashbackPending { get; init; } = [];
+}
+
+/// <summary>Using a voucher or coupon on a purchase being recorded.</summary>
+public class PurchaseRedemptionRequest
+{
+    public int BenefitId { get; init; }
+    /// <summary>What it took off the bill (money benefits and coupons).</summary>
+    public decimal? Amount { get; init; }
+    /// <summary>Points spent on it.</summary>
+    public int? Points { get; init; }
 }

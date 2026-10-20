@@ -72,6 +72,8 @@ export interface PurchasePayload {
   warranty: PurchaseWarranty | null;
   shoppingListItemIds: number[];
   wishlistItemId: number | null;
+  /** Vouchers, coupons or points used on it (create only). */
+  redemptions: PurchaseRedemption[];
   today: string;
   timeZone: string;
 }
@@ -140,6 +142,127 @@ export interface WishlistItemPayload {
   currency: string | null;
   priority: WishPriority;
   notes: string | null;
+}
+
+// ---- Rewards & vouchers (Session 70a) ----
+
+export const BENEFIT_KINDS = [
+  'Voucher',
+  'GiftCard',
+  'StoreCredit',
+  'Coupon',
+  'Cashback',
+  'Points',
+  'WalletCredit',
+] as const;
+export type BenefitKind = (typeof BENEFIT_KINDS)[number];
+export type BenefitStatus = 'Usable' | 'UsedUp' | 'Expired' | 'Pending' | 'Received';
+
+export interface Benefit {
+  id: number;
+  kind: BenefitKind;
+  name: string;
+  /** Where it can be used — or, for points, the programme. */
+  store: string | null;
+  value: number | null;
+  currency: string | null;
+  discountPercent: number | null;
+  minSpend: number | null;
+  valuePerPoint: number | null;
+  hasCode: boolean;
+  hasPin: boolean;
+  /** Only on a single benefit's read. */
+  code: string | null;
+  pin: string | null;
+  expiresOn: string | null;
+  reminderDays: number | null;
+  purchaseId: number | null;
+  purchaseTitle: string | null;
+  accountId: number | null;
+  accountName: string | null;
+  expectedBy: string | null;
+  receivedOn: string | null;
+  transactionId: number | null;
+  notes: string | null;
+  // Computed on the server for the day asked:
+  status: BenefitStatus;
+  balance: number | null;
+  pointsAvailable: number | null;
+  pointsValue: number | null;
+  lost: number;
+  lostOn: string | null;
+  expiringSoon: boolean;
+  overdue: boolean;
+  nextExpiry: string | null;
+}
+
+export interface BenefitRedemption {
+  id: number;
+  redeemedOn: string;
+  amount: number | null;
+  points: number | null;
+  purchaseId: number | null;
+  purchaseTitle: string | null;
+  transactionId: number | null;
+  notes: string | null;
+}
+
+export interface PointBatch {
+  id: number;
+  earnedOn: string;
+  points: number;
+  expiresOn: string | null;
+  purchaseId: number | null;
+  purchaseTitle: string | null;
+  notes: string | null;
+  remaining: number;
+}
+
+export interface BenefitDetail {
+  benefit: Benefit;
+  redemptions: BenefitRedemption[];
+  batches: PointBatch[];
+}
+
+export interface BenefitMoney {
+  accountId: number;
+  exchangeRate: number | null;
+}
+
+export interface BenefitPayload {
+  kind: BenefitKind;
+  name: string;
+  store: string | null;
+  value: number | null;
+  currency: string | null;
+  discountPercent: number | null;
+  minSpend: number | null;
+  valuePerPoint: number | null;
+  code: string | null;
+  pin: string | null;
+  expiresOn: string | null;
+  reminderDays: number | null;
+  purchaseId: number | null;
+  accountId: number | null;
+  expectedBy: string | null;
+  notes: string | null;
+  /** Create only: you paid for it (one purchase with its expense). */
+  bought: BenefitMoney | null;
+  today: string;
+}
+
+export interface RewardsSummary {
+  usable: MoneyAmount[];
+  lostThisYear: MoneyAmount[];
+  cashbackThisYear: MoneyAmount[];
+  cashbackPending: MoneyAmount[];
+}
+
+/** A voucher, coupon or points used while recording a purchase. */
+export interface PurchaseRedemption {
+  benefitId: number;
+  amount: number | null;
+  points: number | null;
 }
 
 /** Purchases, shopping lists and the wishlist (`api/Purchases/*`). */
@@ -313,5 +436,151 @@ export class PurchasesService {
       tap(() => this.remindersService.notifyChanged()),
       map(() => undefined),
     );
+  }
+
+  // ---- Rewards & vouchers ----
+
+  benefits(today: string): Observable<Benefit[]> {
+    return this.http
+      .get<ApiResponse<Benefit[]>>(`${this.base}/Benefits`, { params: { today } })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  /** With its code and PIN, uses and points batches. */
+  benefit(id: number, today: string): Observable<BenefitDetail> {
+    return this.http
+      .get<ApiResponse<BenefitDetail>>(`${this.base}/Benefits/${id}`, { params: { today } })
+      .pipe(map((response) => response.data!));
+  }
+
+  rewardsSummary(today: string): Observable<RewardsSummary> {
+    return this.http
+      .get<ApiResponse<RewardsSummary>>(`${this.base}/Benefits/summary`, { params: { today } })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** What can be used at a store today (offered while recording a purchase). */
+  usableAt(store: string, today: string): Observable<Benefit[]> {
+    return this.http
+      .get<ApiResponse<Benefit[]>>(`${this.base}/Benefits/usable`, { params: { store, today } })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  /** Expiring within 30 days or cashback overdue (My Day). */
+  rewardsAttention(today: string): Observable<Benefit[]> {
+    return this.http
+      .get<ApiResponse<Benefit[]>>(`${this.base}/Benefits/attention`, { params: { today } })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  /** Saving moves (or removes) the expiry reminder. */
+  saveBenefit(id: number | null, payload: BenefitPayload): Observable<BenefitDetail> {
+    const body = { ...payload, timeZone: browserTimeZone() };
+    const request = id
+      ? this.http.put<ApiResponse<BenefitDetail>>(`${this.base}/Benefits/${id}`, body)
+      : this.http.post<ApiResponse<BenefitDetail>>(`${this.base}/Benefits`, body);
+    return request.pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map((response) => response.data!),
+    );
+  }
+
+  removeBenefit(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Benefits/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  /** Used some: money, a coupon (once) or points — points may be cashed in to an account. */
+  redeem(
+    id: number,
+    payload: {
+      redeemedOn: string;
+      amount: number | null;
+      points: number | null;
+      notes: string | null;
+      cashIn: BenefitMoney | null;
+      today: string;
+    },
+  ): Observable<BenefitDetail> {
+    return this.http
+      .post<ApiResponse<BenefitDetail>>(`${this.base}/Benefits/${id}/redemptions`, {
+        ...payload,
+        timeZone: browserTimeZone(),
+      })
+      .pipe(
+        tap(() => this.remindersService.notifyChanged()),
+        map((response) => response.data!),
+      );
+  }
+
+  removeRedemption(id: number, redemptionId: number, today: string): Observable<BenefitDetail> {
+    return this.http
+      .delete<ApiResponse<BenefitDetail>>(
+        `${this.base}/Benefits/${id}/redemptions/${redemptionId}`,
+        {
+          params: { today },
+        },
+      )
+      .pipe(
+        tap(() => this.remindersService.notifyChanged()),
+        map((response) => response.data!),
+      );
+  }
+
+  addPoints(
+    id: number,
+    payload: {
+      earnedOn: string;
+      points: number;
+      expiresOn: string | null;
+      notes: string | null;
+      today: string;
+    },
+  ): Observable<BenefitDetail> {
+    return this.http
+      .post<ApiResponse<BenefitDetail>>(`${this.base}/Benefits/${id}/points`, {
+        ...payload,
+        timeZone: browserTimeZone(),
+      })
+      .pipe(
+        tap(() => this.remindersService.notifyChanged()),
+        map((response) => response.data!),
+      );
+  }
+
+  removePoints(id: number, batchId: number, today: string): Observable<BenefitDetail> {
+    return this.http
+      .delete<ApiResponse<BenefitDetail>>(`${this.base}/Benefits/${id}/points/${batchId}`, {
+        params: { today },
+      })
+      .pipe(
+        tap(() => this.remindersService.notifyChanged()),
+        map((response) => response.data!),
+      );
+  }
+
+  /** Cashback arrived: with an account, one Finance income. */
+  markReceived(
+    id: number,
+    payload: {
+      receivedOn: string;
+      accountId: number | null;
+      exchangeRate: number | null;
+      today: string;
+    },
+  ): Observable<BenefitDetail> {
+    return this.http
+      .put<ApiResponse<BenefitDetail>>(`${this.base}/Benefits/${id}/received`, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  undoReceived(id: number, today: string): Observable<BenefitDetail> {
+    return this.http
+      .delete<ApiResponse<BenefitDetail>>(`${this.base}/Benefits/${id}/received`, {
+        params: { today },
+      })
+      .pipe(map((response) => response.data!));
   }
 }

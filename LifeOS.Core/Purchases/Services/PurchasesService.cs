@@ -31,7 +31,8 @@ public class PurchasesService(
     IWarrantiesService warrantiesService,
     IAttachmentsService attachmentsService,
     IEntityLinksService entityLinksService,
-    IRemindersService remindersService) : IPurchasesService
+    IRemindersService remindersService,
+    IBenefitsService benefitsService) : IPurchasesService
 {
     private const string NotFound = "Purchase not found.";
 
@@ -95,7 +96,7 @@ public class PurchasesService(
             }
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         db.Purchases.Add(purchase);
         await db.SaveChangesAsync();
         await SetTagsAsync(purchase, request.TagIds);
@@ -180,6 +181,18 @@ public class PurchasesService(
         }
 
         await db.SaveChangesAsync();
+
+        // Vouchers, coupons or points used on it: each a use of that reward, on this purchase.
+        if (request.Redemptions.Count > 0)
+        {
+            var redeemError = await benefitsService.RedeemOnPurchaseAsync(
+                purchase.Id, purchase.PurchasedOn, request.Redemptions, request.Today, request.TimeZone);
+            if (redeemError is not null)
+            {
+                return OperationResult<PurchaseDto>.Fail(redeemError);
+            }
+        }
+
         await transaction.CommitAsync();
         return await GetAsync(purchase.Id);
     }
@@ -206,7 +219,7 @@ public class PurchasesService(
         }
 
         purchase.UpdatedAt = DateTime.UtcNow;
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         await db.SaveChangesAsync();
         await SetTagsAsync(purchase, request.TagIds);
         await transaction.CommitAsync();
@@ -232,7 +245,7 @@ public class PurchasesService(
         }
 
         var tagIds = await db.PurchaseTags.Where(t => t.PurchaseId == id).Select(t => t.TagId).ToListAsync();
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         var error = await RecordAsync(purchase, request, tagIds);
         if (error is not null)
         {
@@ -273,7 +286,7 @@ public class PurchasesService(
         }
 
         var now = DateTime.UtcNow;
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         // A purchase that didn't happen wasn't paid for: its expense goes too. The item it became stays yours.
         if (purchase.TransactionId is { } transactionId)
         {

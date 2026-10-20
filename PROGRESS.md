@@ -1105,3 +1105,12 @@
 - Test data: `home67` — Groceries list (Coffee to buy; Rice, Milk, Bread, Eggs bought), purchases Groceries (DMart, Nature's Basket) and Kindle (inventory + warranty), wish Camera.
 
 - Next up: **Session 70a — Rewards & vouchers**.
+
+## Last session: 2026-10-20 — Session 70a — Rewards & vouchers
+- Shipped (backend): pure `BenefitRules` (6 xUnit cases), `BenefitsService` + `api/Purchases/Benefits` (summary, usable at a store, My Day attention, uses, points, cashback received), rewards applied while recording a purchase, `Benefit` linkable; `PurchasesService`/`ShoppingListsService` now join a caller's transaction.
+- Shipped (frontend): `/purchases/rewards`, reward editor + reward dialog (show/copy code, use, points, cashback), "Rewards you can use here" in the purchase editor, My Day "Rewards to use" card, nav/search/reminder labels, opener; rewards view helpers (+ spec).
+- Verified: see plan row 70a. 442 backend + 243 frontend tests, all six zones; lint/Prettier/build clean.
+- Plan: **54a Mock interviews** added as you described — a manual record of voice interviews done in the Gemini app (no transcript, nothing AI inside LifeOS); totals 115 sessions ≈ 232 hours. Free AI tiers were answered for information only — no plan until you say.
+- Test data: `home67` — Amazon gift card (used up), Myntra voucher (expired, ₹400 lost), Croma 10% coupon (used), Mixer cashback (received), Flying Returns points (900), Swiggy voucher (runs out 30 Oct).
+
+- Next up: **Session 71 — Purchases 3** (subscriptions, returns, estimated vs actual).

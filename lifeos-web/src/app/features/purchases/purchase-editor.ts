@@ -2,14 +2,14 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { catchError, of } from 'rxjs';
+import { catchError, debounceTime, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { FinanceService } from '../../core/services/finance.service';
 import { HomeService } from '../../core/services/home.service';
-import { Purchase, PurchasesService } from '../../core/services/purchases.service';
+import { Benefit, Purchase, PurchasesService } from '../../core/services/purchases.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Attachments } from '../../shared/components/attachments/attachments';
@@ -17,6 +17,7 @@ import { EntityReminders } from '../../shared/components/entity-reminders/entity
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { TagPicker } from '../../shared/components/tag-picker/tag-picker';
 import { heldCurrencies } from '../finance/finance-view';
+import { benefitWorth, couponSaving } from './purchases-view';
 
 export type PurchaseEditorResult = { kind: 'saved'; purchase: Purchase } | { kind: 'deleted' };
 
@@ -266,6 +267,52 @@ export async function openPurchaseEditor(
             </div>
           }
         </section>
+
+        @if (!purchase() && usable().length) {
+          <section class="border-top pt-3" aria-labelledby="purchase-rewards">
+            <h3 id="purchase-rewards" class="h6">Rewards you can use here</h3>
+            <p class="small text-body-secondary mb-2">
+              "Paid" above is what left your pocket; ticking one records what it covered.
+            </p>
+            <ul class="list-unstyled mb-0">
+              @for (b of usable(); track b.id) {
+                <li class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                  <div class="form-check mb-0 flex-grow-1 min-w-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      [id]="'use-benefit-' + b.id"
+                      [checked]="applied()[b.id] !== undefined"
+                      (change)="toggleBenefit(b, $any($event.target).checked)"
+                    />
+                    <label class="form-check-label text-break" [for]="'use-benefit-' + b.id">
+                      {{ b.name }} <span class="small text-body-secondary">— {{ worth(b) }}</span>
+                    </label>
+                  </div>
+                  @if (applied()[b.id] !== undefined) {
+                    <div class="input-group input-group-sm w-auto">
+                      <label class="visually-hidden" [for]="'use-benefit-amount-' + b.id">
+                        {{ b.kind === 'Points' ? 'Points used' : 'Amount it covered' }}
+                      </label>
+                      <input
+                        [id]="'use-benefit-amount-' + b.id"
+                        type="number"
+                        min="0"
+                        [step]="b.kind === 'Points' ? 1 : 0.01"
+                        class="form-control"
+                        [value]="applied()[b.id]"
+                        (input)="setApplied(b.id, $any($event.target).valueAsNumber)"
+                      />
+                      <span class="input-group-text">{{
+                        b.kind === 'Points' ? 'points' : b.currency
+                      }}</span>
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+          </section>
+        }
 
         @if (!purchase()) {
           <section class="border-top pt-3" aria-labelledby="purchase-home">
@@ -554,6 +601,24 @@ export class PurchaseEditor {
       (a) => !a.isArchived && (!this.currency() || heldCurrencies(a).includes(this.currency())),
     ),
   );
+  /** Rewards usable at the store typed (new purchases only), refreshed as the store changes. */
+  protected readonly usable = toSignal(
+    this.form.controls.store.valueChanges.pipe(
+      debounceTime(300),
+      map((store) => store.trim()),
+      distinctUntilChanged(),
+      switchMap((store) =>
+        this.purchase()
+          ? of([])
+          : this.purchasesService.usableAt(store, todayIso()).pipe(catchError(() => of([]))),
+      ),
+    ),
+    { initialValue: [] as Benefit[] },
+  );
+  /** Ticked rewards: benefit id → amount (or points) it covered. */
+  protected readonly applied = signal<Record<number, number>>({});
+  protected readonly worth = benefitWorth;
+
   protected readonly lockedReason = computed(() =>
     this.purchase()?.transactionId
       ? 'What you paid and the day are in Finance — take the expense back to change them.'
@@ -701,6 +766,18 @@ export class PurchaseEditor {
         : null,
       shoppingListItemIds: existing ? [] : (prefill?.shoppingListItemIds ?? []),
       wishlistItemId: existing ? null : (prefill?.wishlistItemId ?? null),
+      redemptions: existing
+        ? []
+        : Object.entries(this.applied())
+            .filter(([, amount]) => amount > 0)
+            .map(([id, amount]) => {
+              const points = this.usable().find((b) => b.id === Number(id))?.kind === 'Points';
+              return {
+                benefitId: Number(id),
+                amount: points ? null : amount,
+                points: points ? Math.round(amount) : null,
+              };
+            }),
       today,
     });
     save.subscribe({
@@ -723,6 +800,31 @@ export class PurchaseEditor {
         this.toast.error(apiErrorMessage(err, 'Could not save the purchase.'));
       },
     });
+  }
+
+  /**
+   * Ticking a reward prefills what it covers: a coupon its saving on the bill (what was paid + expected, so the
+   * estimate when given), money up to its balance, points as many as are left.
+   */
+  protected toggleBenefit(b: Benefit, on: boolean): void {
+    const next = { ...this.applied() };
+    if (!on) {
+      delete next[b.id];
+    } else {
+      const v = this.form.getRawValue();
+      const bill = v.estimatedAmount ?? v.amount ?? 0;
+      next[b.id] =
+        b.kind === 'Coupon'
+          ? couponSaving(b.value, b.discountPercent, b.minSpend, bill)
+          : b.kind === 'Points'
+            ? (b.pointsAvailable ?? 0)
+            : Math.min(b.balance ?? 0, bill || (b.balance ?? 0));
+    }
+    this.applied.set(next);
+  }
+
+  protected setApplied(id: number, amount: number): void {
+    this.applied.set({ ...this.applied(), [id]: Number.isFinite(amount) ? amount : 0 });
   }
 
   protected async takeBackExpense(): Promise<void> {

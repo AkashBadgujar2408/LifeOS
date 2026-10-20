@@ -374,6 +374,11 @@
           <app-doses-card />
         }
 
+        <!-- Rewards: vouchers running out, cashback overdue -->
+        @if (!hidden().has('Purchases')) {
+          <app-rewards-card />
+        }
+
         <!-- Documents expiring -->
         @if (day.expiringDocuments.length > 0) {
           <section class="card" aria-labelledby="documents-heading">

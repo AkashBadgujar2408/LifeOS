@@ -386,6 +386,11 @@ export const routes: Routes = [
           import('./features/purchases/shopping-lists').then((m) => m.ShoppingLists),
       },
       {
+        path: 'purchases/rewards',
+        title: 'Rewards & vouchers | LifeOS',
+        loadComponent: () => import('./features/purchases/rewards').then((m) => m.Rewards),
+      },
+      {
         path: 'purchases/wishlist',
         title: 'Wishlist | LifeOS',
         loadComponent: () => import('./features/purchases/wishlist').then((m) => m.Wishlist),

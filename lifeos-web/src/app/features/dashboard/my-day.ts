@@ -55,6 +55,7 @@ import { KpiTiles } from './kpi-tiles';
 import { LifeBalance } from './life-balance';
 import { StoryRecap } from '../story/story-recap';
 import { DosesCard } from '../health/doses-card';
+import { RewardsCard } from '../purchases/rewards-card';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { apiErrorMessage } from '../../core/services/api-error';
 import type { HomeAgendaItem } from '../../core/services/home.service';
@@ -87,6 +88,7 @@ const GOALS_SHOWN = 4;
   imports: [
     DatePipe,
     DosesCard,
+    RewardsCard,
     NgTemplateOutlet,
     RouterLink,
     ReminderRow,
