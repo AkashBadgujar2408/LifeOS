@@ -55,6 +55,10 @@ public partial class Transaction
 
     public bool IsLoanDisbursement { get; set; }
 
+    public virtual Benefit? Benefit { get; set; }
+
+    public virtual BenefitRedemption? BenefitRedemption { get; set; }
+
     public virtual Employment? Employment { get; set; }
 
     public virtual Account? FromAccount { get; set; }
@@ -65,7 +69,11 @@ public partial class Transaction
 
     public virtual ICollection<MaintenanceLog> MaintenanceLogs { get; set; } = new List<MaintenanceLog>();
 
+    public virtual Purchase? Purchase { get; set; }
+
     public virtual RecurringTransaction? RecurringTransaction { get; set; }
+
+    public virtual Return? Return { get; set; }
 
     public virtual SideIncomeSource? SideIncomeSource { get; set; }
 

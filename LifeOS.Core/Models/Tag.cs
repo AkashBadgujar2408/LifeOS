@@ -39,6 +39,8 @@ public partial class Tag
 
     public virtual ICollection<KnowledgeNoteTag> KnowledgeNoteTags { get; set; } = new List<KnowledgeNoteTag>();
 
+    public virtual ICollection<PurchaseTag> PurchaseTags { get; set; } = new List<PurchaseTag>();
+
     public virtual ICollection<RecurringTransactionTag> RecurringTransactionTags { get; set; } = new List<RecurringTransactionTag>();
 
     public virtual ICollection<SkillTag> SkillTags { get; set; } = new List<SkillTag>();

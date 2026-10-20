@@ -10,7 +10,9 @@ namespace LifeOS.Core.Shared.ModelExtensions;
 /// column named <c>...Notes</c> in a sensitive schema holds ASP.NET Core Data Protection ciphertext: the value
 /// converter protects on write and unprotects on read, so services, DTOs and the exporter see plain text and SQL
 /// sees only "CfDJ8..." payloads (each such column has a <c>CK_..._NotesEncrypted</c> check that refuses anything
-/// else). A new sensitive column only needs that name; a new sensitive module adds its schema here.
+/// else). A new sensitive column only needs that name; a new sensitive module adds its schema here. Outside those
+/// schemas, a string column named <c>...Secret</c> (a voucher's code and PIN) is encrypted the same way
+/// (<c>CK_..._SecretsEncrypted</c>).
 /// </summary>
 public static class SensitiveColumns
 {
@@ -21,10 +23,11 @@ public static class SensitiveColumns
 
     public static bool IsEncrypted(IReadOnlyProperty property) =>
         property.ClrType == typeof(string)
-        && property.Name.EndsWith("Notes", StringComparison.Ordinal)
-        && property.DeclaringType is IReadOnlyEntityType entity
-        && entity.GetSchema() is { } schema
-        && Schemas.Contains(schema);
+        && (property.Name.EndsWith("Secret", StringComparison.Ordinal)
+            || (property.Name.EndsWith("Notes", StringComparison.Ordinal)
+                && property.DeclaringType is IReadOnlyEntityType entity
+                && entity.GetSchema() is { } schema
+                && Schemas.Contains(schema)));
 
     /// <summary>
     /// The converter for <paramref name="protector"/>. Without one (a context built from options alone, as tests do)

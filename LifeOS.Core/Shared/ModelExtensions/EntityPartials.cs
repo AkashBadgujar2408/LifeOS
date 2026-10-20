@@ -214,3 +214,23 @@ public partial class UtilityBill : ISoftDeletable, IUserOwned;
 public partial class HouseholdProject : ISoftDeletable, IUserOwned;
 
 public partial class FuelLog : ISoftDeletable, IUserOwned;
+
+public partial class ShoppingList : ISoftDeletable, IUserOwned;
+
+public partial class ShoppingListItem : ISoftDeletable, IUserOwned;
+
+public partial class WishlistItem : ISoftDeletable, IUserOwned;
+
+public partial class Purchase : ISoftDeletable, IUserOwned;
+
+public partial class PurchaseTag : ISoftDeletable, IUserOwned;
+
+public partial class Subscription : ISoftDeletable, IUserOwned;
+
+public partial class Return : ISoftDeletable, IUserOwned;
+
+public partial class Benefit : ISoftDeletable, IUserOwned;
+
+public partial class BenefitRedemption : ISoftDeletable, IUserOwned;
+
+public partial class PointBatch : ISoftDeletable, IUserOwned;

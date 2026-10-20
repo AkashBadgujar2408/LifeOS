@@ -39,6 +39,8 @@ public partial class Account
 
     public virtual ICollection<AccountCurrency> AccountCurrencies { get; set; } = new List<AccountCurrency>();
 
+    public virtual ICollection<Benefit> Benefits { get; set; } = new List<Benefit>();
+
     public virtual ICollection<Holding> Holdings { get; set; } = new List<Holding>();
 
     public virtual ICollection<Loan> Loans { get; set; } = new List<Loan>();
@@ -46,6 +48,8 @@ public partial class Account
     public virtual ICollection<RecurringTransaction> RecurringTransactionFromAccounts { get; set; } = new List<RecurringTransaction>();
 
     public virtual ICollection<RecurringTransaction> RecurringTransactionToAccounts { get; set; } = new List<RecurringTransaction>();
+
+    public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 
     public virtual ICollection<Transaction> TransactionFromAccounts { get; set; } = new List<Transaction>();
 

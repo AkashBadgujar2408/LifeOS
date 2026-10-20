@@ -19,7 +19,8 @@ export type ModuleKey =
   | 'Career'
   | 'Finance'
   | 'Health'
-  | 'Home';
+  | 'Home'
+  | 'Purchases';
 
 export interface ModuleInfo {
   key: ModuleKey;
@@ -60,6 +61,11 @@ export const MODULES: ModuleInfo[] = [
     key: 'Home',
     label: 'Home & assets',
     hides: 'properties, inventory, vehicles, warranties, maintenance, bills and household projects',
+  },
+  {
+    key: 'Purchases',
+    label: 'Purchases & rewards',
+    hides: 'shopping lists, wishlist, purchases, subscriptions, returns and rewards',
   },
   {
     key: 'Documents',

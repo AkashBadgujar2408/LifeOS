@@ -55,6 +55,8 @@ public partial class RecurringTransaction
 
     public virtual ICollection<RecurringTransactionTag> RecurringTransactionTags { get; set; } = new List<RecurringTransactionTag>();
 
+    public virtual Subscription? Subscription { get; set; }
+
     public virtual Account? ToAccount { get; set; }
 
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();

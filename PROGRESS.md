@@ -1089,3 +1089,10 @@
 - Test data: `home67` — "68b Friend loan" (flexible, ₹25,000 owed), "68b Bike loan" (EMI, behind), "68b Old car loan" (paid up to today), "68b Lent to Priya" (₹5,000 to come back), "Sister loan" (₹18,000 owed).
 
 - Next up: **Session 69 — Purchases 1** (schema, including the rewards tables — every money movement through Finance).
+
+## Last session: 2026-10-20 — Session 69 — Purchases 1: schema
+- Shipped: `15_shopping.sql` (schema `shopping`: ShoppingLists + items, WishlistItems, Purchases + PurchaseTags, Subscriptions, Returns, Benefits, BenefitRedemptions, PointBatches; UAT backed up, `LifeOS_UAT_pre69.bak`), Purchases in the module switch, scaffolded models + partials, `SensitiveColumns` now also encrypts any `…Secret` column (voucher code / PIN), `docs/ARCHITECTURE.md` row.
+- Verified: see plan row 69 — 28 rows refused/accepted as intended in a rolled-back transaction; fresh DB scaffolds identically; 432 backend tests.
+- Decisions (mine — say if you want them changed): a subscription charged to an account owns a Finance repeating transaction, so each charge is a real transaction; refunds, cashback and points cashed in are each one income; one return per purchase.
+
+- Next up: **Session 70 — Purchases 2** (lists, wishlist, purchase history).

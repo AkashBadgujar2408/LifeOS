@@ -41,6 +41,10 @@ public partial class User
 
     public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
 
+    public virtual ICollection<BenefitRedemption> BenefitRedemptions { get; set; } = new List<BenefitRedemption>();
+
+    public virtual ICollection<Benefit> Benefits { get; set; } = new List<Benefit>();
+
     public virtual ICollection<BodyMeasurement> BodyMeasurements { get; set; } = new List<BodyMeasurement>();
 
     public virtual ICollection<BookNote> BookNotes { get; set; } = new List<BookNote>();
@@ -167,9 +171,15 @@ public partial class User
 
     public virtual ICollection<PerformanceReview> PerformanceReviews { get; set; } = new List<PerformanceReview>();
 
+    public virtual ICollection<PointBatch> PointBatches { get; set; } = new List<PointBatch>();
+
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
 
     public virtual ICollection<Property> Properties { get; set; } = new List<Property>();
+
+    public virtual ICollection<PurchaseTag> PurchaseTags { get; set; } = new List<PurchaseTag>();
+
+    public virtual ICollection<Purchase> Purchases { get; set; } = new List<Purchase>();
 
     public virtual ICollection<RecoveryCode> RecoveryCodes { get; set; } = new List<RecoveryCode>();
 
@@ -181,6 +191,8 @@ public partial class User
 
     public virtual ICollection<ResumeVersion> ResumeVersions { get; set; } = new List<ResumeVersion>();
 
+    public virtual ICollection<Return> Returns { get; set; } = new List<Return>();
+
     public virtual ICollection<RoadmapStep> RoadmapSteps { get; set; } = new List<RoadmapStep>();
 
     public virtual ICollection<Roadmap> Roadmaps { get; set; } = new List<Roadmap>();
@@ -190,6 +202,10 @@ public partial class User
     public virtual ICollection<Routine> Routines { get; set; } = new List<Routine>();
 
     public virtual ICollection<SalaryRecord> SalaryRecords { get; set; } = new List<SalaryRecord>();
+
+    public virtual ICollection<ShoppingListItem> ShoppingListItems { get; set; } = new List<ShoppingListItem>();
+
+    public virtual ICollection<ShoppingList> ShoppingLists { get; set; } = new List<ShoppingList>();
 
     public virtual ICollection<SideIncomeSource> SideIncomeSources { get; set; } = new List<SideIncomeSource>();
 
@@ -202,6 +218,8 @@ public partial class User
     public virtual ICollection<SleepRecord> SleepRecords { get; set; } = new List<SleepRecord>();
 
     public virtual ICollection<StudySession> StudySessions { get; set; } = new List<StudySession>();
+
+    public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
 
@@ -234,6 +252,8 @@ public partial class User
     public virtual ICollection<WeeklyReflection> WeeklyReflections { get; set; } = new List<WeeklyReflection>();
 
     public virtual ICollection<WellnessCheckIn> WellnessCheckIns { get; set; } = new List<WellnessCheckIn>();
+
+    public virtual ICollection<WishlistItem> WishlistItems { get; set; } = new List<WishlistItem>();
 
     public virtual ICollection<Workout> Workouts { get; set; } = new List<Workout>();
 }

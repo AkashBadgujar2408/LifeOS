@@ -51,6 +51,8 @@ public partial class Asset
 
     public virtual Property? Property { get; set; }
 
+    public virtual ICollection<Purchase> Purchases { get; set; } = new List<Purchase>();
+
     public virtual User User { get; set; } = null!;
 
     public virtual ICollection<Warranty> Warranties { get; set; } = new List<Warranty>();

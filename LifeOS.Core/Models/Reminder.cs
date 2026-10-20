@@ -41,6 +41,8 @@ public partial class Reminder
 
     public DateOnly? OccurrenceDate { get; set; }
 
+    public virtual ICollection<Benefit> Benefits { get; set; } = new List<Benefit>();
+
     public virtual ICollection<Certification> Certifications { get; set; } = new List<Certification>();
 
     public virtual ICollection<Decision> Decisions { get; set; } = new List<Decision>();
@@ -52,6 +54,10 @@ public partial class Reminder
     public virtual ICollection<InsurancePolicy> InsurancePolicies { get; set; } = new List<InsurancePolicy>();
 
     public virtual ICollection<MaintenanceTask> MaintenanceTasks { get; set; } = new List<MaintenanceTask>();
+
+    public virtual ICollection<Return> Returns { get; set; } = new List<Return>();
+
+    public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 
     public virtual User User { get; set; } = null!;
 

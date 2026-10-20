@@ -12,7 +12,7 @@ public class HealthTests
     private static readonly DateOnly Today = new(2026, 10, 19);
 
     [Fact]
-    public void Only_the_notes_of_sensitive_schemas_are_encrypted()
+    public void Only_the_notes_of_sensitive_schemas_and_secrets_are_encrypted()
     {
         using var db = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseSqlServer("Server=none;Database=none").Options);
         var encrypted = db.Model.GetEntityTypes()
@@ -23,10 +23,11 @@ public class HealthTests
             .ToList();
 
         Assert.Equal(
-            ["BodyMeasurement.Notes", "DoctorVisit.Notes", "HealthProfile.Notes", "LabResult.Notes", "Meal.Notes",
+            ["Benefit.CodeSecret", "Benefit.PinSecret", "BodyMeasurement.Notes", "DoctorVisit.Notes", "HealthProfile.Notes", "LabResult.Notes", "Meal.Notes",
              "MedicalCondition.Notes", "Medication.Notes", "SleepRecord.Notes", "WellnessCheckIn.Notes", "Workout.Notes"],
             encrypted);
-        // Notes elsewhere (a goal's, an account's) stay plain.
+        // Notes elsewhere (a goal's, an account's, a voucher's) stay plain; a voucher's code and PIN don't.
+        Assert.Null(db.Model.FindEntityType(typeof(Benefit))!.FindProperty(nameof(Benefit.Notes))!.GetValueConverter());
         Assert.Null(db.Model.FindEntityType(typeof(Account))!.FindProperty(nameof(Account.Notes))!.GetValueConverter());
     }
 

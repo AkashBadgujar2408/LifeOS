@@ -23,6 +23,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Attachment> Attachments { get; set; }
 
+    public virtual DbSet<Benefit> Benefits { get; set; }
+
+    public virtual DbSet<BenefitRedemption> BenefitRedemptions { get; set; }
+
     public virtual DbSet<BodyMeasurement> BodyMeasurements { get; set; }
 
     public virtual DbSet<Book> Books { get; set; }
@@ -151,9 +155,15 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<PerformanceReview> PerformanceReviews { get; set; }
 
+    public virtual DbSet<PointBatch> PointBatches { get; set; }
+
     public virtual DbSet<Project> Projects { get; set; }
 
     public virtual DbSet<Property> Properties { get; set; }
+
+    public virtual DbSet<Purchase> Purchases { get; set; }
+
+    public virtual DbSet<PurchaseTag> PurchaseTags { get; set; }
 
     public virtual DbSet<RecoveryCode> RecoveryCodes { get; set; }
 
@@ -165,6 +175,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ResumeVersion> ResumeVersions { get; set; }
 
+    public virtual DbSet<Return> Returns { get; set; }
+
     public virtual DbSet<Roadmap> Roadmaps { get; set; }
 
     public virtual DbSet<RoadmapStep> RoadmapSteps { get; set; }
@@ -174,6 +186,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<RoutineHabit> RoutineHabits { get; set; }
 
     public virtual DbSet<SalaryRecord> SalaryRecords { get; set; }
+
+    public virtual DbSet<ShoppingList> ShoppingLists { get; set; }
+
+    public virtual DbSet<ShoppingListItem> ShoppingListItems { get; set; }
 
     public virtual DbSet<SideIncomeSource> SideIncomeSources { get; set; }
 
@@ -186,6 +202,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SleepRecord> SleepRecords { get; set; }
 
     public virtual DbSet<StudySession> StudySessions { get; set; }
+
+    public virtual DbSet<Subscription> Subscriptions { get; set; }
 
     public virtual DbSet<Tag> Tags { get; set; }
 
@@ -220,6 +238,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WeeklyReflection> WeeklyReflections { get; set; }
 
     public virtual DbSet<WellnessCheckIn> WellnessCheckIns { get; set; }
+
+    public virtual DbSet<WishlistItem> WishlistItems { get; set; }
 
     public virtual DbSet<Workout> Workouts { get; set; }
 
@@ -383,6 +403,83 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Attachments_Users");
+        });
+
+        modelBuilder.Entity<Benefit>(entity =>
+        {
+            entity.ToTable("Benefits", "shopping");
+
+            entity.HasIndex(e => e.TransactionId, "UX_Benefits_Transaction")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [TransactionId] IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Benefits_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.DiscountPercent).HasColumnType("decimal(5, 2)");
+            entity.Property(e => e.Kind).HasMaxLength(15);
+            entity.Property(e => e.MinSpend).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Store).HasMaxLength(200);
+            entity.Property(e => e.Value).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.ValuePerPoint).HasColumnType("decimal(19, 6)");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.Benefits)
+                .HasForeignKey(d => d.AccountId)
+                .HasConstraintName("FK_Benefits_Accounts");
+
+            entity.HasOne(d => d.Purchase).WithMany(p => p.Benefits)
+                .HasForeignKey(d => d.PurchaseId)
+                .HasConstraintName("FK_Benefits_Purchases");
+
+            entity.HasOne(d => d.Reminder).WithMany(p => p.Benefits)
+                .HasForeignKey(d => d.ReminderId)
+                .HasConstraintName("FK_Benefits_Reminders");
+
+            entity.HasOne(d => d.Transaction).WithOne(p => p.Benefit)
+                .HasForeignKey<Benefit>(d => d.TransactionId)
+                .HasConstraintName("FK_Benefits_Transactions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Benefits)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Benefits_Users");
+        });
+
+        modelBuilder.Entity<BenefitRedemption>(entity =>
+        {
+            entity.ToTable("BenefitRedemptions", "shopping");
+
+            entity.HasIndex(e => new { e.BenefitId, e.RedeemedOn }, "IX_BenefitRedemptions_Benefit").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.TransactionId, "UX_BenefitRedemptions_Transaction")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [TransactionId] IS NOT NULL)");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_BenefitRedemptions_CreatedAt");
+            entity.Property(e => e.Notes).HasMaxLength(500);
+
+            entity.HasOne(d => d.Benefit).WithMany(p => p.BenefitRedemptions)
+                .HasForeignKey(d => d.BenefitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BenefitRedemptions_Benefits");
+
+            entity.HasOne(d => d.Purchase).WithMany(p => p.BenefitRedemptions)
+                .HasForeignKey(d => d.PurchaseId)
+                .HasConstraintName("FK_BenefitRedemptions_Purchases");
+
+            entity.HasOne(d => d.Transaction).WithOne(p => p.BenefitRedemption)
+                .HasForeignKey<BenefitRedemption>(d => d.TransactionId)
+                .HasConstraintName("FK_BenefitRedemptions_Transactions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.BenefitRedemptions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_BenefitRedemptions_Users");
         });
 
         modelBuilder.Entity<BodyMeasurement>(entity =>
@@ -1948,6 +2045,30 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_PerformanceReviews_Users");
         });
 
+        modelBuilder.Entity<PointBatch>(entity =>
+        {
+            entity.ToTable("PointBatches", "shopping");
+
+            entity.HasIndex(e => new { e.BenefitId, e.EarnedOn }, "IX_PointBatches_Benefit").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_PointBatches_CreatedAt");
+            entity.Property(e => e.Notes).HasMaxLength(500);
+
+            entity.HasOne(d => d.Benefit).WithMany(p => p.PointBatches)
+                .HasForeignKey(d => d.BenefitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PointBatches_Benefits");
+
+            entity.HasOne(d => d.Purchase).WithMany(p => p.PointBatches)
+                .HasForeignKey(d => d.PurchaseId)
+                .HasConstraintName("FK_PointBatches_Purchases");
+
+            entity.HasOne(d => d.User).WithMany(p => p.PointBatches)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PointBatches_Users");
+        });
+
         modelBuilder.Entity<Project>(entity =>
         {
             entity.ToTable("Projects", "tasks");
@@ -1992,6 +2113,67 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Properties_Users");
+        });
+
+        modelBuilder.Entity<Purchase>(entity =>
+        {
+            entity.ToTable("Purchases", "shopping");
+
+            entity.HasIndex(e => new { e.UserId, e.PurchasedOn }, "IX_Purchases_User_On").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.TransactionId, "UX_Purchases_Transaction")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [TransactionId] IS NOT NULL)");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Purchases_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.EstimatedAmount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Store).HasMaxLength(200);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Asset).WithMany(p => p.Purchases)
+                .HasForeignKey(d => d.AssetId)
+                .HasConstraintName("FK_Purchases_Assets");
+
+            entity.HasOne(d => d.Transaction).WithOne(p => p.Purchase)
+                .HasForeignKey<Purchase>(d => d.TransactionId)
+                .HasConstraintName("FK_Purchases_Transactions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Purchases)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Purchases_Users");
+        });
+
+        modelBuilder.Entity<PurchaseTag>(entity =>
+        {
+            entity.ToTable("PurchaseTags", "shopping");
+
+            entity.HasIndex(e => new { e.PurchaseId, e.TagId }, "UX_PurchaseTags_Purchase_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_PurchaseTags_CreatedAt");
+
+            entity.HasOne(d => d.Purchase).WithMany(p => p.PurchaseTags)
+                .HasForeignKey(d => d.PurchaseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PurchaseTags_Purchases");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.PurchaseTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PurchaseTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.PurchaseTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PurchaseTags_Users");
         });
 
         modelBuilder.Entity<RecoveryCode>(entity =>
@@ -2116,6 +2298,42 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ResumeVersions_Users");
+        });
+
+        modelBuilder.Entity<Return>(entity =>
+        {
+            entity.ToTable("Returns", "shopping");
+
+            entity.HasIndex(e => new { e.PurchaseId, e.IsDeleted }, "UX_Returns_Purchase")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.RefundTransactionId, "UX_Returns_RefundTransaction")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [RefundTransactionId] IS NOT NULL)");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Returns_CreatedAt");
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.Property(e => e.RefundAmount).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.Purchase).WithMany(p => p.Returns)
+                .HasForeignKey(d => d.PurchaseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Returns_Purchases");
+
+            entity.HasOne(d => d.RefundTransaction).WithOne(p => p.Return)
+                .HasForeignKey<Return>(d => d.RefundTransactionId)
+                .HasConstraintName("FK_Returns_Transactions");
+
+            entity.HasOne(d => d.Reminder).WithMany(p => p.Returns)
+                .HasForeignKey(d => d.ReminderId)
+                .HasConstraintName("FK_Returns_Reminders");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Returns)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Returns_Users");
         });
 
         modelBuilder.Entity<Roadmap>(entity =>
@@ -2250,6 +2468,54 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_SalaryRecords_Users");
         });
 
+        modelBuilder.Entity<ShoppingList>(entity =>
+        {
+            entity.ToTable("ShoppingLists", "shopping");
+
+            entity.HasIndex(e => new { e.UserId, e.Name }, "UX_ShoppingLists_User_Name")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_ShoppingLists_CreatedAt");
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+
+            entity.HasOne(d => d.User).WithMany(p => p.ShoppingLists)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ShoppingLists_Users");
+        });
+
+        modelBuilder.Entity<ShoppingListItem>(entity =>
+        {
+            entity.ToTable("ShoppingListItems", "shopping");
+
+            entity.HasIndex(e => new { e.ListId, e.SortOrder }, "IX_ShoppingListItems_List").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_ShoppingListItems_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.EstimatedPrice).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Quantity).HasMaxLength(50);
+
+            entity.HasOne(d => d.List).WithMany(p => p.ShoppingListItems)
+                .HasForeignKey(d => d.ListId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ShoppingListItems_Lists");
+
+            entity.HasOne(d => d.Purchase).WithMany(p => p.ShoppingListItems)
+                .HasForeignKey(d => d.PurchaseId)
+                .HasConstraintName("FK_ShoppingListItems_Purchases");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ShoppingListItems)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ShoppingListItems_Users");
+        });
+
         modelBuilder.Entity<SideIncomeSource>(entity =>
         {
             entity.ToTable("SideIncomeSources", "career");
@@ -2377,6 +2643,47 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_StudySessions_Users");
+        });
+
+        modelBuilder.Entity<Subscription>(entity =>
+        {
+            entity.ToTable("Subscriptions", "shopping");
+
+            entity.HasIndex(e => e.RecurringTransactionId, "UX_Subscriptions_RecurringTransaction")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [RecurringTransactionId] IS NOT NULL)");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Subscriptions_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Provider).HasMaxLength(200);
+            entity.Property(e => e.RecurrenceFrequency).HasMaxLength(10);
+            entity.Property(e => e.RecurrenceInterval).HasDefaultValue(1, "DF_Subscriptions_Interval");
+            entity.Property(e => e.Status)
+                .HasMaxLength(10)
+                .HasDefaultValue("Active", "DF_Subscriptions_Status");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.Subscriptions)
+                .HasForeignKey(d => d.AccountId)
+                .HasConstraintName("FK_Subscriptions_Accounts");
+
+            entity.HasOne(d => d.RecurringTransaction).WithOne(p => p.Subscription)
+                .HasForeignKey<Subscription>(d => d.RecurringTransactionId)
+                .HasConstraintName("FK_Subscriptions_RecurringTransactions");
+
+            entity.HasOne(d => d.Reminder).WithMany(p => p.Subscriptions)
+                .HasForeignKey(d => d.ReminderId)
+                .HasConstraintName("FK_Subscriptions_Reminders");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Subscriptions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Subscriptions_Users");
         });
 
         modelBuilder.Entity<Tag>(entity =>
@@ -2862,6 +3169,35 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WellnessCheckIns_Users");
+        });
+
+        modelBuilder.Entity<WishlistItem>(entity =>
+        {
+            entity.ToTable("WishlistItems", "shopping");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_WishlistItems_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Price).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.Priority)
+                .HasMaxLength(10)
+                .HasDefaultValue("Medium", "DF_WishlistItems_Priority");
+            entity.Property(e => e.Store).HasMaxLength(200);
+            entity.Property(e => e.TargetPrice).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.Url).HasMaxLength(500);
+
+            entity.HasOne(d => d.Purchase).WithMany(p => p.WishlistItems)
+                .HasForeignKey(d => d.PurchaseId)
+                .HasConstraintName("FK_WishlistItems_Purchases");
+
+            entity.HasOne(d => d.User).WithMany(p => p.WishlistItems)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WishlistItems_Users");
         });
 
         modelBuilder.Entity<Workout>(entity =>
