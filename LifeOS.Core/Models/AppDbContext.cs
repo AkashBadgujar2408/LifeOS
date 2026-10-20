@@ -2495,7 +2495,6 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.RelativeContact).WithMany(p => p.RelationshipRelativeContacts)
                 .HasForeignKey(d => d.RelativeContactId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Relationships_RelativeContacts");
 
             entity.HasOne(d => d.User).WithMany(p => p.Relationships)

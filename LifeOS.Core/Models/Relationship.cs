@@ -11,7 +11,7 @@ public partial class Relationship
 
     public int? PersonContactId { get; set; }
 
-    public int RelativeContactId { get; set; }
+    public int? RelativeContactId { get; set; }
 
     public string Kind { get; set; } = null!;
 
@@ -27,7 +27,7 @@ public partial class Relationship
 
     public virtual Contact? PersonContact { get; set; }
 
-    public virtual Contact RelativeContact { get; set; } = null!;
+    public virtual Contact? RelativeContact { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

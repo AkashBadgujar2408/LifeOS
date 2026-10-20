@@ -16,8 +16,9 @@ IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'people')
     EXEC('CREATE SCHEMA people');
 GO
 
--- The family tree, as edges: RelativeContactId is PersonContactId's <Kind>. PersonContactId NULL = you ("Asha is my
--- Parent"). Parent is directed (a child is the same edge read the other way); Partner and Sibling go both ways, so
+-- The family tree, as edges: RelativeContactId is PersonContactId's <Kind>. A NULL side is you: PersonContactId NULL
+-- = "Asha is my Parent"; RelativeContactId NULL (Parent only) = "I'm Kiran's parent" — your child (Session 73).
+-- Parent is directed (a child is the same edge read the other way); Partner and Sibling go both ways, so
 -- they're stored once, the smaller id first (you, NULL, always first) — the unique index then catches either
 -- direction. Other needs a Label ("Cousin", "Godmother"); the others may carry one ("Step-mother", "Wife").
 -- Loops ("A is B's parent and B is A's") and a second kind between the same pair are refused by the service.
@@ -28,7 +29,7 @@ BEGIN
         Id                  INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Relationships PRIMARY KEY,
         UserId              INT               NOT NULL CONSTRAINT FK_Relationships_Users REFERENCES shared.Users(Id),
         PersonContactId     INT               NULL     CONSTRAINT FK_Relationships_PersonContacts REFERENCES shared.Contacts(Id),
-        RelativeContactId   INT               NOT NULL CONSTRAINT FK_Relationships_RelativeContacts REFERENCES shared.Contacts(Id),
+        RelativeContactId   INT               NULL     CONSTRAINT FK_Relationships_RelativeContacts REFERENCES shared.Contacts(Id),
         Kind                NVARCHAR(10)      NOT NULL CONSTRAINT CK_Relationships_Kind CHECK (Kind IN ('Parent', 'Partner', 'Sibling', 'Other')),
         Label               NVARCHAR(50)      NULL     CONSTRAINT CK_Relationships_Label CHECK (LEN(Label) > 0),
         CreatedAt           DATETIME2         NOT NULL CONSTRAINT DF_Relationships_CreatedAt DEFAULT (SYSUTCDATETIME()),
@@ -38,9 +39,29 @@ BEGIN
         CONSTRAINT CK_Relationships_NotSelf CHECK (PersonContactId IS NULL OR PersonContactId <> RelativeContactId),
         CONSTRAINT CK_Relationships_OtherLabel CHECK (Kind <> 'Other' OR Label IS NOT NULL),
         CONSTRAINT CK_Relationships_Canonical CHECK (Kind NOT IN ('Partner', 'Sibling') OR PersonContactId IS NULL
-            OR PersonContactId < RelativeContactId)
+            OR PersonContactId < RelativeContactId),
+        CONSTRAINT CK_Relationships_NotYouTwice CHECK (PersonContactId IS NOT NULL OR RelativeContactId IS NOT NULL),
+        CONSTRAINT CK_Relationships_YouAsParent CHECK (RelativeContactId IS NOT NULL OR Kind = 'Parent')
     );
 END
+GO
+
+-- Session 73: your children are Parent edges with you (NULL) as the relative. Databases created by the first
+-- Session 72 script have RelativeContactId NOT NULL; the indexes on it go first, the blocks below put them back.
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('people.Relationships') AND name = 'RelativeContactId' AND is_nullable = 0)
+BEGIN
+    DROP INDEX IF EXISTS UX_Relationships_Pair ON people.Relationships;
+    DROP INDEX IF EXISTS IX_Relationships_Relative ON people.Relationships;
+    ALTER TABLE people.Relationships ALTER COLUMN RelativeContactId INT NULL;
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Relationships_NotYouTwice')
+    ALTER TABLE people.Relationships ADD CONSTRAINT CK_Relationships_NotYouTwice CHECK (PersonContactId IS NOT NULL OR RelativeContactId IS NOT NULL);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_Relationships_YouAsParent')
+    ALTER TABLE people.Relationships ADD CONSTRAINT CK_Relationships_YouAsParent CHECK (RelativeContactId IS NOT NULL OR Kind = 'Parent');
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('people.Relationships') AND name = 'UX_Relationships_Pair')
