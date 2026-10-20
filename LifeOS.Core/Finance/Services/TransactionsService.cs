@@ -145,6 +145,8 @@ public class TransactionsService(
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsDeleted, true).SetProperty(t => t.DeletedAt, now));
         await db.TaxItems.Where(t => t.TransactionId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.TransactionId, (int?)null).SetProperty(t => t.UpdatedAt, now));
+        await db.MaintenanceLogs.Where(l => l.TransactionId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(l => l.TransactionId, (int?)null).SetProperty(l => l.UpdatedAt, now));
         transaction.IsDeleted = true;
         transaction.DeletedAt = now;
         await db.SaveChangesAsync();

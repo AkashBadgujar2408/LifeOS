@@ -175,6 +175,11 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Life administration',
     items: [
       { label: 'Documents', route: '/documents', icon: 'bi-folder2-open', module: 'Documents' },
+      { label: 'Home', route: '/home', icon: 'bi-house-door', exact: true, module: 'Home' },
+      { label: 'Inventory', route: '/home/inventory', icon: 'bi-box-seam', module: 'Home' },
+      { label: 'Vehicles', route: '/home/vehicles', icon: 'bi-car-front', module: 'Home' },
+      { label: 'Warranties', route: '/home/warranties', icon: 'bi-patch-check', module: 'Home' },
+      { label: 'Maintenance', route: '/home/maintenance', icon: 'bi-tools', module: 'Home' },
     ],
   },
   {

@@ -18,6 +18,8 @@ using LifeOS.Core.Finance.ServiceContracts;
 using LifeOS.Core.Finance.Services;
 using LifeOS.Core.Health.ServiceContracts;
 using LifeOS.Core.Health.Services;
+using LifeOS.Core.Home.ServiceContracts;
+using LifeOS.Core.Home.Services;
 using LifeOS.Core.Learning.ServiceContracts;
 using LifeOS.Core.Learning.Services;
 using LifeOS.Core.Models;
@@ -133,6 +135,13 @@ try
     builder.Services.AddScoped<ILabResultsService, LabResultsService>();
     builder.Services.AddScoped<IWellnessService, WellnessService>();
     builder.Services.AddScoped<IGoalTargetsService, GoalTargetsService>();
+    builder.Services.AddScoped<HomeReminders>();
+    builder.Services.AddScoped<IPropertiesService, PropertiesService>();
+    builder.Services.AddScoped<IAssetsService, AssetsService>();
+    builder.Services.AddScoped<IVehiclesService, VehiclesService>();
+    builder.Services.AddScoped<IWarrantiesService, WarrantiesService>();
+    builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
+    builder.Services.AddScoped<IHomeAgendaService, HomeAgendaService>();
     builder.Services.AddScoped<IStatementImportService, StatementImportService>();
     builder.Services.AddScoped<IFinanceReportsService, FinanceReportsService>();
     builder.Services.AddScoped<IAccountDataService, AccountDataService>();
@@ -186,6 +195,11 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, MedicationLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, MedicalConditionLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, LabResultLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, PropertyLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, AssetLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, VehicleLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, WarrantyLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, MaintenanceTaskLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

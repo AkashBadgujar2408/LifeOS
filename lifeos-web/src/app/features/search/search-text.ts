@@ -63,6 +63,11 @@ export const SEARCH_TYPE_ICONS: Record<string, string> = {
   Medication: 'bi-capsule',
   MedicalCondition: 'bi-heart-pulse',
   LabResult: 'bi-clipboard2-data',
+  Property: 'bi-house-door',
+  Asset: 'bi-box-seam',
+  Vehicle: 'bi-car-front',
+  Warranty: 'bi-patch-check',
+  MaintenanceTask: 'bi-tools',
 };
 
 /** The next highlighted row for an arrow key: wraps around at either end, -1 when there are no rows. */
@@ -109,4 +114,9 @@ export const SEARCH_GROUP_LABELS: Record<string, string> = {
   Medication: 'Medicines',
   MedicalCondition: 'Medical history',
   LabResult: 'Lab results',
+  Property: 'Properties',
+  Asset: 'Inventory',
+  Vehicle: 'Vehicles',
+  Warranty: 'Warranties',
+  MaintenanceTask: 'Maintenance',
 };

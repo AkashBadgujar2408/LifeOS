@@ -1,0 +1,377 @@
+using System.ComponentModel.DataAnnotations;
+using LifeOS.Core.Shared.DTOs;
+
+namespace LifeOS.Core.Home.DTOs;
+
+/// <summary>Matches the CHECKs in 14_home.sql (never rename a value — rows hold them).</summary>
+public static class HomeKinds
+{
+    public static readonly IReadOnlySet<string> PropertyKinds = new HashSet<string>(
+        ["House", "Apartment", "Land", "Office", "Other"], StringComparer.Ordinal);
+
+    public static readonly IReadOnlySet<string> Ownerships = new HashSet<string>(
+        ["Owned", "Rented", "Family", "Other"], StringComparer.Ordinal);
+
+    public const string Owned = "Owned";
+
+    public static readonly IReadOnlySet<string> VehicleKinds = new HashSet<string>(
+        ["Car", "Motorcycle", "Scooter", "Bicycle", "Other"], StringComparer.Ordinal);
+
+    public static readonly IReadOnlySet<string> WarrantyKinds = new HashSet<string>(
+        ["Warranty", "Extended", "AMC"], StringComparer.Ordinal);
+
+    public static readonly IReadOnlySet<string> DisposalKinds = new HashSet<string>(
+        ["Sold", "Donated", "Discarded", "Lost"], StringComparer.Ordinal);
+
+    public const string Sold = "Sold";
+}
+
+/// <summary>What a warranty covers or a maintenance task is about (the linkable type strings).</summary>
+public static class HomeTargets
+{
+    public const string Asset = "Asset";
+    public const string Vehicle = "Vehicle";
+    public const string Property = "Property";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>([Asset, Vehicle, Property], StringComparer.Ordinal);
+}
+
+/// <summary>Kinds of "coming up at home" items (Agenda, My Day).</summary>
+public static class HomeAgendaKinds
+{
+    public const string Warranty = "Warranty";
+    public const string Puc = "Puc";
+    public const string Registration = "Registration";
+    public const string Maintenance = "Maintenance";
+}
+
+// ---- Properties ----
+
+public class PropertyDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Kind { get; init; } = string.Empty;
+    public string Ownership { get; init; } = string.Empty;
+    public string? Address { get; init; }
+    public DateOnly? MovedInOn { get; init; }
+    public DateOnly? MovedOutOn { get; init; }
+    public DateOnly? PurchasedOn { get; init; }
+    public decimal? PurchasePrice { get; init; }
+    public string? Currency { get; init; }
+    public string? Notes { get; init; }
+    /// <summary>Things in the inventory there (not disposed).</summary>
+    public int AssetCount { get; init; }
+}
+
+public class PropertyRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    [Required]
+    public string Ownership { get; init; } = string.Empty;
+
+    [StringLength(500)]
+    public string? Address { get; init; }
+
+    public DateOnly? MovedInOn { get; init; }
+    public DateOnly? MovedOutOn { get; init; }
+    public DateOnly? PurchasedOn { get; init; }
+    public decimal? PurchasePrice { get; init; }
+    public string? Currency { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+}
+
+// ---- Assets (inventory) ----
+
+public class AssetDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public int? PropertyId { get; init; }
+    public string? PropertyName { get; init; }
+    public string? Room { get; init; }
+    public string? Brand { get; init; }
+    public string? Model { get; init; }
+    public string? SerialNumber { get; init; }
+    public int Quantity { get; init; }
+    public DateOnly? PurchasedOn { get; init; }
+    public decimal? PurchasePrice { get; init; }
+    public string? Currency { get; init; }
+    public DateOnly? DisposedOn { get; init; }
+    public string? DisposalKind { get; init; }
+    public decimal? DisposalAmount { get; init; }
+    public string? Notes { get; init; }
+    public List<TagDto> Tags { get; init; } = [];
+    /// <summary>The latest expiry among its warranties/AMCs (null: none).</summary>
+    public DateOnly? CoveredUntil { get; init; }
+}
+
+public class AssetRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    public int? PropertyId { get; init; }
+
+    [StringLength(100)]
+    public string? Room { get; init; }
+
+    [StringLength(100)]
+    public string? Brand { get; init; }
+
+    [StringLength(100)]
+    public string? Model { get; init; }
+
+    [StringLength(100)]
+    public string? SerialNumber { get; init; }
+
+    public int Quantity { get; init; } = 1;
+    public DateOnly? PurchasedOn { get; init; }
+    public decimal? PurchasePrice { get; init; }
+    public string? Currency { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    public List<int> TagIds { get; init; } = [];
+
+    /// <summary>The user's local today: a purchase can't be in the future.</summary>
+    public DateOnly Today { get; init; }
+}
+
+/// <summary>Selling, giving away, throwing out or losing something (null kind = it's back in the inventory).</summary>
+public class DisposalRequest
+{
+    public string? Kind { get; init; }
+    public DateOnly? On { get; init; }
+    /// <summary>What it sold for (Sold only), in the item's currency.</summary>
+    public decimal? Amount { get; init; }
+    public string? Currency { get; init; }
+    public DateOnly Today { get; init; }
+}
+
+// ---- Vehicles ----
+
+public class VehicleDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Kind { get; init; } = string.Empty;
+    public string? Make { get; init; }
+    public string? Model { get; init; }
+    public short? ModelYear { get; init; }
+    public string? RegistrationNumber { get; init; }
+    public DateOnly? PurchasedOn { get; init; }
+    public decimal? PurchasePrice { get; init; }
+    public string? Currency { get; init; }
+    public int? InsurancePolicyId { get; init; }
+    public string? InsurancePolicyName { get; init; }
+    public DateOnly? InsuranceRenewsOn { get; init; }
+    public DateOnly? InsuranceEndsOn { get; init; }
+    public DateOnly? PucValidUntil { get; init; }
+    public DateOnly? RegistrationValidUntil { get; init; }
+    public int? ReminderDays { get; init; }
+    public DateOnly? DisposedOn { get; init; }
+    public string? DisposalKind { get; init; }
+    public decimal? DisposalAmount { get; init; }
+    public string? Notes { get; init; }
+    /// <summary>The highest odometer reading logged with its maintenance (null: none).</summary>
+    public int? OdometerKm { get; set; }
+    /// <summary>Its maintenance task due soonest (not paused), with the computed day.</summary>
+    public int? NextServiceTaskId { get; set; }
+    public string? NextServiceTitle { get; set; }
+    public DateOnly? NextServiceOn { get; set; }
+}
+
+public class VehicleRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    [StringLength(100)]
+    public string? Make { get; init; }
+
+    [StringLength(100)]
+    public string? Model { get; init; }
+
+    public short? ModelYear { get; init; }
+
+    [StringLength(20)]
+    public string? RegistrationNumber { get; init; }
+
+    public DateOnly? PurchasedOn { get; init; }
+    public decimal? PurchasePrice { get; init; }
+    public string? Currency { get; init; }
+    public int? InsurancePolicyId { get; init; }
+    public DateOnly? PucValidUntil { get; init; }
+    public DateOnly? RegistrationValidUntil { get; init; }
+
+    /// <summary>Remind this many days before the PUC / registration run out (null: no reminders).</summary>
+    public int? ReminderDays { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    public DateOnly Today { get; init; }
+
+    /// <summary>The browser's IANA zone, for the reminders' 09:00 when Settings has none.</summary>
+    [StringLength(100)]
+    public string? TimeZone { get; init; }
+}
+
+// ---- Warranties ----
+
+public class WarrantyDto
+{
+    public int Id { get; init; }
+    public string Kind { get; init; } = string.Empty;
+    /// <summary>Asset / Vehicle / Property.</summary>
+    public string CoverType { get; init; } = string.Empty;
+    public int CoverId { get; init; }
+    public string CoverName { get; init; } = string.Empty;
+    /// <summary>The covered asset or vehicle has been sold/given away/thrown out.</summary>
+    public bool CoverDisposed { get; init; }
+    public string? Provider { get; init; }
+    public DateOnly? StartsOn { get; init; }
+    public DateOnly ExpiresOn { get; init; }
+    public decimal? Cost { get; init; }
+    public string? Currency { get; init; }
+    public int? ContactId { get; init; }
+    public string? ContactName { get; init; }
+    public int? ReminderDays { get; init; }
+    public string? Notes { get; init; }
+}
+
+public class WarrantyRequest
+{
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    [Required]
+    public string CoverType { get; init; } = string.Empty;
+
+    public int CoverId { get; init; }
+
+    [StringLength(200)]
+    public string? Provider { get; init; }
+
+    public DateOnly? StartsOn { get; init; }
+    public DateOnly ExpiresOn { get; init; }
+    public decimal? Cost { get; init; }
+    public string? Currency { get; init; }
+    public int? ContactId { get; init; }
+    public int? ReminderDays { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    [StringLength(100)]
+    public string? TimeZone { get; init; }
+}
+
+// ---- Maintenance ----
+
+public class MaintenanceTaskDto
+{
+    public int Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    /// <summary>Asset / Vehicle / Property, or null when it isn't about one thing.</summary>
+    public string? TargetType { get; init; }
+    public int? TargetId { get; init; }
+    public string? TargetName { get; init; }
+    public string RecurrenceFrequency { get; init; } = string.Empty;
+    public int RecurrenceInterval { get; init; }
+    public DateOnly FirstDueOn { get; init; }
+    public bool IsPaused { get; init; }
+    public int? ContactId { get; init; }
+    public string? ContactName { get; init; }
+    public int? ReminderDays { get; init; }
+    public string? Notes { get; init; }
+    public DateOnly? LastDoneOn { get; init; }
+    public int TimesDone { get; init; }
+    /// <summary>Computed: FirstDueOn until first done, then the last time + the interval.</summary>
+    public DateOnly NextDueOn { get; set; }
+}
+
+public class MaintenanceTaskRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string Title { get; init; } = string.Empty;
+
+    public string? TargetType { get; init; }
+    public int? TargetId { get; init; }
+
+    [Required]
+    public string RecurrenceFrequency { get; init; } = string.Empty;
+
+    public int RecurrenceInterval { get; init; }
+    public DateOnly FirstDueOn { get; init; }
+    public bool IsPaused { get; init; }
+    public int? ContactId { get; init; }
+    public int? ReminderDays { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    [StringLength(100)]
+    public string? TimeZone { get; init; }
+}
+
+public class MaintenanceLogDto
+{
+    public int Id { get; init; }
+    public int MaintenanceTaskId { get; init; }
+    public DateOnly DoneOn { get; init; }
+    public decimal? Cost { get; init; }
+    public string? Currency { get; init; }
+    public int? OdometerKm { get; init; }
+    public int? TransactionId { get; init; }
+    public string? Notes { get; init; }
+}
+
+/// <summary>"Done" on a maintenance task: one log, after which the next due day moves on.</summary>
+public class MaintenanceDoneRequest
+{
+    public DateOnly DoneOn { get; init; }
+    public decimal? Cost { get; init; }
+    public string? Currency { get; init; }
+    public int? OdometerKm { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    public DateOnly Today { get; init; }
+
+    [StringLength(100)]
+    public string? TimeZone { get; init; }
+}
+
+// ---- Coming up ----
+
+/// <summary>Something at home that needs attention soon: a warranty/PUC/registration running out, maintenance due.</summary>
+public class HomeAgendaItemDto
+{
+    /// <summary>HomeAgendaKinds.</summary>
+    public string Kind { get; init; } = string.Empty;
+    /// <summary>What opening it opens (Warranty / Vehicle / MaintenanceTask).</summary>
+    public string EntityType { get; init; } = string.Empty;
+    public int EntityId { get; init; }
+    /// <summary>The item's own name ("Fridge", "Swift", "Service the car").</summary>
+    public string Title { get; init; } = string.Empty;
+    /// <summary>When it runs out / is due.</summary>
+    public DateOnly On { get; init; }
+}

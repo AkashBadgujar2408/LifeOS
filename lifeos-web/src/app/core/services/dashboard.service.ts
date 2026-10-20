@@ -1,3 +1,4 @@
+import type { HomeAgendaItem } from './home.service';
 import type { DocumentKind } from './documents.service';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -140,6 +141,8 @@ export interface MyDay {
   latestJournalEntry: MyDayJournalEntry | null;
   /** Expiring within 60 days or expired in the last 30, soonest first. */
   expiringDocuments: MyDayDocument[];
+  /** Home: warranties, PUC, registrations running out and maintenance due, soonest first. */
+  homeAgenda: HomeAgendaItem[];
   /** Nudges first, then good news — without the ones dismissed. */
   insights: Insight[];
   /** Today's insights the user dismissed (back once their situation changes, or on "Show"). */

@@ -404,6 +404,40 @@
           </section>
         }
 
+        <!-- Coming up at home -->
+        @if (day.homeAgenda.length > 0) {
+          <section class="card" aria-labelledby="home-agenda-heading">
+            <div class="card-body p-4">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <h2 id="home-agenda-heading" class="h5 mb-0">Coming up at home</h2>
+                <a routerLink="/home" class="small">Home &amp; assets</a>
+              </div>
+              <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                @for (item of day.homeAgenda; track item.kind + item.entityId) {
+                  @let status = homeStatus(item);
+                  <li class="d-flex flex-wrap align-items-center gap-2">
+                    <i
+                      class="bi {{ homeIcons[item.kind] }} text-body-secondary"
+                      aria-hidden="true"
+                    ></i>
+                    <a [routerLink]="homeLink(item)" class="fw-semibold me-auto">{{
+                      item.title
+                    }}</a>
+                    <span
+                      class="badge expiry-badge"
+                      [class.expiry-soon]="status.state === 'soon'"
+                      [class.expiry-expired]="status.state !== 'soon'"
+                    >
+                      {{ status.label }}
+                    </span>
+                    <span class="small text-body-secondary">{{ item.on | date }}</span>
+                  </li>
+                }
+              </ul>
+            </div>
+          </section>
+        }
+
         <!-- Inbox -->
         <section class="card" aria-labelledby="inbox-heading">
           <div class="card-body p-4">

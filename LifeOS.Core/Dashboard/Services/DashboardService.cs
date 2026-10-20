@@ -7,6 +7,7 @@ using LifeOS.Core.Finance.ServiceContracts;
 using LifeOS.Core.Goals.DTOs;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Habits.Services;
+using LifeOS.Core.Home.ServiceContracts;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.Services;
@@ -20,7 +21,7 @@ namespace LifeOS.Core.Dashboard.Services;
 /// user/soft-delete filtering; this class only turns rows into DTOs and works out what's computed, never stored
 /// (goal progress via GoalProgress, habit streaks via HabitStreaks).
 /// </summary>
-public class DashboardService(AppDbContext db, IBudgetsService budgetsService) : IDashboardService
+public class DashboardService(AppDbContext db, IBudgetsService budgetsService, IHomeAgendaService homeAgendaService) : IDashboardService
 {
     // A local day is 23-25 hours (DST); anything much longer means the client sent the wrong span.
     private static readonly TimeSpan MaxDayLength = TimeSpan.FromHours(26);
@@ -44,6 +45,7 @@ public class DashboardService(AppDbContext db, IBudgetsService budgetsService) :
 
         // Before the My Day reader opens: one connection runs one command at a time.
         var overBudget = await budgetsService.OverBudgetAsync(today);
+        var homeAgenda = await homeAgendaService.UpcomingAsync(today);
 
         var parameters = new DynamicParameters();
         parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
@@ -169,6 +171,7 @@ public class DashboardService(AppDbContext db, IBudgetsService budgetsService) :
                 Kind = d.Kind,
                 ExpiresOn = DateOnly.FromDateTime(d.ExpiresOn),
             }).ToList(),
+            HomeAgenda = homeAgenda,
         };
 
         myDay.Insights = DashboardInsights.Evaluate(new InsightInputs(

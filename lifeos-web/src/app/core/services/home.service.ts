@@ -1,0 +1,466 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map, tap } from 'rxjs';
+import { browserTimeZone } from '../dates/today';
+import { ApiResponse } from './api-response';
+import { RemindersService } from './reminders.service';
+import { Tag } from './tags.service';
+import { RecurrenceFrequency } from './tasks.service';
+
+// Same values as the CHECKs in 14_home.sql (never rename one).
+export const PROPERTY_KINDS = ['House', 'Apartment', 'Land', 'Office', 'Other'] as const;
+export type PropertyKind = (typeof PROPERTY_KINDS)[number];
+
+export const OWNERSHIPS = ['Owned', 'Rented', 'Family', 'Other'] as const;
+export type Ownership = (typeof OWNERSHIPS)[number];
+
+export const VEHICLE_KINDS = ['Car', 'Motorcycle', 'Scooter', 'Bicycle', 'Other'] as const;
+export type VehicleKind = (typeof VEHICLE_KINDS)[number];
+
+export const WARRANTY_KINDS = ['Warranty', 'Extended', 'AMC'] as const;
+export type WarrantyKind = (typeof WARRANTY_KINDS)[number];
+
+export const DISPOSAL_KINDS = ['Sold', 'Donated', 'Discarded', 'Lost'] as const;
+export type DisposalKind = (typeof DISPOSAL_KINDS)[number];
+
+/** What a warranty covers or maintenance is for — the linkable type strings. */
+export type HomeTargetType = 'Asset' | 'Vehicle' | 'Property';
+
+export type HomeAgendaKind = 'Warranty' | 'Puc' | 'Registration' | 'Maintenance';
+
+export interface Property {
+  id: number;
+  name: string;
+  kind: PropertyKind;
+  ownership: Ownership;
+  address: string | null;
+  movedInOn: string | null;
+  movedOutOn: string | null;
+  purchasedOn: string | null;
+  purchasePrice: number | null;
+  currency: string | null;
+  notes: string | null;
+  /** Things in the inventory there (not let go). */
+  assetCount: number;
+}
+
+export interface PropertyPayload {
+  name: string;
+  kind: PropertyKind;
+  ownership: Ownership;
+  address: string | null;
+  movedInOn: string | null;
+  movedOutOn: string | null;
+  purchasedOn: string | null;
+  purchasePrice: number | null;
+  currency: string | null;
+  notes: string | null;
+}
+
+/** Something in the inventory. Categories are tags; a disposal takes it out of the inventory, never deletes it. */
+export interface Asset {
+  id: number;
+  name: string;
+  propertyId: number | null;
+  propertyName: string | null;
+  room: string | null;
+  brand: string | null;
+  model: string | null;
+  serialNumber: string | null;
+  quantity: number;
+  purchasedOn: string | null;
+  purchasePrice: number | null;
+  currency: string | null;
+  disposedOn: string | null;
+  disposalKind: DisposalKind | null;
+  disposalAmount: number | null;
+  notes: string | null;
+  tags: Tag[];
+  /** The latest expiry among its warranties/AMCs. */
+  coveredUntil: string | null;
+}
+
+export interface AssetPayload {
+  name: string;
+  propertyId: number | null;
+  room: string | null;
+  brand: string | null;
+  model: string | null;
+  serialNumber: string | null;
+  quantity: number;
+  purchasedOn: string | null;
+  purchasePrice: number | null;
+  currency: string | null;
+  notes: string | null;
+  tagIds: number[];
+  today: string;
+}
+
+export interface DisposalPayload {
+  /** Null takes it back into the inventory. */
+  kind: DisposalKind | null;
+  on: string | null;
+  amount: number | null;
+  currency: string | null;
+  today: string;
+}
+
+export interface Vehicle {
+  id: number;
+  name: string;
+  kind: VehicleKind;
+  make: string | null;
+  model: string | null;
+  modelYear: number | null;
+  registrationNumber: string | null;
+  purchasedOn: string | null;
+  purchasePrice: number | null;
+  currency: string | null;
+  insurancePolicyId: number | null;
+  insurancePolicyName: string | null;
+  insuranceRenewsOn: string | null;
+  insuranceEndsOn: string | null;
+  pucValidUntil: string | null;
+  registrationValidUntil: string | null;
+  reminderDays: number | null;
+  disposedOn: string | null;
+  disposalKind: DisposalKind | null;
+  disposalAmount: number | null;
+  notes: string | null;
+  odometerKm: number | null;
+  nextServiceTaskId: number | null;
+  nextServiceTitle: string | null;
+  nextServiceOn: string | null;
+}
+
+export interface VehiclePayload {
+  name: string;
+  kind: VehicleKind;
+  make: string | null;
+  model: string | null;
+  modelYear: number | null;
+  registrationNumber: string | null;
+  purchasedOn: string | null;
+  purchasePrice: number | null;
+  currency: string | null;
+  insurancePolicyId: number | null;
+  pucValidUntil: string | null;
+  registrationValidUntil: string | null;
+  reminderDays: number | null;
+  notes: string | null;
+  today: string;
+  timeZone: string;
+}
+
+export interface Warranty {
+  id: number;
+  kind: WarrantyKind;
+  coverType: HomeTargetType;
+  coverId: number;
+  coverName: string;
+  /** What it covers has been let go. */
+  coverDisposed: boolean;
+  provider: string | null;
+  startsOn: string | null;
+  expiresOn: string;
+  cost: number | null;
+  currency: string | null;
+  contactId: number | null;
+  contactName: string | null;
+  reminderDays: number | null;
+  notes: string | null;
+}
+
+export interface WarrantyPayload {
+  kind: WarrantyKind;
+  coverType: HomeTargetType;
+  coverId: number;
+  provider: string | null;
+  startsOn: string | null;
+  expiresOn: string;
+  cost: number | null;
+  currency: string | null;
+  contactId: number | null;
+  reminderDays: number | null;
+  notes: string | null;
+  timeZone: string;
+}
+
+/** Maintenance that comes round again; nextDueOn is computed by the server, never stored. */
+export interface MaintenanceTask {
+  id: number;
+  title: string;
+  targetType: HomeTargetType | null;
+  targetId: number | null;
+  targetName: string | null;
+  recurrenceFrequency: RecurrenceFrequency;
+  recurrenceInterval: number;
+  firstDueOn: string;
+  isPaused: boolean;
+  contactId: number | null;
+  contactName: string | null;
+  reminderDays: number | null;
+  notes: string | null;
+  lastDoneOn: string | null;
+  timesDone: number;
+  nextDueOn: string;
+}
+
+export interface MaintenancePayload {
+  title: string;
+  targetType: HomeTargetType | null;
+  targetId: number | null;
+  recurrenceFrequency: RecurrenceFrequency;
+  recurrenceInterval: number;
+  firstDueOn: string;
+  isPaused: boolean;
+  contactId: number | null;
+  reminderDays: number | null;
+  notes: string | null;
+  timeZone: string;
+}
+
+export interface MaintenanceLog {
+  id: number;
+  maintenanceTaskId: number;
+  doneOn: string;
+  cost: number | null;
+  currency: string | null;
+  odometerKm: number | null;
+  transactionId: number | null;
+  notes: string | null;
+}
+
+export interface MaintenanceDonePayload {
+  doneOn: string;
+  cost: number | null;
+  currency: string | null;
+  odometerKm: number | null;
+  notes: string | null;
+  today: string;
+  timeZone: string;
+}
+
+/** Something at home needing attention soon (a warranty/PUC/registration running out, maintenance due). */
+export interface HomeAgendaItem {
+  kind: HomeAgendaKind;
+  /** What opening it opens: Warranty / Vehicle / MaintenanceTask. */
+  entityType: 'Warranty' | 'Vehicle' | 'MaintenanceTask';
+  entityId: number;
+  title: string;
+  on: string;
+}
+
+/** Home & assets (`api/Home/*`). Saves that move an owned reminder tell the reminders list to refresh. */
+@Injectable({ providedIn: 'root' })
+export class HomeService {
+  private readonly http = inject(HttpClient);
+  private readonly remindersService = inject(RemindersService);
+  private readonly base = '/api/Home';
+
+  // ---- Properties ----
+
+  properties(): Observable<Property[]> {
+    return this.http
+      .get<ApiResponse<Property[]>>(`${this.base}/Properties`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  property(id: number): Observable<Property> {
+    return this.http
+      .get<ApiResponse<Property>>(`${this.base}/Properties/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  saveProperty(id: number | null, payload: PropertyPayload): Observable<Property> {
+    const request = id
+      ? this.http.put<ApiResponse<Property>>(`${this.base}/Properties/${id}`, payload)
+      : this.http.post<ApiResponse<Property>>(`${this.base}/Properties`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  /** Warranties on the property go (with their reminders). */
+  removeProperty(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Properties/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  // ---- Inventory ----
+
+  assets(includeDisposed = false): Observable<Asset[]> {
+    const params = includeDisposed ? new HttpParams().set('includeDisposed', true) : undefined;
+    return this.http
+      .get<ApiResponse<Asset[]>>(`${this.base}/Assets`, { params })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  asset(id: number): Observable<Asset> {
+    return this.http
+      .get<ApiResponse<Asset>>(`${this.base}/Assets/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  saveAsset(id: number | null, payload: AssetPayload): Observable<Asset> {
+    const request = id
+      ? this.http.put<ApiResponse<Asset>>(`${this.base}/Assets/${id}`, payload)
+      : this.http.post<ApiResponse<Asset>>(`${this.base}/Assets`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  setAssetDisposal(id: number, payload: DisposalPayload): Observable<Asset> {
+    return this.http
+      .put<ApiResponse<Asset>>(`${this.base}/Assets/${id}/disposal`, payload)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Its warranties go with it (and their reminders). */
+  removeAsset(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Assets/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  // ---- Vehicles ----
+
+  vehicles(): Observable<Vehicle[]> {
+    return this.http
+      .get<ApiResponse<Vehicle[]>>(`${this.base}/Vehicles`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  vehicle(id: number): Observable<Vehicle> {
+    return this.http
+      .get<ApiResponse<Vehicle>>(`${this.base}/Vehicles/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Saving moves (or removes) the PUC and registration reminders. */
+  saveVehicle(id: number | null, payload: VehiclePayload): Observable<Vehicle> {
+    const request = id
+      ? this.http.put<ApiResponse<Vehicle>>(`${this.base}/Vehicles/${id}`, payload)
+      : this.http.post<ApiResponse<Vehicle>>(`${this.base}/Vehicles`, payload);
+    return request.pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map((response) => response.data!),
+    );
+  }
+
+  setVehicleDisposal(id: number, payload: DisposalPayload): Observable<Vehicle> {
+    return this.http
+      .put<ApiResponse<Vehicle>>(`${this.base}/Vehicles/${id}/disposal`, payload)
+      .pipe(
+        tap(() => this.remindersService.notifyChanged()),
+        map((response) => response.data!),
+      );
+  }
+
+  removeVehicle(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Vehicles/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  // ---- Warranties ----
+
+  warranties(): Observable<Warranty[]> {
+    return this.http
+      .get<ApiResponse<Warranty[]>>(`${this.base}/Warranties`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  warranty(id: number): Observable<Warranty> {
+    return this.http
+      .get<ApiResponse<Warranty>>(`${this.base}/Warranties/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  saveWarranty(id: number | null, payload: WarrantyPayload): Observable<Warranty> {
+    const request = id
+      ? this.http.put<ApiResponse<Warranty>>(`${this.base}/Warranties/${id}`, payload)
+      : this.http.post<ApiResponse<Warranty>>(`${this.base}/Warranties`, payload);
+    return request.pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map((response) => response.data!),
+    );
+  }
+
+  removeWarranty(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Warranties/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  // ---- Maintenance ----
+
+  maintenance(): Observable<MaintenanceTask[]> {
+    return this.http
+      .get<ApiResponse<MaintenanceTask[]>>(`${this.base}/Maintenance`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  maintenanceTask(id: number): Observable<MaintenanceTask> {
+    return this.http
+      .get<ApiResponse<MaintenanceTask>>(`${this.base}/Maintenance/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  saveMaintenance(id: number | null, payload: MaintenancePayload): Observable<MaintenanceTask> {
+    const request = id
+      ? this.http.put<ApiResponse<MaintenanceTask>>(`${this.base}/Maintenance/${id}`, payload)
+      : this.http.post<ApiResponse<MaintenanceTask>>(`${this.base}/Maintenance`, payload);
+    return request.pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map((response) => response.data!),
+    );
+  }
+
+  removeMaintenance(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Maintenance/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  maintenanceLogs(id: number): Observable<MaintenanceLog[]> {
+    return this.http
+      .get<ApiResponse<MaintenanceLog[]>>(`${this.base}/Maintenance/${id}/logs`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  /** Logs it done; the next due day and its reminder move on. */
+  markDone(id: number, payload: MaintenanceDonePayload): Observable<MaintenanceTask> {
+    return this.http
+      .post<ApiResponse<MaintenanceTask>>(`${this.base}/Maintenance/${id}/done`, payload)
+      .pipe(
+        tap(() => this.remindersService.notifyChanged()),
+        map((response) => response.data!),
+      );
+  }
+
+  removeLog(id: number, logId: number): Observable<MaintenanceTask> {
+    const params = new HttpParams().set('timeZone', browserTimeZone());
+    return this.http
+      .delete<ApiResponse<MaintenanceTask>>(`${this.base}/Maintenance/${id}/logs/${logId}`, {
+        params,
+      })
+      .pipe(
+        tap(() => this.remindersService.notifyChanged()),
+        map((response) => response.data!),
+      );
+  }
+
+  // ---- Coming up ----
+
+  agenda(today: string): Observable<HomeAgendaItem[]> {
+    return this.http
+      .get<ApiResponse<HomeAgendaItem[]>>(`${this.base}/Agenda`, {
+        params: new HttpParams().set('today', today),
+      })
+      .pipe(map((response) => response.data ?? []));
+  }
+}

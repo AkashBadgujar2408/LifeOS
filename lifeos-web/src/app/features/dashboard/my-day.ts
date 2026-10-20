@@ -57,6 +57,8 @@ import { StoryRecap } from '../story/story-recap';
 import { DosesCard } from '../health/doses-card';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { apiErrorMessage } from '../../core/services/api-error';
+import type { HomeAgendaItem } from '../../core/services/home.service';
+import { AGENDA_ICONS, agendaStatus } from '../home/home-view';
 
 const KIND_LABELS: Record<InboxKind, [singular: string, plural: string]> = {
   Task: ['Task', 'Tasks'],
@@ -122,6 +124,7 @@ export class MyDay {
   protected readonly habitToday = habitToday;
   protected readonly moodMeta = moodMeta;
   protected readonly expiryStatus = expiryStatus;
+  protected readonly homeIcons = AGENDA_ICONS;
 
   /** The user's local date; moves on if the page is still open after midnight (checked on tab focus). */
   protected readonly today = signal(todayIso());
@@ -227,6 +230,19 @@ export class MyDay {
     };
     window.addEventListener('focus', onFocus);
     this.destroyRef.onDestroy(() => window.removeEventListener('focus', onFocus));
+  }
+
+  protected homeStatus(item: HomeAgendaItem) {
+    return agendaStatus(item, this.today());
+  }
+
+  /** Each kind of home item opens the page that lists it. */
+  protected homeLink(item: HomeAgendaItem): string {
+    return item.entityType === 'Warranty'
+      ? '/home/warranties'
+      : item.entityType === 'Vehicle'
+        ? '/home/vehicles'
+        : '/home/maintenance';
   }
 
   protected load(): void {

@@ -30,6 +30,7 @@ import { openMedicationEditor } from '../health/medication-editor';
 import { openConditionEditor } from '../health/condition-editor';
 import { openLabEditor } from '../health/lab-editor';
 import { apiErrorMessage } from '../../core/services/api-error';
+import { HomeService } from '../../core/services/home.service';
 
 /**
  * Opens any linkable item by its type and id, the way the calendar does: tasks and events in their editor, goals,
@@ -52,6 +53,7 @@ export class EntityOpener {
   private readonly contactsService = inject(ContactsService);
   private readonly financeService = inject(FinanceService);
   private readonly healthService = inject(HealthService);
+  private readonly homeService = inject(HomeService);
 
   open(entityType: string, entityId: number): void {
     switch (entityType) {
@@ -168,6 +170,57 @@ export class EntityOpener {
         break;
       case 'JobApplication':
         void this.router.navigate(['/career/applications', entityId]);
+        break;
+      case 'Property':
+        this.homeService.property(entityId).subscribe({
+          next: async (property) =>
+            this.homeSaved(
+              await (
+                await import('../home/property-editor')
+              ).openPropertyEditor(this.modal, property),
+            ),
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the property.')),
+        });
+        break;
+      case 'Asset':
+        this.homeService.asset(entityId).subscribe({
+          next: async (asset) =>
+            this.homeSaved(
+              await (await import('../home/asset-editor')).openAssetEditor(this.modal, asset),
+            ),
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the item.')),
+        });
+        break;
+      case 'Vehicle':
+        this.homeService.vehicle(entityId).subscribe({
+          next: async (vehicle) =>
+            this.homeSaved(
+              await (await import('../home/vehicle-editor')).openVehicleEditor(this.modal, vehicle),
+            ),
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the vehicle.')),
+        });
+        break;
+      case 'Warranty':
+        this.homeService.warranty(entityId).subscribe({
+          next: async (warranty) =>
+            this.homeSaved(
+              await (
+                await import('../home/warranty-editor')
+              ).openWarrantyEditor(this.modal, warranty),
+            ),
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the warranty.')),
+        });
+        break;
+      case 'MaintenanceTask':
+        this.homeService.maintenanceTask(entityId).subscribe({
+          next: async (task) =>
+            this.homeSaved(
+              await (
+                await import('../home/maintenance-editor')
+              ).openMaintenanceEditor(this.modal, task),
+            ),
+          error: (err) => this.toast.error(apiErrorMessage(err, 'Could not open the maintenance.')),
+        });
         break;
       case 'InterviewQuestion':
         this.careerService.question(entityId).subscribe({
@@ -307,6 +360,14 @@ export class EntityOpener {
   private healthOpenFailed(err: unknown, message: string): void {
     if (!(err instanceof HealthLockedError)) {
       this.toast.error(apiErrorMessage(err, message));
+    }
+  }
+
+  /** Home editors are imported on demand above (kept out of the shell bundle, like Finance's). */
+  private homeSaved(result: { kind: 'saved' | 'deleted' } | null): void {
+    if (result) {
+      this.remindersService.notifyChanged();
+      this.toast.success(result.kind === 'saved' ? 'Saved.' : 'Deleted.');
     }
   }
 }

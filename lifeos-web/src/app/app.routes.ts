@@ -328,6 +328,31 @@ export const routes: Routes = [
         loadComponent: () => import('./features/health/wellness').then((m) => m.HealthWellness),
       },
       {
+        path: 'home',
+        title: 'Home & assets | LifeOS',
+        loadComponent: () => import('./features/home/home-overview').then((m) => m.HomeOverview),
+      },
+      {
+        path: 'home/inventory',
+        title: 'Inventory | LifeOS',
+        loadComponent: () => import('./features/home/inventory').then((m) => m.HomeInventory),
+      },
+      {
+        path: 'home/vehicles',
+        title: 'Vehicles | LifeOS',
+        loadComponent: () => import('./features/home/vehicles').then((m) => m.HomeVehicles),
+      },
+      {
+        path: 'home/warranties',
+        title: 'Warranties | LifeOS',
+        loadComponent: () => import('./features/home/warranties').then((m) => m.HomeWarranties),
+      },
+      {
+        path: 'home/maintenance',
+        title: 'Maintenance | LifeOS',
+        loadComponent: () => import('./features/home/maintenance').then((m) => m.HomeMaintenance),
+      },
+      {
         path: 'documents',
         title: 'Documents | LifeOS',
         loadComponent: () => import('./features/documents/documents').then((m) => m.Documents),

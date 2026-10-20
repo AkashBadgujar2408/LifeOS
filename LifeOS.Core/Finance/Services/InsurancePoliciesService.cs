@@ -105,6 +105,9 @@ public class InsurancePoliciesService(AppDbContext db, IEntityLinksService entit
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync();
+        // A vehicle it covered stays, just without insurance on record.
+        await db.Vehicles.Where(v => v.InsurancePolicyId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(v => v.InsurancePolicyId, (int?)null).SetProperty(v => v.UpdatedAt, DateTime.UtcNow));
         policy.IsDeleted = true;
         policy.DeletedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
