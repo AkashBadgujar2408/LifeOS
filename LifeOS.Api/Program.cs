@@ -151,6 +151,8 @@ try
     builder.Services.AddScoped<IShoppingListsService, ShoppingListsService>();
     builder.Services.AddScoped<IWishlistService, WishlistService>();
     builder.Services.AddScoped<IBenefitsService, BenefitsService>();
+    builder.Services.AddScoped<ISubscriptionsService, SubscriptionsService>();
+    builder.Services.AddScoped<IReturnsService, ReturnsService>();
     builder.Services.AddScoped<IStatementImportService, StatementImportService>();
     builder.Services.AddScoped<IFinanceReportsService, FinanceReportsService>();
     builder.Services.AddScoped<IAccountDataService, AccountDataService>();
@@ -215,6 +217,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, WishlistItemLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, ReturnLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, BenefitLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, SubscriptionLinkableProvider>();
 
     builder.Services.AddAutoMapper(cfg => { }, typeof(AppDbContext).Assembly);
 

@@ -127,3 +127,88 @@ public class WishlistController(IWishlistService wishlistService) : PurchasesCon
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id) => Found(await wishlistService.DeleteAsync(id));
 }
+
+[ApiController]
+[Area("Purchases")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class SubscriptionsController(ISubscriptionsService subscriptionsService) : PurchasesControllerBase
+{
+    /// <summary>GET api/Purchases/Subscriptions?today=&amp;timeZone= — all of them with the active ones' monthly / yearly totals.</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] DateOnly today, [FromQuery] string? timeZone) =>
+        today == default
+            ? BadRequest(ApiResponse<SubscriptionsOverviewDto>.Fail("Today's date is required."))
+            : Ok(ApiResponse<SubscriptionsOverviewDto>.Ok(await subscriptionsService.GetAllAsync(today, timeZone)));
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id, [FromQuery] DateOnly today) => Found(await subscriptionsService.GetAsync(id, today));
+
+    /// <summary>POST — with an account, its charges are written to Finance by a repeating transaction it owns.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Create(SubscriptionRequest request) => Result(await subscriptionsService.CreateAsync(request));
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, SubscriptionRequest request) => Result(await subscriptionsService.UpdateAsync(id, request));
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id) => Found(await subscriptionsService.DeleteAsync(id));
+}
+
+[ApiController]
+[Area("Purchases")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class ReturnsController(IReturnsService returnsService) : PurchasesControllerBase
+{
+    /// <summary>GET api/Purchases/Returns?today= — open first (return-by soonest), then awaiting refund, missed, refunded.</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] DateOnly today) =>
+        today == default
+            ? BadRequest(ApiResponse<List<ReturnDto>>.Fail("Today's date is required."))
+            : Ok(ApiResponse<List<ReturnDto>>.Ok(await returnsService.GetAllAsync(today)));
+
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> Get(int id, [FromQuery] DateOnly today) => Found(await returnsService.GetAsync(id, today));
+
+    [HttpPost]
+    public async Task<IActionResult> Create(ReturnRequest request) => Result(await returnsService.CreateAsync(request));
+
+    [HttpPut("{id:int}")]
+    public async Task<IActionResult> Update(int id, ReturnRequest request) => Result(await returnsService.UpdateAsync(id, request));
+
+    /// <summary>PUT …/{id}/refund — the refund arrived; with an account, one Finance income.</summary>
+    [HttpPut("{id:int}/refund")]
+    public async Task<IActionResult> Refund(int id, RefundRequest request) => Result(await returnsService.RefundAsync(id, request));
+
+    /// <summary>DELETE …/{id}/refund?today= — not refunded after all (its income is deleted).</summary>
+    [HttpDelete("{id:int}/refund")]
+    public async Task<IActionResult> UndoRefund(int id, [FromQuery] DateOnly today) => Result(await returnsService.UndoRefundAsync(id, today));
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id) => Found(await returnsService.DeleteAsync(id));
+}
+
+[ApiController]
+[Area("Purchases")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class AttentionController(IBenefitsService benefitsService, ISubscriptionsService subscriptionsService, IReturnsService returnsService)
+    : PurchasesControllerBase
+{
+    /// <summary>GET api/Purchases/Attention?today= — rewards running out, decide-by and return-by days (My Day).</summary>
+    [HttpGet]
+    public async Task<IActionResult> Get([FromQuery] DateOnly today)
+    {
+        if (today == default)
+        {
+            return BadRequest(ApiResponse<PurchasesAttentionDto>.Fail("Today's date is required."));
+        }
+
+        // One context: one query at a time.
+        var rewards = await benefitsService.AttentionAsync(today);
+        var subscriptions = await subscriptionsService.AttentionAsync(today);
+        var returns = await returnsService.AttentionAsync(today);
+        return Ok(ApiResponse<PurchasesAttentionDto>.Ok(new PurchasesAttentionDto { Rewards = rewards, Subscriptions = subscriptions, Returns = returns }));
+    }
+}

@@ -438,3 +438,151 @@ public class PurchaseRedemptionRequest
     /// <summary>Points spent on it.</summary>
     public int? Points { get; init; }
 }
+
+// ---- Subscriptions & returns (Session 71) ----
+
+public class SubscriptionTotalDto
+{
+    public string Currency { get; init; } = string.Empty;
+    public decimal Monthly { get; init; }
+    public decimal Yearly { get; init; }
+}
+
+public class SubscriptionDto
+{
+    public int Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string? Provider { get; init; }
+    public decimal Amount { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    /// <summary>Weekly / Monthly / Yearly.</summary>
+    public string RecurrenceFrequency { get; init; } = string.Empty;
+    public int RecurrenceInterval { get; init; }
+    public DateOnly StartedOn { get; init; }
+    /// <summary>Active / Paused / Cancelled.</summary>
+    public string Status { get; init; } = string.Empty;
+    public DateOnly? CancelledOn { get; init; }
+    /// <summary>The day to decide by (a trial's end, the last day before a renewal).</summary>
+    public DateOnly? CancelBy { get; init; }
+    /// <summary>Charged to this account: each charge is written to Finance by the subscription's repeating transaction.</summary>
+    public int? AccountId { get; init; }
+    public string? AccountName { get; init; }
+    public int? RecurringTransactionId { get; init; }
+    public int? ReminderDays { get; init; }
+    public string? Notes { get; init; }
+    // ---- Computed (SubscriptionRules) ----
+    public DateOnly? NextCharge { get; set; }
+    public decimal MonthlyCost { get; set; }
+    public bool DecideSoon { get; set; }
+}
+
+public class SubscriptionRequest
+{
+    [Required]
+    [StringLength(200)]
+    public string Name { get; init; } = string.Empty;
+
+    [StringLength(200)]
+    public string? Provider { get; init; }
+
+    public decimal Amount { get; init; }
+
+    [Required]
+    public string Currency { get; init; } = string.Empty;
+
+    [Required]
+    public string RecurrenceFrequency { get; init; } = "Monthly";
+
+    public int RecurrenceInterval { get; init; } = 1;
+    public DateOnly StartedOn { get; init; }
+
+    [Required]
+    public string Status { get; init; } = "Active";
+
+    public DateOnly? CancelledOn { get; init; }
+    public DateOnly? CancelBy { get; init; }
+    public int? AccountId { get; init; }
+    /// <summary>Only when the subscription's currency isn't the base currency (as for any transaction).</summary>
+    public decimal? ExchangeRate { get; init; }
+    public int? ReminderDays { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    public DateOnly Today { get; init; }
+
+    [StringLength(100)]
+    public string? TimeZone { get; init; }
+}
+
+public class SubscriptionsOverviewDto
+{
+    /// <summary>Running first (next charge soonest), then paused, then cancelled.</summary>
+    public List<SubscriptionDto> Subscriptions { get; init; } = [];
+    /// <summary>What the active ones cost, per currency.</summary>
+    public List<SubscriptionTotalDto> Totals { get; init; } = [];
+}
+
+public class ReturnDto
+{
+    public int Id { get; init; }
+    public int PurchaseId { get; init; }
+    public string PurchaseTitle { get; init; } = string.Empty;
+    public string? Store { get; init; }
+    public DateOnly PurchasedOn { get; init; }
+    public decimal PurchaseAmount { get; init; }
+    public string Currency { get; init; } = string.Empty;
+    public string? Reason { get; init; }
+    public DateOnly? ReturnBy { get; init; }
+    public DateOnly? ReturnedOn { get; init; }
+    public decimal? RefundAmount { get; init; }
+    public DateOnly? RefundedOn { get; init; }
+    /// <summary>The Finance income the refund arrived as.</summary>
+    public int? RefundTransactionId { get; init; }
+    public string? RefundAccountName { get; init; }
+    public int? ReminderDays { get; init; }
+    public string? Notes { get; init; }
+    /// <summary>Open / Missed / AwaitingRefund / Refunded (computed).</summary>
+    public string State { get; set; } = string.Empty;
+    public bool DueSoon { get; set; }
+}
+
+public class ReturnRequest
+{
+    public int PurchaseId { get; init; }
+
+    [StringLength(500)]
+    public string? Reason { get; init; }
+
+    public DateOnly? ReturnBy { get; init; }
+    public DateOnly? ReturnedOn { get; init; }
+    /// <summary>The refund expected (or received).</summary>
+    public decimal? RefundAmount { get; init; }
+    public int? ReminderDays { get; init; }
+
+    [StringLength(2000)]
+    public string? Notes { get; init; }
+
+    public DateOnly Today { get; init; }
+
+    [StringLength(100)]
+    public string? TimeZone { get; init; }
+}
+
+/// <summary>The refund arrived: the day and, to record it in Finance, the account it arrived in.</summary>
+public class RefundRequest
+{
+    public DateOnly RefundedOn { get; init; }
+    public decimal Amount { get; init; }
+    public int? AccountId { get; init; }
+    public decimal? ExchangeRate { get; init; }
+    public DateOnly Today { get; init; }
+}
+
+/// <summary>What My Day flags from Purchases: rewards running out, decide-by days, return-by days.</summary>
+public class PurchasesAttentionDto
+{
+    public List<BenefitDto> Rewards { get; init; } = [];
+    public List<SubscriptionDto> Subscriptions { get; init; } = [];
+    public List<ReturnDto> Returns { get; init; } = [];
+}

@@ -74,7 +74,8 @@ export class Calendar {
     SOURCE_TYPES.filter(
       (s) =>
         !(s === 'TaxItem' && this.hiddenModules().has('Finance')) &&
-        !(s === 'UtilityBill' && this.hiddenModules().has('Home')),
+        !(s === 'UtilityBill' && this.hiddenModules().has('Home')) &&
+        !(s === 'Subscription' && this.hiddenModules().has('Purchases')),
     ),
   );
   protected readonly sourceLabels = SOURCE_LABELS;
@@ -316,6 +317,11 @@ export class Calendar {
       case 'UtilityBill':
         // Bills open on their page (pay / edit there), keeping the Home editors out of the calendar's chunk.
         void this.router.navigate(['/home/bills']);
+        break;
+      case 'Subscription':
+        void this.router.navigate(['/purchases/subscriptions'], {
+          queryParams: { open: item.sourceId },
+        });
         break;
     }
   }

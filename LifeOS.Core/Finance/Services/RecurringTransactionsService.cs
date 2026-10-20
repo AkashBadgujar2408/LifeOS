@@ -125,9 +125,12 @@ public class RecurringTransactionsService(AppDbContext db) : IRecurringTransacti
         }
 
         var now = DateTime.UtcNow;
-        await using var transaction = await db.Database.BeginTransactionAsync();
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
         await db.RecurringTransactionTags.Where(t => t.RecurringTransactionId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsDeleted, true).SetProperty(t => t.DeletedAt, now));
+        // A subscription charged through it keeps going, just no longer written to Finance.
+        await db.Subscriptions.Where(s => s.RecurringTransactionId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.RecurringTransactionId, (int?)null).SetProperty(x => x.AccountId, (int?)null).SetProperty(x => x.UpdatedAt, now));
         schedule.IsDeleted = true;
         schedule.DeletedAt = now;
         await db.SaveChangesAsync();

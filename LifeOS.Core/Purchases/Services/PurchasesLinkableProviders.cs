@@ -108,7 +108,9 @@ public class ReturnLinkableProvider(AppDbContext db) : ILinkableEntityProvider
     public string DisplayName => "Return";
 
     public async Task<Dictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> ids) =>
-        await db.Returns.Where(r => ids.Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => "Return: " + r.Purchase.Title);
+        await db.Returns.Where(r => ids.Contains(r.Id))
+            .Select(r => new { r.Id, Title = "Return: " + r.Purchase.Title })
+            .ToDictionaryAsync(r => r.Id, r => r.Title);
 
     public async Task<List<LinkableItemDto>> SearchAsync(string? search, int take)
     {

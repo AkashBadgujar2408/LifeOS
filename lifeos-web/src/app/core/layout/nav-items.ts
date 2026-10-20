@@ -201,6 +201,18 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { label: 'Wishlist', route: '/purchases/wishlist', icon: 'bi-gift', module: 'Purchases' },
       {
+        label: 'Subscriptions',
+        route: '/purchases/subscriptions',
+        icon: 'bi-arrow-repeat',
+        module: 'Purchases',
+      },
+      {
+        label: 'Returns',
+        route: '/purchases/returns',
+        icon: 'bi-arrow-return-left',
+        module: 'Purchases',
+      },
+      {
         label: 'Rewards & vouchers',
         route: '/purchases/rewards',
         icon: 'bi-ticket-perforated',

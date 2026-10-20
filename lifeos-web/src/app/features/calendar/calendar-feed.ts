@@ -14,6 +14,7 @@ export const SOURCE_TYPES: CalendarSourceType[] = [
   'Goal',
   'TaxItem',
   'UtilityBill',
+  'Subscription',
 ];
 
 export const SOURCE_LABELS: Record<CalendarSourceType, string> = {
@@ -23,6 +24,7 @@ export const SOURCE_LABELS: Record<CalendarSourceType, string> = {
   Goal: 'Goal targets',
   TaxItem: 'Tax deadlines',
   UtilityBill: 'Bills',
+  Subscription: 'Renewals',
 };
 
 /**

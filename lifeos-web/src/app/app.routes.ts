@@ -386,6 +386,17 @@ export const routes: Routes = [
           import('./features/purchases/shopping-lists').then((m) => m.ShoppingLists),
       },
       {
+        path: 'purchases/subscriptions',
+        title: 'Subscriptions | LifeOS',
+        loadComponent: () =>
+          import('./features/purchases/subscriptions').then((m) => m.Subscriptions),
+      },
+      {
+        path: 'purchases/returns',
+        title: 'Returns | LifeOS',
+        loadComponent: () => import('./features/purchases/returns').then((m) => m.Returns),
+      },
+      {
         path: 'purchases/rewards',
         title: 'Rewards & vouchers | LifeOS',
         loadComponent: () => import('./features/purchases/rewards').then((m) => m.Rewards),

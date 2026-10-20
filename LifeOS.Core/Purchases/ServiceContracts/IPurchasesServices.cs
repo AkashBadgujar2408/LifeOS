@@ -74,3 +74,33 @@ public interface IBenefitsService
     /// <summary>Uses applied while recording a purchase (inside its transaction); an error refuses the purchase.</summary>
     Task<string?> RedeemOnPurchaseAsync(int purchaseId, DateOnly day, IReadOnlyList<PurchaseRedemptionRequest> uses, DateOnly today, string? zone);
 }
+
+/// <summary>Subscriptions: next charge and costs computed; charged to an account, each charge is a Finance transaction.</summary>
+public interface ISubscriptionsService
+{
+    /// <summary>All of them with the active ones' totals; moves each renewal reminder onto the next charge.</summary>
+    Task<SubscriptionsOverviewDto> GetAllAsync(DateOnly today, string? zone);
+    Task<OperationResult<SubscriptionDto>> GetAsync(int id, DateOnly today);
+    /// <summary>Decide-by days within a week or past (My Day).</summary>
+    Task<List<SubscriptionDto>> AttentionAsync(DateOnly today);
+    Task<OperationResult<SubscriptionDto>> CreateAsync(SubscriptionRequest request);
+    Task<OperationResult<SubscriptionDto>> UpdateAsync(int id, SubscriptionRequest request);
+    /// <summary>Stops its Finance charges (those written stay) and removes it.</summary>
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
+/// <summary>Returns: a deadline with its reminder, the refund received once into Finance.</summary>
+public interface IReturnsService
+{
+    /// <summary>Open first (return-by soonest), then awaiting refund, missed, refunded.</summary>
+    Task<List<ReturnDto>> GetAllAsync(DateOnly today);
+    Task<OperationResult<ReturnDto>> GetAsync(int id, DateOnly today);
+    /// <summary>Open returns due within a week or overdue (My Day).</summary>
+    Task<List<ReturnDto>> AttentionAsync(DateOnly today);
+    Task<OperationResult<ReturnDto>> CreateAsync(ReturnRequest request);
+    Task<OperationResult<ReturnDto>> UpdateAsync(int id, ReturnRequest request);
+    /// <summary>The refund arrived: with an account, one Finance income.</summary>
+    Task<OperationResult<ReturnDto>> RefundAsync(int id, RefundRequest request);
+    Task<OperationResult<ReturnDto>> UndoRefundAsync(int id, DateOnly today);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}

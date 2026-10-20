@@ -265,6 +265,106 @@ export interface PurchaseRedemption {
   points: number | null;
 }
 
+// ---- Subscriptions & returns (Session 71) ----
+
+export const SUBSCRIPTION_FREQUENCIES = ['Weekly', 'Monthly', 'Yearly'] as const;
+export type SubscriptionFrequency = (typeof SUBSCRIPTION_FREQUENCIES)[number];
+export const SUBSCRIPTION_STATUSES = ['Active', 'Paused', 'Cancelled'] as const;
+export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
+
+export interface Subscription {
+  id: number;
+  name: string;
+  provider: string | null;
+  amount: number;
+  currency: string;
+  recurrenceFrequency: SubscriptionFrequency;
+  recurrenceInterval: number;
+  startedOn: string;
+  status: SubscriptionStatus;
+  cancelledOn: string | null;
+  /** The day to decide by (a trial's end, the last day before a renewal). */
+  cancelBy: string | null;
+  /** Charged to this account: each charge is written to Finance. */
+  accountId: number | null;
+  accountName: string | null;
+  recurringTransactionId: number | null;
+  reminderDays: number | null;
+  notes: string | null;
+  nextCharge: string | null;
+  monthlyCost: number;
+  decideSoon: boolean;
+}
+
+export interface SubscriptionTotal {
+  currency: string;
+  monthly: number;
+  yearly: number;
+}
+
+export interface SubscriptionsOverview {
+  subscriptions: Subscription[];
+  totals: SubscriptionTotal[];
+}
+
+export interface SubscriptionPayload {
+  name: string;
+  provider: string | null;
+  amount: number;
+  currency: string;
+  recurrenceFrequency: SubscriptionFrequency;
+  recurrenceInterval: number;
+  startedOn: string;
+  status: SubscriptionStatus;
+  cancelledOn: string | null;
+  cancelBy: string | null;
+  accountId: number | null;
+  exchangeRate: number | null;
+  reminderDays: number | null;
+  notes: string | null;
+  today: string;
+}
+
+export type ReturnState = 'Open' | 'Missed' | 'AwaitingRefund' | 'Refunded';
+
+export interface PurchaseReturn {
+  id: number;
+  purchaseId: number;
+  purchaseTitle: string;
+  store: string | null;
+  purchasedOn: string;
+  purchaseAmount: number;
+  currency: string;
+  reason: string | null;
+  returnBy: string | null;
+  returnedOn: string | null;
+  refundAmount: number | null;
+  refundedOn: string | null;
+  refundTransactionId: number | null;
+  refundAccountName: string | null;
+  reminderDays: number | null;
+  notes: string | null;
+  state: ReturnState;
+  dueSoon: boolean;
+}
+
+export interface ReturnPayload {
+  purchaseId: number;
+  reason: string | null;
+  returnBy: string | null;
+  returnedOn: string | null;
+  refundAmount: number | null;
+  reminderDays: number | null;
+  notes: string | null;
+  today: string;
+}
+
+export interface PurchasesAttention {
+  rewards: Benefit[];
+  subscriptions: Subscription[];
+  returns: PurchaseReturn[];
+}
+
 /** Purchases, shopping lists and the wishlist (`api/Purchases/*`). */
 @Injectable({ providedIn: 'root' })
 export class PurchasesService {
@@ -466,13 +566,6 @@ export class PurchasesService {
       .pipe(map((response) => response.data ?? []));
   }
 
-  /** Expiring within 30 days or cashback overdue (My Day). */
-  rewardsAttention(today: string): Observable<Benefit[]> {
-    return this.http
-      .get<ApiResponse<Benefit[]>>(`${this.base}/Benefits/attention`, { params: { today } })
-      .pipe(map((response) => response.data ?? []));
-  }
-
   /** Saving moves (or removes) the expiry reminder. */
   saveBenefit(id: number | null, payload: BenefitPayload): Observable<BenefitDetail> {
     const body = { ...payload, timeZone: browserTimeZone() };
@@ -581,6 +674,100 @@ export class PurchasesService {
       .delete<ApiResponse<BenefitDetail>>(`${this.base}/Benefits/${id}/received`, {
         params: { today },
       })
+      .pipe(map((response) => response.data!));
+  }
+
+  // ---- Subscriptions & returns ----
+
+  subscriptions(today: string): Observable<SubscriptionsOverview> {
+    return this.http
+      .get<ApiResponse<SubscriptionsOverview>>(`${this.base}/Subscriptions`, {
+        params: { today, timeZone: browserTimeZone() },
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  subscription(id: number, today: string): Observable<Subscription> {
+    return this.http
+      .get<ApiResponse<Subscription>>(`${this.base}/Subscriptions/${id}`, { params: { today } })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Charged to an account, its charges are written to Finance; saving moves its renewal reminder. */
+  saveSubscription(id: number | null, payload: SubscriptionPayload): Observable<Subscription> {
+    const body = { ...payload, timeZone: browserTimeZone() };
+    const request = id
+      ? this.http.put<ApiResponse<Subscription>>(`${this.base}/Subscriptions/${id}`, body)
+      : this.http.post<ApiResponse<Subscription>>(`${this.base}/Subscriptions`, body);
+    return request.pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map((response) => response.data!),
+    );
+  }
+
+  removeSubscription(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Subscriptions/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  returns(today: string): Observable<PurchaseReturn[]> {
+    return this.http
+      .get<ApiResponse<PurchaseReturn[]>>(`${this.base}/Returns`, { params: { today } })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  /** Saving moves (or removes) the return-by reminder. */
+  saveReturn(id: number | null, payload: ReturnPayload): Observable<PurchaseReturn> {
+    const body = { ...payload, timeZone: browserTimeZone() };
+    const request = id
+      ? this.http.put<ApiResponse<PurchaseReturn>>(`${this.base}/Returns/${id}`, body)
+      : this.http.post<ApiResponse<PurchaseReturn>>(`${this.base}/Returns`, body);
+    return request.pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map((response) => response.data!),
+    );
+  }
+
+  /** The refund arrived: with an account, one Finance income. */
+  refund(
+    id: number,
+    payload: {
+      refundedOn: string;
+      amount: number;
+      accountId: number | null;
+      exchangeRate: number | null;
+      today: string;
+    },
+  ): Observable<PurchaseReturn> {
+    return this.http
+      .put<ApiResponse<PurchaseReturn>>(`${this.base}/Returns/${id}/refund`, payload)
+      .pipe(
+        tap(() => this.remindersService.notifyChanged()),
+        map((response) => response.data!),
+      );
+  }
+
+  undoRefund(id: number, today: string): Observable<PurchaseReturn> {
+    return this.http
+      .delete<ApiResponse<PurchaseReturn>>(`${this.base}/Returns/${id}/refund`, {
+        params: { today },
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  removeReturn(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Returns/${id}`).pipe(
+      tap(() => this.remindersService.notifyChanged()),
+      map(() => undefined),
+    );
+  }
+
+  /** Rewards running out, decide-by and return-by days (My Day). */
+  attention(today: string): Observable<PurchasesAttention> {
+    return this.http
+      .get<ApiResponse<PurchasesAttention>>(`${this.base}/Attention`, { params: { today } })
       .pipe(map((response) => response.data!));
   }
 }

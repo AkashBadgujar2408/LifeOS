@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { catchError, debounceTime, distinctUntilChanged, map, of, switchMap } from 'rxjs';
@@ -493,6 +494,17 @@ export async function openPurchaseEditor(
           ></textarea>
         </div>
         @if (purchase(); as p) {
+          <p class="small mb-0 border-top pt-3">
+            Not keeping it?
+            <button
+              type="button"
+              class="btn btn-link btn-sm p-0 align-baseline"
+              (click)="startReturn()"
+            >
+              Start a return
+            </button>
+            — you'll be reminded before the shop's deadline.
+          </p>
           <div class="border-top pt-3">
             <app-attachments entityType="Purchase" [entityId]="p.id" label="Receipts" />
           </div>
@@ -521,6 +533,7 @@ export class PurchaseEditor {
   private readonly purchasesService = inject(PurchasesService);
   private readonly settingsService = inject(SettingsService);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
   protected readonly activeModal = inject(NgbActiveModal);
 
   protected readonly minDate = { year: 1960, month: 1, day: 1 };
@@ -825,6 +838,16 @@ export class PurchaseEditor {
 
   protected setApplied(id: number, amount: number): void {
     this.applied.set({ ...this.applied(), [id]: Number.isFinite(amount) ? amount : 0 });
+  }
+
+  /** Returns live on their own page: close this and start one there for this purchase. */
+  protected startReturn(): void {
+    const purchase = this.purchase();
+    if (!purchase) {
+      return;
+    }
+    this.close();
+    void this.router.navigate(['/purchases/returns'], { queryParams: { purchase: purchase.id } });
   }
 
   protected async takeBackExpense(): Promise<void> {

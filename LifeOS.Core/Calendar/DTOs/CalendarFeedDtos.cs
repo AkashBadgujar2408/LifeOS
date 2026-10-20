@@ -9,6 +9,8 @@ public static class CalendarSourceTypes
     public const string Goal = "Goal";
     public const string TaxItem = "TaxItem";
     public const string UtilityBill = "UtilityBill";
+    /// <summary>A subscription's renewal (computed from its rhythm, never stored).</summary>
+    public const string Subscription = "Subscription";
 }
 
 /// <summary>

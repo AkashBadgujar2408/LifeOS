@@ -1114,3 +1114,13 @@
 - Test data: `home67` — Amazon gift card (used up), Myntra voucher (expired, ₹400 lost), Croma 10% coupon (used), Mixer cashback (received), Flying Returns points (900), Swiggy voucher (runs out 30 Oct).
 
 - Next up: **Session 71 — Purchases 3** (subscriptions, returns, estimated vs actual).
+
+## Last session: 2026-10-20 — Session 71 — Purchases 3: subscriptions, returns, estimated vs actual
+- Shipped (backend): pure `SubscriptionRules` (4 xUnit cases), `SubscriptionsService` (owns a Finance repeating transaction when charged to an account; renewal reminder), `ReturnsService` (return-by reminder, refund = one income), `Subscription` linkable, renewals in the calendar feed, `api/Purchases/{Subscriptions,Returns,Attention}`; schedule deletes release subscriptions and can join a caller's transaction.
+- Shipped (frontend): `/purchases/subscriptions`, `/purchases/returns`, "Start a return" on a purchase, My Day "Don't miss" card (rewards + decide-by + return-by), calendar "Renewals", nav/search/reminder labels, opener; helpers (+ spec).
+- Verified: see plan row 71. 446 backend + 244 frontend tests, all six zones; lint/Prettier/build clean; NuGet audit clean.
+- Found: the Return provider read a navigation on a just-added tracked entity (null) → it now projects in SQL first; noted in CLAUDE.md for every provider.
+- **Purchases (Sessions 69, 70, 70a, 71) is complete.**
+- Test data: `home67` — Netflix (cancelled, one charge in Finance), Amazon Prime (yearly, decide by 14 Nov), Spotify (decide by 24 Oct), returns for the Mixer (refunded) and the book (by 26 Oct).
+
+- Next up: **Session 71a — Financial planning 1** (cash-flow forecast), per the plan.

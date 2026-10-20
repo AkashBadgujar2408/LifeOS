@@ -4,6 +4,7 @@ import {
   couponSaving,
   estimateSummary,
   estimateText,
+  everyText,
   groupByMonth,
   groupRewards,
   leftText,
@@ -146,5 +147,14 @@ describe('rewards view', () => {
     expect(groups.cashback.map((b) => b.id)).toEqual([3]);
     expect(groups.points.map((b) => b.id)).toEqual([4]);
     expect(groups.finished.map((b) => b.id)).toEqual([5]);
+  });
+});
+
+describe('subscriptions view', () => {
+  it('says how often it charges', () => {
+    expect(everyText('Monthly', 1)).toBe('a month');
+    expect(everyText('Monthly', 3)).toBe('every 3 months');
+    expect(everyText('Yearly', 1)).toBe('a year');
+    expect(everyText('Weekly', 2)).toBe('every 2 weeks');
   });
 });

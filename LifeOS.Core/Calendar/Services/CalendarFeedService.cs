@@ -4,6 +4,7 @@ using LifeOS.Core.Calendar.DTOs;
 using LifeOS.Core.Calendar.ServiceContracts;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
+using LifeOS.Core.Purchases.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace LifeOS.Core.Calendar.Services;
@@ -54,8 +55,20 @@ public class CalendarFeedService(AppDbContext db) : ICalendarFeedService
         var series = (await reader.ReadAsync<EventSeriesRow>()).ToList();
         var skipped = (await reader.ReadAsync<SkippedDateRow>()).ToList();
 
+        // Subscription renewals repeat like event series: counted in C# for the range, never stored.
+        var renewals = (await SubscriptionsService.RenewalsAsync(db, from, to)).Select(r => new CalendarFeedItemDto
+        {
+            SourceType = CalendarSourceTypes.Subscription,
+            SourceId = r.Id,
+            Title = r.Name,
+            IsAllDay = true,
+            StartDate = r.Day,
+            EndDate = r.Day,
+        });
+
         var items = rows.Select(ToDto)
             .Concat(RecurringEvents.Expand(series, skipped, from, to, startUtc, endUtc).Select(o => ToDto(o.Series, o.Occurrence)))
+            .Concat(renewals)
             // The procedure's order, now with occurrences among the one-offs: date-based by date, then timed by start.
             .OrderByDescending(i => i.IsAllDay)
             .ThenBy(i => i.StartDate)

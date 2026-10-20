@@ -3,6 +3,8 @@ import type {
   BenefitKind,
   MoneyAmount,
   Purchase,
+  ReturnState,
+  SubscriptionFrequency,
   WishPriority,
 } from '../../core/services/purchases.service';
 import { formatMoney } from '../finance/finance-view';
@@ -198,3 +200,18 @@ export function groupRewards(benefits: readonly Benefit[]): RewardGroups {
     ),
   };
 }
+
+// ---- Subscriptions & returns ----
+
+/** "a month", "every 2 months", "a year", "a week". */
+export function everyText(frequency: SubscriptionFrequency, interval: number): string {
+  const unit = { Weekly: 'week', Monthly: 'month', Yearly: 'year' }[frequency];
+  return interval === 1 ? `a ${unit}` : `every ${interval} ${unit}s`;
+}
+
+export const RETURN_STATE_LABELS: Record<ReturnState, string> = {
+  Open: 'To send back',
+  Missed: 'Return day passed',
+  AwaitingRefund: 'Sent back — refund to come',
+  Refunded: 'Refunded',
+};

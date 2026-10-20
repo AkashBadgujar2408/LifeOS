@@ -238,6 +238,14 @@ export class EntityOpener {
       case 'ShoppingList':
         void this.router.navigate(['/purchases/lists', entityId]);
         break;
+      case 'Subscription':
+        void this.router.navigate(['/purchases/subscriptions'], {
+          queryParams: { open: entityId },
+        });
+        break;
+      case 'Return':
+        void this.router.navigate(['/purchases/returns'], { queryParams: { open: entityId } });
+        break;
       case 'Benefit':
         void this.router.navigate(['/purchases/rewards'], { queryParams: { open: entityId } });
         break;
