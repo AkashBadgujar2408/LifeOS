@@ -1,3 +1,4 @@
+import { FAMILY_LOG_ROUTES } from './features/family/family-log.routes';
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { Shell } from './core/layout/shell';
@@ -407,6 +408,7 @@ export const routes: Routes = [
         title: 'Family tree | LifeOS',
         loadComponent: () => import('./features/family/tree').then((m) => m.FamilyTree),
       },
+      ...FAMILY_LOG_ROUTES,
       {
         path: 'purchases',
         title: 'Purchases | LifeOS',

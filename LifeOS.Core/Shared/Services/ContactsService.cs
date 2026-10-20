@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using LifeOS.Core.Calendar.ServiceContracts;
+using LifeOS.Core.Family.ServiceContracts;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
 using LifeOS.Core.Shared.ServiceContracts;
@@ -11,7 +12,8 @@ namespace LifeOS.Core.Shared.Services;
 /// Contacts (Session 51): the shared people list, with tags for groupings. Deleting one releases what pointed at it
 /// (job applications' recruiter/referrer for now; later modules add theirs here) rather than deleting those too.
 /// </summary>
-public class ContactsService(AppDbContext db, IEntityLinksService entityLinksService, IRemindersService remindersService)
+public class ContactsService(
+    AppDbContext db, IEntityLinksService entityLinksService, IRemindersService remindersService, IFamilyLogCleanup familyLogCleanup)
     : IContactsService
 {
     private const string NotFound = "Contact not found.";
@@ -136,7 +138,9 @@ public class ContactsService(AppDbContext db, IEntityLinksService entityLinksSer
             .ExecuteUpdateAsync(s => s.SetProperty(w => w.ContactId, (int?)null).SetProperty(w => w.UpdatedAt, now));
         await db.MaintenanceTasks.Where(m => m.ContactId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(m => m.ContactId, (int?)null).SetProperty(m => m.UpdatedAt, now));
-        // Family: their place in the tree, their days and their keep-in-touch cadence go with them.
+        // Family: their place in the tree, their days and their keep-in-touch cadence go with them; times in touch,
+        // gifts and responsibilities are released by the family log.
+        await familyLogCleanup.ReleaseContactAsync(id);
         await db.Relationships.Where(r => r.PersonContactId == id || r.RelativeContactId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsDeleted, true).SetProperty(r => r.DeletedAt, now));
         await db.SignificantDates.Where(d => d.ContactId == id || d.OtherContactId == id)

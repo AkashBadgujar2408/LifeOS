@@ -236,6 +236,9 @@ public class TasksService(AppDbContext db, IMapper mapper, IEntityLinksService e
 
         // Milestones that tracked it keep their tick and stop pointing at it.
         await milestoneLinks.ReleaseAsync(id, null);
+        // A family responsibility it kept going stays, without the task.
+        await db.Responsibilities.Where(r => r.TaskItemId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.TaskItemId, (int?)null).SetProperty(r => r.UpdatedAt, now));
 
         task.IsDeleted = true;
         task.DeletedAt = now;

@@ -176,6 +176,10 @@ describe('insightLink', () => {
       '/journal',
     ]);
     expect(insightLink({ ...base, entityType: 'Tasks', entityId: null })?.link).toEqual(['/tasks']);
+    expect(insightLink({ ...base, entityType: 'Contact', entityId: 12 })?.link).toEqual([
+      '/family/people',
+      12,
+    ]);
     expect(insightLink({ ...base, entityType: 'Budgets', entityId: null })?.link).toEqual([
       '/finance/budgets',
     ]);

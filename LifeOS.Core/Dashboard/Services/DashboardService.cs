@@ -25,7 +25,8 @@ namespace LifeOS.Core.Dashboard.Services;
 /// </summary>
 public class DashboardService(
     AppDbContext db, IBudgetsService budgetsService, IHomeAgendaService homeAgendaService, IForecastService forecastService,
-    IGoalProgressService goalProgressService, ISignificantDatesService significantDatesService) : IDashboardService
+    IGoalProgressService goalProgressService, ISignificantDatesService significantDatesService,
+    IKeepInTouchService keepInTouchService) : IDashboardService
 {
     // A local day is 23-25 hours (DST); anything much longer means the client sent the wrong span.
     private static readonly TimeSpan MaxDayLength = TimeSpan.FromHours(26);
@@ -56,6 +57,7 @@ public class DashboardService(
         var lowAhead = await forecastService.LowAheadAsync(today, DashboardInsights.LowBalanceDays);
         var goalProgress = await ActiveGoalProgressAsync(today);
         var upcomingDays = await significantDatesService.UpcomingAsync(today, UpcomingDayWindow);
+        var keepInTouch = await keepInTouchService.GetAllAsync(today);
 
         var parameters = new DynamicParameters();
         parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
@@ -208,7 +210,8 @@ public class DashboardService(
             myDay.Tasks.Count(t => !t.IsDone && t.DueDate < today),
             myDay.ExpiringDocuments.Select(d => new InsightDocument(d.Id, d.Title, d.ExpiresOn)).ToList(),
             overBudget.Select(b => new InsightBudget(b.TagId, b.TagName, b.Spent, b.Budget!.Value, b.BudgetCurrency!)).ToList(),
-            lowAhead.Select(l => new InsightLowBalance(l.AccountId, l.Name, l.Currency, l.Day, l.Balance)).ToList()));
+            lowAhead.Select(l => new InsightLowBalance(l.AccountId, l.Name, l.Currency, l.Day, l.Balance)).ToList(),
+            keepInTouch.Select(k => new InsightKeepInTouch(k.ContactId, k.Name, k.LastContactedOn, k.DueOn)).ToList()));
 
         // Dismissed insights stay hidden while their situation (the key) is unchanged.
         var keys = myDay.Insights.Select(i => i.Key).ToList();

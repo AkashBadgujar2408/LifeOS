@@ -99,7 +99,8 @@ export type InsightKind =
   | 'HabitStreakMilestone'
   | 'DocumentExpiring'
   | 'OverBudget'
-  | 'LowBalanceAhead';
+  | 'LowBalanceAhead'
+  | 'KeepInTouch';
 
 /** A rule-based observation (DashboardInsights on the API). Nudge = something slipping; Cheer = good news. */
 export interface Insight {
@@ -109,7 +110,8 @@ export interface Insight {
   tone: 'Nudge' | 'Cheer';
   message: string;
   /** Where to act on it: Habit/Goal with an id, or a whole page (Journal, Tasks). */
-  entityType: 'Habit' | 'Goal' | 'Journal' | 'Tasks' | 'Document' | 'Budgets' | 'Forecast' | null;
+  entityType:
+    'Habit' | 'Goal' | 'Journal' | 'Tasks' | 'Document' | 'Budgets' | 'Forecast' | 'Contact' | null;
   entityId: number | null;
 }
 

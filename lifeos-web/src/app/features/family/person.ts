@@ -26,6 +26,9 @@ import { itemTitle } from '../../core/layout/item-title';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { openContactEditor } from '../contacts/contact-editor';
 import { DateForm } from './date-form';
+import { PersonGifts } from './person-gifts';
+import { PersonInteractions } from './person-interactions';
+import { PersonKeepInTouch } from './person-keep-in-touch';
 import { RelationshipForm } from './relationship-form';
 import {
   DATE_KIND_ICONS,
@@ -42,7 +45,16 @@ import {
 @Component({
   selector: 'app-family-person',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, LoadError, RelationshipForm, DateForm],
+  imports: [
+    DatePipe,
+    RouterLink,
+    LoadError,
+    RelationshipForm,
+    DateForm,
+    PersonInteractions,
+    PersonKeepInTouch,
+    PersonGifts,
+  ],
   template: `
     <div class="container py-4">
       <a routerLink="/family/people" class="small d-inline-block mb-2">
@@ -200,6 +212,20 @@ import {
             </section>
           </div>
         </div>
+
+        <div class="row g-3 mt-0">
+          <div class="col-12 col-lg-6">
+            <app-person-interactions
+              [contactId]="contact.id"
+              [contactName]="contact.name"
+              (changed)="inTouchChanged()"
+            />
+          </div>
+          <div class="col-12 col-lg-6 d-flex flex-column gap-3">
+            <app-person-keep-in-touch [contactId]="contact.id" [version]="version()" />
+            <app-person-gifts [contactId]="contact.id" [contactName]="contact.name" />
+          </div>
+        </div>
       } @else {
         <p class="text-body-secondary">Loading…</p>
       }
@@ -226,6 +252,8 @@ export class FamilyPersonPage {
   private readonly dates = signal<SignificantDate[]>([]);
   protected readonly loadFailed = signal(false);
   protected readonly addingRelation = signal(false);
+  /** Bumped when a time in touch is logged, so the keep-in-touch card re-reads its due day. */
+  protected readonly version = signal(0);
   /** undefined: not editing; null: adding; a date: changing it. */
   protected readonly editingDate = signal<SignificantDate | null | undefined>(undefined);
 
@@ -272,6 +300,14 @@ export class FamilyPersonPage {
     } else if (result) {
       this.reload();
     }
+  }
+
+  protected inTouchChanged(): void {
+    this.version.update((v) => v + 1);
+    this.contactsService
+      .get(this.contactId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ next: (contact) => this.contact.set(contact) });
   }
 
   protected relationAdded(): void {

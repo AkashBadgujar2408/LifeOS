@@ -1,3 +1,4 @@
+import { FAMILY_LOG_NAV } from '../../features/family/family-log.nav';
 import type { ModuleKey } from '../services/settings.service';
 
 export interface NavItem {
@@ -213,6 +214,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Family', route: '/family', icon: 'bi-house-heart', exact: true, module: 'Family' },
       { label: 'People', route: '/family/people', icon: 'bi-people', module: 'Family' },
       { label: 'Family tree', route: '/family/tree', icon: 'bi-diagram-3', module: 'Family' },
+      ...FAMILY_LOG_NAV,
     ],
   },
   {

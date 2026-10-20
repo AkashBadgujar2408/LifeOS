@@ -14,7 +14,8 @@ public record InsightInputs(
     int OverdueTaskCount,
     IReadOnlyList<InsightDocument>? ExpiringDocuments = null,
     IReadOnlyList<InsightBudget>? OverBudgets = null,
-    IReadOnlyList<InsightLowBalance>? LowBalances = null);
+    IReadOnlyList<InsightLowBalance>? LowBalances = null,
+    IReadOnlyList<InsightKeepInTouch>? KeepInTouch = null);
 
 public record InsightHabit(int Id, string Title, byte ScheduleDays, DateOnly StartDate, IReadOnlyCollection<DateOnly> DoneDates, HabitStreak Streak);
 
@@ -31,6 +32,9 @@ public record InsightBudget(int TagId, string TagName, decimal Spent, decimal Bu
 /// <summary>An account the cash-flow forecast says will drop below zero, the first day it does, and how low it is then.</summary>
 public record InsightLowBalance(int AccountId, string Name, string Currency, DateOnly Day, decimal Balance);
 
+/// <summary>Someone with a keep-in-touch cadence (Family): when you were last in touch and when the next touch is due.</summary>
+public record InsightKeepInTouch(int ContactId, string Name, DateOnly? LastContactedOn, DateOnly DueOn);
+
 /// <summary>
 /// The lightweight, deterministic "insights" (plan, Section 2 #6 — no AI): a handful of plain rules over data the
 /// dashboard already has. Pure, so every rule is unit-tested; nothing is stored — the list is worked out per request
@@ -44,6 +48,9 @@ public static class DashboardInsights
 
     /// <summary>A document this close to expiry (or expired, within My Day's 30-day look-back) earns a nudge.</summary>
     public const int DocumentNudgeDays = 30;
+
+    /// <summary>At most this many keep-in-touch nudges a day (the longest past due).</summary>
+    public const int KeepInTouchNudges = 3;
 
     /// <summary>Streak lengths worth a word of congratulation.</summary>
     public static readonly IReadOnlySet<int> StreakMilestones = new HashSet<int> { 7, 14, 21, 30, 50, 100, 200, 365 };
@@ -156,6 +163,21 @@ public static class DashboardInsights
                 Tone = InsightTones.Nudge,
                 Message = LowBalanceMessage(low),
                 EntityType = "Forecast",
+            });
+        }
+
+        // The longest past due first, at most a few so My Day stays calm. Keyed by the day it fell due, which moves as
+        // soon as you're in touch again (or the cadence changes) — so it clears itself.
+        foreach (var person in (inputs.KeepInTouch ?? []).Where(k => k.DueOn < inputs.Today).OrderBy(k => k.DueOn).Take(KeepInTouchNudges))
+        {
+            insights.Add(new InsightDto
+            {
+                Kind = InsightKinds.KeepInTouch,
+                Key = Invariant($"{InsightKinds.KeepInTouch}:{person.ContactId}:{person.DueOn:yyyy-MM-dd}"),
+                Tone = InsightTones.Nudge,
+                Message = Family.Services.KeepInTouchRules.Nudge(person.Name, person.LastContactedOn, inputs.Today),
+                EntityType = "Contact",
+                EntityId = person.ContactId,
             });
         }
 
