@@ -52,4 +52,6 @@ public partial class InsurancePolicy
     public virtual Reminder? RenewalReminder { get; set; }
 
     public virtual User User { get; set; } = null!;
+
+    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 }

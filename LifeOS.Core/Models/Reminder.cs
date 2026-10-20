@@ -51,5 +51,13 @@ public partial class Reminder
 
     public virtual ICollection<InsurancePolicy> InsurancePolicies { get; set; } = new List<InsurancePolicy>();
 
+    public virtual ICollection<MaintenanceTask> MaintenanceTasks { get; set; } = new List<MaintenanceTask>();
+
     public virtual User User { get; set; } = null!;
+
+    public virtual ICollection<Vehicle> VehiclePucReminders { get; set; } = new List<Vehicle>();
+
+    public virtual ICollection<Vehicle> VehicleRegistrationReminders { get; set; } = new List<Vehicle>();
+
+    public virtual ICollection<Warranty> Warranties { get; set; } = new List<Warranty>();
 }

@@ -18,7 +18,8 @@ export type ModuleKey =
   | 'Learning'
   | 'Career'
   | 'Finance'
-  | 'Health';
+  | 'Health'
+  | 'Home';
 
 export interface ModuleInfo {
   key: ModuleKey;
@@ -54,6 +55,11 @@ export const MODULES: ModuleInfo[] = [
     key: 'Health',
     label: 'Health',
     hides: "your health records, medicines and logs, and today's doses on My Day",
+  },
+  {
+    key: 'Home',
+    label: 'Home & assets',
+    hides: 'properties, inventory, vehicles, warranties, maintenance, bills and household projects',
   },
   {
     key: 'Documents',

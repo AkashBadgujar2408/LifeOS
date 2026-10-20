@@ -17,6 +17,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ApplicationStageChange> ApplicationStageChanges { get; set; }
 
+    public virtual DbSet<Asset> Assets { get; set; }
+
+    public virtual DbSet<AssetTag> AssetTags { get; set; }
+
     public virtual DbSet<Attachment> Attachments { get; set; }
 
     public virtual DbSet<BodyMeasurement> BodyMeasurements { get; set; }
@@ -89,6 +93,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<HoldingValuation> HoldingValuations { get; set; }
 
+    public virtual DbSet<HouseholdProject> HouseholdProjects { get; set; }
+
     public virtual DbSet<InboxItem> InboxItems { get; set; }
 
     public virtual DbSet<InsurancePolicy> InsurancePolicies { get; set; }
@@ -121,6 +127,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Loan> Loans { get; set; }
 
+    public virtual DbSet<MaintenanceLog> MaintenanceLogs { get; set; }
+
+    public virtual DbSet<MaintenanceTask> MaintenanceTasks { get; set; }
+
     public virtual DbSet<Meal> Meals { get; set; }
 
     public virtual DbSet<MedicalCondition> MedicalConditions { get; set; }
@@ -140,6 +150,8 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<PerformanceReview> PerformanceReviews { get; set; }
 
     public virtual DbSet<Project> Projects { get; set; }
+
+    public virtual DbSet<Property> Properties { get; set; }
 
     public virtual DbSet<RecoveryCode> RecoveryCodes { get; set; }
 
@@ -193,7 +205,13 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<UserHiddenModule> UserHiddenModules { get; set; }
 
+    public virtual DbSet<UtilityBill> UtilityBills { get; set; }
+
     public virtual DbSet<VaultAccessLog> VaultAccessLogs { get; set; }
+
+    public virtual DbSet<Vehicle> Vehicles { get; set; }
+
+    public virtual DbSet<Warranty> Warranties { get; set; }
 
     public virtual DbSet<WaterIntake> WaterIntakes { get; set; }
 
@@ -281,6 +299,64 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ApplicationStageChanges_Users");
+        });
+
+        modelBuilder.Entity<Asset>(entity =>
+        {
+            entity.ToTable("Assets", "home");
+
+            entity.HasIndex(e => new { e.UserId, e.PropertyId }, "IX_Assets_User_Property").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Brand).HasMaxLength(100);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Assets_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.DisposalAmount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.DisposalKind).HasMaxLength(10);
+            entity.Property(e => e.Model).HasMaxLength(100);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.PurchasePrice).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.Quantity).HasDefaultValue(1, "DF_Assets_Quantity");
+            entity.Property(e => e.Room).HasMaxLength(100);
+            entity.Property(e => e.SerialNumber).HasMaxLength(100);
+
+            entity.HasOne(d => d.Property).WithMany(p => p.Assets)
+                .HasForeignKey(d => d.PropertyId)
+                .HasConstraintName("FK_Assets_Properties");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Assets)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Assets_Users");
+        });
+
+        modelBuilder.Entity<AssetTag>(entity =>
+        {
+            entity.ToTable("AssetTags", "home");
+
+            entity.HasIndex(e => new { e.AssetId, e.TagId }, "UX_AssetTags_Asset_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_AssetTags_CreatedAt");
+
+            entity.HasOne(d => d.Asset).WithMany(p => p.AssetTags)
+                .HasForeignKey(d => d.AssetId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AssetTags_Assets");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.AssetTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AssetTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.AssetTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AssetTags_Users");
         });
 
         modelBuilder.Entity<Attachment>(entity =>
@@ -1160,6 +1236,36 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_HoldingValuations_Users");
         });
 
+        modelBuilder.Entity<HouseholdProject>(entity =>
+        {
+            entity.ToTable("HouseholdProjects", "home");
+
+            entity.HasIndex(e => e.ProjectId, "UX_HouseholdProjects_Project")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Budget).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_HouseholdProjects_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+
+            entity.HasOne(d => d.Project).WithOne(p => p.HouseholdProject)
+                .HasForeignKey<HouseholdProject>(d => d.ProjectId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HouseholdProjects_Projects");
+
+            entity.HasOne(d => d.Property).WithMany(p => p.HouseholdProjects)
+                .HasForeignKey(d => d.PropertyId)
+                .HasConstraintName("FK_HouseholdProjects_Properties");
+
+            entity.HasOne(d => d.User).WithMany(p => p.HouseholdProjects)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HouseholdProjects_Users");
+        });
+
         modelBuilder.Entity<InboxItem>(entity =>
         {
             entity.ToTable("InboxItems", "shared");
@@ -1540,6 +1646,72 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_Loans_Users");
         });
 
+        modelBuilder.Entity<MaintenanceLog>(entity =>
+        {
+            entity.ToTable("MaintenanceLogs", "home");
+
+            entity.HasIndex(e => new { e.MaintenanceTaskId, e.DoneOn }, "IX_MaintenanceLogs_Task_DoneOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Cost).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MaintenanceLogs_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+
+            entity.HasOne(d => d.MaintenanceTask).WithMany(p => p.MaintenanceLogs)
+                .HasForeignKey(d => d.MaintenanceTaskId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MaintenanceLogs_MaintenanceTasks");
+
+            entity.HasOne(d => d.Transaction).WithMany(p => p.MaintenanceLogs)
+                .HasForeignKey(d => d.TransactionId)
+                .HasConstraintName("FK_MaintenanceLogs_Transactions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MaintenanceLogs)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MaintenanceLogs_Users");
+        });
+
+        modelBuilder.Entity<MaintenanceTask>(entity =>
+        {
+            entity.ToTable("MaintenanceTasks", "home");
+
+            entity.HasIndex(e => e.UserId, "IX_MaintenanceTasks_User").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MaintenanceTasks_CreatedAt");
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.RecurrenceFrequency).HasMaxLength(10);
+            entity.Property(e => e.Title).HasMaxLength(200);
+
+            entity.HasOne(d => d.Asset).WithMany(p => p.MaintenanceTasks)
+                .HasForeignKey(d => d.AssetId)
+                .HasConstraintName("FK_MaintenanceTasks_Assets");
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.MaintenanceTasks)
+                .HasForeignKey(d => d.ContactId)
+                .HasConstraintName("FK_MaintenanceTasks_Contacts");
+
+            entity.HasOne(d => d.Property).WithMany(p => p.MaintenanceTasks)
+                .HasForeignKey(d => d.PropertyId)
+                .HasConstraintName("FK_MaintenanceTasks_Properties");
+
+            entity.HasOne(d => d.Reminder).WithMany(p => p.MaintenanceTasks)
+                .HasForeignKey(d => d.ReminderId)
+                .HasConstraintName("FK_MaintenanceTasks_Reminders");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MaintenanceTasks)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MaintenanceTasks_Users");
+
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.MaintenanceTasks)
+                .HasForeignKey(d => d.VehicleId)
+                .HasConstraintName("FK_MaintenanceTasks_Vehicles");
+        });
+
         modelBuilder.Entity<Meal>(entity =>
         {
             entity.ToTable("Meals", "health");
@@ -1754,6 +1926,32 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Projects_Users");
+        });
+
+        modelBuilder.Entity<Property>(entity =>
+        {
+            entity.ToTable("Properties", "home");
+
+            entity.HasIndex(e => new { e.UserId, e.Name }, "UX_Properties_User_Name")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Address).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Properties_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Ownership).HasMaxLength(10);
+            entity.Property(e => e.PurchasePrice).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Properties)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Properties_Users");
         });
 
         modelBuilder.Entity<RecoveryCode>(entity =>
@@ -2433,6 +2631,41 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_UserHiddenModules_Users");
         });
 
+        modelBuilder.Entity<UtilityBill>(entity =>
+        {
+            entity.ToTable("UtilityBills", "home");
+
+            entity.HasIndex(e => new { e.UserId, e.DueOn }, "IX_UtilityBills_User_DueOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.TransactionId, "UX_UtilityBills_Transaction")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0) AND [TransactionId] IS NOT NULL)");
+
+            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_UtilityBills_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Provider).HasMaxLength(200);
+            entity.Property(e => e.UnitsUsed).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.Property).WithMany(p => p.UtilityBills)
+                .HasForeignKey(d => d.PropertyId)
+                .HasConstraintName("FK_UtilityBills_Properties");
+
+            entity.HasOne(d => d.Transaction).WithOne(p => p.UtilityBill)
+                .HasForeignKey<UtilityBill>(d => d.TransactionId)
+                .HasConstraintName("FK_UtilityBills_Transactions");
+
+            entity.HasOne(d => d.User).WithMany(p => p.UtilityBills)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_UtilityBills_Users");
+        });
+
         modelBuilder.Entity<VaultAccessLog>(entity =>
         {
             entity.ToTable("VaultAccessLog", "shared");
@@ -2451,6 +2684,89 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_VaultAccessLog_Users");
+        });
+
+        modelBuilder.Entity<Vehicle>(entity =>
+        {
+            entity.ToTable("Vehicles", "home");
+
+            entity.HasIndex(e => new { e.UserId, e.Name }, "UX_Vehicles_User_Name")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Vehicles_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.DisposalAmount).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.DisposalKind).HasMaxLength(10);
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Make).HasMaxLength(100);
+            entity.Property(e => e.Model).HasMaxLength(100);
+            entity.Property(e => e.Name).HasMaxLength(200);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.PurchasePrice).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.RegistrationNumber).HasMaxLength(20);
+
+            entity.HasOne(d => d.InsurancePolicy).WithMany(p => p.Vehicles)
+                .HasForeignKey(d => d.InsurancePolicyId)
+                .HasConstraintName("FK_Vehicles_InsurancePolicies");
+
+            entity.HasOne(d => d.PucReminder).WithMany(p => p.VehiclePucReminders)
+                .HasForeignKey(d => d.PucReminderId)
+                .HasConstraintName("FK_Vehicles_PucReminder");
+
+            entity.HasOne(d => d.RegistrationReminder).WithMany(p => p.VehicleRegistrationReminders)
+                .HasForeignKey(d => d.RegistrationReminderId)
+                .HasConstraintName("FK_Vehicles_RegistrationReminder");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Vehicles)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Vehicles_Users");
+        });
+
+        modelBuilder.Entity<Warranty>(entity =>
+        {
+            entity.ToTable("Warranties", "home");
+
+            entity.HasIndex(e => new { e.UserId, e.ExpiresOn }, "IX_Warranties_User_ExpiresOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Cost).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Warranties_CreatedAt");
+            entity.Property(e => e.Currency)
+                .HasMaxLength(3)
+                .IsUnicode(false)
+                .IsFixedLength();
+            entity.Property(e => e.Kind).HasMaxLength(10);
+            entity.Property(e => e.Notes).HasMaxLength(2000);
+            entity.Property(e => e.Provider).HasMaxLength(200);
+
+            entity.HasOne(d => d.Asset).WithMany(p => p.Warranties)
+                .HasForeignKey(d => d.AssetId)
+                .HasConstraintName("FK_Warranties_Assets");
+
+            entity.HasOne(d => d.Contact).WithMany(p => p.Warranties)
+                .HasForeignKey(d => d.ContactId)
+                .HasConstraintName("FK_Warranties_Contacts");
+
+            entity.HasOne(d => d.Property).WithMany(p => p.Warranties)
+                .HasForeignKey(d => d.PropertyId)
+                .HasConstraintName("FK_Warranties_Properties");
+
+            entity.HasOne(d => d.Reminder).WithMany(p => p.Warranties)
+                .HasForeignKey(d => d.ReminderId)
+                .HasConstraintName("FK_Warranties_Reminders");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Warranties)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Warranties_Users");
+
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.Warranties)
+                .HasForeignKey(d => d.VehicleId)
+                .HasConstraintName("FK_Warranties_Vehicles");
         });
 
         modelBuilder.Entity<WaterIntake>(entity =>

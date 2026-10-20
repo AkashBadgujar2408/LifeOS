@@ -59,6 +59,8 @@ public partial class Transaction
 
     public virtual Loan? Loan { get; set; }
 
+    public virtual ICollection<MaintenanceLog> MaintenanceLogs { get; set; } = new List<MaintenanceLog>();
+
     public virtual RecurringTransaction? RecurringTransaction { get; set; }
 
     public virtual SideIncomeSource? SideIncomeSource { get; set; }
@@ -70,4 +72,6 @@ public partial class Transaction
     public virtual ICollection<TransactionTag> TransactionTags { get; set; } = new List<TransactionTag>();
 
     public virtual User User { get; set; } = null!;
+
+    public virtual UtilityBill? UtilityBill { get; set; }
 }

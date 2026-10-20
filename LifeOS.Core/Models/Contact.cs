@@ -41,5 +41,9 @@ public partial class Contact
 
     public virtual ICollection<Loan> Loans { get; set; } = new List<Loan>();
 
+    public virtual ICollection<MaintenanceTask> MaintenanceTasks { get; set; } = new List<MaintenanceTask>();
+
     public virtual User User { get; set; } = null!;
+
+    public virtual ICollection<Warranty> Warranties { get; set; } = new List<Warranty>();
 }

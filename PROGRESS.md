@@ -1021,3 +1021,10 @@
 - Test data: `health64` (labs, check-ins, "Resting pulse under 60" now a weight target); `h65copy` was imported and then permanently deleted.
 
 - Next up: **Session 66 — Home 1** (plan, Section 7).
+
+## Last session: 2026-10-20 — Session 66 — Home 1: schema
+- Shipped: `14_home.sql` (schema `home`: Properties, Assets + AssetTags, Vehicles, Warranties, MaintenanceTasks + MaintenanceLogs, UtilityBills, HouseholdProjects; UAT backed up first, `LifeOS_UAT_pre66.bak` in the session scratchpad), Home in the module switch (`01_shared.sql` CHECK widened, `ModuleKeys.Home`, client `MODULES` "Home & assets"), scaffolded models + soft-delete/user partials, `docs/ARCHITECTURE.md` row.
+- Verified: see plan row 66 — 26 bad rows refused by the intended constraint; fresh DB scaffolds identically; 406 backend tests.
+- Decisions (mine — say if you want them changed): rooms are free text on an asset (no Rooms table); a vehicle's insurance is the Finance policy it links to (its renewal reminder already exists), while PUC and registration have their own valid-until days and reminders; maintenance repeats "every n days/weeks/months/years" and the next due day is the last time it was done plus that (not counted from the first due day like tasks); a warranty covers exactly one asset, vehicle or property; a bill paid into Finance can only be paid once (unique `TransactionId`); a household project is an ordinary tasks project plus a property and budget, and its spend is the transactions linked to it.
+
+- Next up: **Session 67 — Home 2** (inventory, vehicles, warranties, maintenance).

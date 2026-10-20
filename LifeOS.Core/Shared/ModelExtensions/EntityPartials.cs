@@ -194,3 +194,21 @@ public partial class LabResult : ISoftDeletable, IUserOwned;
 public partial class WellnessCheckIn : ISoftDeletable, IUserOwned;
 
 public partial class GoalTarget : ISoftDeletable, IUserOwned;
+
+public partial class Property : ISoftDeletable, IUserOwned;
+
+public partial class Asset : ISoftDeletable, IUserOwned;
+
+public partial class AssetTag : ISoftDeletable, IUserOwned;
+
+public partial class Vehicle : ISoftDeletable, IUserOwned;
+
+public partial class Warranty : ISoftDeletable, IUserOwned;
+
+public partial class MaintenanceTask : ISoftDeletable, IUserOwned;
+
+public partial class MaintenanceLog : ISoftDeletable, IUserOwned;
+
+public partial class UtilityBill : ISoftDeletable, IUserOwned;
+
+public partial class HouseholdProject : ISoftDeletable, IUserOwned;

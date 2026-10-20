@@ -35,6 +35,10 @@ public partial class User
 
     public virtual ICollection<ApplicationStageChange> ApplicationStageChanges { get; set; } = new List<ApplicationStageChange>();
 
+    public virtual ICollection<AssetTag> AssetTags { get; set; } = new List<AssetTag>();
+
+    public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
+
     public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
 
     public virtual ICollection<BodyMeasurement> BodyMeasurements { get; set; } = new List<BodyMeasurement>();
@@ -107,6 +111,8 @@ public partial class User
 
     public virtual ICollection<Holding> Holdings { get; set; } = new List<Holding>();
 
+    public virtual ICollection<HouseholdProject> HouseholdProjects { get; set; } = new List<HouseholdProject>();
+
     public virtual ICollection<InboxItem> InboxItems { get; set; } = new List<InboxItem>();
 
     public virtual ICollection<InsurancePolicy> InsurancePolicies { get; set; } = new List<InsurancePolicy>();
@@ -137,6 +143,10 @@ public partial class User
 
     public virtual ICollection<Loan> Loans { get; set; } = new List<Loan>();
 
+    public virtual ICollection<MaintenanceLog> MaintenanceLogs { get; set; } = new List<MaintenanceLog>();
+
+    public virtual ICollection<MaintenanceTask> MaintenanceTasks { get; set; } = new List<MaintenanceTask>();
+
     public virtual ICollection<Meal> Meals { get; set; } = new List<Meal>();
 
     public virtual ICollection<MedicalCondition> MedicalConditions { get; set; } = new List<MedicalCondition>();
@@ -156,6 +166,8 @@ public partial class User
     public virtual ICollection<PerformanceReview> PerformanceReviews { get; set; } = new List<PerformanceReview>();
 
     public virtual ICollection<Project> Projects { get; set; } = new List<Project>();
+
+    public virtual ICollection<Property> Properties { get; set; } = new List<Property>();
 
     public virtual ICollection<RecoveryCode> RecoveryCodes { get; set; } = new List<RecoveryCode>();
 
@@ -207,7 +219,13 @@ public partial class User
 
     public virtual ICollection<UserHiddenModule> UserHiddenModules { get; set; } = new List<UserHiddenModule>();
 
+    public virtual ICollection<UtilityBill> UtilityBills { get; set; } = new List<UtilityBill>();
+
     public virtual ICollection<VaultAccessLog> VaultAccessLogs { get; set; } = new List<VaultAccessLog>();
+
+    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+
+    public virtual ICollection<Warranty> Warranties { get; set; } = new List<Warranty>();
 
     public virtual ICollection<WaterIntake> WaterIntakes { get; set; } = new List<WaterIntake>();
 
