@@ -1,4 +1,5 @@
 using LifeOS.Core.Goals.DTOs;
+using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Models;
 using LifeOS.Core.Shared.DTOs;
@@ -14,7 +15,7 @@ namespace LifeOS.Core.Story.Services;
 /// queries (the global filters scope them), and works out kinds, progress and locks through the pure helpers
 /// (MissionKinds, GoalProgress, MissionGraph) — nothing here is stored except edges and debriefs.
 /// </summary>
-public class MissionsService(AppDbContext db) : IMissionsService
+public class MissionsService(AppDbContext db, IGoalProgressService progressService) : IMissionsService
 {
     private const string NotFound = MissionErrors.NotFound;
 
@@ -214,7 +215,16 @@ public class MissionsService(AppDbContext db) : IMissionsService
 
         var debriefed = (await db.MissionDebriefs.Select(d => d.GoalId).ToListAsync()).ToHashSet();
 
-        return new Snapshot(goals, objectives, edges, debriefed, goals.ToDictionary(g => g.Key, g => g.Value.Status));
+        // The one progress rule (a measure, savings or body target, else the objectives).
+        var progress = await progressService.ForGoalsAsync(
+            goals.Values.Select(g =>
+            {
+                var mine = objectives.GetValueOrDefault(g.Id) ?? [];
+                return new GoalProgressInput(g.Id, g.Status, mine.Count, mine.Count(o => o.Done));
+            }).ToList(),
+            DateOnly.FromDateTime(DateTime.UtcNow));
+
+        return new Snapshot(goals, objectives, edges, debriefed, goals.ToDictionary(g => g.Key, g => g.Value.Status), progress);
     }
 
     private static MissionDto ToMission(GoalRow goal, Snapshot s)
@@ -230,7 +240,9 @@ public class MissionsService(AppDbContext db) : IMissionsService
             TargetDate = goal.TargetDate,
             CreatedAt = DateTime.SpecifyKind(goal.CreatedAt, DateTimeKind.Utc),
             CompletedAt = goal.CompletedAt is { } done ? DateTime.SpecifyKind(done, DateTimeKind.Utc) : null,
-            ProgressPercent = GoalProgress.Percent(goal.Status, objectives.Count, objectives.Count(o => o.Done)),
+            ProgressPercent = s.Progress[goal.Id].Percent,
+            ProgressLocked = s.Progress[goal.Id].Locked,
+            ProgressKind = s.Progress[goal.Id].Kind,
             Objectives = objectives,
             Prerequisites = s.Edges.Where(e => e.GoalId == goal.Id).Select(e => Ref(s.Goals[e.RequiresGoalId])).OrderBy(r => r.Title).ToList(),
             BlockedBy = MissionGraph.BlockedBy(goal.Id, s.Edges, s.StatusById).Select(id => Ref(s.Goals[id])).OrderBy(r => r.Title).ToList(),
@@ -250,5 +262,6 @@ public class MissionsService(AppDbContext db) : IMissionsService
         Dictionary<int, List<MissionObjectiveDto>> Objectives,
         HashSet<(int GoalId, int RequiresGoalId)> Edges,
         HashSet<int> Debriefed,
-        Dictionary<int, string> StatusById);
+        Dictionary<int, string> StatusById,
+        Dictionary<int, GoalProgressDto> Progress);
 }

@@ -42,6 +42,10 @@ public class MissionDto
     public DateTime CreatedAt { get; init; }
     public DateTime? CompletedAt { get; init; }
     public int ProgressPercent { get; init; }
+    /// <summary>A body target behind the vault: show "Locked", not the percent.</summary>
+    public bool ProgressLocked { get; init; }
+    /// <summary>What the % is measured by (GoalProgressKinds): objectives, a number, money saved or a body target.</summary>
+    public string ProgressKind { get; init; } = Goals.Services.GoalProgressKinds.Milestones;
     public List<MissionObjectiveDto> Objectives { get; init; } = [];
     /// <summary>Everything this mission needs first (any status).</summary>
     public List<MissionRefDto> Prerequisites { get; init; } = [];

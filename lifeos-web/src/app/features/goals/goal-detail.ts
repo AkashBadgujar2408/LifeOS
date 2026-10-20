@@ -31,6 +31,7 @@ import { Attachments } from '../../shared/components/attachments/attachments';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { MissionLinks } from '../story/mission-links';
 import { GoalTrend } from './goal-trend';
+import { GoalProgressCard } from './goal-progress';
 import { SavingsProgress } from '../finance/savings-progress';
 import { GoalTargetCard } from '../health/goal-target-card';
 import { SettingsService } from '../../core/services/settings.service';
@@ -66,6 +67,7 @@ const MILESTONE_TITLE_VALIDATORS = [Validators.required, Validators.maxLength(20
     EntityReminders,
     MissionLinks,
     GoalTrend,
+    GoalProgressCard,
     SavingsProgress,
     GoalTargetCard,
   ],
@@ -103,7 +105,12 @@ export class GoalDetail implements OnInit {
 
   /** Changes whenever the goal's progress may have: milestones ticked, added or removed, or a status change. */
   protected trendVersion(goal: GoalDetailModel): string {
-    return [goal.status, ...goal.milestones.map((m) => `${m.id}:${m.completedAt ?? ''}`)].join('|');
+    return [
+      goal.status,
+      goal.measureCurrent ?? '',
+      goal.measureTarget ?? '',
+      ...goal.milestones.map((m) => `${m.id}:${m.completedAt ?? ''}`),
+    ].join('|');
   }
   protected readonly editingMilestoneId = signal<number | null>(null);
   /** Milestone currently being saved; its controls are disabled so a double click can't fire twice. */
@@ -355,7 +362,7 @@ export class GoalDetail implements OnInit {
   }
 
   /** Progress is calculated by the API, so every milestone change re-reads the goal rather than guessing. */
-  private reload(): void {
+  protected reload(): void {
     this.goalsService
       .get(this.goalId)
       .pipe(takeUntilDestroyed(this.destroyRef))

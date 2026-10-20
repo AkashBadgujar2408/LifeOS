@@ -77,6 +77,11 @@ try
     builder.Services.AddScoped<ILifeAreasService, LifeAreasService>();
     builder.Services.AddScoped<IGoalsService, GoalsService>();
     builder.Services.AddScoped<IGoalMilestonesService, GoalMilestonesService>();
+    // Measured goals (Sessions 71d–71h): one progress rule, and the kinds of things a goal can be counted from —
+    // each module registers its own IGoalProgressSource below, next to its linkable provider.
+    builder.Services.AddScoped<IGoalProgressService, GoalProgressService>();
+    builder.Services.AddScoped<IGoalMeasureService, GoalMeasureService>();
+    builder.Services.AddScoped<GoalSourceReader>();
     builder.Services.AddScoped<ITasksService, TasksService>();
     builder.Services.AddScoped<IProjectsService, ProjectsService>();
     builder.Services.AddScoped<ICalendarFeedService, CalendarFeedService>();

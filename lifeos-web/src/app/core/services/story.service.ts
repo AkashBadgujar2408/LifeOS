@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { ApiResponse } from './api-response';
+import type { ProgressKind } from './goals.service';
 import { Mood } from './journal.service';
 import { browserTimeZone } from '../dates/today';
 
@@ -117,6 +118,10 @@ export interface Mission {
   createdAt: string;
   completedAt: string | null;
   progressPercent: number;
+  /** A Health target behind the vault: show "Locked", not the percent. */
+  progressLocked: boolean;
+  /** What the % is measured by: objectives, a number, money saved or a body target. */
+  progressKind: ProgressKind;
   objectives: MissionObjective[];
   prerequisites: MissionRef[];
   /** Prerequisites still in play (Active/Postponed); empty = unlocked. */

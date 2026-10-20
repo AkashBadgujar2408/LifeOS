@@ -27,7 +27,15 @@ public partial class GoalMilestone
 
     public DateTime? DeletedAt { get; set; }
 
+    public int? TaskItemId { get; set; }
+
+    public int? ProjectId { get; set; }
+
     public virtual Goal Goal { get; set; } = null!;
+
+    public virtual Project? Project { get; set; }
+
+    public virtual TaskItem? TaskItem { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

@@ -60,6 +60,7 @@ import { LoadError } from '../../shared/components/load-error/load-error';
 import { apiErrorMessage } from '../../core/services/api-error';
 import type { HomeAgendaItem } from '../../core/services/home.service';
 import { AGENDA_ICONS, agendaStatus } from '../home/home-view';
+import { hasProgressBar, progressCaption } from '../goals/goal-measure';
 
 const KIND_LABELS: Record<InboxKind, [singular: string, plural: string]> = {
   Task: ['Task', 'Tasks'],
@@ -120,6 +121,8 @@ export class MyDay {
 
   protected readonly kinds = INBOX_KINDS;
   protected readonly dayMonthFormat = APP_DAY_MONTH_FORMAT;
+  protected readonly progressCaption = progressCaption;
+  protected readonly hasProgressBar = hasProgressBar;
   protected readonly dateFormat = APP_DATE_FORMAT;
   protected readonly priorityMeta = PRIORITY_META;
   protected readonly targetLabels = REMINDER_TARGET_LABELS;

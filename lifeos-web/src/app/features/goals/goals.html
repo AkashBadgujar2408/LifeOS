@@ -96,7 +96,11 @@
               </a>
 
               <div class="mt-auto">
-                @if (goal.milestoneCount > 0 || goal.status === 'Completed') {
+                @if (goal.progressLocked) {
+                  <div class="small text-body-secondary">
+                    <i class="bi bi-lock"></i> {{ progressCaption(goal) }} · Locked
+                  </div>
+                } @else if (hasProgressBar(goal)) {
                   <div
                     class="progress"
                     style="height: 0.4rem"
@@ -109,9 +113,7 @@
                     <div class="progress-bar" [style.width.%]="goal.progressPercent"></div>
                   </div>
                   <div class="d-flex justify-content-between small text-body-secondary mt-1">
-                    <span>
-                      {{ goal.completedMilestoneCount }} of {{ goal.milestoneCount }} milestones
-                    </span>
+                    <span class="text-truncate">{{ progressCaption(goal) }}</span>
                     <span class="fw-semibold">{{ goal.progressPercent }}%</span>
                   </div>
                 } @else {

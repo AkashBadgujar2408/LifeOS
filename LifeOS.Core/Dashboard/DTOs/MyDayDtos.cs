@@ -89,6 +89,13 @@ public class MyDayGoalDto
     public int CompletedMilestoneCount { get; init; }
     /// <summary>Same rule as everywhere else: <see cref="Goals.Services.GoalProgress"/>.</summary>
     public int ProgressPercent { get; init; }
+    public string ProgressKind { get; init; } = Goals.Services.GoalProgressKinds.Milestones;
+    /// <summary>Health data behind the vault: My Day shows "Locked", never the figure.</summary>
+    public bool ProgressLocked { get; init; }
+    public decimal? MeasureCurrent { get; init; }
+    public decimal? MeasureTarget { get; init; }
+    public string? MeasureUnit { get; init; }
+    public string? MeasureSource { get; init; }
     public int? NextMilestoneId { get; init; }
     public string? NextMilestoneTitle { get; init; }
     public DateOnly? NextMilestoneTargetDate { get; init; }
@@ -130,6 +137,7 @@ public static class InsightKinds
     public const string DocumentExpiring = "DocumentExpiring";
     public const string OverBudget = "OverBudget";
     public const string LowBalanceAhead = "LowBalanceAhead";
+    public const string GoalTargetReached = "GoalTargetReached";
 }
 
 public static class InsightTones

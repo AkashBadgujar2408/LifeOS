@@ -13,16 +13,16 @@ namespace LifeOS.Api.Areas.Goals.Controllers;
 public class GoalsController(IGoalsService goalsService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? status)
+    public async Task<IActionResult> GetAll([FromQuery] string? status, [FromQuery] DateOnly? today)
     {
-        var goals = await goalsService.GetAllAsync(status);
+        var goals = await goalsService.GetAllAsync(status, today);
         return Ok(ApiResponse<List<GoalSummaryDto>>.Ok(goals));
     }
 
     [HttpGet("{id:int}")]
-    public async Task<IActionResult> Get(int id)
+    public async Task<IActionResult> Get(int id, [FromQuery] DateOnly? today)
     {
-        var result = await goalsService.GetAsync(id);
+        var result = await goalsService.GetAsync(id, today);
         if (!result.Success)
         {
             return NotFound(ApiResponse<GoalDetailDto>.Fail(result.Error!));
@@ -33,9 +33,9 @@ public class GoalsController(IGoalsService goalsService) : ControllerBase
 
     /// <summary>GET api/Goals/Goals/7/trend — progress % over time, oldest first.</summary>
     [HttpGet("{id:int}/trend")]
-    public async Task<IActionResult> GetTrend(int id)
+    public async Task<IActionResult> GetTrend(int id, [FromQuery] DateOnly? today)
     {
-        var result = await goalsService.GetTrendAsync(id);
+        var result = await goalsService.GetTrendAsync(id, today);
         if (!result.Success)
         {
             return NotFound(ApiResponse<List<GoalTrendPointDto>>.Fail(result.Error!));

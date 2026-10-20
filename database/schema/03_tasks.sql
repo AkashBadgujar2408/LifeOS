@@ -172,3 +172,24 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('tasks.FocusSessions') AND name = 'IX_FocusSessions_Task')
     CREATE INDEX IX_FocusSessions_Task ON tasks.FocusSessions(TaskItemId) INCLUDE (Minutes) WHERE IsDeleted = 0;
 GO
+
+-- Session 71g: a goal's milestone can point at a task or a project (at most one) — it ticks itself when the task is
+-- completed / every task of the project is done, and unticks when reopened (MilestoneLinks). Kept here, not in
+-- 02_goals.sql, because the tasks tables are created by this script.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('goals.GoalMilestones') AND name = 'TaskItemId')
+    ALTER TABLE goals.GoalMilestones ADD
+        TaskItemId  INT NULL CONSTRAINT FK_GoalMilestones_TaskItems REFERENCES tasks.TaskItems(Id),
+        ProjectId   INT NULL CONSTRAINT FK_GoalMilestones_Projects REFERENCES tasks.Projects(Id);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_GoalMilestones_OneTarget')
+    ALTER TABLE goals.GoalMilestones ADD CONSTRAINT CK_GoalMilestones_OneTarget CHECK (TaskItemId IS NULL OR ProjectId IS NULL);
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('goals.GoalMilestones') AND name = 'IX_GoalMilestones_TaskItem')
+    CREATE INDEX IX_GoalMilestones_TaskItem ON goals.GoalMilestones(TaskItemId) WHERE IsDeleted = 0 AND TaskItemId IS NOT NULL;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('goals.GoalMilestones') AND name = 'IX_GoalMilestones_Project')
+    CREATE INDEX IX_GoalMilestones_Project ON goals.GoalMilestones(ProjectId) WHERE IsDeleted = 0 AND ProjectId IS NOT NULL;
+GO

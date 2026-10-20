@@ -103,7 +103,11 @@
                       }
 
                       <div class="mt-auto">
-                        @if (m.objectives.length > 0) {
+                        @if (m.progressLocked) {
+                          <div class="small text-body-secondary">
+                            <i class="bi bi-lock"></i> Measured by Health data · Locked
+                          </div>
+                        } @else if (m.objectives.length > 0 || m.progressKind !== 'Milestones') {
                           <div
                             class="progress"
                             style="height: 0.4rem"
@@ -119,6 +123,8 @@
                             <span class="text-body-secondary text-truncate min-w-0">
                               @if (nextObjective(m); as next) {
                                 Next: {{ next }}
+                              } @else if (m.progressKind !== 'Milestones') {
+                                {{ m.progressKind === 'Savings' ? 'Money saved' : 'Its number' }}
                               } @else {
                                 All objectives done
                               }

@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, effect, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -130,6 +138,8 @@ export class GoalTargetCard {
   private readonly toast = inject(ToastService);
 
   readonly goalId = input.required<number>();
+  /** Saved, removed or unlocked: the goal's headline % may have changed, so its page re-reads it. */
+  readonly changed = output<void>();
 
   protected readonly kinds = GOAL_TARGET_KINDS;
   protected readonly info = MEASUREMENTS;
@@ -166,7 +176,12 @@ export class GoalTargetCard {
 
   protected load(prompt: boolean): void {
     if (prompt) {
-      void this.healthService.unlock().then((ok) => ok && this.load(false));
+      void this.healthService.unlock().then((ok) => {
+        if (ok) {
+          this.load(false);
+          this.changed.emit();
+        }
+      });
       return;
     }
     this.healthService.goalTarget(this.goalId()).subscribe({
@@ -214,6 +229,7 @@ export class GoalTargetCard {
           this.editing.set(false);
           this.target.set(target);
           this.toast.success('Health target saved.');
+          this.changed.emit();
         },
         error: (err) => {
           this.saving.set(false);
@@ -227,6 +243,7 @@ export class GoalTargetCard {
       next: () => {
         this.target.set(null);
         this.toast.success('Health target removed.');
+        this.changed.emit();
       },
       error: (err) => this.toast.error(apiErrorMessage(err, 'Could not remove the target.')),
     });

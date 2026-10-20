@@ -19,7 +19,10 @@ import {
   GoalPayload,
   GoalType,
   GoalsService,
+  MeasureSource,
 } from '../../core/services/goals.service';
+import { todayIso } from '../../core/dates/today';
+import { MEASURE_CHOICES, MeasureChoice } from './goal-measure';
 import { LifeArea, LifeAreasService } from '../../core/services/life-areas.service';
 import { SettingsService } from '../../core/services/settings.service';
 import { pickableLifeAreas } from '../../core/settings/visibility';
@@ -54,6 +57,7 @@ export class GoalForm implements OnInit {
   protected readonly goalTypes = GOAL_TYPES;
   protected readonly typeLabels = GOAL_TYPE_LABELS;
   protected readonly typeHints = GOAL_TYPE_HINTS;
+  protected readonly measureChoices = MEASURE_CHOICES;
 
   private readonly settingsService = inject(SettingsService);
   protected readonly hiddenAreaIds = this.settingsService.hiddenLifeAreaIds;
@@ -83,6 +87,13 @@ export class GoalForm implements OnInit {
       Validators.max(999_999_999_999_999),
     ]),
     targetCurrency: this.fb.nonNullable.control(''),
+    measureChoice: this.fb.nonNullable.control<MeasureChoice>('Milestones'),
+    measureTarget: this.fb.control<number | null>(null, [
+      Validators.min(0.0001),
+      Validators.max(999_999_999_999),
+    ]),
+    measureUnit: this.fb.nonNullable.control('', Validators.maxLength(30)),
+    measureStart: this.fb.control<number | null>(null, Validators.min(0)),
     description: this.fb.nonNullable.control('', Validators.maxLength(4000)),
     revisionNote: this.fb.nonNullable.control('', Validators.maxLength(1000)),
   });
@@ -93,6 +104,12 @@ export class GoalForm implements OnInit {
 
   protected get isEdit(): boolean {
     return !!this.id();
+  }
+
+  /** "A number I log" or "a number counted for me". */
+  protected isMeasured(): boolean {
+    const choice = this.form.controls.measureChoice.value;
+    return choice === 'Manual' || choice === 'Linked';
   }
 
   ngOnInit(): void {
@@ -119,6 +136,11 @@ export class GoalForm implements OnInit {
               targetDate: goal.targetDate,
               targetAmount: goal.targetAmount,
               targetCurrency: goal.targetCurrency ?? this.baseCurrency(),
+              measureChoice:
+                goal.measureSource ?? (goal.targetAmount !== null ? 'Savings' : 'Milestones'),
+              measureTarget: goal.measureTarget,
+              measureUnit: goal.measureUnit ?? '',
+              measureStart: goal.measureStart || null,
               description: goal.description ?? '',
               revisionNote: '',
             });
@@ -141,6 +163,9 @@ export class GoalForm implements OnInit {
       | 'targetDate'
       | 'targetAmount'
       | 'targetCurrency'
+      | 'measureTarget'
+      | 'measureUnit'
+      | 'measureStart'
       | 'description'
       | 'revisionNote',
   ): string | null {
@@ -151,6 +176,22 @@ export class GoalForm implements OnInit {
 
     if (name === 'targetAmount') {
       return 'The amount to save has to be more than zero.';
+    }
+
+    if (name === 'measureTarget') {
+      return 'Give the number to reach (more than zero).';
+    }
+
+    if (name === 'measureUnit') {
+      return control.errors['maxlength']
+        ? 'Keep the unit to 30 characters.'
+        : 'Say what it’s measured in — steps, km, pages, hours…';
+    }
+
+    if (name === 'measureStart') {
+      return control.errors['notBelowTarget']
+        ? 'What’s already done has to be less than the number to reach.'
+        : 'What’s already done can’t be below zero.';
     }
 
     if (name === 'targetCurrency') {
@@ -181,27 +222,71 @@ export class GoalForm implements OnInit {
   protected submit(): void {
     const title = this.form.controls.title;
     title.setValue(title.value.trim());
+    const controls = this.form.controls;
+    const choice = controls.measureChoice.value;
     // An amount to save needs its currency: the base one unless another is picked.
-    const currency = this.form.controls.targetCurrency;
-    if (this.form.controls.targetAmount.value !== null && !currency.value) {
-      currency.setValue(this.baseCurrency());
-      if (!currency.value) {
-        currency.setErrors({ required: true });
+    const currency = controls.targetCurrency;
+    if (choice === 'Savings') {
+      if (controls.targetAmount.value === null) {
+        controls.targetAmount.setErrors({ required: true });
+      } else if (!currency.value) {
+        currency.setValue(this.baseCurrency());
+        if (!currency.value) {
+          currency.setErrors({ required: true });
+        }
       }
     }
-    if (this.form.invalid) {
+    // A number to reach needs its unit, and what's already done has to be short of it.
+    if (this.isMeasured()) {
+      controls.measureUnit.setValue(controls.measureUnit.value.trim());
+      if (controls.measureTarget.value === null) {
+        controls.measureTarget.setErrors({ required: true });
+      }
+      if (!controls.measureUnit.value) {
+        controls.measureUnit.setErrors({ required: true });
+      }
+      const start = controls.measureStart.value;
+      const target = controls.measureTarget.value;
+      if (start !== null && target !== null && start >= target) {
+        controls.measureStart.setErrors({ notBelowTarget: true });
+      }
+    }
+    // Only the chosen way of measuring is checked (and sent).
+    const relevant =
+      choice === 'Savings'
+        ? ['targetAmount', 'targetCurrency']
+        : this.isMeasured()
+          ? ['measureTarget', 'measureUnit', 'measureStart']
+          : [];
+    const other = [
+      'targetAmount',
+      'targetCurrency',
+      'measureTarget',
+      'measureUnit',
+      'measureStart',
+    ];
+    const invalid = Object.entries(controls).some(
+      ([name, control]) => control.invalid && (!other.includes(name) || relevant.includes(name)),
+    );
+    if (invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
     const value = this.form.getRawValue();
+    const measured = this.isMeasured();
     const payload: GoalPayload = {
       title: value.title,
       lifeAreaId: value.lifeAreaId!,
       goalType: value.goalType,
       targetDate: value.targetDate || null,
-      targetAmount: value.targetAmount,
-      targetCurrency: value.targetAmount === null ? null : value.targetCurrency,
+      targetAmount: choice === 'Savings' ? value.targetAmount : null,
+      targetCurrency: choice === 'Savings' ? value.targetCurrency : null,
+      measureTarget: measured ? value.measureTarget : null,
+      measureStart: measured ? (value.measureStart ?? 0) : null,
+      measureUnit: measured ? value.measureUnit : null,
+      measureSource: measured ? (choice as MeasureSource) : null,
+      today: todayIso(),
       description: value.description.trim() || null,
       tagIds: this.tagIds(),
       revisionNote: value.revisionNote.trim() || null,
@@ -215,9 +300,13 @@ export class GoalForm implements OnInit {
     this.saving.set(true);
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (goal) => {
-        this.toast.success(
-          id ? 'Goal revised.' : `"${goal.title}" is set. Now add some milestones.`,
-        );
+        const next =
+          goal.measureSource === 'Linked'
+            ? 'Now choose what it’s counted from.'
+            : goal.measureSource === 'Manual'
+              ? 'Log what you do on its page.'
+              : 'Now add some milestones.';
+        this.toast.success(id ? 'Goal revised.' : `"${goal.title}" is set. ${next}`);
         this.router.navigate(['/goals', goal.id]);
       },
       error: (err) => {

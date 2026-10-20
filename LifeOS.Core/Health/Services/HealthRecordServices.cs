@@ -271,6 +271,13 @@ public class GoalTargetsService(AppDbContext db) : IGoalTargetsService
             return OperationResult<GoalTargetDto?>.Fail("Goal not found.");
         }
 
+        // One kind of target per goal (Session 71d).
+        if (goal.MeasureTarget is not null || goal.TargetAmount is not null)
+        {
+            return OperationResult<GoalTargetDto?>.Fail(
+                "This goal is already measured by a number or an amount — change that in the goal's editor first.");
+        }
+
         var latest = await LatestAsync([request.Kind]);
         var start = request.StartValue ?? (latest.TryGetValue(request.Kind, out var reading) ? reading.Value : null);
         if (start is null)

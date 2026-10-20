@@ -23,6 +23,8 @@ public partial class Project
 
     public DateTime? DeletedAt { get; set; }
 
+    public virtual ICollection<GoalMilestone> GoalMilestones { get; set; } = new List<GoalMilestone>();
+
     public virtual HouseholdProject? HouseholdProject { get; set; }
 
     public virtual ICollection<TaskItem> TaskItems { get; set; } = new List<TaskItem>();

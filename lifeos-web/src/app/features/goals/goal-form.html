@@ -87,55 +87,151 @@
               </div>
             </div>
 
-            <div class="row g-3">
-              <div class="col-sm-6">
-                <label class="form-label" for="goal-target-amount">
-                  Amount to save <span class="text-body-secondary small">(savings goals)</span>
-                </label>
-                <input
-                  id="goal-target-amount"
-                  type="number"
-                  step="1"
-                  min="0"
-                  class="form-control"
-                  [class.is-invalid]="fieldError('targetAmount')"
-                  formControlName="targetAmount"
-                  placeholder="e.g. 300000 for an emergency fund"
-                />
-                @if (fieldError('targetAmount'); as error) {
-                  <div class="invalid-feedback d-block">{{ error }}</div>
+            <fieldset class="mb-3">
+              <legend class="form-label fs-6 mb-2">How is this goal measured?</legend>
+              <div class="row g-2">
+                @for (choice of measureChoices; track choice.value) {
+                  <div class="col-sm-6">
+                    <div class="form-check border rounded p-2 ps-4 h-100">
+                      <input
+                        class="form-check-input"
+                        type="radio"
+                        [id]="'goal-measure-' + choice.value"
+                        [value]="choice.value"
+                        formControlName="measureChoice"
+                      />
+                      <label
+                        class="form-check-label d-block"
+                        [for]="'goal-measure-' + choice.value"
+                      >
+                        <span class="fw-semibold">{{ choice.label }}</span>
+                        <span class="d-block small text-body-secondary">{{ choice.hint }}</span>
+                      </label>
+                    </div>
+                  </div>
                 }
               </div>
-              @if (form.controls.targetAmount.value !== null) {
-                <div class="col-sm-6">
-                  <label class="form-label" for="goal-target-currency">In</label>
-                  <select
-                    id="goal-target-currency"
-                    class="form-select"
-                    [class.is-invalid]="fieldError('targetCurrency')"
-                    formControlName="targetCurrency"
-                  >
-                    <option [ngValue]="''" [selected]="!form.controls.targetCurrency.value">
-                      My base currency
-                    </option>
-                    @for (c of currencies(); track c.code) {
-                      <option
-                        [ngValue]="c.code"
-                        [selected]="c.code === form.controls.targetCurrency.value"
-                      >
-                        {{ c.code }} — {{ c.name }}
-                      </option>
-                    }
-                  </select>
-                  @if (fieldError('targetCurrency'); as error) {
+              <div class="form-text">
+                A body measurement (weight, waist…) is set on the goal page of a Health goal, behind
+                the vault.
+              </div>
+            </fieldset>
+
+            @if (isMeasured()) {
+              <div class="row g-3 mb-3">
+                <div class="col-sm-4">
+                  <label class="form-label" for="goal-measure-target">Number to reach</label>
+                  <input
+                    id="goal-measure-target"
+                    type="number"
+                    step="any"
+                    min="0"
+                    class="form-control"
+                    [class.is-invalid]="fieldError('measureTarget')"
+                    formControlName="measureTarget"
+                    placeholder="e.g. 100000"
+                  />
+                  @if (fieldError('measureTarget'); as error) {
                     <div class="invalid-feedback d-block">{{ error }}</div>
                   }
                 </div>
-              }
-              <div class="col-12 form-text mt-1">
-                Progress comes from the accounts and investments you link to the goal.
+                <div class="col-sm-4">
+                  <label class="form-label" for="goal-measure-unit">Measured in</label>
+                  <input
+                    id="goal-measure-unit"
+                    type="text"
+                    class="form-control"
+                    [class.is-invalid]="fieldError('measureUnit')"
+                    formControlName="measureUnit"
+                    [placeholder]="
+                      form.controls.measureChoice.value === 'Linked'
+                        ? 'e.g. steps, hours, books'
+                        : 'e.g. steps, km, pages'
+                    "
+                  />
+                  @if (fieldError('measureUnit'); as error) {
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  }
+                </div>
+                <div class="col-sm-4">
+                  <label class="form-label" for="goal-measure-start">
+                    Already done <span class="text-body-secondary small">(optional)</span>
+                  </label>
+                  <input
+                    id="goal-measure-start"
+                    type="number"
+                    step="any"
+                    min="0"
+                    class="form-control"
+                    [class.is-invalid]="fieldError('measureStart')"
+                    formControlName="measureStart"
+                    placeholder="0"
+                  />
+                  @if (fieldError('measureStart'); as error) {
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  }
+                </div>
+                <div class="col-12 form-text mt-1">
+                  @if (form.controls.measureChoice.value === 'Linked') {
+                    The unit has to match what's counted: a "steps" habit feeds a goal measured in
+                    steps. Choose what it's counted from on the goal page; the number then can't be
+                    changed by hand.
+                  } @else {
+                    Log what you do on the goal page; every entry adds up toward the number.
+                  }
+                </div>
               </div>
-            </div>
+            }
+
+            @if (form.controls.measureChoice.value === 'Savings') {
+              <div class="row g-3">
+                <div class="col-sm-6">
+                  <label class="form-label" for="goal-target-amount">Amount to save</label>
+                  <input
+                    id="goal-target-amount"
+                    type="number"
+                    step="1"
+                    min="0"
+                    class="form-control"
+                    [class.is-invalid]="fieldError('targetAmount')"
+                    formControlName="targetAmount"
+                    placeholder="e.g. 300000 for an emergency fund"
+                  />
+                  @if (fieldError('targetAmount'); as error) {
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                  }
+                </div>
+                @if (form.controls.targetAmount.value !== null) {
+                  <div class="col-sm-6">
+                    <label class="form-label" for="goal-target-currency">In</label>
+                    <select
+                      id="goal-target-currency"
+                      class="form-select"
+                      [class.is-invalid]="fieldError('targetCurrency')"
+                      formControlName="targetCurrency"
+                    >
+                      <option [ngValue]="''" [selected]="!form.controls.targetCurrency.value">
+                        My base currency
+                      </option>
+                      @for (c of currencies(); track c.code) {
+                        <option
+                          [ngValue]="c.code"
+                          [selected]="c.code === form.controls.targetCurrency.value"
+                        >
+                          {{ c.code }} — {{ c.name }}
+                        </option>
+                      }
+                    </select>
+                    @if (fieldError('targetCurrency'); as error) {
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    }
+                  </div>
+                }
+                <div class="col-12 form-text mt-1">
+                  Progress comes from the accounts and investments you link to the goal.
+                </div>
+              </div>
+            }
 
             <div>
               <span class="form-label d-block" id="goal-type-label">Kind of goal</span>

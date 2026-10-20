@@ -16,6 +16,10 @@ public partial class Goal : ISoftDeletable, IUserOwned;
 
 public partial class GoalMilestone : ISoftDeletable, IUserOwned;
 
+public partial class GoalMeasureEntry : ISoftDeletable, IUserOwned;
+
+public partial class GoalSource : ISoftDeletable, IUserOwned;
+
 public partial class GoalTag : ISoftDeletable, IUserOwned;
 
 public partial class GoalHistory : ISoftDeletable, IUserOwned;

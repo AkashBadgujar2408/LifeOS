@@ -1,5 +1,6 @@
 import type { HomeAgendaItem } from './home.service';
 import type { DocumentKind } from './documents.service';
+import type { MeasureSource, ProgressKind } from './goals.service';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
@@ -56,6 +57,13 @@ export interface MyDayGoal {
   completedMilestoneCount: number;
   /** Worked out by the API (GoalProgress), never in the browser. */
   progressPercent: number;
+  progressKind: ProgressKind;
+  /** A Health target: My Day shows "Locked", never the figure. */
+  progressLocked: boolean;
+  measureCurrent: number | null;
+  measureTarget: number | null;
+  measureUnit: string | null;
+  measureSource: MeasureSource | null;
   nextMilestoneId: number | null;
   nextMilestoneTitle: string | null;
   nextMilestoneTargetDate: string | null;

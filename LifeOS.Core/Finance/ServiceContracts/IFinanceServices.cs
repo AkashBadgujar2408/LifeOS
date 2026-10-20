@@ -83,6 +83,9 @@ public interface IWealthService
 
     /// <summary>Null data when the goal has no amount target.</summary>
     Task<OperationResult<SavingsProgressDto?>> GetSavingsAsync(int goalId, DateOnly today);
+
+    /// <summary>The same for many goals at once (net worth worked out once); goals without an amount are left out.</summary>
+    Task<Dictionary<int, SavingsProgressDto>> GetSavingsForGoalsAsync(IReadOnlyCollection<int> goalIds, DateOnly today);
 }
 
 /// <summary>The exchange-rate master (rates into the base currency, set by hand, with history).</summary>

@@ -13,11 +13,12 @@ using Microsoft.EntityFrameworkCore;
 namespace LifeOS.Core.Goals.Services;
 
 public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService entityLinksService,
-    IRemindersService remindersService, IAttachmentsService attachmentsService) : IGoalsService
+    IRemindersService remindersService, IAttachmentsService attachmentsService, IGoalProgressService progressService,
+    IGoalMeasureService measureService) : IGoalsService
 {
     private const string NotFound = "Goal not found.";
 
-    public async Task<List<GoalSummaryDto>> GetAllAsync(string? status)
+    public async Task<List<GoalSummaryDto>> GetAllAsync(string? status, DateOnly? today = null)
     {
         var query = db.Goals.AsQueryable();
         if (!string.IsNullOrWhiteSpace(status))
@@ -33,15 +34,11 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
             .ProjectTo<GoalSummaryDto>(mapper.ConfigurationProvider)
             .ToListAsync();
 
-        foreach (var goal in goals)
-        {
-            goal.ProgressPercent = GoalProgress.Percent(goal.Status, goal.MilestoneCount, goal.CompletedMilestoneCount);
-        }
-
+        await FillProgressAsync(goals, today);
         return goals;
     }
 
-    public async Task<OperationResult<GoalDetailDto>> GetAsync(int id)
+    public async Task<OperationResult<GoalDetailDto>> GetAsync(int id, DateOnly? today = null)
     {
         // Milestones + tags are two collections: split so SQL doesn't return milestones x tags rows.
         var goal = await db.Goals
@@ -54,18 +51,41 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
             return OperationResult<GoalDetailDto>.Fail(NotFound);
         }
 
-        goal.ProgressPercent = GoalProgress.Percent(goal.Status, goal.MilestoneCount, goal.CompletedMilestoneCount);
+        await FillProgressAsync([goal], today);
         return OperationResult<GoalDetailDto>.Ok(goal);
     }
 
-    public async Task<OperationResult<List<GoalTrendPointDto>>> GetTrendAsync(int id)
+    public async Task<OperationResult<List<GoalTrendPointDto>>> GetTrendAsync(int id, DateOnly? today = null)
     {
         var goal = await db.Goals.Where(g => g.Id == id)
-            .Select(g => new { g.CreatedAt, g.Status, g.UserId })
+            .Select(g => new { g.CreatedAt, g.Status, g.UserId, g.MeasureTarget, HasAmount = g.TargetAmount != null })
             .FirstOrDefaultAsync();
         if (goal is null)
         {
             return OperationResult<List<GoalTrendPointDto>>.Fail(NotFound);
+        }
+
+        // A savings or body target has no history of its own here (net worth has its own chart; body readings live
+        // behind the vault), so its trend is empty and the page leaves the chart out.
+        if (goal.HasAmount || await db.GoalTargets.AnyAsync(t => t.GoalId == id))
+        {
+            return OperationResult<List<GoalTrendPointDto>>.Ok([]);
+        }
+
+        if (goal.MeasureTarget is { } measureTarget)
+        {
+            var history = await progressService.MeasureHistoryAsync(id, today ?? Today());
+            if (history is null)
+            {
+                return OperationResult<List<GoalTrendPointDto>>.Ok([]);
+            }
+
+            var measureChanges = await db.GoalHistories
+                .Where(h => h.GoalId == id && h.EventType == GoalHistoryEvents.StatusChanged)
+                .Select(h => new TrendStatusChange(h.CreatedAt, h.FromStatus!, h.ToStatus!))
+                .ToListAsync();
+            return OperationResult<List<GoalTrendPointDto>>.Ok(
+                GoalProgressTrend.BuildMeasure(goal.CreatedAt, goal.Status, measureTarget, history, measureChanges, DateTime.UtcNow));
         }
 
         // Removed milestones still shaped the past, so read them too — IgnoreQueryFilters drops the user filter as
@@ -85,7 +105,7 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
 
     public async Task<OperationResult<GoalDetailDto>> CreateAsync(GoalRequest request)
     {
-        var error = await ValidateAsync(request);
+        var error = await ValidateAsync(request, null);
         if (error is not null)
         {
             return OperationResult<GoalDetailDto>.Fail(error);
@@ -113,10 +133,30 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
             return OperationResult<GoalDetailDto>.Fail(NotFound);
         }
 
-        var error = await ValidateAsync(request);
+        var error = await ValidateAsync(request, id);
         if (error is not null)
         {
             return OperationResult<GoalDetailDto>.Fail(error);
+        }
+
+        // Leaving "counted from other items" (back to logging it, or no number at all): what the sources counted so
+        // far stays as Carried over entries. While still counted, the unit can't move away from what they count.
+        var wasLinked = goal.MeasureSource == GoalMeasureSources.Linked;
+        var staysLinked = request.MeasureTarget is not null && request.MeasureSource == GoalMeasureSources.Linked;
+        var hasSources = wasLinked && await db.GoalSources.AnyAsync(s => s.GoalId == id);
+        if (hasSources && staysLinked && !GoalMeasureRules.SameUnit(goal.MeasureUnit, request.MeasureUnit))
+        {
+            return OperationResult<GoalDetailDto>.Fail(
+                $"Its sources count {goal.MeasureUnit} — remove them on the goal page before changing the unit.");
+        }
+
+        if (hasSources && !staysLinked)
+        {
+            var frozen = await measureService.FreezeSourcesAsync(id, request.Today ?? Today());
+            if (!frozen.Success)
+            {
+                return OperationResult<GoalDetailDto>.Fail(frozen.Error!);
+            }
         }
 
         var wanted = request.TagIds.Distinct().ToHashSet();
@@ -221,6 +261,13 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         await db.GoalHistories
             .Where(h => h.GoalId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(h => h.IsDeleted, true).SetProperty(h => h.DeletedAt, now));
+        // Its measure: the log and what it was counted from.
+        await db.GoalMeasureEntries
+            .Where(e => e.GoalId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.IsDeleted, true).SetProperty(e => e.DeletedAt, now));
+        await db.GoalSources
+            .Where(gs => gs.GoalId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(gs => gs.IsDeleted, true).SetProperty(gs => gs.DeletedAt, now));
         // Story Mode: the goal stops unlocking (and needing) other missions, and its debrief goes with it.
         await db.MissionPrerequisites
             .Where(p => p.GoalId == id || p.RequiresGoalId == id)
@@ -251,7 +298,7 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         return OperationResult<bool>.Ok(true);
     }
 
-    private async Task<string?> ValidateAsync(GoalRequest request)
+    private async Task<string?> ValidateAsync(GoalRequest request, int? goalId)
     {
         if (request.Title.Trim().Length == 0)
         {
@@ -283,6 +330,24 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         if (request.TargetCurrency is not null && CareerRules.Currency(request.TargetCurrency) is null)
         {
             return "Use a 3-letter currency code such as INR.";
+        }
+
+        if (GoalMeasureRules.CheckMeasure(request.MeasureTarget, request.MeasureStart, request.MeasureUnit, request.MeasureSource)
+            is { } measureError)
+        {
+            return measureError;
+        }
+
+        // CK_Goals_OneTarget, and a Health body target lives beside the goal: one kind of target per goal.
+        if (request.MeasureTarget is not null && request.TargetAmount is not null)
+        {
+            return "A goal is measured by one thing — a number or an amount to save, not both.";
+        }
+
+        if (goalId is { } id && (request.MeasureTarget is not null || request.TargetAmount is not null)
+            && await db.GoalTargets.AnyAsync(t => t.GoalId == id))
+        {
+            return "This goal has a body measurement target — remove it on the goal page before measuring it another way.";
         }
 
         return null;
@@ -322,6 +387,14 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
             changed.Add(nameof(Goal.TargetAmount));
         }
 
+        if (goal.MeasureTarget != request.MeasureTarget
+            || goal.MeasureStart != MeasureStart(request)
+            || goal.MeasureUnit != MeasureUnit(request)
+            || goal.MeasureSource != MeasureSource(request))
+        {
+            changed.Add("Measure");
+        }
+
         if (tagsChanged)
         {
             changed.Add("Tags");
@@ -341,8 +414,39 @@ public class GoalsService(AppDbContext db, IMapper mapper, IEntityLinksService e
         goal.TargetDate = request.TargetDate;
         goal.TargetAmount = request.TargetAmount;
         goal.TargetCurrency = TargetCurrency(request);
+        goal.MeasureTarget = request.MeasureTarget;
+        goal.MeasureStart = MeasureStart(request);
+        goal.MeasureUnit = MeasureUnit(request);
+        goal.MeasureSource = MeasureSource(request);
     }
 
     private static string? TargetCurrency(GoalRequest request) =>
         request.TargetAmount is null ? null : CareerRules.Currency(request.TargetCurrency);
+
+    private static decimal? MeasureStart(GoalRequest request) =>
+        request.MeasureTarget is null ? null : request.MeasureStart ?? 0;
+
+    private static string? MeasureUnit(GoalRequest request) =>
+        request.MeasureTarget is null ? null : GoalMeasureRules.Unit(request.MeasureUnit);
+
+    private static string? MeasureSource(GoalRequest request) =>
+        request.MeasureTarget is null ? null : request.MeasureSource;
+
+    private static DateOnly Today() => DateOnly.FromDateTime(DateTime.UtcNow);
+
+    /// <summary>Every goal's % through the one rule (measure, savings, body target or milestones).</summary>
+    private async Task FillProgressAsync(IReadOnlyCollection<GoalSummaryDto> goals, DateOnly? today)
+    {
+        var progress = await progressService.ForGoalsAsync(
+            goals.Select(g => new GoalProgressInput(g.Id, g.Status, g.MilestoneCount, g.CompletedMilestoneCount)).ToList(),
+            today ?? Today());
+        foreach (var goal in goals)
+        {
+            var p = progress[goal.Id];
+            goal.ProgressPercent = p.Percent;
+            goal.ProgressKind = p.Kind;
+            goal.ProgressLocked = p.Locked;
+            goal.MeasureCurrent = p.MeasureCurrent;
+        }
+    }
 }

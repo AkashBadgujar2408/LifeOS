@@ -5,6 +5,7 @@ using LifeOS.Core.Dashboard.DTOs;
 using LifeOS.Core.Dashboard.ServiceContracts;
 using LifeOS.Core.Finance.ServiceContracts;
 using LifeOS.Core.Goals.DTOs;
+using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Habits.Services;
 using LifeOS.Core.Home.ServiceContracts;
@@ -22,7 +23,8 @@ namespace LifeOS.Core.Dashboard.Services;
 /// (goal progress via GoalProgress, habit streaks via HabitStreaks).
 /// </summary>
 public class DashboardService(
-    AppDbContext db, IBudgetsService budgetsService, IHomeAgendaService homeAgendaService, IForecastService forecastService) : IDashboardService
+    AppDbContext db, IBudgetsService budgetsService, IHomeAgendaService homeAgendaService, IForecastService forecastService,
+    IGoalProgressService goalProgressService) : IDashboardService
 {
     // A local day is 23-25 hours (DST); anything much longer means the client sent the wrong span.
     private static readonly TimeSpan MaxDayLength = TimeSpan.FromHours(26);
@@ -48,6 +50,7 @@ public class DashboardService(
         var overBudget = await budgetsService.OverBudgetAsync(today);
         var homeAgenda = await homeAgendaService.UpcomingAsync(today);
         var lowAhead = await forecastService.LowAheadAsync(today, DashboardInsights.LowBalanceDays);
+        var goalProgress = await ActiveGoalProgressAsync(today);
 
         var parameters = new DynamicParameters();
         parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
@@ -127,7 +130,10 @@ public class DashboardService(
                 EntityType = r.EntityType,
                 EntityId = r.EntityId,
             }).ToList(),
-            Goals = goals.Select(g => new MyDayGoalDto
+            Goals = goals.Select(g =>
+            {
+                var progress = goalProgress.GetValueOrDefault(g.Id);
+                return new MyDayGoalDto
             {
                 Id = g.Id,
                 Title = g.Title,
@@ -136,11 +142,19 @@ public class DashboardService(
                 LifeAreaName = g.LifeAreaName,
                 MilestoneCount = g.MilestoneCount,
                 CompletedMilestoneCount = g.CompletedMilestoneCount,
-                ProgressPercent = GoalProgress.Percent(GoalStatuses.Active, g.MilestoneCount, g.CompletedMilestoneCount),
+                ProgressPercent = progress?.Percent
+                    ?? GoalProgress.Percent(GoalStatuses.Active, g.MilestoneCount, g.CompletedMilestoneCount),
+                ProgressKind = progress?.Kind ?? GoalProgressKinds.Milestones,
+                ProgressLocked = progress?.Locked ?? false,
+                MeasureCurrent = progress?.MeasureCurrent,
+                MeasureTarget = progress?.MeasureTarget,
+                MeasureUnit = progress?.MeasureUnit,
+                MeasureSource = progress?.MeasureSource,
                 NextMilestoneId = g.NextMilestoneId,
                 NextMilestoneTitle = g.NextMilestoneTitle,
                 NextMilestoneTargetDate = AsDate(g.NextMilestoneTargetDate),
                 LastActivityAt = AsUtc(g.LastActivityAt)!.Value,
+            };
             }).ToList(),
             Habits = habits.Select(h =>
             {
@@ -182,7 +196,8 @@ public class DashboardService(
             myDay.Habits
                 .Select(h => new InsightHabit(h.Id, h.Title, h.ScheduleDays, h.StartDate, doneByHabit.GetValueOrDefault(h.Id)?.ToHashSet() ?? [], h.Streak))
                 .ToList(),
-            myDay.Goals.Select(g => new InsightGoal(g.Id, g.Title, g.LastActivityAt)).ToList(),
+            myDay.Goals.Select(g => new InsightGoal(g.Id, g.Title, g.LastActivityAt, g.ProgressKind, g.ProgressPercent,
+                g.ProgressLocked, g.MeasureTarget, g.MeasureUnit, g.MeasureSource == GoalMeasureSources.Linked)).ToList(),
             myDay.LatestJournalEntry?.EntryDate,
             myDay.Tasks.Count(t => !t.IsDone && t.DueDate < today),
             myDay.ExpiringDocuments.Select(d => new InsightDocument(d.Id, d.Title, d.ExpiresOn)).ToList(),
@@ -326,6 +341,34 @@ public class DashboardService(
         public string? EntityType { get; init; }
         public int? EntityId { get; init; }
     }
+
+    /// <summary>
+    /// Every active goal's progress through the one rule (My Day shows active goals only). Worked out before the My Day
+    /// reader opens, since the rule runs its own queries.
+    /// </summary>
+    private async Task<Dictionary<int, ActiveGoalProgress>> ActiveGoalProgressAsync(DateOnly today)
+    {
+        var active = await db.Goals
+            .Where(g => g.Status == GoalStatuses.Active)
+            .Select(g => new
+            {
+                g.Id, g.MeasureTarget, g.MeasureUnit, g.MeasureSource,
+                Milestones = g.GoalMilestones.Count,
+                Done = g.GoalMilestones.Count(m => m.CompletedAt != null),
+            })
+            .ToListAsync();
+        var progress = await goalProgressService.ForGoalsAsync(
+            active.Select(g => new GoalProgressInput(g.Id, GoalStatuses.Active, g.Milestones, g.Done)).ToList(), today);
+        return active.ToDictionary(g => g.Id, g =>
+        {
+            var p = progress[g.Id];
+            return new ActiveGoalProgress(p.Percent, p.Kind, p.Locked, p.MeasureCurrent, g.MeasureTarget, g.MeasureUnit, g.MeasureSource);
+        });
+    }
+
+    private sealed record ActiveGoalProgress(
+        int Percent, string Kind, bool Locked, decimal? MeasureCurrent, decimal? MeasureTarget, string? MeasureUnit,
+        string? MeasureSource);
 
     private sealed class GoalRow
     {

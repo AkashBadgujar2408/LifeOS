@@ -34,6 +34,8 @@
           </div>
         }
 
+        <app-goal-progress [goal]="goal" (changed)="reload()" />
+
         <div class="card">
           <div class="card-body">
             <div class="d-flex align-items-baseline justify-content-between mb-2">
@@ -45,27 +47,15 @@
               }
             </div>
 
-            <div class="d-flex align-items-center gap-3 mb-3">
-              <div
-                class="progress flex-grow-1"
-                style="height: 0.6rem"
-                role="progressbar"
-                aria-label="Goal progress"
-                [attr.aria-valuenow]="goal.progressPercent"
-                aria-valuemin="0"
-                aria-valuemax="100"
-              >
-                <div class="progress-bar" [style.width.%]="goal.progressPercent"></div>
-              </div>
-              <span class="fw-semibold" style="min-width: 3rem; text-align: right">
-                {{ goal.progressPercent }}%
-              </span>
-            </div>
-
             @if (goal.milestones.length === 0) {
               <p class="small text-body-secondary mb-3">
-                No milestones yet. Break the goal into a few concrete steps below; progress is the
-                share of them you've ticked off.
+                @if (goal.progressKind === 'Milestones') {
+                  No milestones yet. Break the goal into a few concrete steps below; progress is the
+                  share of them you've ticked off.
+                } @else {
+                  No milestones yet. They're optional here — the goal's progress is its number — but
+                  they help mark the way.
+                }
               </p>
             } @else {
               <ul class="list-group list-group-flush mb-3 border-top">
@@ -272,7 +262,7 @@
           <div class="card">
             <div class="card-body">
               <h2 class="h6 mb-3">Health target</h2>
-              <app-goal-target-card [goalId]="goal.id" />
+              <app-goal-target-card [goalId]="goal.id" (changed)="reload()" />
             </div>
           </div>
         }
@@ -289,12 +279,14 @@
           </div>
         }
 
-        <div class="card">
-          <div class="card-body">
-            <h2 class="h6 mb-3">Progress over time</h2>
-            <app-goal-trend [goalId]="goal.id" [version]="trendVersion(goal)" />
+        @if (goal.progressKind === 'Milestones' || goal.progressKind === 'Measure') {
+          <div class="card">
+            <div class="card-body">
+              <h2 class="h6 mb-3">Progress over time</h2>
+              <app-goal-trend [goalId]="goal.id" [version]="trendVersion(goal)" />
+            </div>
           </div>
-        </div>
+        }
 
         <div class="card">
           <div class="card-body">

@@ -18,7 +18,10 @@ public record InsightInputs(
 
 public record InsightHabit(int Id, string Title, byte ScheduleDays, DateOnly StartDate, IReadOnlyCollection<DateOnly> DoneDates, HabitStreak Streak);
 
-public record InsightGoal(int Id, string Title, DateTime LastActivityAt);
+/// <summary>An active goal. Kind/Percent are its progress (GoalProgress); the measure says what "reached" was.</summary>
+public record InsightGoal(
+    int Id, string Title, DateTime LastActivityAt, string ProgressKind = "Milestones", int ProgressPercent = 0,
+    bool ProgressLocked = false, decimal? MeasureTarget = null, string? MeasureUnit = null, bool CountedFromItems = false);
 
 public record InsightDocument(int Id, string Title, DateOnly ExpiresOn);
 
@@ -65,7 +68,8 @@ public static class DashboardInsights
             }
         }
 
-        foreach (var goal in inputs.Goals)
+        // A goal counted from other items (habits, study…) moves by itself, so it's never "untouched".
+        foreach (var goal in inputs.Goals.Where(g => !g.CountedFromItems))
         {
             var idleDays = (int)(inputs.NowUtc - goal.LastActivityAt).TotalDays;
             if (idleDays >= GoalUntouchedDays)
@@ -168,8 +172,34 @@ public static class DashboardInsights
             });
         }
 
+        // A number reached (or a savings amount saved) on a goal that's still Active: never completed by itself, so
+        // ask. Gone once it's completed; a new target makes a new key.
+        foreach (var goal in inputs.Goals.Where(TargetReached))
+        {
+            insights.Add(new InsightDto
+            {
+                Kind = InsightKinds.GoalTargetReached,
+                Key = Invariant($"{InsightKinds.GoalTargetReached}:{goal.Id}:{goal.ProgressKind}:{goal.MeasureTarget}"),
+                Tone = InsightTones.Cheer,
+                Message = TargetReachedMessage(goal),
+                EntityType = "Goal",
+                EntityId = goal.Id,
+            });
+        }
+
         return insights;
     }
+
+    /// <summary>Only a goal measured by a number or an amount "reaches" something; milestones finish on their own.</summary>
+    private static bool TargetReached(InsightGoal goal) =>
+        goal.ProgressPercent >= 100 && !goal.ProgressLocked
+        && goal.ProgressKind is Goals.Services.GoalProgressKinds.Measure or Goals.Services.GoalProgressKinds.Savings;
+
+    /// <summary>"You've reached 100,000 steps on "Walk 100k". Mark it complete?"</summary>
+    public static string TargetReachedMessage(InsightGoal goal) =>
+        goal.ProgressKind == Goals.Services.GoalProgressKinds.Measure && goal.MeasureTarget is { } target
+            ? Invariant($"You've reached {Amount(target)} {goal.MeasureUnit} on \"{goal.Title}\". Mark it complete?")
+            : $"You've saved what \"{goal.Title}\" needed. Mark it complete?";
 
     /// <summary>"Groceries has gone past its October budget: 9,250 INR of 8,000. Worth a look before the month is out."</summary>
     public static string OverBudgetMessage(InsightBudget budget, DateOnly today)

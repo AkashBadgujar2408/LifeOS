@@ -14,7 +14,7 @@ public class GoalsProfile : Profile
             .ForMember(d => d.ChangedFieldsCsv, o => o.MapFrom(h => h.ChangedFields))
             .ForMember(d => d.ChangedFields, o => o.Ignore());
 
-        // Projected straight to SQL via ProjectTo; ProgressPercent is filled in afterwards by GoalProgress.
+        // Projected straight to SQL via ProjectTo; progress is filled in afterwards through IGoalProgressService.
         CreateMap<Goal, GoalSummaryDto>()
             .ForMember(d => d.MilestoneCount, o => o.MapFrom(g => g.GoalMilestones.Count))
             .ForMember(d => d.CompletedMilestoneCount, o => o.MapFrom(g => g.GoalMilestones.Count(m => m.CompletedAt != null)))
@@ -26,7 +26,10 @@ public class GoalsProfile : Profile
             .ForMember(d => d.Tags, o => o.MapFrom(g => g.GoalTags
                 .OrderBy(gt => gt.Tag.Name)
                 .Select(gt => new TagDto { Id = gt.Tag.Id, Name = gt.Tag.Name })))
-            .ForMember(d => d.ProgressPercent, o => o.Ignore());
+            .ForMember(d => d.ProgressPercent, o => o.Ignore())
+            .ForMember(d => d.ProgressKind, o => o.Ignore())
+            .ForMember(d => d.ProgressLocked, o => o.Ignore())
+            .ForMember(d => d.MeasureCurrent, o => o.Ignore());
 
         CreateMap<Goal, GoalDetailDto>()
             .IncludeBase<Goal, GoalSummaryDto>()

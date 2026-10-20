@@ -511,7 +511,11 @@
                           · by {{ goal.targetDate | date }}
                         }
                       </div>
-                      @if (goal.milestoneCount > 0) {
+                      @if (goal.progressLocked) {
+                        <div class="small text-body-secondary">
+                          <i class="bi bi-lock"></i> {{ progressCaption(goal) }} · Locked
+                        </div>
+                      } @else if (hasProgressBar(goal)) {
                         <div
                           class="progress"
                           style="height: 0.4rem"
@@ -525,7 +529,9 @@
                         </div>
                         <div class="d-flex justify-content-between gap-2 small mt-1">
                           <span class="text-body-secondary text-truncate min-w-0">
-                            @if (goal.nextMilestoneTitle) {
+                            @if (goal.progressKind !== 'Milestones') {
+                              {{ progressCaption(goal) }}
+                            } @else if (goal.nextMilestoneTitle) {
                               Next: {{ goal.nextMilestoneTitle }}
                               @if (goal.nextMilestoneTargetDate) {
                                 ({{ goal.nextMilestoneTargetDate | date: dayMonthFormat }})

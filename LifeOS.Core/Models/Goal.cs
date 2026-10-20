@@ -35,9 +35,21 @@ public partial class Goal
 
     public string? TargetCurrency { get; set; }
 
+    public decimal? MeasureTarget { get; set; }
+
+    public decimal? MeasureStart { get; set; }
+
+    public string? MeasureUnit { get; set; }
+
+    public string? MeasureSource { get; set; }
+
     public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();
 
+    public virtual ICollection<GoalMeasureEntry> GoalMeasureEntries { get; set; } = new List<GoalMeasureEntry>();
+
     public virtual ICollection<GoalMilestone> GoalMilestones { get; set; } = new List<GoalMilestone>();
+
+    public virtual ICollection<GoalSource> GoalSources { get; set; } = new List<GoalSource>();
 
     public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
 

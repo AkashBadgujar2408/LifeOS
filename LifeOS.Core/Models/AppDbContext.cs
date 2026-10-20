@@ -79,7 +79,11 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<GoalHistory> GoalHistories { get; set; }
 
+    public virtual DbSet<GoalMeasureEntry> GoalMeasureEntries { get; set; }
+
     public virtual DbSet<GoalMilestone> GoalMilestones { get; set; }
+
+    public virtual DbSet<GoalSource> GoalSources { get; set; }
 
     public virtual DbSet<GoalTag> GoalTags { get; set; }
 
@@ -1088,6 +1092,10 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Goals_CreatedAt");
             entity.Property(e => e.GoalType).HasMaxLength(20);
+            entity.Property(e => e.MeasureSource).HasMaxLength(10);
+            entity.Property(e => e.MeasureStart).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.MeasureTarget).HasColumnType("decimal(19, 4)");
+            entity.Property(e => e.MeasureUnit).HasMaxLength(30);
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValue("Active", "DF_Goals_Status");
@@ -1133,11 +1141,39 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_GoalHistory_Users");
         });
 
+        modelBuilder.Entity<GoalMeasureEntry>(entity =>
+        {
+            entity.ToTable("GoalMeasureEntries", "goals");
+
+            entity.HasIndex(e => new { e.GoalId, e.EntryDate }, "IX_GoalMeasureEntries_Goal").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_GoalMeasureEntries_CreatedAt");
+            entity.Property(e => e.Kind)
+                .HasMaxLength(12)
+                .HasDefaultValue("Logged", "DF_GoalMeasureEntries_Kind");
+            entity.Property(e => e.Note).HasMaxLength(200);
+            entity.Property(e => e.Value).HasColumnType("decimal(19, 4)");
+
+            entity.HasOne(d => d.Goal).WithMany(p => p.GoalMeasureEntries)
+                .HasForeignKey(d => d.GoalId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalMeasureEntries_Goals");
+
+            entity.HasOne(d => d.User).WithMany(p => p.GoalMeasureEntries)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalMeasureEntries_Users");
+        });
+
         modelBuilder.Entity<GoalMilestone>(entity =>
         {
             entity.ToTable("GoalMilestones", "goals");
 
             entity.HasIndex(e => new { e.GoalId, e.SortOrder }, "IX_GoalMilestones_Goal").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.ProjectId, "IX_GoalMilestones_Project").HasFilter("([IsDeleted]=(0) AND [ProjectId] IS NOT NULL)");
+
+            entity.HasIndex(e => e.TaskItemId, "IX_GoalMilestones_TaskItem").HasFilter("([IsDeleted]=(0) AND [TaskItemId] IS NOT NULL)");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_GoalMilestones_CreatedAt");
             entity.Property(e => e.Title).HasMaxLength(200);
@@ -1147,10 +1183,47 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_GoalMilestones_Goals");
 
+            entity.HasOne(d => d.Project).WithMany(p => p.GoalMilestones)
+                .HasForeignKey(d => d.ProjectId)
+                .HasConstraintName("FK_GoalMilestones_Projects");
+
+            entity.HasOne(d => d.TaskItem).WithMany(p => p.GoalMilestones)
+                .HasForeignKey(d => d.TaskItemId)
+                .HasConstraintName("FK_GoalMilestones_TaskItems");
+
             entity.HasOne(d => d.User).WithMany(p => p.GoalMilestones)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_GoalMilestones_Users");
+        });
+
+        modelBuilder.Entity<GoalSource>(entity =>
+        {
+            entity.ToTable("GoalSources", "goals");
+
+            entity.HasIndex(e => new { e.EntityType, e.EntityId }, "IX_GoalSources_Entity").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => e.GoalId, "IX_GoalSources_Goal").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.GoalId, e.Kind, e.EntityType, e.EntityId, e.Filter, e.Metric }, "UX_GoalSources_Same")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_GoalSources_CreatedAt");
+            entity.Property(e => e.EntityType).HasMaxLength(50);
+            entity.Property(e => e.Filter).HasMaxLength(30);
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Metric).HasMaxLength(20);
+
+            entity.HasOne(d => d.Goal).WithMany(p => p.GoalSources)
+                .HasForeignKey(d => d.GoalId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalSources_Goals");
+
+            entity.HasOne(d => d.User).WithMany(p => p.GoalSources)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_GoalSources_Users");
         });
 
         modelBuilder.Entity<GoalTag>(entity =>

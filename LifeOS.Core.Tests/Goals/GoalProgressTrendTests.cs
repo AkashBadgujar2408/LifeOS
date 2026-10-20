@@ -74,4 +74,27 @@ public class GoalProgressTrendTests
         // A goal completed before status history existed is simply 100% throughout.
         Assert.Equal([(T(1), 100), (Now, 100)], Build([], status: GoalStatuses.Completed));
     }
+
+    [Fact]
+    public void A_measured_goal_rises_with_each_day_of_amounts_and_is_full_while_completed()
+    {
+        // 1,00,000 steps: 10,000 already done (on the day it was set), then 30k and 20k logged on later days.
+        List<(DateOnly, decimal)> amounts =
+        [
+            (new DateOnly(2026, 10, 1), 10_000),
+            (new DateOnly(2026, 10, 4), 30_000),
+            (new DateOnly(2026, 10, 9), 20_000),
+        ];
+        DateTime Day(int day) => new(2026, 10, day, 0, 0, 0, DateTimeKind.Utc);
+
+        var active = GoalProgressTrend.BuildMeasure(T(1), GoalStatuses.Active, 100_000, amounts, [], Now)
+            .Select(p => (p.At, p.Percent)).ToList();
+        // The first day's amount is already in the goal's first point (it began that morning, before 09:00).
+        Assert.Equal([(T(1), 10), (Day(4), 40), (Day(9), 60), (Now, 60)], active);
+
+        var completed = GoalProgressTrend.BuildMeasure(T(1), GoalStatuses.Completed, 100_000, amounts,
+                [new TrendStatusChange(T(12), GoalStatuses.Active, GoalStatuses.Completed)], Now)
+            .Select(p => (p.At, p.Percent)).ToList();
+        Assert.Equal([(T(1), 10), (Day(4), 40), (Day(9), 60), (T(12), 100), (Now, 100)], completed);
+    }
 }

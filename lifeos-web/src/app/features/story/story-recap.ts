@@ -86,7 +86,10 @@ import { beatLink, beatText } from './story-view';
                   · by {{ mission.targetDate | date }}
                 }
               </div>
-              @if (mission.objectives.length > 0) {
+              @if (
+                !mission.progressLocked &&
+                (mission.objectives.length > 0 || mission.progressKind !== 'Milestones')
+              ) {
                 <div
                   class="progress mt-2"
                   style="height: 0.4rem"

@@ -70,4 +70,56 @@ public static class GoalProgressTrend
 
         return points;
     }
+
+    /// <summary>
+    /// A measured goal's % over time: the running total of what was already done, logged and counted, day by day
+    /// (each day's amounts land at its start, UTC — the chart's x axis is days), 100% while Completed. Anything dated
+    /// before the goal was created is already in its first point.
+    /// </summary>
+    public static List<GoalTrendPointDto> BuildMeasure(
+        DateTime goalCreatedAt,
+        string currentStatus,
+        decimal target,
+        IReadOnlyCollection<(DateOnly Day, decimal Amount)> amounts,
+        IReadOnlyCollection<TrendStatusChange> statusChanges,
+        DateTime nowUtc)
+    {
+        var changes = statusChanges.OrderBy(c => c.At).ToList();
+        var initialStatus = changes.Count > 0 ? changes[0].FromStatus : currentStatus;
+        var dated = amounts
+            .Select(a => (At: a.Day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc), a.Amount))
+            .ToList();
+
+        var moments = new SortedSet<DateTime> { goalCreatedAt };
+        foreach (var (at, _) in dated)
+        {
+            moments.Add(at < goalCreatedAt ? goalCreatedAt : at);
+        }
+
+        foreach (var c in changes)
+        {
+            moments.Add(c.At);
+        }
+
+        var points = new List<GoalTrendPointDto>();
+        foreach (var at in moments.Where(t => t >= goalCreatedAt && t <= nowUtc))
+        {
+            var status = changes.LastOrDefault(c => c.At <= at)?.ToStatus ?? initialStatus;
+            var total = dated.Where(d => d.At <= at).Sum(d => d.Amount);
+            var percent = status == GoalStatuses.Completed
+                ? 100
+                : GoalProgress.MeasurePercent(new MeasureFacts(0, target, total));
+            if (points.Count == 0 || points[^1].Percent != percent)
+            {
+                points.Add(new GoalTrendPointDto { At = at, Percent = percent });
+            }
+        }
+
+        if (points.Count > 0 && points[^1].At < nowUtc)
+        {
+            points.Add(new GoalTrendPointDto { At = nowUtc, Percent = points[^1].Percent });
+        }
+
+        return points;
+    }
 }

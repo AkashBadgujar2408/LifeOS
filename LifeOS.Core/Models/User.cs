@@ -95,7 +95,11 @@ public partial class User
 
     public virtual ICollection<GoalHistory> GoalHistories { get; set; } = new List<GoalHistory>();
 
+    public virtual ICollection<GoalMeasureEntry> GoalMeasureEntries { get; set; } = new List<GoalMeasureEntry>();
+
     public virtual ICollection<GoalMilestone> GoalMilestones { get; set; } = new List<GoalMilestone>();
+
+    public virtual ICollection<GoalSource> GoalSources { get; set; } = new List<GoalSource>();
 
     public virtual ICollection<GoalTag> GoalTags { get; set; } = new List<GoalTag>();
 

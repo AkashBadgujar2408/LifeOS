@@ -1,0 +1,213 @@
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2 mb-2">
+      <h2 class="h6 mb-0">Progress</h2>
+      <span class="small text-body-secondary">{{ summary() }}</span>
+    </div>
+
+    <div class="d-flex align-items-center gap-3">
+      @if (goal().progressLocked) {
+        <div class="small text-body-secondary flex-grow-1">
+          <i class="bi bi-lock"></i> Locked — this goal is measured by Health data.
+        </div>
+      } @else {
+        <div
+          class="progress flex-grow-1"
+          style="height: 0.6rem"
+          role="progressbar"
+          aria-label="Goal progress"
+          [attr.aria-valuenow]="goal().progressPercent"
+          aria-valuemin="0"
+          aria-valuemax="100"
+        >
+          <div class="progress-bar" [style.width.%]="goal().progressPercent"></div>
+        </div>
+        <span class="fw-semibold" style="min-width: 3rem; text-align: right">
+          {{ goal().progressPercent }}%
+        </span>
+      }
+    </div>
+
+    @if (measured()) {
+      @if (linked()) {
+        <h3 class="h6 small fw-semibold mt-4 mb-2">Counted from</h3>
+        @if (sources().length === 0) {
+          <p class="small text-body-secondary mb-2">
+            Nothing yet. Choose what adds to this goal — a habit, study time, books, a project or
+            workouts — and it counts by itself from then on.
+          </p>
+        } @else {
+          <ul class="list-group list-group-flush border-top mb-2">
+            @for (source of sources(); track source.id) {
+              <li class="list-group-item px-0 py-2 d-flex align-items-start gap-2">
+                <div class="flex-grow-1 min-w-0">
+                  <div class="text-truncate">{{ source.title }}</div>
+                  <div class="small text-body-secondary">
+                    Counting from {{ source.countsFrom | date }}
+                  </div>
+                </div>
+                <span class="small fw-semibold text-nowrap">
+                  @if (source.locked) {
+                    <i class="bi bi-lock"></i> Locked
+                  } @else {
+                    {{ formatAmount(source.counted ?? 0) }} {{ source.unit }}
+                  }
+                </span>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-link text-body-secondary p-0"
+                  [attr.aria-label]="'Stop counting ' + source.title"
+                  (click)="removeSource(source)"
+                >
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+        @if (picking()) {
+          <app-goal-source-picker
+            [goalId]="goal().id"
+            [unit]="goal().measureUnit!"
+            [hasSources]="sources().length > 0"
+            (added)="sourceAdded()"
+            (cancelled)="picking.set(false)"
+          />
+        } @else {
+          <button type="button" class="btn btn-sm btn-outline-primary" (click)="picking.set(true)">
+            <i class="bi bi-plus-lg"></i> Add what it's counted from
+          </button>
+        }
+        <p class="small text-body-secondary mt-2 mb-0">
+          The number is counted for you, so it can't be changed by hand. To log it yourself instead,
+          revise the goal — what's been counted so far is kept.
+        </p>
+      } @else {
+        <form class="mt-4" [formGroup]="entryForm" (ngSubmit)="saveEntry()" novalidate>
+          <label class="form-label small fw-semibold" for="measure-entry-value">
+            {{ editingEntryId() ? 'Change the entry' : 'Log what you did' }}
+          </label>
+          <div class="d-flex flex-wrap gap-2 align-items-start">
+            <div style="width: 10rem">
+              <div class="input-group">
+                <input
+                  id="measure-entry-value"
+                  type="number"
+                  step="any"
+                  min="0"
+                  class="form-control"
+                  [class.is-invalid]="entryError('value')"
+                  formControlName="value"
+                  placeholder="e.g. 8000"
+                />
+                <span class="input-group-text text-truncate" style="max-width: 5rem">{{
+                  goal().measureUnit
+                }}</span>
+              </div>
+              @if (entryError('value'); as error) {
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              }
+            </div>
+            <div>
+              <div class="input-group" style="width: 11.5rem">
+                <input
+                  type="text"
+                  class="form-control"
+                  [class.is-invalid]="entryError('entryDate')"
+                  formControlName="entryDate"
+                  aria-label="Day"
+                  placeholder="14/Oct/2026"
+                  autocomplete="off"
+                  ngbDatepicker
+                  #entryDatePicker="ngbDatepicker"
+                  container="body"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  aria-label="Pick the day"
+                  (click)="entryDatePicker.toggle()"
+                >
+                  <i class="bi bi-calendar3"></i>
+                </button>
+              </div>
+              @if (entryError('entryDate'); as error) {
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              }
+            </div>
+            <div class="flex-grow-1" style="min-width: 10rem">
+              <input
+                type="text"
+                class="form-control"
+                [class.is-invalid]="entryError('note')"
+                formControlName="note"
+                aria-label="Note (optional)"
+                placeholder="Note (optional), e.g. Morning walk"
+                autocomplete="off"
+              />
+              @if (entryError('note'); as error) {
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              }
+            </div>
+            <button type="submit" class="btn btn-primary" [disabled]="saving()">
+              {{ editingEntryId() ? 'Save' : 'Add' }}
+            </button>
+            @if (editingEntryId()) {
+              <button type="button" class="btn btn-outline-secondary" (click)="cancelEdit()">
+                Cancel
+              </button>
+            }
+          </div>
+        </form>
+      }
+
+      @if (entries().length > 0) {
+        <h3 class="h6 small fw-semibold mt-4 mb-2">
+          {{ linked() ? 'Kept from before' : 'Log' }}
+        </h3>
+        <ul class="list-group list-group-flush border-top">
+          @for (entry of entries(); track entry.id) {
+            <li class="list-group-item px-0 py-2 d-flex align-items-start gap-2">
+              <div class="flex-grow-1 min-w-0">
+                <span class="fw-semibold">+{{ formatAmount(entry.value) }}</span>
+                {{ goal().measureUnit }}
+                @if (entry.kind === 'CarriedOver') {
+                  <span class="badge text-bg-light border ms-1">Carried over</span>
+                }
+                <div class="small text-body-secondary text-truncate">
+                  {{ entry.entryDate | date }}
+                  @if (entry.note) {
+                    · {{ entry.note }}
+                  }
+                </div>
+              </div>
+              @if (!linked()) {
+                <button
+                  type="button"
+                  class="btn btn-sm btn-link text-body-secondary p-0"
+                  [attr.aria-label]="'Change the entry of ' + (entry.entryDate | date)"
+                  (click)="editEntry(entry)"
+                >
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-link text-body-secondary p-0"
+                  [attr.aria-label]="'Remove the entry of ' + (entry.entryDate | date)"
+                  (click)="removeEntry(entry)"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      } @else if (!linked()) {
+        <p class="small text-body-secondary mt-3 mb-0">
+          Nothing logged yet. Every entry adds up toward
+          {{ formatAmount(goal().measureTarget!) }} {{ goal().measureUnit }}.
+        </p>
+      }
+    }
+  </div>
+</div>

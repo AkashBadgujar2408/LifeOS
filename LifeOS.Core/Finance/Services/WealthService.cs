@@ -45,49 +45,76 @@ public class WealthService(AppDbContext db) : IWealthService
 
     public async Task<OperationResult<SavingsProgressDto?>> GetSavingsAsync(int goalId, DateOnly today)
     {
-        var goal = await db.Goals.Where(g => g.Id == goalId)
-            .Select(g => new { g.TargetAmount, g.TargetCurrency })
-            .FirstOrDefaultAsync();
-        if (goal is null)
+        if (!await db.Goals.AnyAsync(g => g.Id == goalId))
         {
             return OperationResult<SavingsProgressDto?>.Fail("Goal not found.");
         }
 
-        if (goal.TargetAmount is not { } target || goal.TargetCurrency is not { } currency)
+        var all = await GetSavingsForGoalsAsync([goalId], today);
+        return OperationResult<SavingsProgressDto?>.Ok(all.GetValueOrDefault(goalId));
+    }
+
+    public async Task<Dictionary<int, SavingsProgressDto>> GetSavingsForGoalsAsync(IReadOnlyCollection<int> goalIds, DateOnly today)
+    {
+        var goals = await db.Goals
+            .Where(g => goalIds.Contains(g.Id) && g.TargetAmount != null && g.TargetCurrency != null)
+            .Select(g => new { g.Id, Target = g.TargetAmount!.Value, Currency = g.TargetCurrency! })
+            .ToListAsync();
+        if (goals.Count == 0)
         {
-            return OperationResult<SavingsProgressDto?>.Ok(null);
+            return [];
         }
 
         // Links are stored with the ordinally smaller type first, so look both ways.
         var goalType = GoalLinkableProvider.Type;
+        var ids = goals.Select(g => g.Id).ToList();
         var linked = await db.EntityLinks
-            .Where(l => (l.SourceEntityType == goalType && l.SourceEntityId == goalId)
-                || (l.TargetEntityType == goalType && l.TargetEntityId == goalId))
-            .Select(l => l.SourceEntityType == goalType && l.SourceEntityId == goalId
-                ? new { Type = l.TargetEntityType, Id = l.TargetEntityId }
-                : new { Type = l.SourceEntityType, Id = l.SourceEntityId })
+            .Where(l => (l.SourceEntityType == goalType && ids.Contains(l.SourceEntityId))
+                || (l.TargetEntityType == goalType && ids.Contains(l.TargetEntityId)))
+            .Select(l => l.SourceEntityType == goalType && ids.Contains(l.SourceEntityId)
+                ? new { GoalId = l.SourceEntityId, Type = l.TargetEntityType, Id = l.TargetEntityId }
+                : new { GoalId = l.TargetEntityId, Type = l.SourceEntityType, Id = l.SourceEntityId })
             .ToListAsync();
-        var wanted = linked
+        var wantedByGoal = linked
             .Where(l => l.Type is NetWorth.AccountType or NetWorth.HoldingType)
-            .Select(l => (l.Type, l.Id))
-            .ToHashSet();
+            .GroupBy(l => l.GoalId)
+            .ToDictionary(g => g.Key, g => g.Select(l => (l.Type, l.Id)).ToHashSet());
 
         var baseCurrency = await BaseCurrencyAsync();
-        var items = wanted.Count == 0
-            ? []
-            : NetWorth.At(today, await LoadAsync(baseCurrency ?? currency), baseCurrency ?? currency).Items.Where(i => wanted.Contains((i.Type, i.Id))).ToList();
-        var (saved, percent, counted) = SavingsProgress.Of(target, currency, baseCurrency, items);
-        return OperationResult<SavingsProgressDto?>.Ok(new SavingsProgressDto
+        // One picture of what you own per currency it's valued in (only the base, once a base currency is set).
+        var pictures = new Dictionary<string, List<WealthItem>>();
+        var result = new Dictionary<int, SavingsProgressDto>();
+        foreach (var goal in goals)
         {
-            TargetAmount = target,
-            TargetCurrency = currency,
-            Saved = saved,
-            Percent = percent,
-            Items = counted.Select(c => new WealthItemDto
+            var wanted = wantedByGoal.GetValueOrDefault(goal.Id) ?? [];
+            var valuedIn = baseCurrency ?? goal.Currency;
+            List<WealthItem> items = [];
+            if (wanted.Count > 0)
             {
-                Type = c.Item.Type, Id = c.Item.Id, Name = c.Item.Name, Currency = c.Item.Currency, Amount = c.Item.Amount, InBase = c.Counted,
-            }).ToList(),
-        });
+                if (!pictures.TryGetValue(valuedIn, out var picture))
+                {
+                    picture = NetWorth.At(today, await LoadAsync(valuedIn), valuedIn).Items.ToList();
+                    pictures[valuedIn] = picture;
+                }
+
+                items = picture.Where(i => wanted.Contains((i.Type, i.Id))).ToList();
+            }
+
+            var (saved, percent, counted) = SavingsProgress.Of(goal.Target, goal.Currency, baseCurrency, items);
+            result[goal.Id] = new SavingsProgressDto
+            {
+                TargetAmount = goal.Target,
+                TargetCurrency = goal.Currency,
+                Saved = saved,
+                Percent = percent,
+                Items = counted.Select(c => new WealthItemDto
+                {
+                    Type = c.Item.Type, Id = c.Item.Id, Name = c.Item.Name, Currency = c.Item.Currency, Amount = c.Item.Amount, InBase = c.Counted,
+                }).ToList(),
+            };
+        }
+
+        return result;
     }
 
     private async Task<string?> BaseCurrencyAsync() =>

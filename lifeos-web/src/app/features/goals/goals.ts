@@ -20,6 +20,7 @@ import {
 } from '../../core/services/goals.service';
 import { LifeArea, LifeAreasService } from '../../core/services/life-areas.service';
 import { isOverdue } from '../../core/dates/today';
+import { hasProgressBar, progressCaption } from './goal-measure';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { LifeVision } from './life-vision';
@@ -39,6 +40,8 @@ export class Goals implements OnInit {
   protected readonly statuses = GOAL_STATUSES;
   protected readonly typeLabels = GOAL_TYPE_LABELS;
   protected readonly isOverdue = isOverdue;
+  protected readonly progressCaption = progressCaption;
+  protected readonly hasProgressBar = hasProgressBar;
 
   protected readonly goals = signal<GoalSummary[]>([]);
   protected readonly lifeAreas = signal<LifeArea[]>([]);

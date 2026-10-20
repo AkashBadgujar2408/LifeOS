@@ -37,6 +37,17 @@ public class GoalSummaryDto
     /// <summary>A savings goal's amount to reach (both or neither); progress comes from linked accounts and investments.</summary>
     public decimal? TargetAmount { get; init; }
     public string? TargetCurrency { get; init; }
+    /// <summary>A measured goal (Session 71d): target + unit + what was already done, logged (Manual) or counted (Linked).</summary>
+    public decimal? MeasureTarget { get; init; }
+    public decimal? MeasureStart { get; init; }
+    public string? MeasureUnit { get; init; }
+    public string? MeasureSource { get; init; }
+    /// <summary>Where a measured goal stands now (already done + logged + counted); null when locked.</summary>
+    public decimal? MeasureCurrent { get; set; }
+    /// <summary>What ProgressPercent is measured by (<see cref="Services.GoalProgressKinds"/>).</summary>
+    public string ProgressKind { get; set; } = Services.GoalProgressKinds.Milestones;
+    /// <summary>The figure is Health data and the vault is locked: show "Locked", not the percent.</summary>
+    public bool ProgressLocked { get; set; }
     public List<TagDto> Tags { get; init; } = [];
 }
 
@@ -124,6 +135,21 @@ public class GoalRequest
 
     public string? TargetCurrency { get; init; }
 
+    /// <summary>Makes it a measured goal: the number to reach in MeasureUnit (all of target, unit and source, or none).</summary>
+    public decimal? MeasureTarget { get; init; }
+
+    /// <summary>Already done before (0 when left out).</summary>
+    public decimal? MeasureStart { get; init; }
+
+    [StringLength(30)]
+    public string? MeasureUnit { get; init; }
+
+    /// <summary>Manual (a number I log) or Linked (counted from other items).</summary>
+    public string? MeasureSource { get; init; }
+
+    /// <summary>The client's today: when a Linked goal goes back to Manual, what was counted is carried over on this day.</summary>
+    public DateOnly? Today { get; init; }
+
     /// <summary>Edit only (ignored on create): why the goal is being revised.</summary>
     [StringLength(1000)]
     public string? RevisionNote { get; init; }
@@ -167,4 +193,127 @@ public class LifeVisionRequest
     /// <summary>Blank clears it.</summary>
     [StringLength(2000)]
     public string? Text { get; init; }
+}
+
+// ---- Measured goals and what they're counted from (Sessions 71d–71h) ----
+
+public static class GoalMeasureSources
+{
+    public const string Manual = "Manual";
+    public const string Linked = "Linked";
+}
+
+public static class GoalMeasureEntryKinds
+{
+    public const string Logged = "Logged";
+    public const string CarriedOver = "CarriedOver";
+}
+
+/// <summary>A goal's progress as the one rule (GoalProgress) worked it out.</summary>
+public class GoalProgressDto
+{
+    public int Percent { get; init; }
+    public string Kind { get; init; } = string.Empty;
+    public bool Locked { get; init; }
+    public decimal? MeasureCurrent { get; init; }
+}
+
+public class GoalMeasureEntryDto
+{
+    public int Id { get; init; }
+    public int GoalId { get; init; }
+    public DateOnly EntryDate { get; init; }
+    public decimal Value { get; init; }
+    /// <summary>Logged, or CarriedOver (what a source had counted when it stopped counting).</summary>
+    public string Kind { get; init; } = string.Empty;
+    public string? Note { get; init; }
+    public DateTime CreatedAt { get; init; }
+}
+
+public class GoalMeasureEntryRequest
+{
+    public DateOnly EntryDate { get; init; }
+
+    public decimal Value { get; init; }
+
+    [StringLength(200)]
+    public string? Note { get; init; }
+
+    /// <summary>The client's today: entries can't be for a later day.</summary>
+    public DateOnly Today { get; init; }
+}
+
+/// <summary>Something a Linked goal is counted from, with what it has counted so far.</summary>
+public class GoalSourceDto
+{
+    public int Id { get; init; }
+    public int GoalId { get; init; }
+    public string Kind { get; init; } = string.Empty;
+    public string? EntityType { get; init; }
+    public int? EntityId { get; init; }
+    public string? Filter { get; init; }
+    public string? Metric { get; init; }
+    public DateOnly CountsFrom { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string Unit { get; init; } = string.Empty;
+    /// <summary>Null when it's Health data and the vault is locked.</summary>
+    public decimal? Counted { get; init; }
+    public bool Locked { get; init; }
+}
+
+public class GoalSourceRequest
+{
+    [Required]
+    public string Kind { get; init; } = string.Empty;
+
+    [StringLength(50)]
+    public string? EntityType { get; init; }
+
+    public int? EntityId { get; init; }
+
+    [StringLength(30)]
+    public string? Filter { get; init; }
+
+    [StringLength(20)]
+    public string? Metric { get; init; }
+
+    /// <summary>Nothing earlier counts; the client's today when left out.</summary>
+    public DateOnly? CountsFrom { get; init; }
+
+    public DateOnly Today { get; init; }
+}
+
+public class GoalSourceUpdateRequest
+{
+    public DateOnly CountsFrom { get; init; }
+
+    public DateOnly Today { get; init; }
+}
+
+/// <summary>A goal an item counts toward, shown on the item's page.</summary>
+public class GoalCountedByDto
+{
+    public int GoalId { get; init; }
+    public string GoalTitle { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public int Percent { get; init; }
+    public bool Locked { get; init; }
+    public decimal? MeasureCurrent { get; init; }
+    public decimal? MeasureTarget { get; init; }
+    public string? MeasureUnit { get; init; }
+    /// <summary>What this item has counted toward it.</summary>
+    public decimal? Counted { get; init; }
+}
+
+/// <summary>Something a goal could be counted from: what to send as a source, and how it reads and counts.</summary>
+public class GoalSourceOptionDto
+{
+    public string Kind { get; init; } = string.Empty;
+    public string? EntityType { get; init; }
+    public int? EntityId { get; init; }
+    public string? Filter { get; init; }
+    public string? Metric { get; init; }
+    public string Title { get; init; } = string.Empty;
+    /// <summary>What it counts in — a goal's unit must match it.</summary>
+    public string Unit { get; init; } = string.Empty;
 }

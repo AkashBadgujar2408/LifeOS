@@ -43,6 +43,8 @@ public partial class TaskItem
 
     public virtual ICollection<FocusSession> FocusSessions { get; set; } = new List<FocusSession>();
 
+    public virtual ICollection<GoalMilestone> GoalMilestones { get; set; } = new List<GoalMilestone>();
+
     public virtual ICollection<TaskItem> InverseNextOccurrenceTask { get; set; } = new List<TaskItem>();
 
     public virtual TaskItem? NextOccurrenceTask { get; set; }
