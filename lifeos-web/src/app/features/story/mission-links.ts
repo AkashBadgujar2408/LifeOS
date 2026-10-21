@@ -10,7 +10,9 @@ import {
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin } from 'rxjs';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { GoalStatus, Mission, StoryService } from '../../core/services/story.service';
@@ -31,7 +33,7 @@ const STATUS_WORDS: Partial<Record<GoalStatus, string>> = {
 @Component({
   selector: 'app-mission-links',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule, NgOptionComponent, NgSelectComponent],
   template: `
     @if (mission(); as m) {
       <div class="d-flex align-items-center justify-content-between mb-2">
@@ -79,19 +81,21 @@ const STATUS_WORDS: Partial<Record<GoalStatus, string>> = {
         <label class="visually-hidden" for="mission-prerequisite"
           >Add a mission that has to come first</label
         >
-        <select
-          id="mission-prerequisite"
-          class="form-select form-select-sm mb-3"
+        <ng-select
+          labelForId="mission-prerequisite"
+          class="ng-select-sm mb-3"
+          #prerequisitePicker
           [disabled]="busy()"
-          (change)="add($event)"
+          [ngModel]="null"
+          (ngModelChange)="add($event); $event !== null && prerequisitePicker.clearModel()"
+          placeholder="+ Needs another mission first…"
         >
-          <option value="" selected>+ Needs another mission first…</option>
           @for (o of options(); track o.id) {
-            <option [value]="o.id">
+            <ng-option [value]="o.id">
               {{ o.title }}{{ statusWords[o.status] ? ' (' + statusWords[o.status] + ')' : '' }}
-            </option>
+            </ng-option>
           }
-        </select>
+        </ng-select>
       }
 
       <div class="small text-body-secondary mb-1">Unlocks</div>
@@ -162,10 +166,7 @@ export class MissionLinks {
       : `${titles.slice(0, -1).join(', ')} and ${titles[titles.length - 1]}`;
   }
 
-  protected add(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const requiresGoalId = Number(select.value);
-    select.value = '';
+  protected add(requiresGoalId: number | null): void {
     if (!requiresGoalId) {
       return;
     }

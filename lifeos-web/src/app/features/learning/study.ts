@@ -11,6 +11,7 @@ import { formatDate } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { ColDef } from 'ag-grid-community';
 import { catchError, of } from 'rxjs';
@@ -39,7 +40,16 @@ type SubjectKind = 'Skill' | 'Course' | 'Book';
 @Component({
   selector: 'app-study',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, LoadError, StudyTimer, StudyChart, DataGrid],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    LoadError,
+    StudyTimer,
+    StudyChart,
+    DataGrid,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   templateUrl: './study.html',
 })
 export class Study {

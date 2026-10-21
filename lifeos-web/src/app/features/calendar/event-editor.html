@@ -276,15 +276,14 @@
         <label class="form-label" for="event-life-area">
           Life area <span class="text-body-secondary small">(optional)</span>
         </label>
-        <select id="event-life-area" class="form-select" formControlName="lifeAreaId">
-          <option [ngValue]="null">None</option>
+        <ng-select labelForId="event-life-area" formControlName="lifeAreaId" placeholder="None">
           @for (
             area of pickableLifeAreas(lifeAreas(), hiddenAreaIds(), form.controls.lifeAreaId.value);
             track area.id
           ) {
-            <option [ngValue]="area.id">{{ area.name }}</option>
+            <ng-option [value]="area.id">{{ area.name }}</ng-option>
           }
-        </select>
+        </ng-select>
         <div class="form-text">Blocks time for it; the week view adds up the hours.</div>
       </div>
     </div>

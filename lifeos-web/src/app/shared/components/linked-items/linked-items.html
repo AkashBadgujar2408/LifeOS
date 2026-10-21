@@ -38,16 +38,17 @@
     <div class="border-top mt-2 pt-2">
       <div class="d-flex gap-2 mb-2">
         @if (types().length > 1) {
-          <select
-            class="form-select form-select-sm w-auto"
+          <ng-select
+            class="ng-select-sm w-auto"
             aria-label="Type of item to link"
             [ngModel]="targetType()"
             (ngModelChange)="targetType.set($event)"
+            [clearable]="false"
           >
             @for (type of types(); track type.entityType) {
-              <option [value]="type.entityType">{{ type.displayName }}</option>
+              <ng-option [value]="type.entityType">{{ type.displayName }}</ng-option>
             }
-          </select>
+          </ng-select>
         }
         <input
           type="search"

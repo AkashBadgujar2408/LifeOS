@@ -89,17 +89,20 @@
         <label class="form-label" for="skill-life-area">
           Life area <span class="text-body-secondary small">(optional)</span>
         </label>
-        <select id="skill-life-area" class="form-select" formControlName="lifeAreaId">
-          <option [ngValue]="null">No particular area</option>
+        <ng-select
+          labelForId="skill-life-area"
+          formControlName="lifeAreaId"
+          placeholder="No particular area"
+        >
           @for (
             area of pickableLifeAreas(lifeAreas(), hiddenAreaIds(), form.controls.lifeAreaId.value);
             track area.id
           ) {
-            <option [ngValue]="area.id" [selected]="area.id === form.controls.lifeAreaId.value">
+            <ng-option [value]="area.id">
               {{ area.name }}
-            </option>
+            </ng-option>
           }
-        </select>
+        </ng-select>
       </div>
     </div>
 

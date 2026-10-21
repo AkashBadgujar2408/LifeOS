@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { catchError, of } from 'rxjs';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -42,7 +43,14 @@ export async function openQuestionEditor(
 @Component({
   selector: 'app-question-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, TagPicker, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    TagPicker,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -105,14 +113,15 @@ export async function openQuestionEditor(
             <label class="form-label" for="question-application">
               Asked in <span class="text-body-secondary small">(optional)</span>
             </label>
-            <select id="question-application" class="form-select" formControlName="applicationId">
-              <option [ngValue]="null">A general question</option>
+            <ng-select
+              labelForId="question-application"
+              formControlName="applicationId"
+              placeholder="A general question"
+            >
               @for (a of applications(); track a.id) {
-                <option [ngValue]="a.id" [selected]="a.id === form.controls.applicationId.value">
-                  {{ a.role }} at {{ a.organisation }}
-                </option>
+                <ng-option [value]="a.id"> {{ a.role }} at {{ a.organisation }} </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           <div class="col-sm-6">
             <span class="form-label d-block">Topics</span>

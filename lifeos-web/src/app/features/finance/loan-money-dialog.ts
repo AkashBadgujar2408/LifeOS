@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
@@ -37,7 +38,14 @@ export async function openLoanMoney(
 @Component({
   selector: 'app-loan-money-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, NgbInputDatepicker, TagPicker],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    TagPicker,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -109,21 +117,18 @@ export async function openLoanMoney(
         }
         <div>
           <label class="form-label" for="loan-money-account">{{ accountLabel() }}</label>
-          <select
-            id="loan-money-account"
-            class="form-select"
+          <ng-select
+            labelForId="loan-money-account"
             [class.is-invalid]="fieldError('accountId')"
             formControlName="accountId"
+            placeholder="Choose an account"
           >
-            <option [ngValue]="null" [selected]="form.controls.accountId.value === null">
-              Choose an account
-            </option>
             @for (a of payableAccounts(); track a.id) {
-              <option [ngValue]="a.id" [selected]="a.id === form.controls.accountId.value">
+              <ng-option [value]="a.id">
                 {{ a.name }}
-              </option>
+              </ng-option>
             }
-          </select>
+          </ng-select>
           @if (fieldError('accountId'); as error) {
             <div class="invalid-feedback d-block">{{ error }}</div>
           } @else if (payableAccounts().length === 0) {

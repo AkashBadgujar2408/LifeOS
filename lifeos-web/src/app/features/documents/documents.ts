@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, debounceTime, of, switchMap, tap } from 'rxjs';
 import { todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -22,7 +24,7 @@ import { KIND_META, expiryStatus, groupByKind } from './document-view';
 @Component({
   selector: 'app-documents',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, LoadError],
+  imports: [FormsModule, DatePipe, RouterLink, LoadError, NgOptionComponent, NgSelectComponent],
   templateUrl: './documents.html',
 })
 export class Documents {
@@ -111,11 +113,6 @@ export class Documents {
 
   protected onKind(event: Event): void {
     this.kind.set(((event.target as HTMLSelectElement).value || null) as DocumentKind | null);
-  }
-
-  protected onTag(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    this.tagId.set(value ? Number(value) : null);
   }
 
   protected clearFilters(): void {

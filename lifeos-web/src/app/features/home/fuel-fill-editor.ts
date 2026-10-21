@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { Observable, catchError, of, switchMap } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -56,7 +57,13 @@ export async function openFuelFill(
 @Component({
   selector: 'app-fuel-fill-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, TagPicker],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    TagPicker,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -132,18 +139,18 @@ export async function openFuelFill(
           </div>
           <div class="col-5">
             <label class="form-label" for="fuel-currency">Currency</label>
-            <select
-              id="fuel-currency"
-              class="form-select"
+            <ng-select
+              labelForId="fuel-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
+              [clearable]="false"
             >
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
+                <ng-option [value]="c.code">
                   {{ c.code }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
             @if (fieldError('currency'); as error) {
               <div class="invalid-feedback d-block">{{ error }}</div>
             }
@@ -240,16 +247,17 @@ export async function openFuelFill(
         } @else {
           <div>
             <label class="form-label" for="fuel-account">Paid from</label>
-            <select id="fuel-account" class="form-select" formControlName="accountId">
-              <option [ngValue]="null" [selected]="form.controls.accountId.value === null">
-                Don't record it in Finance
-              </option>
+            <ng-select
+              labelForId="fuel-account"
+              formControlName="accountId"
+              placeholder="Don't record it in Finance"
+            >
               @for (a of payableAccounts(); track a.id) {
-                <option [ngValue]="a.id" [selected]="a.id === form.controls.accountId.value">
+                <ng-option [value]="a.id">
                   {{ a.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
             <div class="form-text">An account adds one expense to your ledger for this fill.</div>
           </div>
           @if (form.controls.accountId.value !== null) {

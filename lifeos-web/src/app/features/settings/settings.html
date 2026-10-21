@@ -78,19 +78,18 @@
             <form [formGroup]="preferencesForm" (ngSubmit)="savePreferences()" novalidate>
               <div class="mb-3">
                 <label class="form-label" for="settings-timezone">Timezone</label>
-                <select
-                  id="settings-timezone"
-                  class="form-select"
+                <ng-select
+                  labelForId="settings-timezone"
                   formControlName="timeZone"
                   aria-describedby="settings-timezone-help"
+                  placeholder="This device's ({{ deviceZone }})"
                 >
-                  <option [ngValue]="null">This device's ({{ deviceZone }})</option>
                   @for (zone of timeZones; track zone) {
-                    <option [ngValue]="zone" [selected]="zone === preferencesForm.value.timeZone">
+                    <ng-option [value]="zone">
                       {{ zone }}
-                    </option>
+                    </ng-option>
                   }
-                </select>
+                </ng-select>
                 <div id="settings-timezone-help" class="form-text">
                   The clock new repeating events and reminders follow — choose your home zone if you
                   travel. Days and times on screen always follow this device.
@@ -98,22 +97,18 @@
               </div>
               <div class="mb-3">
                 <label class="form-label" for="settings-currency">Base currency</label>
-                <select
-                  id="settings-currency"
-                  class="form-select"
+                <ng-select
+                  labelForId="settings-currency"
                   formControlName="baseCurrency"
                   aria-describedby="settings-currency-help"
+                  placeholder="Not chosen yet"
                 >
-                  <option [ngValue]="null">Not chosen yet</option>
                   @for (currency of currencies(); track currency.code) {
-                    <option
-                      [ngValue]="currency.code"
-                      [selected]="currency.code === preferencesForm.value.baseCurrency"
-                    >
+                    <ng-option [value]="currency.code">
                       {{ currency.code }} — {{ currency.name }}
-                    </option>
+                    </ng-option>
                   }
-                </select>
+                </ng-select>
                 <div id="settings-currency-help" class="form-text">
                   What money is totalled in once Finance arrives.
                 </div>

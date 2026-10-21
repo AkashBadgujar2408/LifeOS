@@ -42,16 +42,17 @@
       </li>
     </ul>
 
-    <select
-      class="form-select form-select-sm w-auto"
+    <ng-select
+      class="ng-select-sm w-auto"
       aria-label="Filter by life area"
-      (change)="setLifeAreaFilter($any($event.target).value)"
+      [ngModel]="lifeAreaFilter()"
+      (ngModelChange)="lifeAreaFilter.set($event ?? null)"
+      placeholder="All life areas"
     >
-      <option value="">All life areas</option>
       @for (area of lifeAreas(); track area.id) {
-        <option [value]="area.id">{{ area.name }}</option>
+        <ng-option [value]="area.id">{{ area.name }}</ng-option>
       }
-    </select>
+    </ng-select>
   </div>
 
   @if (loading()) {

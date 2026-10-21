@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -38,7 +39,7 @@ export async function openResponsibilityEditor(
 @Component({
   selector: 'app-responsibility-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, NgOptionComponent, NgSelectComponent],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -73,16 +74,13 @@ export async function openResponsibilityEditor(
           <label class="form-label" for="resp-for">
             For <span class="text-body-secondary small">(optional)</span>
           </label>
-          <select id="resp-for" class="form-select" formControlName="contactId">
-            <option [ngValue]="null" [selected]="form.controls.contactId.value === null">
-              The household
-            </option>
+          <ng-select labelForId="resp-for" formControlName="contactId" placeholder="The household">
             @for (c of contacts(); track c.id) {
-              <option [ngValue]="c.id" [selected]="c.id === form.controls.contactId.value">
+              <ng-option [value]="c.id">
                 {{ c.name }}
-              </option>
+              </ng-option>
             }
-          </select>
+          </ng-select>
         </div>
         <div>
           <span class="form-label d-block">Who looks after it</span>
@@ -134,16 +132,13 @@ export async function openResponsibilityEditor(
           <label class="form-label" for="resp-task">
             Kept going by a task <span class="text-body-secondary small">(optional)</span>
           </label>
-          <select id="resp-task" class="form-select" formControlName="taskItemId">
-            <option [ngValue]="null" [selected]="form.controls.taskItemId.value === null">
-              No task
-            </option>
+          <ng-select labelForId="resp-task" formControlName="taskItemId" placeholder="No task">
             @for (t of tasks(); track t.id) {
-              <option [ngValue]="t.id" [selected]="t.id === form.controls.taskItemId.value">
+              <ng-option [value]="t.id">
                 {{ t.title }}
-              </option>
+              </ng-option>
             }
-          </select>
+          </ng-select>
           <div class="form-text">
             A repeating task works best — LifeOS follows it to its latest occurrence.
           </div>

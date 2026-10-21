@@ -11,6 +11,7 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import { todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -29,7 +30,14 @@ import { budgetBar, formatMoney, monthLabel, monthRange, shiftMonth } from './fi
 @Component({
   selector: 'app-finance-budgets',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, LoadError, BaseCurrencyPrompt],
+  imports: [
+    FormsModule,
+    RouterLink,
+    LoadError,
+    BaseCurrencyPrompt,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   styles: `
     .budget-track {
       height: 0.6rem;
@@ -230,17 +238,17 @@ import { budgetBar, formatMoney, monthLabel, monthRange, shiftMonth } from './fi
           <div class="d-flex flex-wrap align-items-end gap-2">
             <div>
               <label class="form-label small" for="budget-new-tag">Budget another tag</label>
-              <select
-                id="budget-new-tag"
-                class="form-select form-select-sm"
+              <ng-select
+                labelForId="budget-new-tag"
+                class="ng-select-sm"
                 [ngModel]="newTagId()"
                 (ngModelChange)="newTagId.set($event)"
+                placeholder="Choose a tag…"
               >
-                <option [ngValue]="null" [selected]="newTagId() === null">Choose a tag…</option>
                 @for (t of unbudgetedTags(); track t.id) {
-                  <option [ngValue]="t.id" [selected]="t.id === newTagId()">{{ t.name }}</option>
+                  <ng-option [value]="t.id">{{ t.name }}</ng-option>
                 }
-              </select>
+              </ng-select>
             </div>
             <div>
               <label class="form-label small" for="budget-new-amount"

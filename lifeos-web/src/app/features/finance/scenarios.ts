@@ -16,6 +16,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, debounceTime, forkJoin, map, of, switchMap } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -72,6 +73,8 @@ const MAX_COMPARE = 3;
     LoadError,
     BaseCurrencyPrompt,
     ScenarioImpactView,
+    NgOptionComponent,
+    NgSelectComponent,
   ],
   template: `
     <div class="container py-4">
@@ -405,26 +408,18 @@ const MAX_COMPARE = 3;
                           <label class="form-label small" [for]="'line-account-' + i"
                             >Account <span class="text-body-secondary">(optional)</span></label
                           >
-                          <select
+                          <ng-select
                             [id]="'line-account-' + i"
-                            class="form-select form-select-sm"
+                            class="ng-select-sm"
                             formControlName="accountId"
+                            placeholder="Not a particular account"
                           >
-                            <option
-                              [ngValue]="null"
-                              [selected]="line.controls.accountId.value === null"
-                            >
-                              Not a particular account
-                            </option>
                             @for (a of accountOptions(); track a.id) {
-                              <option
-                                [ngValue]="a.id"
-                                [selected]="line.controls.accountId.value === a.id"
-                              >
+                              <ng-option [value]="a.id">
                                 {{ a.name }}
-                              </option>
+                              </ng-option>
                             }
-                          </select>
+                          </ng-select>
                         </div>
                       </div>
                       @if (line.controls.kind.value === 'Loan') {

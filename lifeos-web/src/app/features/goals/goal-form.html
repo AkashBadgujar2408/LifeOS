@@ -33,13 +33,13 @@
             <div class="row g-3">
               <div class="col-sm-6">
                 <label class="form-label" for="goal-life-area">Life area</label>
-                <select
-                  id="goal-life-area"
-                  class="form-select"
+                <ng-select
+                  labelForId="goal-life-area"
                   [class.is-invalid]="fieldError('lifeAreaId')"
                   formControlName="lifeAreaId"
+                  placeholder="Pick where this goal lives"
+                  [clearable]="false"
                 >
-                  <option [ngValue]="null" disabled>Pick where this goal lives</option>
                   @for (
                     area of pickableLifeAreas(
                       lifeAreas(),
@@ -48,9 +48,9 @@
                     );
                     track area.id
                   ) {
-                    <option [ngValue]="area.id">{{ area.name }}</option>
+                    <ng-option [value]="area.id">{{ area.name }}</ng-option>
                   }
-                </select>
+                </ng-select>
                 @if (fieldError('lifeAreaId'); as error) {
                   <div class="invalid-feedback d-block">{{ error }}</div>
                 }
@@ -204,24 +204,16 @@
                 @if (form.controls.targetAmount.value !== null) {
                   <div class="col-sm-6">
                     <label class="form-label" for="goal-target-currency">In</label>
-                    <select
-                      id="goal-target-currency"
-                      class="form-select"
+                    <ng-select
+                      labelForId="goal-target-currency"
                       [class.is-invalid]="fieldError('targetCurrency')"
                       formControlName="targetCurrency"
+                      placeholder="My base currency"
                     >
-                      <option [ngValue]="''" [selected]="!form.controls.targetCurrency.value">
-                        My base currency
-                      </option>
                       @for (c of currencies(); track c.code) {
-                        <option
-                          [ngValue]="c.code"
-                          [selected]="c.code === form.controls.targetCurrency.value"
-                        >
-                          {{ c.code }} — {{ c.name }}
-                        </option>
+                        <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>
                       }
-                    </select>
+                    </ng-select>
                     @if (fieldError('targetCurrency'); as error) {
                       <div class="invalid-feedback d-block">{{ error }}</div>
                     }

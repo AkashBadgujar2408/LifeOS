@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { Observable, catchError, map, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -39,7 +40,15 @@ export async function openBenefitDetail(modal: NgbModal, id: number): Promise<bo
 @Component({
   selector: 'app-benefit-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, NgbInputDatepicker, LinkedItems, EntityReminders],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <div class="modal-header">
       <h2 id="benefit-detail-heading" class="modal-title h5 text-break">
@@ -181,26 +190,18 @@ export async function openBenefitDetail(modal: NgbModal, id: number): Promise<bo
                 </div>
                 <div class="col-sm-5">
                   <label class="form-label small" for="received-account">Into</label>
-                  <select
-                    id="received-account"
-                    class="form-select form-select-sm"
+                  <ng-select
+                    labelForId="received-account"
+                    class="ng-select-sm"
                     formControlName="accountId"
+                    placeholder="Don't record it in Finance"
                   >
-                    <option
-                      [ngValue]="null"
-                      [selected]="receivedForm.controls.accountId.value === null"
-                    >
-                      Don't record it in Finance
-                    </option>
                     @for (a of payable(); track a.id) {
-                      <option
-                        [ngValue]="a.id"
-                        [selected]="a.id === receivedForm.controls.accountId.value"
-                      >
+                      <ng-option [value]="a.id">
                         {{ a.name }}
-                      </option>
+                      </ng-option>
                     }
-                  </select>
+                  </ng-select>
                 </div>
                 <div class="col-sm-3">
                   <button type="submit" class="btn btn-primary btn-sm w-100">Mark received</button>

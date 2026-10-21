@@ -5,6 +5,7 @@ import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-b
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { DatePipe } from '@angular/common';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -56,6 +57,8 @@ export async function openAssetEditor(
     LinkedItems,
     EntityReminders,
     Attachments,
+    NgOptionComponent,
+    NgSelectComponent,
   ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -118,16 +121,17 @@ export async function openAssetEditor(
         <div class="row g-3">
           <div class="col-sm-6">
             <label class="form-label" for="asset-property">Where</label>
-            <select id="asset-property" class="form-select" formControlName="propertyId">
-              <option [ngValue]="null" [selected]="form.controls.propertyId.value === null">
-                Not at a property
-              </option>
+            <ng-select
+              labelForId="asset-property"
+              formControlName="propertyId"
+              placeholder="Not at a property"
+            >
               @for (p of properties(); track p.id) {
-                <option [ngValue]="p.id" [selected]="p.id === form.controls.propertyId.value">
+                <ng-option [value]="p.id">
                   {{ p.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           <div class="col-sm-6">
             <label class="form-label" for="asset-room">
@@ -241,19 +245,16 @@ export async function openAssetEditor(
           </div>
           <div class="col-sm-4">
             <label class="form-label" for="asset-currency">Currency</label>
-            <select
-              id="asset-currency"
-              class="form-select"
+            <ng-select
+              labelForId="asset-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
+              placeholder="—"
             >
-              <option [ngValue]="''" [selected]="!form.controls.currency.value">—</option>
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
-                  {{ c.code }} — {{ c.name }}
-                </option>
+                <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>
               }
-            </select>
+            </ng-select>
             @if (fieldError('currency'); as error) {
               <div class="invalid-feedback d-block">{{ error }}</div>
             }

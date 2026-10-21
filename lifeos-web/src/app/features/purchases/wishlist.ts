@@ -14,6 +14,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -47,7 +48,13 @@ async function openWishEditor(modal: NgbModal, wish?: WishlistItem): Promise<boo
 @Component({
   selector: 'app-wish-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -143,13 +150,13 @@ async function openWishEditor(modal: NgbModal, wish?: WishlistItem): Promise<boo
           </div>
           <div class="col-sm-4">
             <label class="form-label" for="wish-currency">Currency</label>
-            <select id="wish-currency" class="form-select" formControlName="currency">
+            <ng-select labelForId="wish-currency" formControlName="currency" [clearable]="false">
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
+                <ng-option [value]="c.code">
                   {{ c.code }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
         </div>
         <div>

@@ -12,6 +12,7 @@ import { catchError, of } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { ToastService } from '../../core/services/toast.service';
 import {
   GOAL_TYPES,
@@ -41,7 +42,14 @@ const GOAL_TYPE_HINTS: Record<GoalType, string> = {
 @Component({
   selector: 'app-goal-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, NgbInputDatepicker, TagPicker],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    NgbInputDatepicker,
+    TagPicker,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   templateUrl: './goal-form.html',
 })
 export class GoalForm implements OnInit {

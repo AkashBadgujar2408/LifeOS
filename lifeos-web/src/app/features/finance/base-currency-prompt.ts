@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { SettingsService } from '../../core/services/settings.service';
@@ -13,7 +14,7 @@ import { ToastService } from '../../core/services/toast.service';
 @Component({
   selector: 'app-base-currency-prompt',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule],
+  imports: [FormsModule, NgOptionComponent, NgSelectComponent],
   template: `
     @if (needed()) {
       <div class="card mb-4">
@@ -26,19 +27,17 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
           <div class="d-flex gap-2">
             <label class="visually-hidden" for="base-currency">Base currency</label>
-            <select
-              id="base-currency"
-              class="form-select"
+            <ng-select
+              labelForId="base-currency"
               [ngModel]="code()"
               (ngModelChange)="code.set($event)"
+              placeholder="Choose…"
+              [clearable]="false"
             >
-              <option [ngValue]="''" [selected]="!code()" disabled>Choose…</option>
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === code()">
-                  {{ c.code }} — {{ c.name }}
-                </option>
+                <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>
               }
-            </select>
+            </ng-select>
             <button
               type="button"
               class="btn btn-primary"

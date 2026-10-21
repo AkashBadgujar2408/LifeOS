@@ -7,9 +7,11 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { ToastService } from '../../core/services/toast.service';
 import {
   GOAL_STATUSES,
@@ -28,7 +30,15 @@ import { LifeVision } from './life-vision';
 @Component({
   selector: 'app-goals',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LoadError, DatePipe, RouterLink, LifeVision],
+  imports: [
+    FormsModule,
+    LoadError,
+    DatePipe,
+    RouterLink,
+    LifeVision,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   templateUrl: './goals.html',
 })
 export class Goals implements OnInit {
@@ -96,9 +106,5 @@ export class Goals implements OnInit {
           this.toast.error(apiErrorMessage(err, 'Could not load your goals.'));
         },
       });
-  }
-
-  protected setLifeAreaFilter(value: string): void {
-    this.lifeAreaFilter.set(value ? Number(value) : null);
   }
 }

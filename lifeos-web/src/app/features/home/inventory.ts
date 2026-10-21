@@ -13,6 +13,7 @@ import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { ColDef } from 'ag-grid-community';
 import { forkJoin } from 'rxjs';
 import { todayIso } from '../../core/dates/today';
@@ -42,7 +43,15 @@ import { openWarrantyEditor } from './warranty-editor';
 @Component({
   selector: 'app-home-inventory',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, FormsModule, LoadError, DataGrid, ViewToggle],
+  imports: [
+    DatePipe,
+    FormsModule,
+    LoadError,
+    DataGrid,
+    ViewToggle,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -78,34 +87,30 @@ import { openWarrantyEditor } from './warranty-editor';
               />
             </div>
             <div class="col-6 col-sm-3">
-              <select
-                class="form-select"
+              <ng-select
                 aria-label="Property"
                 [ngModel]="propertyFilter()"
                 (ngModelChange)="propertyFilter.set($event)"
+                placeholder="Every property"
               >
-                <option [ngValue]="null" [selected]="propertyFilter() === null">
-                  Every property
-                </option>
                 @for (p of properties(); track p.id) {
-                  <option [ngValue]="p.id" [selected]="p.id === propertyFilter()">
+                  <ng-option [value]="p.id">
                     {{ p.name }}
-                  </option>
+                  </ng-option>
                 }
-              </select>
+              </ng-select>
             </div>
             <div class="col-6 col-sm-3">
-              <select
-                class="form-select"
+              <ng-select
                 aria-label="Category"
                 [ngModel]="tagFilter()"
                 (ngModelChange)="tagFilter.set($event)"
+                placeholder="Every category"
               >
-                <option [ngValue]="null" [selected]="tagFilter() === null">Every category</option>
                 @for (t of tags(); track t.id) {
-                  <option [ngValue]="t.id" [selected]="t.id === tagFilter()">{{ t.name }}</option>
+                  <ng-option [value]="t.id">{{ t.name }}</ng-option>
                 }
-              </select>
+              </ng-select>
             </div>
           </div>
           <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">

@@ -15,6 +15,7 @@
   "packageManager": "npm@11.19.0",
   "dependencies": {
     "@angular/animations": "^22.2.2",
+    "@angular/cdk": "^22.2.2",
     "@angular/common": "^22.2.0",
     "@angular/compiler": "^22.2.0",
     "@angular/core": "^22.2.0",
@@ -27,6 +28,7 @@
     "@coreui/icons-angular": "^5.7.36",
     "@fullcalendar/angular": "^7.1.2",
     "@ng-bootstrap/ng-bootstrap": "^21.0.0",
+    "@ng-select/ng-select": "^24.2.1",
     "ag-grid-angular": "^36.2.0",
     "ag-grid-community": "^36.2.0",
     "bootstrap": "^5.3.8",

@@ -144,8 +144,11 @@
                   <label class="form-label" for="journal-life-area">
                     Life area <span class="text-body-secondary small">(optional)</span>
                   </label>
-                  <select id="journal-life-area" class="form-select" formControlName="lifeAreaId">
-                    <option [ngValue]="null">No particular area</option>
+                  <ng-select
+                    labelForId="journal-life-area"
+                    formControlName="lifeAreaId"
+                    placeholder="No particular area"
+                  >
                     @for (
                       area of pickableLifeAreas(
                         lifeAreas(),
@@ -154,9 +157,9 @@
                       );
                       track area.id
                     ) {
-                      <option [ngValue]="area.id">{{ area.name }}</option>
+                      <ng-option [value]="area.id">{{ area.name }}</ng-option>
                     }
-                  </select>
+                  </ng-select>
                 </div>
                 <div class="col-sm-6 d-flex justify-content-sm-end gap-2">
                   @if (entry()) {

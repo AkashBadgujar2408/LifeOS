@@ -11,6 +11,7 @@ import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
@@ -29,7 +30,13 @@ import { currentRates } from './finance-view';
 @Component({
   selector: 'app-exchange-rates',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, DatePipe],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    DatePipe,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     @if (base(); as base) {
       <p class="small text-body-secondary">
@@ -108,21 +115,18 @@ import { currentRates } from './finance-view';
       <form [formGroup]="form" (ngSubmit)="save()" novalidate class="row g-2 align-items-start">
         <div class="col-sm-4">
           <label class="form-label small" for="rate-currency">Currency</label>
-          <select
-            id="rate-currency"
-            class="form-select form-select-sm"
+          <ng-select
+            labelForId="rate-currency"
+            class="ng-select-sm"
             [class.is-invalid]="fieldError('currency')"
             formControlName="currency"
+            placeholder="Choose…"
+            [clearable]="false"
           >
-            <option [ngValue]="''" [selected]="!form.controls.currency.value" disabled>
-              Choose…
-            </option>
             @for (c of choices(); track c.code) {
-              <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
-                {{ c.code }} — {{ c.name }}
-              </option>
+              <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>
             }
-          </select>
+          </ng-select>
           @if (fieldError('currency'); as error) {
             <div class="invalid-feedback d-block">{{ error }}</div>
           }

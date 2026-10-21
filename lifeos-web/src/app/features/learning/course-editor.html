@@ -150,30 +150,36 @@
         <label class="form-label" for="course-skill">
           Builds the skill <span class="text-body-secondary small">(optional)</span>
         </label>
-        <select id="course-skill" class="form-select" formControlName="skillId">
-          <option [ngValue]="null">No particular skill</option>
+        <ng-select
+          labelForId="course-skill"
+          formControlName="skillId"
+          placeholder="No particular skill"
+        >
           @for (skill of skills(); track skill.id) {
-            <option [ngValue]="skill.id" [selected]="skill.id === form.controls.skillId.value">
+            <ng-option [value]="skill.id">
               {{ skill.name }}
-            </option>
+            </ng-option>
           }
-        </select>
+        </ng-select>
       </div>
       <div class="col-sm-6">
         <label class="form-label" for="course-life-area">
           Life area <span class="text-body-secondary small">(optional)</span>
         </label>
-        <select id="course-life-area" class="form-select" formControlName="lifeAreaId">
-          <option [ngValue]="null">No particular area</option>
+        <ng-select
+          labelForId="course-life-area"
+          formControlName="lifeAreaId"
+          placeholder="No particular area"
+        >
           @for (
             area of pickableLifeAreas(lifeAreas(), hiddenAreaIds(), form.controls.lifeAreaId.value);
             track area.id
           ) {
-            <option [ngValue]="area.id" [selected]="area.id === form.controls.lifeAreaId.value">
+            <ng-option [value]="area.id">
               {{ area.name }}
-            </option>
+            </ng-option>
           }
-        </select>
+        </ng-select>
       </div>
     </div>
 

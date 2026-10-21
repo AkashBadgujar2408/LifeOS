@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, debounceTime, distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -68,6 +69,8 @@ export async function openPurchaseEditor(
     Attachments,
     LinkedItems,
     EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
   ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -168,18 +171,18 @@ export async function openPurchaseEditor(
           </div>
           <div class="col-6 col-sm-2">
             <label class="form-label" for="purchase-currency">Currency</label>
-            <select
-              id="purchase-currency"
-              class="form-select"
+            <ng-select
+              labelForId="purchase-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
+              [clearable]="false"
             >
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
+                <ng-option [value]="c.code">
                   {{ c.code }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           <div class="col-sm-3">
             <label class="form-label" for="purchase-estimate">
@@ -228,16 +231,17 @@ export async function openPurchaseEditor(
             <div class="row g-3">
               <div class="col-sm-6">
                 <label class="form-label" for="purchase-account">Paid from</label>
-                <select id="purchase-account" class="form-select" formControlName="accountId">
-                  <option [ngValue]="null" [selected]="form.controls.accountId.value === null">
-                    Don't record it in Finance
-                  </option>
+                <ng-select
+                  labelForId="purchase-account"
+                  formControlName="accountId"
+                  placeholder="Don't record it in Finance"
+                >
                   @for (a of payableAccounts(); track a.id) {
-                    <option [ngValue]="a.id" [selected]="a.id === form.controls.accountId.value">
+                    <ng-option [value]="a.id">
                       {{ a.name }}
-                    </option>
+                    </ng-option>
                   }
-                </select>
+                </ng-select>
               </div>
               @if (needsRate() && form.controls.accountId.value !== null) {
                 <div class="col-sm-6">
@@ -333,16 +337,17 @@ export async function openPurchaseEditor(
               <div class="row g-3 mt-0">
                 <div class="col-sm-6">
                   <label class="form-label" for="purchase-property">Where</label>
-                  <select id="purchase-property" class="form-select" formControlName="propertyId">
-                    <option [ngValue]="null" [selected]="form.controls.propertyId.value === null">
-                      No property
-                    </option>
+                  <ng-select
+                    labelForId="purchase-property"
+                    formControlName="propertyId"
+                    placeholder="No property"
+                  >
                     @for (p of properties(); track p.id) {
-                      <option [ngValue]="p.id" [selected]="p.id === form.controls.propertyId.value">
+                      <ng-option [value]="p.id">
                         {{ p.name }}
-                      </option>
+                      </ng-option>
                     }
-                  </select>
+                  </ng-select>
                 </div>
                 <div class="col-sm-6">
                   <label class="form-label" for="purchase-room">

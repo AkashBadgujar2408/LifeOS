@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { catchError, of } from 'rxjs';
 import { todayIso } from '../../core/dates/today';
@@ -35,7 +36,14 @@ export async function openNoteEditor(
 @Component({
   selector: 'app-note-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, TagPicker, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    TagPicker,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -87,14 +95,17 @@ export async function openNoteEditor(
             <label class="form-label" for="note-skill">
               About the skill <span class="text-body-secondary small">(optional)</span>
             </label>
-            <select id="note-skill" class="form-select" formControlName="skillId">
-              <option [ngValue]="null">No particular skill</option>
+            <ng-select
+              labelForId="note-skill"
+              formControlName="skillId"
+              placeholder="No particular skill"
+            >
               @for (skill of skills(); track skill.id) {
-                <option [ngValue]="skill.id" [selected]="skill.id === form.controls.skillId.value">
+                <ng-option [value]="skill.id">
                   {{ skill.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           <div class="col-sm-6">
             <div class="form-check form-switch">

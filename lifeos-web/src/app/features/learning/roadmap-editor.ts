@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { of, catchError } from 'rxjs';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { GoalsService } from '../../core/services/goals.service';
@@ -32,7 +33,7 @@ export async function openRoadmapEditor(
 @Component({
   selector: 'app-roadmap-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, NgOptionComponent, NgSelectComponent],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -68,14 +69,17 @@ export async function openRoadmapEditor(
             <label class="form-label" for="roadmap-goal">
               Serves the goal <span class="text-body-secondary small">(optional)</span>
             </label>
-            <select id="roadmap-goal" class="form-select" formControlName="goalId">
-              <option [ngValue]="null">No particular goal</option>
+            <ng-select
+              labelForId="roadmap-goal"
+              formControlName="goalId"
+              placeholder="No particular goal"
+            >
               @for (goal of goals(); track goal.id) {
-                <option [ngValue]="goal.id" [selected]="goal.id === form.controls.goalId.value">
+                <ng-option [value]="goal.id">
                   {{ goal.title }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           @if (roadmap()) {
             <div class="col-sm-6">

@@ -7,6 +7,7 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { browserTimeZone } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { AuthService } from '../../core/services/auth.service';
@@ -47,7 +48,16 @@ function allTimeZones(): string[] {
 @Component({
   selector: 'app-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, LoadError, RecoveryCodes, VaultActivity, ExchangeRates, YourData],
+  imports: [
+    ReactiveFormsModule,
+    LoadError,
+    RecoveryCodes,
+    VaultActivity,
+    ExchangeRates,
+    YourData,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   templateUrl: './settings.html',
 })
 export class Settings {

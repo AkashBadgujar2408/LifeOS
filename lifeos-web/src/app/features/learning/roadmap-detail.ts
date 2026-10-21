@@ -13,6 +13,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { catchError, of } from 'rxjs';
 import { itemTitle } from '../../core/layout/item-title';
@@ -51,7 +52,16 @@ const TARGET_STATUS_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-roadmap-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, ReactiveFormsModule, LinkedItems, CountsToward, EntityReminders, LoadError],
+  imports: [
+    RouterLink,
+    ReactiveFormsModule,
+    LinkedItems,
+    CountsToward,
+    EntityReminders,
+    LoadError,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   templateUrl: './roadmap-detail.html',
 })
 export class RoadmapDetail {

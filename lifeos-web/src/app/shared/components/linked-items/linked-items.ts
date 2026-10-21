@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { ToastService } from '../../../core/services/toast.service';
 import { catchError, combineLatest, debounceTime, of, switchMap } from 'rxjs';
 import {
@@ -26,7 +27,7 @@ import { apiErrorMessage } from '../../../core/services/api-error';
 @Component({
   selector: 'app-linked-items',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule],
+  imports: [FormsModule, NgOptionComponent, NgSelectComponent],
   templateUrl: './linked-items.html',
 })
 export class LinkedItems {

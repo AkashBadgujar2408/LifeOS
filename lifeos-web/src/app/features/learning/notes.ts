@@ -6,9 +6,11 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { KnowledgeNote, LearningService } from '../../core/services/learning.service';
@@ -25,7 +27,7 @@ import { openNoteEditor } from './note-editor';
 @Component({
   selector: 'app-notes',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, LoadError],
+  imports: [FormsModule, DatePipe, LoadError, NgOptionComponent, NgSelectComponent],
   templateUrl: './notes.html',
   styles: `
     .note-excerpt {
@@ -92,14 +94,6 @@ export class Notes {
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
   });
-
-  protected pickTag(value: string): void {
-    this.tagId.set(value ? Number(value) : null);
-  }
-
-  protected pickSkill(value: string): void {
-    this.skillId.set(value ? Number(value) : null);
-  }
 
   protected clearFilter(): void {
     this.query.set('');

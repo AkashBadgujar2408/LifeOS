@@ -12,6 +12,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { ColDef } from 'ag-grid-community';
 import { catchError, of } from 'rxjs';
 import { APP_DATE_FORMAT } from '../../core/dates/date-format';
@@ -49,7 +50,16 @@ import { openTransactionEditor } from './transaction-editor';
 @Component({
   selector: 'app-finance-ledger',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, NgbInputDatepicker, DataGrid, RouterLink, LoadError, BaseCurrencyPrompt],
+  imports: [
+    FormsModule,
+    NgbInputDatepicker,
+    DataGrid,
+    RouterLink,
+    LoadError,
+    BaseCurrencyPrompt,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <div class="container-fluid container-xxl py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
@@ -128,37 +138,35 @@ import { openTransactionEditor } from './transaction-editor';
             </div>
             <div class="col-6 col-md-3 col-xl-2">
               <label class="form-label small" for="ledger-account">Account</label>
-              <select
-                id="ledger-account"
-                class="form-select form-select-sm"
+              <ng-select
+                labelForId="ledger-account"
+                class="ng-select-sm"
                 [ngModel]="filter().accountId"
                 (ngModelChange)="setFilter({ accountId: $event })"
+                placeholder="All accounts"
               >
-                <option [ngValue]="null" [selected]="filter().accountId === null">
-                  All accounts
-                </option>
                 @for (a of accounts(); track a.id) {
-                  <option [ngValue]="a.id" [selected]="a.id === filter().accountId">
+                  <ng-option [value]="a.id">
                     {{ a.name }}
-                  </option>
+                  </ng-option>
                 }
-              </select>
+              </ng-select>
             </div>
             <div class="col-6 col-md-3 col-xl-2">
               <label class="form-label small" for="ledger-tag">Tag</label>
-              <select
-                id="ledger-tag"
-                class="form-select form-select-sm"
+              <ng-select
+                labelForId="ledger-tag"
+                class="ng-select-sm"
                 [ngModel]="filter().tagId"
                 (ngModelChange)="setFilter({ tagId: $event })"
+                placeholder="Any tag"
               >
-                <option [ngValue]="null" [selected]="filter().tagId === null">Any tag</option>
                 @for (t of tags(); track t.id) {
-                  <option [ngValue]="t.id" [selected]="t.id === filter().tagId">
+                  <ng-option [value]="t.id">
                     {{ t.name }}
-                  </option>
+                  </ng-option>
                 }
-              </select>
+              </ng-select>
             </div>
             <div class="col-6 col-md-3 col-xl-2">
               <label class="form-label small" for="ledger-kind">Kind</label>

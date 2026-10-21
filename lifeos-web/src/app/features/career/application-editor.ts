@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
@@ -41,7 +42,7 @@ export async function openApplicationEditor(
 @Component({
   selector: 'app-application-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, NgOptionComponent, NgSelectComponent],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -152,18 +153,18 @@ export async function openApplicationEditor(
             <label class="form-label" for="application-contact">
               Recruiter or referrer <span class="text-body-secondary small">(optional)</span>
             </label>
-            <select id="application-contact" class="form-select" formControlName="contactId">
-              <option [ngValue]="null">Nobody in particular</option>
+            <ng-select
+              labelForId="application-contact"
+              formControlName="contactId"
+              placeholder="Nobody in particular"
+            >
               @for (contact of contacts(); track contact.id) {
-                <option
-                  [ngValue]="contact.id"
-                  [selected]="contact.id === form.controls.contactId.value"
-                >
+                <ng-option [value]="contact.id">
                   {{ contact.name
                   }}{{ contact.organisation ? ' (' + contact.organisation + ')' : '' }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
         </div>
         <div>

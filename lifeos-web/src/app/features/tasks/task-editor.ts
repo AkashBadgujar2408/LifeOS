@@ -10,6 +10,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
 import { GOAL_ENTITY_TYPE } from '../../core/services/goals.service';
@@ -83,6 +84,8 @@ function repeatNeedsDueDate(group: AbstractControl): ValidationErrors | null {
     LinkedItems,
     EntityReminders,
     Attachments,
+    NgOptionComponent,
+    NgSelectComponent,
   ],
   templateUrl: './task-editor.html',
 })

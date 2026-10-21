@@ -8,6 +8,7 @@ import {
   NgbTimepicker,
   NgbTimeStruct,
 } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -47,7 +48,15 @@ const minutesOf = (t: NgbTimeStruct) => t.hour * 60 + t.minute;
 @Component({
   selector: 'app-visit-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, NgbTimepicker, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    NgbTimepicker,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -158,16 +167,13 @@ const minutesOf = (t: NgbTimeStruct) => t.hour * 60 + t.minute;
             <label class="form-label" for="visit-doctor">
               Doctor <span class="text-body-secondary small">(a contact)</span>
             </label>
-            <select id="visit-doctor" class="form-select" formControlName="contactId">
-              <option [ngValue]="null" [selected]="form.controls.contactId.value === null">
-                None
-              </option>
+            <ng-select labelForId="visit-doctor" formControlName="contactId" placeholder="None">
               @for (c of contacts(); track c.id) {
-                <option [ngValue]="c.id" [selected]="c.id === form.controls.contactId.value">
+                <ng-option [value]="c.id">
                   {{ c.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           <div class="col-sm-4">
             <label class="form-label" for="visit-specialty">Specialty</label>
@@ -197,16 +203,17 @@ const minutesOf = (t: NgbTimeStruct) => t.hour * 60 + t.minute;
             <label class="form-label" for="visit-condition">
               About <span class="text-body-secondary small">(from your history)</span>
             </label>
-            <select id="visit-condition" class="form-select" formControlName="conditionId">
-              <option [ngValue]="null" [selected]="form.controls.conditionId.value === null">
-                Nothing in particular
-              </option>
+            <ng-select
+              labelForId="visit-condition"
+              formControlName="conditionId"
+              placeholder="Nothing in particular"
+            >
               @for (c of conditions(); track c.id) {
-                <option [ngValue]="c.id" [selected]="c.id === form.controls.conditionId.value">
+                <ng-option [value]="c.id">
                   {{ c.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           <div class="col-sm-6">
             <label class="form-label" for="visit-followup">

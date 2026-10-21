@@ -14,6 +14,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, map, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -67,7 +68,14 @@ const dateFields = [
 @Component({
   selector: 'app-subscription-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -132,13 +140,13 @@ const dateFields = [
           </div>
           <div class="col-6 col-sm-3">
             <label class="form-label" for="sub-currency">Currency</label>
-            <select id="sub-currency" class="form-select" formControlName="currency">
+            <ng-select labelForId="sub-currency" formControlName="currency" [clearable]="false">
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
+                <ng-option [value]="c.code">
                   {{ c.code }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           <div class="col-6 col-sm-3">
             <label class="form-label" for="sub-interval">Every</label>
@@ -205,16 +213,17 @@ const dateFields = [
         <div class="row g-3">
           <div class="col-sm-6">
             <label class="form-label" for="sub-account">Charged to</label>
-            <select id="sub-account" class="form-select" formControlName="accountId">
-              <option [ngValue]="null" [selected]="form.controls.accountId.value === null">
-                Don't record charges in Finance
-              </option>
+            <ng-select
+              labelForId="sub-account"
+              formControlName="accountId"
+              placeholder="Don't record charges in Finance"
+            >
               @for (a of payableAccounts(); track a.id) {
-                <option [ngValue]="a.id" [selected]="a.id === form.controls.accountId.value">
+                <ng-option [value]="a.id">
                   {{ a.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
             <div class="form-text">
               Each charge from today on becomes an expense in your ledger.
             </div>

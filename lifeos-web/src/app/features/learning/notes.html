@@ -116,27 +116,31 @@
         </div>
         <div class="col-6 col-md-3">
           <label class="visually-hidden" for="notes-tag">Tag</label>
-          <select id="notes-tag" class="form-select" (change)="pickTag($any($event.target).value)">
-            <option value="" [selected]="tagId() === null">Any tag</option>
+          <ng-select
+            labelForId="notes-tag"
+            [ngModel]="tagId()"
+            (ngModelChange)="tagId.set($event ?? null)"
+            placeholder="Any tag"
+          >
             @for (tag of tagOptions(); track tag.id) {
-              <option [value]="tag.id" [selected]="tag.id === tagId()">{{ tag.name }}</option>
+              <ng-option [value]="tag.id">{{ tag.name }}</ng-option>
             }
-          </select>
+          </ng-select>
         </div>
         <div class="col-6 col-md-3">
           <label class="visually-hidden" for="notes-skill">Skill</label>
-          <select
-            id="notes-skill"
-            class="form-select"
-            (change)="pickSkill($any($event.target).value)"
+          <ng-select
+            labelForId="notes-skill"
+            [ngModel]="skillId()"
+            (ngModelChange)="skillId.set($event ?? null)"
+            placeholder="Any skill"
           >
-            <option value="" [selected]="skillId() === null">Any skill</option>
             @for (skill of skillOptions(); track skill.id) {
-              <option [value]="skill.id" [selected]="skill.id === skillId()">
+              <ng-option [value]="skill.id">
                 {{ skill.name }}
-              </option>
+              </ng-option>
             }
-          </select>
+          </ng-select>
         </div>
       </div>
     }

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
@@ -38,7 +39,7 @@ export async function openPromotionDialog(
 @Component({
   selector: 'app-promotion-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, NgOptionComponent, NgSelectComponent],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -124,13 +125,13 @@ export async function openPromotionDialog(
             </div>
             <div class="col-6 col-sm-3">
               <label class="visually-hidden" for="promo-currency">Currency</label>
-              <select id="promo-currency" class="form-select" formControlName="currency">
+              <ng-select labelForId="promo-currency" formControlName="currency" [clearable]="false">
                 @for (c of currencies(); track c.code) {
-                  <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
+                  <ng-option [value]="c.code">
                     {{ c.code }}
-                  </option>
+                  </ng-option>
                 }
-              </select>
+              </ng-select>
             </div>
             <div class="col-6 col-sm-4">
               <label class="visually-hidden" for="promo-period">Per</label>

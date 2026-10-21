@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, map, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -43,7 +44,15 @@ const TRANSACTION_DAYS = 550;
 @Component({
   selector: 'app-tax-item-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, DatePipe, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    DatePipe,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -138,16 +147,17 @@ const TRANSACTION_DAYS = 550;
           <label class="form-label" for="tax-transaction">
             About a transaction <span class="text-body-secondary small">(optional)</span>
           </label>
-          <select id="tax-transaction" class="form-select" formControlName="transactionId">
-            <option [ngValue]="null" [selected]="form.controls.transactionId.value === null">
-              None
-            </option>
+          <ng-select
+            labelForId="tax-transaction"
+            formControlName="transactionId"
+            placeholder="None"
+          >
             @for (t of transactions(); track t.id) {
-              <option [ngValue]="t.id" [selected]="t.id === form.controls.transactionId.value">
+              <ng-option [value]="t.id">
                 {{ t.occurredOn | date }} · {{ t.label }} · {{ money(t.amount, t.currency) }}
-              </option>
+              </ng-option>
             }
-          </select>
+          </ng-select>
           <div class="form-text">The premium you paid, the tax payment, the donation receipt.</div>
         </div>
         <div class="row g-3">
@@ -175,19 +185,16 @@ const TRANSACTION_DAYS = 550;
           </div>
           <div class="col-sm-6">
             <label class="form-label" for="tax-currency">Currency</label>
-            <select
-              id="tax-currency"
-              class="form-select"
+            <ng-select
+              labelForId="tax-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
+              placeholder="—"
             >
-              <option [ngValue]="null" [selected]="form.controls.currency.value === null">—</option>
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
-                  {{ c.code }} — {{ c.name }}
-                </option>
+                <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>
               }
-            </select>
+            </ng-select>
             @if (fieldError('currency'); as error) {
               <div class="invalid-feedback d-block">{{ error }}</div>
             }

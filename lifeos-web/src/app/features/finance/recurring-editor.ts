@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { startWith } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -49,7 +50,13 @@ export async function openRecurringEditor(
 @Component({
   selector: 'app-recurring-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, TagPicker],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    TagPicker,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -125,21 +132,16 @@ export async function openRecurringEditor(
               <label class="form-label" for="rec-from">
                 {{ kind() === 'Transfer' ? 'From' : 'Paid from' }}
               </label>
-              <select
-                id="rec-from"
-                class="form-select"
+              <ng-select
+                labelForId="rec-from"
                 [class.is-invalid]="fieldError('fromAccountId')"
                 formControlName="fromAccountId"
+                placeholder="Choose an account…"
               >
-                <option [ngValue]="null" [selected]="form.controls.fromAccountId.value === null">
-                  Choose an account…
-                </option>
                 @for (a of pickable(); track a.id) {
-                  <option [ngValue]="a.id" [selected]="a.id === form.controls.fromAccountId.value">
-                    {{ a.name }} ({{ held(a).join(', ') }})
-                  </option>
+                  <ng-option [value]="a.id"> {{ a.name }} ({{ held(a).join(', ') }}) </ng-option>
                 }
-              </select>
+              </ng-select>
               @if (fieldError('fromAccountId'); as error) {
                 <div class="invalid-feedback d-block">{{ error }}</div>
               }

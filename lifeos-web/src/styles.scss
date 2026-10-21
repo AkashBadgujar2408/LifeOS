@@ -294,3 +294,60 @@ h6 {
 .lifeos-grid-clickable .ag-row {
   cursor: pointer;
 }
+
+// Searchable dropdowns (Session 75b, @ng-select/ng-select): the default theme re-pointed at LifeOS/CoreUI tokens so
+// an ng-select looks like the form controls next to it. Add `ng-select-sm` where a plain select was form-select-sm.
+:root {
+  --ng-select-highlight: var(--lifeos-teal);
+  --ng-select-primary-text: var(--cui-body-color);
+  --ng-select-border: var(--cui-border-color);
+  --ng-select-border-dark: var(--cui-border-color);
+  --ng-select-border-light: var(--cui-border-color);
+  --ng-select-border-lighter: var(--lifeos-border);
+  --ng-select-border-radius: var(--cui-border-radius, 0.375rem);
+  --ng-select-bg: var(--cui-body-bg);
+  --ng-select-height: calc(1.5em + 0.75rem + 2px);
+  --ng-select-value-font-size: 0.875em;
+  --ng-select-value-text: var(--lifeos-ink);
+  --ng-select-placeholder: var(--cui-secondary-color);
+  --ng-select-input-text: var(--cui-body-color);
+  --ng-select-selected: color-mix(in srgb, var(--lifeos-teal) 14%, var(--cui-body-bg));
+  --ng-select-selected-text: var(--lifeos-ink);
+  --ng-select-selected-hover: color-mix(in srgb, var(--lifeos-teal) 24%, var(--cui-body-bg));
+  --ng-select-selected-border: color-mix(in srgb, var(--lifeos-teal) 35%, var(--cui-body-bg));
+  --ng-select-marked: color-mix(in srgb, var(--lifeos-teal) 8%, var(--cui-body-bg));
+  --ng-select-marked-text: var(--lifeos-ink);
+  --ng-select-dropdown-bg: var(--cui-body-bg);
+  --ng-select-dropdown-border: var(--cui-border-color);
+  --ng-select-dropdown-option-bg: var(--cui-body-bg);
+  --ng-select-dropdown-option-text: var(--cui-body-color);
+  --ng-select-dropdown-option-disabled: var(--cui-secondary-color);
+  --ng-select-disabled-text: var(--cui-secondary-bg);
+  --ng-select-arrow: var(--cui-secondary-color);
+  --ng-select-arrow-hover: var(--cui-body-color);
+  --ng-select-arrow-active: var(--cui-body-color);
+  --ng-select-clear: var(--cui-secondary-color);
+  --ng-select-clear-hover: var(--cui-danger);
+  --ng-select-box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--lifeos-teal) 25%, transparent);
+  --ng-select-container-hover-shadow: none;
+  --ng-select-dropdown-shadow: 0 0.5rem 1rem color-mix(in srgb, var(--lifeos-ink) 12%, transparent);
+}
+
+.ng-select.ng-select-sm {
+  --ng-select-height: calc(1.5em + 0.5rem + 2px);
+  font-size: 0.875rem;
+}
+
+.ng-select.ng-select-sm.ng-select-single .ng-select-container .ng-value-container .ng-input {
+  top: 3px;
+}
+
+// Inline validation: the same red edge as an invalid form-control.
+.ng-select.is-invalid .ng-select-container {
+  border-color: var(--cui-form-invalid-border-color, var(--cui-danger));
+}
+
+// Older browsers without the Popover API put the panel in the CDK container — keep it above ng-bootstrap modals.
+.cdk-overlay-container {
+  z-index: 1056;
+}

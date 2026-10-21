@@ -15,6 +15,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
@@ -74,7 +75,15 @@ function courseRules(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-course-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, LinkedItems, CountsToward, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    LinkedItems,
+    CountsToward,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   templateUrl: './course-editor.html',
 })
 export class CourseEditor {

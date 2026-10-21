@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { catchError, of } from 'rxjs';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -44,7 +45,7 @@ export async function openSalaryEditor(
 @Component({
   selector: 'app-salary-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, NgOptionComponent, NgSelectComponent],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -116,13 +117,13 @@ export async function openSalaryEditor(
           </div>
           <div class="col-6 col-sm-3">
             <label class="form-label" for="salary-currency">Currency</label>
-            <select id="salary-currency" class="form-select" formControlName="currency">
+            <ng-select labelForId="salary-currency" formControlName="currency" [clearable]="false">
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
+                <ng-option [value]="c.code">
                   {{ c.code }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           <div class="col-6 col-sm-4">
             <label class="form-label" for="salary-period">Per</label>

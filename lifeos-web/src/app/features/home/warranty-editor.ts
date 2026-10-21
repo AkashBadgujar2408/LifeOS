@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -51,7 +52,14 @@ const coverKey = (type: HomeTargetType, id: number) => `${type}:${id}`;
 @Component({
   selector: 'app-warranty-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -69,52 +77,41 @@ const coverKey = (type: HomeTargetType, id: number) => `${type}:${id}`;
         <div class="row g-3">
           <div class="col-sm-7">
             <label class="form-label" for="warranty-cover">Covers</label>
-            <select
-              id="warranty-cover"
-              class="form-select"
+            <ng-select
+              labelForId="warranty-cover"
               [class.is-invalid]="fieldError('cover')"
               formControlName="cover"
+              placeholder="Choose…"
+              [clearable]="false"
             >
-              <option [ngValue]="''" [selected]="!form.controls.cover.value" disabled>
-                Choose…
-              </option>
               @if (assets().length) {
                 <optgroup label="Belongings">
                   @for (a of assets(); track a.id) {
-                    <option
-                      [ngValue]="key('Asset', a.id)"
-                      [selected]="key('Asset', a.id) === form.controls.cover.value"
-                    >
+                    <ng-option [value]="key('Asset', a.id)">
                       {{ a.name }}{{ a.room ? ' (' + a.room + ')' : '' }}
-                    </option>
+                    </ng-option>
                   }
                 </optgroup>
               }
               @if (vehicles().length) {
                 <optgroup label="Vehicles">
                   @for (v of vehicles(); track v.id) {
-                    <option
-                      [ngValue]="key('Vehicle', v.id)"
-                      [selected]="key('Vehicle', v.id) === form.controls.cover.value"
-                    >
+                    <ng-option [value]="key('Vehicle', v.id)">
                       {{ v.name }}
-                    </option>
+                    </ng-option>
                   }
                 </optgroup>
               }
               @if (properties().length) {
                 <optgroup label="Properties">
                   @for (p of properties(); track p.id) {
-                    <option
-                      [ngValue]="key('Property', p.id)"
-                      [selected]="key('Property', p.id) === form.controls.cover.value"
-                    >
+                    <ng-option [value]="key('Property', p.id)">
                       {{ p.name }}
-                    </option>
+                    </ng-option>
                   }
                 </optgroup>
               }
-            </select>
+            </ng-select>
             @if (fieldError('cover'); as error) {
               <div class="invalid-feedback d-block">{{ error }}</div>
             }
@@ -148,16 +145,13 @@ const coverKey = (type: HomeTargetType, id: number) => `${type}:${id}`;
             <label class="form-label" for="warranty-contact">
               Service centre <span class="text-body-secondary small">(a contact)</span>
             </label>
-            <select id="warranty-contact" class="form-select" formControlName="contactId">
-              <option [ngValue]="null" [selected]="form.controls.contactId.value === null">
-                None
-              </option>
+            <ng-select labelForId="warranty-contact" formControlName="contactId" placeholder="None">
               @for (c of contacts(); track c.id) {
-                <option [ngValue]="c.id" [selected]="c.id === form.controls.contactId.value">
+                <ng-option [value]="c.id">
                   {{ c.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
         </div>
         <div class="row g-3">
@@ -241,19 +235,16 @@ const coverKey = (type: HomeTargetType, id: number) => `${type}:${id}`;
           </div>
           <div class="col-sm-6">
             <label class="form-label" for="warranty-currency">Currency</label>
-            <select
-              id="warranty-currency"
-              class="form-select"
+            <ng-select
+              labelForId="warranty-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
+              placeholder="—"
             >
-              <option [ngValue]="''" [selected]="!form.controls.currency.value">—</option>
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
-                  {{ c.code }} — {{ c.name }}
-                </option>
+                <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>
               }
-            </select>
+            </ng-select>
             @if (fieldError('currency'); as error) {
               <div class="invalid-feedback d-block">{{ error }}</div>
             }

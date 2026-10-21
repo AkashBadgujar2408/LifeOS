@@ -8,6 +8,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { catchError, of } from 'rxjs';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -55,7 +56,14 @@ function certificationRules(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-certification-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   templateUrl: './certification-editor.html',
 })
 export class CertificationEditor {

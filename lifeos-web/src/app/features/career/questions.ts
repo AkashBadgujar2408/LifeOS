@@ -7,9 +7,11 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { ColDef } from 'ag-grid-community';
 import { todayIso } from '../../core/dates/today';
 import { DataGrid } from '../../core/grid/data-grid';
@@ -30,7 +32,15 @@ import { openQuestionEditor } from './question-editor';
 @Component({
   selector: 'app-career-questions',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, LoadError, DataGrid, ViewToggle],
+  imports: [
+    FormsModule,
+    RouterLink,
+    LoadError,
+    DataGrid,
+    ViewToggle,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -66,16 +76,17 @@ import { openQuestionEditor } from './question-editor';
               (input)="query.set($any($event.target).value)"
             />
             @if (tagOptions().length > 0) {
-              <select
-                class="form-select w-auto"
+              <ng-select
+                class="w-auto"
                 aria-label="Topic"
-                (change)="pickTag($any($event.target).value)"
+                [ngModel]="tagId()"
+                (ngModelChange)="tagId.set($event ?? null)"
+                placeholder="Every topic"
               >
-                <option value="" [selected]="tagId() === null">Every topic</option>
                 @for (tag of tagOptions(); track tag.id) {
-                  <option [value]="tag.id" [selected]="tag.id === tagId()">{{ tag.name }}</option>
+                  <ng-option [value]="tag.id">{{ tag.name }}</ng-option>
                 }
-              </select>
+              </ng-select>
             }
             <div class="ms-auto">
               <app-view-toggle
@@ -254,10 +265,6 @@ export class CareerQuestions {
         },
         error: () => this.loadFailed.set(true),
       });
-  }
-
-  protected pickTag(value: string): void {
-    this.tagId.set(value ? Number(value) : null);
   }
 
   protected clear(): void {

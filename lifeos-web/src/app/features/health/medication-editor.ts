@@ -16,6 +16,7 @@ import {
   NgbTimepicker,
   NgbTimeStruct,
 } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -70,6 +71,8 @@ const pad = (n: number) => String(n).padStart(2, '0');
     NgbTimepicker,
     LinkedItems,
     EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
   ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -239,35 +242,29 @@ const pad = (n: number) => String(n).padStart(2, '0');
         <div class="row g-3">
           <div class="col-sm-6">
             <label class="form-label" for="medication-condition">For</label>
-            <select id="medication-condition" class="form-select" formControlName="conditionId">
-              <option [ngValue]="null" [selected]="form.controls.conditionId.value === null">
-                Not linked to your history
-              </option>
+            <ng-select
+              labelForId="medication-condition"
+              formControlName="conditionId"
+              placeholder="Not linked to your history"
+            >
               @for (c of conditions(); track c.id) {
-                <option [ngValue]="c.id" [selected]="c.id === form.controls.conditionId.value">
+                <ng-option [value]="c.id">
                   {{ c.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           <div class="col-sm-6">
             <label class="form-label" for="medication-visit">Prescribed at</label>
-            <select id="medication-visit" class="form-select" formControlName="prescribedAtVisitId">
-              <option
-                [ngValue]="null"
-                [selected]="form.controls.prescribedAtVisitId.value === null"
-              >
-                —
-              </option>
+            <ng-select
+              labelForId="medication-visit"
+              formControlName="prescribedAtVisitId"
+              placeholder="—"
+            >
               @for (v of visits(); track v.id) {
-                <option
-                  [ngValue]="v.id"
-                  [selected]="v.id === form.controls.prescribedAtVisitId.value"
-                >
-                  {{ v.reason }} ({{ v.visitOn | date }})
-                </option>
+                <ng-option [value]="v.id"> {{ v.reason }} ({{ v.visitOn | date }}) </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
         </div>
         <div>

@@ -45,12 +45,16 @@
     </div>
     <div class="col-6 col-md-3">
       <label class="visually-hidden" for="documents-tag">Tag</label>
-      <select id="documents-tag" class="form-select" (change)="onTag($event)">
-        <option value="" [selected]="!tagId()">All tags</option>
+      <ng-select
+        labelForId="documents-tag"
+        [ngModel]="tagId()"
+        (ngModelChange)="tagId.set($event ?? null)"
+        placeholder="All tags"
+      >
         @for (tag of tags(); track tag.id) {
-          <option [value]="tag.id" [selected]="tagId() === tag.id">{{ tag.name }}</option>
+          <ng-option [value]="tag.id">{{ tag.name }}</ng-option>
         }
-      </select>
+      </ng-select>
     </div>
   </div>
 

@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { Habit } from '../../core/services/habits.service';
@@ -22,7 +23,7 @@ export async function openRoutinesDialog(modal: NgbModal, habits: readonly Habit
 @Component({
   selector: 'app-routines-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule],
+  imports: [FormsModule, NgOptionComponent, NgSelectComponent],
   template: `
     <div class="modal-header">
       <h2 id="routines-heading" class="modal-title h5">Routines</h2>
@@ -126,17 +127,17 @@ export async function openRoutinesDialog(modal: NgbModal, habits: readonly Habit
             }
           </ol>
           @if (available().length > 0) {
-            <select
-              class="form-select"
+            <ng-select
+              #habitPicker
               aria-label="Add a habit"
               [ngModel]="null"
-              (ngModelChange)="add($event)"
+              (ngModelChange)="add($event); $event !== null && habitPicker.clearModel()"
+              placeholder="Type to add a habit"
             >
-              <option [ngValue]="null">Add a habit...</option>
               @for (habit of available(); track habit.id) {
-                <option [ngValue]="habit.id">{{ habit.title }}</option>
+                <ng-option [value]="habit.id">{{ habit.title }}</ng-option>
               }
-            </select>
+            </ng-select>
           }
           @if (habitsError(); as error) {
             <div class="invalid-feedback d-block">{{ error }}</div>

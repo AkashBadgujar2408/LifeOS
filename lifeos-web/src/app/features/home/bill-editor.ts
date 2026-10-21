@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -45,7 +46,15 @@ const dateFields = [
 @Component({
   selector: 'app-bill-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, DatePipe, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    DatePipe,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -96,16 +105,13 @@ const dateFields = [
           </div>
           <div class="col-sm-4">
             <label class="form-label" for="bill-property">Property</label>
-            <select id="bill-property" class="form-select" formControlName="propertyId">
-              <option [ngValue]="null" [selected]="form.controls.propertyId.value === null">
-                None
-              </option>
+            <ng-select labelForId="bill-property" formControlName="propertyId" placeholder="None">
               @for (p of properties(); track p.id) {
-                <option [ngValue]="p.id" [selected]="p.id === form.controls.propertyId.value">
+                <ng-option [value]="p.id">
                   {{ p.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
         </div>
         <div class="row g-3">
@@ -161,21 +167,17 @@ const dateFields = [
           </div>
           <div class="col-sm-4">
             <label class="form-label" for="bill-currency">Currency</label>
-            <select
-              id="bill-currency"
-              class="form-select"
+            <ng-select
+              labelForId="bill-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
+              placeholder="Choose…"
+              [clearable]="false"
             >
-              <option [ngValue]="''" [selected]="!form.controls.currency.value" disabled>
-                Choose…
-              </option>
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
-                  {{ c.code }} — {{ c.name }}
-                </option>
+                <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>
               }
-            </select>
+            </ng-select>
             @if (fieldError('currency'); as error) {
               <div class="invalid-feedback d-block">{{ error }}</div>
             }
@@ -397,7 +399,13 @@ export async function openBillPay(modal: NgbModal, bill: UtilityBill): Promise<U
 @Component({
   selector: 'app-bill-pay',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, TagPicker],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    TagPicker,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -442,16 +450,15 @@ export async function openBillPay(modal: NgbModal, bill: UtilityBill): Promise<U
         </div>
         <div>
           <label class="form-label" for="pay-account">Paid from</label>
-          <select id="pay-account" class="form-select" formControlName="accountId">
-            <option [ngValue]="null" [selected]="form.controls.accountId.value === null">
-              Don't record it in Finance
-            </option>
+          <ng-select
+            labelForId="pay-account"
+            formControlName="accountId"
+            placeholder="Don't record it in Finance"
+          >
             @for (a of accounts(); track a.id) {
-              <option [ngValue]="a.id" [selected]="a.id === form.controls.accountId.value">
-                {{ a.name }} ({{ a.currency }})
-              </option>
+              <ng-option [value]="a.id"> {{ a.name }} ({{ a.currency }}) </ng-option>
             }
-          </select>
+          </ng-select>
           <div class="form-text">An account adds one expense to your ledger for this bill.</div>
         </div>
         @if (form.controls.accountId.value !== null) {

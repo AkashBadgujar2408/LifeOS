@@ -10,6 +10,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { todayIso } from '../../core/dates/today';
 import { apiErrorMessage } from '../../core/services/api-error';
 import {
@@ -41,7 +42,7 @@ export async function openSkillEditor(modal: NgbModal, skill?: Skill): Promise<S
 @Component({
   selector: 'app-skill-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, TagPicker],
+  imports: [ReactiveFormsModule, TagPicker, NgOptionComponent, NgSelectComponent],
   templateUrl: './skill-editor.html',
 })
 export class SkillEditor {

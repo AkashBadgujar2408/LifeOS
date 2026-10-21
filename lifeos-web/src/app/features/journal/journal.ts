@@ -15,6 +15,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe, formatDate } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 import {
@@ -75,6 +76,8 @@ const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
     DayNotes,
     DayDecisions,
     Attachments,
+    NgOptionComponent,
+    NgSelectComponent,
   ],
   templateUrl: './journal.html',
 })

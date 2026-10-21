@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -39,7 +40,14 @@ export async function openLabEditor(
 @Component({
   selector: 'app-lab-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, NgbInputDatepicker, LinkedItems],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    LinkedItems,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -209,14 +217,11 @@ export async function openLabEditor(
           </div>
           <div class="col-sm-6">
             <label class="form-label" for="lab-visit">Ordered at</label>
-            <select id="lab-visit" class="form-select" formControlName="visitId">
-              <option [ngValue]="null" [selected]="form.controls.visitId.value === null">—</option>
+            <ng-select labelForId="lab-visit" formControlName="visitId" placeholder="—">
               @for (v of visits(); track v.id) {
-                <option [ngValue]="v.id" [selected]="v.id === form.controls.visitId.value">
-                  {{ v.reason }} ({{ v.visitOn | date }})
-                </option>
+                <ng-option [value]="v.id"> {{ v.reason }} ({{ v.visitOn | date }}) </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
         </div>
         <div>

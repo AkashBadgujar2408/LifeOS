@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -43,7 +44,14 @@ export async function openPropertyEditor(
 @Component({
   selector: 'app-property-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -164,19 +172,16 @@ export async function openPropertyEditor(
             </div>
             <div class="col-sm-6">
               <label class="form-label" for="property-currency">Currency</label>
-              <select
-                id="property-currency"
-                class="form-select"
+              <ng-select
+                labelForId="property-currency"
                 [class.is-invalid]="fieldError('currency')"
                 formControlName="currency"
+                placeholder="—"
               >
-                <option [ngValue]="''" [selected]="!form.controls.currency.value">—</option>
                 @for (c of currencies(); track c.code) {
-                  <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
-                    {{ c.code }} — {{ c.name }}
-                  </option>
+                  <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>
                 }
-              </select>
+              </ng-select>
               @if (fieldError('currency'); as error) {
                 <div class="invalid-feedback d-block">{{ error }}</div>
               }

@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import {
   FamilyPerson,
   FamilyService,
@@ -30,7 +31,7 @@ const YOU = 0;
 @Component({
   selector: 'app-date-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, NgOptionComponent, NgSelectComponent],
   template: `
     <form class="border rounded p-3" [formGroup]="form" (ngSubmit)="save()" novalidate>
       <div class="row g-2">
@@ -64,17 +65,14 @@ const YOU = 0;
         @if (form.controls.kind.value === 'Anniversary') {
           <div class="col-12 col-md-8">
             <label class="form-label small fw-semibold" for="date-with">With</label>
-            <select id="date-with" class="form-select" formControlName="with">
-              <option [ngValue]="you" [selected]="form.controls.with.value === you">You</option>
+            <ng-select labelForId="date-with" formControlName="with" [clearable]="false">
+              <ng-option [value]="you">You</ng-option>
               @for (p of others(); track p.contactId) {
-                <option
-                  [ngValue]="p.contactId"
-                  [selected]="p.contactId === form.controls.with.value"
-                >
+                <ng-option [value]="p.contactId">
                   {{ p.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
         }
         <div class="col-4 col-md-2">

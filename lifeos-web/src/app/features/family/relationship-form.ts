@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { FamilyPerson, FamilyService } from '../../core/services/family.service';
 import { ToastService } from '../../core/services/toast.service';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -26,7 +27,7 @@ const YOU = 0;
 @Component({
   selector: 'app-relationship-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, NgOptionComponent, NgSelectComponent],
   template: `
     <form class="border rounded p-3" [formGroup]="form" (ngSubmit)="save()" novalidate>
       <div class="row g-2 align-items-start">
@@ -44,25 +45,20 @@ const YOU = 0;
         <div class="col-6 col-md-auto pt-md-2">of</div>
         <div class="col-12 col-md">
           <label class="visually-hidden" for="relation-other">Whom</label>
-          <select
-            id="relation-other"
-            class="form-select"
+          <ng-select
+            labelForId="relation-other"
             [class.is-invalid]="fieldError('other')"
             formControlName="other"
+            placeholder="Choose…"
+            [clearable]="false"
           >
-            <option [ngValue]="null" [selected]="form.controls.other.value === null" disabled>
-              Choose…
-            </option>
-            <option [ngValue]="you" [selected]="form.controls.other.value === you">You</option>
+            <ng-option [value]="you">You</ng-option>
             @for (p of others(); track p.contactId) {
-              <option
-                [ngValue]="p.contactId"
-                [selected]="p.contactId === form.controls.other.value"
-              >
+              <ng-option [value]="p.contactId">
                 {{ p.name }}
-              </option>
+              </ng-option>
             }
-          </select>
+          </ng-select>
           @if (fieldError('other'); as error) {
             <div class="invalid-feedback d-block">{{ error }}</div>
           }

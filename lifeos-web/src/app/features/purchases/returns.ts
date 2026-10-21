@@ -14,6 +14,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, map, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -52,7 +53,14 @@ async function openReturnEditor(
 @Component({
   selector: 'app-return-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, NgbInputDatepicker, EntityReminders],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -65,21 +73,18 @@ async function openReturnEditor(
         @if (!item()) {
           <div>
             <label class="form-label" for="return-purchase">Purchase</label>
-            <select
-              id="return-purchase"
-              class="form-select"
+            <ng-select
+              labelForId="return-purchase"
               [class.is-invalid]="fieldError('purchaseId')"
               formControlName="purchaseId"
+              placeholder="Choose…"
             >
-              <option [ngValue]="null" [selected]="form.controls.purchaseId.value === null">
-                Choose…
-              </option>
               @for (p of purchases(); track p.id) {
-                <option [ngValue]="p.id" [selected]="p.id === form.controls.purchaseId.value">
+                <ng-option [value]="p.id">
                   {{ p.title }}{{ p.store ? ' — ' + p.store : '' }} ({{ p.purchasedOn | date }})
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
             @if (fieldError('purchaseId'); as error) {
               <div class="invalid-feedback d-block">{{ error }}</div>
             }
@@ -246,26 +251,18 @@ async function openReturnEditor(
                 </div>
                 <div class="col-sm-3">
                   <label class="form-label small" for="refund-account">Into</label>
-                  <select
-                    id="refund-account"
-                    class="form-select form-select-sm"
+                  <ng-select
+                    labelForId="refund-account"
+                    class="ng-select-sm"
                     formControlName="accountId"
+                    placeholder="Not in Finance"
                   >
-                    <option
-                      [ngValue]="null"
-                      [selected]="refundForm.controls.accountId.value === null"
-                    >
-                      Not in Finance
-                    </option>
                     @for (a of payable(); track a.id) {
-                      <option
-                        [ngValue]="a.id"
-                        [selected]="a.id === refundForm.controls.accountId.value"
-                      >
+                      <ng-option [value]="a.id">
                         {{ a.name }}
-                      </option>
+                      </ng-option>
                     }
-                  </select>
+                  </ng-select>
                 </div>
                 <div class="col-sm-2">
                   <button

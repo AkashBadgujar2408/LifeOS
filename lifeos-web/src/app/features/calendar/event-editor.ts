@@ -14,6 +14,7 @@ import {
   NgbTimeStruct,
   NgbTimepicker,
 } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
 import { addDaysIso, localMidnight } from '../../core/dates/today';
@@ -166,7 +167,15 @@ function eventShape(group: AbstractControl): ValidationErrors | null {
 @Component({
   selector: 'app-event-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, NgbTimepicker, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    NgbTimepicker,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   templateUrl: './event-editor.html',
 })
 export class EventEditor {

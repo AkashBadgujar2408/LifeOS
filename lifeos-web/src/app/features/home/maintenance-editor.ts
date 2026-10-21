@@ -3,6 +3,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -67,6 +68,8 @@ const UNIT_WORDS: Record<RecurrenceFrequency, string> = {
     DecimalPipe,
     LinkedItems,
     EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
   ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -101,47 +104,39 @@ const UNIT_WORDS: Record<RecurrenceFrequency, string> = {
           </div>
           <div class="col-sm-5">
             <label class="form-label" for="maintenance-target">For</label>
-            <select id="maintenance-target" class="form-select" formControlName="target">
-              <option [ngValue]="''" [selected]="!form.controls.target.value">
-                Nothing in particular
-              </option>
+            <ng-select
+              labelForId="maintenance-target"
+              formControlName="target"
+              placeholder="Nothing in particular"
+            >
               @if (vehicles().length) {
                 <optgroup label="Vehicles">
                   @for (v of vehicles(); track v.id) {
-                    <option
-                      [ngValue]="key('Vehicle', v.id)"
-                      [selected]="key('Vehicle', v.id) === form.controls.target.value"
-                    >
+                    <ng-option [value]="key('Vehicle', v.id)">
                       {{ v.name }}
-                    </option>
+                    </ng-option>
                   }
                 </optgroup>
               }
               @if (assets().length) {
                 <optgroup label="Belongings">
                   @for (a of assets(); track a.id) {
-                    <option
-                      [ngValue]="key('Asset', a.id)"
-                      [selected]="key('Asset', a.id) === form.controls.target.value"
-                    >
+                    <ng-option [value]="key('Asset', a.id)">
                       {{ a.name }}
-                    </option>
+                    </ng-option>
                   }
                 </optgroup>
               }
               @if (properties().length) {
                 <optgroup label="Properties">
                   @for (p of properties(); track p.id) {
-                    <option
-                      [ngValue]="key('Property', p.id)"
-                      [selected]="key('Property', p.id) === form.controls.target.value"
-                    >
+                    <ng-option [value]="key('Property', p.id)">
                       {{ p.name }}
-                    </option>
+                    </ng-option>
                   }
                 </optgroup>
               }
-            </select>
+            </ng-select>
           </div>
         </div>
         <div class="row g-3 align-items-start">
@@ -212,16 +207,17 @@ const UNIT_WORDS: Record<RecurrenceFrequency, string> = {
             <label class="form-label" for="maintenance-contact">
               Who does it <span class="text-body-secondary small">(a contact)</span>
             </label>
-            <select id="maintenance-contact" class="form-select" formControlName="contactId">
-              <option [ngValue]="null" [selected]="form.controls.contactId.value === null">
-                None
-              </option>
+            <ng-select
+              labelForId="maintenance-contact"
+              formControlName="contactId"
+              placeholder="None"
+            >
               @for (c of contacts(); track c.id) {
-                <option [ngValue]="c.id" [selected]="c.id === form.controls.contactId.value">
+                <ng-option [value]="c.id">
                   {{ c.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           <div class="col-sm-6 d-flex align-items-end">
             <div class="form-check mb-2">
@@ -531,7 +527,7 @@ export async function openMaintenanceDone(
 @Component({
   selector: 'app-maintenance-done',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, NgOptionComponent, NgSelectComponent],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -594,19 +590,18 @@ export async function openMaintenanceDone(
           </div>
           <div class="col-5">
             <label class="form-label" for="done-currency">Currency</label>
-            <select
-              id="done-currency"
-              class="form-select"
+            <ng-select
+              labelForId="done-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
+              placeholder="—"
             >
-              <option [ngValue]="''" [selected]="!form.controls.currency.value">—</option>
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
+                <ng-option [value]="c.code">
                   {{ c.code }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
             @if (fieldError('currency'); as error) {
               <div class="invalid-feedback d-block">{{ error }}</div>
             }

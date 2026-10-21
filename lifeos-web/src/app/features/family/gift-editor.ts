@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
@@ -51,7 +52,13 @@ function isWebAddress(text: string): boolean {
 @Component({
   selector: 'app-gift-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, NgbInputDatepicker],
+  imports: [
+    DatePipe,
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -199,16 +206,15 @@ function isWebAddress(text: string): boolean {
             <label class="form-label" for="gift-purchase">
               Bought with <span class="text-body-secondary small">(optional)</span>
             </label>
-            <select id="gift-purchase" class="form-select" formControlName="purchaseId">
-              <option [ngValue]="null" [selected]="form.controls.purchaseId.value === null">
-                Not recorded in Purchases
-              </option>
+            <ng-select
+              labelForId="gift-purchase"
+              formControlName="purchaseId"
+              placeholder="Not recorded in Purchases"
+            >
               @for (p of purchases(); track p.id) {
-                <option [ngValue]="p.id" [selected]="p.id === form.controls.purchaseId.value">
-                  {{ p.title }} · {{ p.purchasedOn | date }}
-                </option>
+                <ng-option [value]="p.id"> {{ p.title }} · {{ p.purchasedOn | date }} </ng-option>
               }
-            </select>
+            </ng-select>
             <div class="form-text">
               The money lives with the purchase (and its expense in Finance), never on the gift.
             </div>

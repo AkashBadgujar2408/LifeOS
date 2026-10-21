@@ -174,27 +174,33 @@
         <label class="form-label" for="cert-skill">
           Proves the skill <span class="text-body-secondary small">(optional)</span>
         </label>
-        <select id="cert-skill" class="form-select" formControlName="skillId">
-          <option [ngValue]="null">No particular skill</option>
+        <ng-select
+          labelForId="cert-skill"
+          formControlName="skillId"
+          placeholder="No particular skill"
+        >
           @for (skill of skills(); track skill.id) {
-            <option [ngValue]="skill.id" [selected]="skill.id === form.controls.skillId.value">
+            <ng-option [value]="skill.id">
               {{ skill.name }}
-            </option>
+            </ng-option>
           }
-        </select>
+        </ng-select>
       </div>
       <div class="col-sm-6">
         <label class="form-label" for="cert-course">
           From the course <span class="text-body-secondary small">(optional)</span>
         </label>
-        <select id="cert-course" class="form-select" formControlName="courseId">
-          <option [ngValue]="null">No particular course</option>
+        <ng-select
+          labelForId="cert-course"
+          formControlName="courseId"
+          placeholder="No particular course"
+        >
           @for (course of courses(); track course.id) {
-            <option [ngValue]="course.id" [selected]="course.id === form.controls.courseId.value">
+            <ng-option [value]="course.id">
               {{ course.title }}
-            </option>
+            </ng-option>
           }
-        </select>
+        </ng-select>
       </div>
     </div>
 

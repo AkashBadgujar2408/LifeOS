@@ -84,14 +84,13 @@
       <label class="form-label" for="task-project">
         Project <span class="text-body-secondary small">(optional)</span>
       </label>
-      <select id="task-project" class="form-select" formControlName="projectId">
-        <option [ngValue]="null">No project</option>
+      <ng-select labelForId="task-project" formControlName="projectId" placeholder="No project">
         @for (project of projectOptions(); track project.id) {
-          <option [ngValue]="project.id">
+          <ng-option [value]="project.id">
             {{ project.name }}{{ project.status === 'Active' ? '' : ' (' + project.status + ')' }}
-          </option>
+          </ng-option>
         }
-      </select>
+      </ng-select>
     </div>
 
     <div>

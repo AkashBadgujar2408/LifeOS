@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, map, of } from 'rxjs';
 import { dateFieldError } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
@@ -47,7 +48,7 @@ const CODED_KINDS: readonly BenefitKind[] = ['Voucher', 'GiftCard', 'StoreCredit
 @Component({
   selector: 'app-benefit-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, NgOptionComponent, NgSelectComponent],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -192,13 +193,13 @@ const CODED_KINDS: readonly BenefitKind[] = ['Voucher', 'GiftCard', 'StoreCredit
         <div class="row g-3">
           <div class="col-sm-4">
             <label class="form-label" for="benefit-currency">Currency</label>
-            <select id="benefit-currency" class="form-select" formControlName="currency">
+            <ng-select labelForId="benefit-currency" formControlName="currency" [clearable]="false">
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
+                <ng-option [value]="c.code">
                   {{ c.code }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
           @if (kind() === 'Coupon') {
             <div class="col-sm-4">
@@ -223,21 +224,18 @@ const CODED_KINDS: readonly BenefitKind[] = ['Voucher', 'GiftCard', 'StoreCredit
           @if (kind() === 'WalletCredit') {
             <div class="col-sm-8">
               <label class="form-label" for="benefit-wallet">In the wallet</label>
-              <select
-                id="benefit-wallet"
-                class="form-select"
+              <ng-select
+                labelForId="benefit-wallet"
                 [class.is-invalid]="fieldError('accountId')"
                 formControlName="accountId"
+                placeholder="Choose…"
               >
-                <option [ngValue]="null" [selected]="form.controls.accountId.value === null">
-                  Choose…
-                </option>
                 @for (a of accounts(); track a.id) {
-                  <option [ngValue]="a.id" [selected]="a.id === form.controls.accountId.value">
+                  <ng-option [value]="a.id">
                     {{ a.name }}
-                  </option>
+                  </ng-option>
                 }
-              </select>
+              </ng-select>
               @if (fieldError('accountId'); as error) {
                 <div class="invalid-feedback d-block">{{ error }}</div>
               }
@@ -378,16 +376,17 @@ const CODED_KINDS: readonly BenefitKind[] = ['Voucher', 'GiftCard', 'StoreCredit
         @if (!benefit() && buyable()) {
           <div>
             <label class="form-label" for="benefit-bought">Paid for it from</label>
-            <select id="benefit-bought" class="form-select" formControlName="boughtAccountId">
-              <option [ngValue]="null" [selected]="form.controls.boughtAccountId.value === null">
-                It was a gift / free — no purchase
-              </option>
+            <ng-select
+              labelForId="benefit-bought"
+              formControlName="boughtAccountId"
+              placeholder="It was a gift / free — no purchase"
+            >
               @for (a of payableAccounts(); track a.id) {
-                <option [ngValue]="a.id" [selected]="a.id === form.controls.boughtAccountId.value">
+                <ng-option [value]="a.id">
                   {{ a.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
             <div class="form-text">
               An account records it as a purchase today, with one expense in Finance.
             </div>

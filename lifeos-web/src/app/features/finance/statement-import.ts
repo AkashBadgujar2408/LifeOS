@@ -10,6 +10,7 @@ import { ColDef } from 'ag-grid-community';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, map, of } from 'rxjs';
 import { saveBlob } from '../../core/files/files';
 import { DataGrid } from '../../core/grid/data-grid';
@@ -45,7 +46,15 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
 @Component({
   selector: 'app-statement-import',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, TagPicker, BaseCurrencyPrompt, DataGrid],
+  imports: [
+    FormsModule,
+    RouterLink,
+    TagPicker,
+    BaseCurrencyPrompt,
+    DataGrid,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <div class="container py-4">
       <div class="mb-4">
@@ -67,20 +76,18 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
           <div class="row g-3">
             <div class="col-md-5">
               <label class="form-label" for="import-account">Into account</label>
-              <select
-                id="import-account"
-                class="form-select"
+              <ng-select
+                labelForId="import-account"
                 [class.is-invalid]="accountError()"
                 [ngModel]="accountId()"
                 (ngModelChange)="accountId.set($event); resetCheck()"
+                placeholder="Choose…"
+                [clearable]="false"
               >
-                <option [ngValue]="null" [selected]="accountId() === null" disabled>Choose…</option>
                 @for (a of accounts(); track a.id) {
-                  <option [ngValue]="a.id" [selected]="a.id === accountId()">
-                    {{ a.name }} ({{ a.currency }})
-                  </option>
+                  <ng-option [value]="a.id"> {{ a.name }} ({{ a.currency }}) </ng-option>
                 }
-              </select>
+              </ng-select>
               @if (accountError()) {
                 <div class="invalid-feedback d-block">Choose the account the statement is for.</div>
               }

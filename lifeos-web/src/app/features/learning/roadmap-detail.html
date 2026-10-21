@@ -161,22 +161,18 @@
                 @if (stepForm.controls.targetType.value) {
                   <div class="col-sm-8">
                     <label class="visually-hidden" for="step-target">Which one</label>
-                    <select
-                      id="step-target"
-                      class="form-select"
+                    <ng-select
+                      labelForId="step-target"
                       [class.is-invalid]="stepError('targetId')"
                       formControlName="targetId"
+                      placeholder="Choose…"
                     >
-                      <option [ngValue]="null">Choose…</option>
                       @for (option of targetOptions(); track option.id) {
-                        <option
-                          [ngValue]="option.id"
-                          [selected]="option.id === stepForm.controls.targetId.value"
-                        >
+                        <ng-option [value]="option.id">
                           {{ option.title }}
-                        </option>
+                        </ng-option>
                       }
-                    </select>
+                    </ng-select>
                     @if (stepError('targetId'); as error) {
                       <div class="invalid-feedback d-block">{{ error }}</div>
                     }

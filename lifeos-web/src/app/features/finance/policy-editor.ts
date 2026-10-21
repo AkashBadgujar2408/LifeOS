@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { NgOptionComponent, NgSelectComponent } from '@ng-select/ng-select';
 import { catchError, of } from 'rxjs';
 import Swal from 'sweetalert2';
 import { dateFieldError } from '../../core/dates/date-format';
@@ -48,7 +49,14 @@ export async function openPolicyEditor(
 @Component({
   selector: 'app-policy-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, NgbInputDatepicker, LinkedItems, EntityReminders],
+  imports: [
+    ReactiveFormsModule,
+    NgbInputDatepicker,
+    LinkedItems,
+    EntityReminders,
+    NgOptionComponent,
+    NgSelectComponent,
+  ],
   template: `
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="modal-header">
@@ -127,21 +135,17 @@ export async function openPolicyEditor(
         <div class="row g-3">
           <div class="col-sm-4">
             <label class="form-label" for="policy-currency">Currency</label>
-            <select
-              id="policy-currency"
-              class="form-select"
+            <ng-select
+              labelForId="policy-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
+              placeholder="Choose…"
+              [clearable]="false"
             >
-              <option [ngValue]="''" [selected]="!form.controls.currency.value" disabled>
-                Choose…
-              </option>
               @for (c of currencies(); track c.code) {
-                <option [ngValue]="c.code" [selected]="c.code === form.controls.currency.value">
-                  {{ c.code }} — {{ c.name }}
-                </option>
+                <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>
               }
-            </select>
+            </ng-select>
             @if (fieldError('currency'); as error) {
               <div class="invalid-feedback d-block">{{ error }}</div>
             }
@@ -168,16 +172,13 @@ export async function openPolicyEditor(
             <label class="form-label" for="policy-contact">
               Agent <span class="text-body-secondary small">(optional)</span>
             </label>
-            <select id="policy-contact" class="form-select" formControlName="contactId">
-              <option [ngValue]="null" [selected]="form.controls.contactId.value === null">
-                None
-              </option>
+            <ng-select labelForId="policy-contact" formControlName="contactId" placeholder="None">
               @for (c of contacts(); track c.id) {
-                <option [ngValue]="c.id" [selected]="c.id === form.controls.contactId.value">
+                <ng-option [value]="c.id">
                   {{ c.name }}
-                </option>
+                </ng-option>
               }
-            </select>
+            </ng-select>
           </div>
         </div>
         <div class="row g-3">
