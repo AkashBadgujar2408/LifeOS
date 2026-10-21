@@ -21,33 +21,42 @@
     </div>
   </div>
 
-  <div class="d-flex flex-wrap gap-1 mb-4" role="group" aria-label="Show one kind">
-    <button
-      type="button"
-      class="btn btn-sm"
-      [class.btn-primary]="!activeKind()"
-      [class.btn-outline-secondary]="activeKind()"
-      [attr.aria-pressed]="!activeKind()"
-      (click)="filter(null)"
-    >
-      Everything
-    </button>
-    @for (k of kinds; track k) {
-      @if (countsByKind().get(k) || activeKind() === k) {
-        <button
-          type="button"
-          class="btn btn-sm"
-          [class.btn-primary]="activeKind() === k"
-          [class.btn-outline-secondary]="activeKind() !== k"
-          [attr.aria-pressed]="activeKind() === k"
-          (click)="filter(k)"
-        >
-          <i class="bi" [class]="kindInfo[k].icon" aria-hidden="true"></i>
-          {{ kindInfo[k].many }}
-          <span class="opacity-75">{{ countsByKind().get(k) ?? 0 }}</span>
-        </button>
+  <div class="d-flex flex-wrap align-items-start gap-2 mb-4">
+    <div class="d-flex flex-wrap gap-1 me-auto" role="group" aria-label="Show one kind">
+      <button
+        type="button"
+        class="btn btn-sm"
+        [class.btn-primary]="!activeKind()"
+        [class.btn-outline-secondary]="activeKind()"
+        [attr.aria-pressed]="!activeKind()"
+        (click)="filter(null)"
+      >
+        Everything
+      </button>
+      @for (k of kinds; track k) {
+        @if (countsByKind().get(k) || activeKind() === k) {
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-primary]="activeKind() === k"
+            [class.btn-outline-secondary]="activeKind() !== k"
+            [attr.aria-pressed]="activeKind() === k"
+            (click)="filter(k)"
+          >
+            <i class="bi" [class]="kindInfo[k].icon" aria-hidden="true"></i>
+            {{ kindInfo[k].many }}
+            <span class="opacity-75">{{ countsByKind().get(k) ?? 0 }}</span>
+          </button>
+        }
       }
-    }
+    </div>
+    <app-view-toggle
+      key="leisure-backlog"
+      label="Show the list"
+      cardsLabel="By status"
+      cardsIcon="bi-collection"
+      [(view)]="view"
+    />
   </div>
 
   @if (loadFailed() && !items()) {
@@ -73,95 +82,110 @@
         </div>
       </section>
     }
-    @for (group of groups(); track group.key) {
-      <section class="mb-4" [attr.aria-labelledby]="'backlog-' + group.key">
-        <h2 [id]="'backlog-' + group.key" class="h6 text-uppercase text-body-secondary small mb-2">
-          {{ groupLabels[group.key] }} · {{ group.items.length }}
-        </h2>
-        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
-          @for (item of group.items; track item.id) {
-            <div class="col">
-              <div class="card h-100">
-                <div class="card-body d-flex flex-column gap-1">
-                  <div class="small text-body-secondary">
-                    <i class="bi" [class]="kindInfo[item.kind].icon" aria-hidden="true"></i>
-                    {{ kindInfo[item.kind].one }}
-                    @if (item.whereToFind) {
-                      · {{ item.whereToFind }}
-                    }
-                  </div>
-                  <a
-                    [routerLink]="['/leisure', item.id]"
-                    class="link-body-emphasis text-decoration-none fw-semibold text-break"
-                  >
-                    {{ item.title }}
-                  </a>
-                  @if (item.creator) {
-                    <div class="small text-body-secondary text-break">{{ item.creator }}</div>
-                  }
-                  @if (item.status === 'InProgress' && item.progressPercent !== null) {
-                    <div
-                      class="progress mt-2"
-                      style="height: 0.4rem"
-                      role="progressbar"
-                      [attr.aria-label]="item.title + ' progress'"
-                      [attr.aria-valuenow]="item.progressPercent"
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                    >
-                      <div class="progress-bar" [style.width.%]="item.progressPercent"></div>
+    @if (view() === 'table' && shown().length > 0) {
+      <app-data-grid
+        name="media"
+        [rows]="shown()"
+        [columns]="columns"
+        [phoneColumns]="['title', 'status', 'progress']"
+        [rowId]="rowId"
+        [noun]="['item', 'items']"
+        (open)="openItem($event)"
+      />
+    } @else {
+      @for (group of groups(); track group.key) {
+        <section class="mb-4" [attr.aria-labelledby]="'backlog-' + group.key">
+          <h2
+            [id]="'backlog-' + group.key"
+            class="h6 text-uppercase text-body-secondary small mb-2"
+          >
+            {{ groupLabels[group.key] }} · {{ group.items.length }}
+          </h2>
+          <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+            @for (item of group.items; track item.id) {
+              <div class="col">
+                <div class="card h-100">
+                  <div class="card-body d-flex flex-column gap-1">
+                    <div class="small text-body-secondary">
+                      <i class="bi" [class]="kindInfo[item.kind].icon" aria-hidden="true"></i>
+                      {{ kindInfo[item.kind].one }}
+                      @if (item.whereToFind) {
+                        · {{ item.whereToFind }}
+                      }
                     </div>
-                  }
-                  <div
-                    class="small text-body-secondary mt-auto pt-1 d-flex flex-wrap align-items-center gap-2"
-                  >
-                    <span class="me-auto">
-                      @if (item.status === 'Finished' && item.finishedOn) {
-                        Finished {{ item.finishedOn | date }}
-                        @if (item.rating) {
-                          ·
-                          <span
-                            class="text-nowrap"
-                            [attr.aria-label]="item.rating + ' of 5 stars'"
-                            >{{ stars(item.rating) }}</span
-                          >
-                        }
-                      } @else if (progressText(item); as progress) {
-                        {{ progress }}
-                      } @else if (item.status === 'InProgress') {
-                        {{ statusLabel(item.kind, item.status) }}
-                      }
-                      @if (item.noteCount > 0) {
-                        · {{ item.noteCount }} {{ item.noteCount === 1 ? 'note' : 'notes' }}
-                      }
-                    </span>
-                    @if (item.status === 'InProgress' && hasEpisodes(item.kind)) {
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-outline-primary"
-                        [disabled]="stepping() === item.id"
-                        [attr.aria-label]="'Next episode of ' + item.title"
-                        (click)="nextEpisode(item)"
-                      >
-                        <i class="bi bi-skip-forward"></i> Next episode
-                      </button>
+                    <a
+                      [routerLink]="['/leisure', item.id]"
+                      class="link-body-emphasis text-decoration-none fw-semibold text-break"
+                    >
+                      {{ item.title }}
+                    </a>
+                    @if (item.creator) {
+                      <div class="small text-body-secondary text-break">{{ item.creator }}</div>
                     }
+                    @if (item.status === 'InProgress' && item.progressPercent !== null) {
+                      <div
+                        class="progress mt-2"
+                        style="height: 0.4rem"
+                        role="progressbar"
+                        [attr.aria-label]="item.title + ' progress'"
+                        [attr.aria-valuenow]="item.progressPercent"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                      >
+                        <div class="progress-bar" [style.width.%]="item.progressPercent"></div>
+                      </div>
+                    }
+                    <div
+                      class="small text-body-secondary mt-auto pt-1 d-flex flex-wrap align-items-center gap-2"
+                    >
+                      <span class="me-auto">
+                        @if (item.status === 'Finished' && item.finishedOn) {
+                          Finished {{ item.finishedOn | date }}
+                          @if (item.rating) {
+                            ·
+                            <span
+                              class="text-nowrap"
+                              [attr.aria-label]="item.rating + ' of 5 stars'"
+                              >{{ stars(item.rating) }}</span
+                            >
+                          }
+                        } @else if (progressText(item); as progress) {
+                          {{ progress }}
+                        } @else if (item.status === 'InProgress') {
+                          {{ statusLabel(item.kind, item.status) }}
+                        }
+                        @if (item.noteCount > 0) {
+                          · {{ item.noteCount }} {{ item.noteCount === 1 ? 'note' : 'notes' }}
+                        }
+                      </span>
+                      @if (item.status === 'InProgress' && hasEpisodes(item.kind)) {
+                        <button
+                          type="button"
+                          class="btn btn-sm btn-outline-primary"
+                          [disabled]="stepping() === item.id"
+                          [attr.aria-label]="'Next episode of ' + item.title"
+                          (click)="nextEpisode(item)"
+                        >
+                          <i class="bi bi-skip-forward"></i> Next episode
+                        </button>
+                      }
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          }
-        </div>
-      </section>
-    }
-    @if (droppedCount() > 0) {
-      <button
-        type="button"
-        class="btn btn-link px-0 text-body-secondary"
-        (click)="showDropped.set(!showDropped())"
-      >
-        {{ showDropped() ? 'Hide' : 'Show' }} dropped ({{ droppedCount() }})
-      </button>
+            }
+          </div>
+        </section>
+      }
+      @if (droppedCount() > 0) {
+        <button
+          type="button"
+          class="btn btn-link px-0 text-body-secondary"
+          (click)="showDropped.set(!showDropped())"
+        >
+          {{ showDropped() ? 'Hide' : 'Show' }} dropped ({{ droppedCount() }})
+        </button>
+      }
     }
   } @else {
     <p class="text-body-secondary">Loading your list...</p>

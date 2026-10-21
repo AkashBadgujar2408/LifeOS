@@ -6,14 +6,19 @@ import {
   effect,
   inject,
   input,
+  LOCALE_ID,
   signal,
   untracked,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
+import { ColDef } from 'ag-grid-community';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { todayIso } from '../../core/dates/today';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayComparator, dayFormatter } from '../../core/grid/grid-format';
+import { GridView, ViewToggle } from '../../core/grid/view-toggle';
 import { apiErrorMessage } from '../../core/services/api-error';
 import {
   LeisureService,
@@ -23,6 +28,7 @@ import {
 } from '../../core/services/leisure.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
+import { formatMinutes } from '../calendar/calendar-feed';
 import {
   BACKLOG_GROUP_LABELS,
   MEDIA_KIND_INFO,
@@ -41,7 +47,7 @@ import { openMediaEditor } from './media-editor';
 @Component({
   selector: 'app-leisure',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, LoadError],
+  imports: [DatePipe, RouterLink, LoadError, DataGrid, ViewToggle],
   templateUrl: './leisure.html',
 })
 export class Leisure {
@@ -50,6 +56,7 @@ export class Leisure {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly locale = inject(LOCALE_ID);
 
   /** From the `?kind=` query parameter. */
   readonly kind = input<string | undefined>();
@@ -66,6 +73,53 @@ export class Leisure {
   protected readonly loadFailed = signal(false);
   protected readonly showDropped = signal(false);
   protected readonly stepping = signal<number | null>(null);
+  /** Cards keep the sections (in progress, up next…); the table is every shown item to sort, page and export. */
+  protected readonly view = signal<GridView>('cards');
+  protected readonly rowId = (i: MediaItem) => i.id;
+  protected readonly columns: ColDef<MediaItem>[] = [
+    { headerName: 'Title', field: 'title', flex: 2, minWidth: 170 },
+    {
+      headerName: 'Kind',
+      field: 'kind',
+      width: 110,
+      valueFormatter: (p) => (p.data ? MEDIA_KIND_INFO[p.data.kind].one : ''),
+    },
+    { headerName: 'By', field: 'creator', flex: 1, minWidth: 130 },
+    {
+      headerName: 'Status',
+      field: 'status',
+      width: 150,
+      valueFormatter: (p) => (p.data ? statusLabel(p.data.kind, p.data.status) : ''),
+    },
+    {
+      headerName: 'Progress',
+      colId: 'progress',
+      width: 150,
+      valueGetter: (p) => (p.data ? (progressText(p.data) ?? '') : ''),
+    },
+    {
+      headerName: 'Finished',
+      field: 'finishedOn',
+      width: 125,
+      valueFormatter: dayFormatter(this.locale),
+      comparator: dayComparator,
+    },
+    {
+      headerName: 'Rating',
+      field: 'rating',
+      width: 120,
+      valueFormatter: (p) => (p.value ? stars(p.value as number) : ''),
+      context: { csv: (row: MediaItem) => (row.rating ? String(row.rating) : '') },
+    },
+    { headerName: 'Where', field: 'whereToFind', width: 140 },
+    {
+      headerName: 'Time logged',
+      field: 'minutesLogged',
+      width: 130,
+      type: 'rightAligned',
+      valueFormatter: (p) => ((p.value as number) ? formatMinutes(p.value as number) : ''),
+    },
+  ];
 
   protected readonly activeKind = computed<MediaKind | null>(() => {
     const k = this.kind();
@@ -115,6 +169,10 @@ export class Leisure {
         },
         error: () => this.loadFailed.set(true),
       });
+  }
+
+  protected openItem(item: MediaItem): void {
+    void this.router.navigate(['/leisure', item.id]);
   }
 
   protected filter(kind: MediaKind | null): void {

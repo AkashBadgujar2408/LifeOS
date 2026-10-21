@@ -5,16 +5,24 @@ import {
   effect,
   inject,
   input,
+  LOCALE_ID,
   signal,
   untracked,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { formatDate } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { ColDef } from 'ag-grid-community';
 import { NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import Swal from 'sweetalert2';
-import { dateFieldError } from '../../core/dates/date-format';
+import {
+  APP_DATE_FORMAT,
+  APP_DATE_TIME_FORMAT,
+  dateFieldError,
+} from '../../core/dates/date-format';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayComparator, dayFormatter } from '../../core/grid/grid-format';
 import { todayIso } from '../../core/dates/today';
 import { itemTitle } from '../../core/layout/item-title';
 import { apiErrorMessage } from '../../core/services/api-error';
@@ -37,7 +45,7 @@ import { PracticeTimer } from './practice-timer';
   selector: 'app-hobby-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    DatePipe,
+    DataGrid,
     RouterLink,
     ReactiveFormsModule,
     NgbInputDatepicker,
@@ -173,32 +181,20 @@ import { PracticeTimer } from './practice-timer';
                     Log time
                   </button>
                 </form>
-                <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
-                  @for (session of hobby.sessions; track session.id) {
-                    <li class="d-flex gap-2 align-items-start small">
-                      <div class="flex-grow-1 min-w-0">
-                        <span class="fw-semibold">{{ session.practicedOn | date }}</span> ·
-                        {{ formatMinutes(session.minutes) }}
-                        @if (session.startedAt) {
-                          <span class="text-body-secondary">· timed</span>
-                        }
-                        @if (session.note) {
-                          <div class="text-body-secondary text-break">{{ session.note }}</div>
-                        }
-                      </div>
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-link link-danger p-0"
-                        [attr.aria-label]="'Remove the session of ' + (session.practicedOn | date)"
-                        (click)="removeSession(hobby.id, session)"
-                      >
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </li>
-                  } @empty {
-                    <li class="small text-body-secondary">No practice logged yet.</li>
-                  }
-                </ul>
+                @if (hobby.sessions.length === 0) {
+                  <p class="small text-body-secondary mb-0">No practice logged yet.</p>
+                } @else {
+                  <p class="small text-body-secondary mb-2">Pick a session to remove it.</p>
+                  <app-data-grid
+                    name="hobby-sessions"
+                    [rows]="hobby.sessions"
+                    [columns]="columns"
+                    [phoneColumns]="['practicedOn', 'minutes', 'note']"
+                    [rowId]="rowId"
+                    [noun]="['session', 'sessions']"
+                    (open)="removeSession(hobby.id, $event)"
+                  />
+                }
               </div>
             </section>
           </div>
@@ -232,6 +228,7 @@ export class HobbyDetail {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly locale = inject(LOCALE_ID);
 
   readonly id = input.required<string>();
 
@@ -243,6 +240,34 @@ export class HobbyDetail {
   protected readonly saving = signal(false);
   protected readonly attempted = signal(false);
   private readonly titled = itemTitle(() => this.hobby()?.name);
+  protected readonly rowId = (s: HobbySession) => s.id;
+  protected readonly columns: ColDef<HobbySession>[] = [
+    {
+      headerName: 'Day',
+      field: 'practicedOn',
+      sort: 'desc',
+      width: 125,
+      valueFormatter: dayFormatter(this.locale),
+      comparator: dayComparator,
+    },
+    {
+      headerName: 'Time',
+      field: 'minutes',
+      width: 100,
+      type: 'rightAligned',
+      valueFormatter: (p) => formatMinutes((p.value as number) ?? 0),
+    },
+    {
+      headerName: 'How',
+      field: 'startedAt',
+      width: 190,
+      valueFormatter: (p) =>
+        p.value
+          ? `Timer, ${formatDate(p.value as string, APP_DATE_TIME_FORMAT, this.locale)}`
+          : 'Logged by hand',
+    },
+    { headerName: 'Note', field: 'note', flex: 1, minWidth: 150 },
+  ];
 
   protected readonly sessionForm = this.fb.group({
     practicedOn: this.fb.control<string | null>(todayIso(), Validators.required),
@@ -318,7 +343,18 @@ export class HobbyDetail {
       });
   }
 
-  protected removeSession(hobbyId: number, session: HobbySession): void {
+  protected async removeSession(hobbyId: number, session: HobbySession): Promise<void> {
+    const confirmed = await Swal.fire({
+      title: 'Remove this session?',
+      text: `${formatMinutes(session.minutes)} on ${formatDate(session.practicedOn, APP_DATE_FORMAT, this.locale)}.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Remove',
+      confirmButtonColor: '#dc3545',
+    });
+    if (!confirmed.isConfirmed) {
+      return;
+    }
     this.leisureService.removeSession(hobbyId, session.id).subscribe({
       next: () => this.load(),
       error: (err) => this.toast.error(apiErrorMessage(err, 'Could not remove it.')),

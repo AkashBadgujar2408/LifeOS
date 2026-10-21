@@ -1245,3 +1245,13 @@
 - Gotchas: (1) a Life Story column that the page renders as a quote (`note`) can't carry a code word — the media beat puts its kind in `detail`. (2) The browser tool's script call times out at 45 s but the script keeps running in the page (the practice-timer check still clicked Stop after 63 s). (3) The Story page doesn't filter beats of switched-off modules (Career's don't either) — Leisure beats follow that.
 - Test data: `ui75b84476` (The Remains of the Day 5★ with a highlight, a 90-min log and 30 min of study; Past Lives from an inbox idea; Severance at S1·E4; Guitar 31 min incl. a timed minute; an open idea "Read Klara and the Sun").
 - Next (when you're ready): Session 86 — Phase 4 polish. You asked to stop after Leisure & media.
+
+## Last session: 2026-10-21 — Session 86 — Phase 4 polish — Phase 4 complete
+- Exporter coverage: `roundtrip86.mjs` (31 checks) — every `leisure` table plus what points at it from Learning, Goals, Habits, links, reminders and the inbox → export → import into an empty account → behaviour checked on the copy (skill/tag/highlight kept, hobby ↔ habit, study session → copied book, goal 7%, year in media identical, link remapped, Life Story beat, search) → re-export identical table by table (18 tables); SQL check: no copied FK/EntityType pair points outside the new account.
+- Grid coverage: a hobby's practice log → `<app-data-grid>` (row = remove, with a confirm, like the study log); the backlog gets a By status | Table toggle (rating exported as 1–5). Media notes/logs stay lists.
+- 375 px: every Leisure page (backlog in both views, item, hobbies, hobby, year) + study, roadmaps, skills, story — no horizontal page scroll; console clean.
+- Fixed: the 1.1 MB `logo.png` (1254 px) was drawn at 26–44 px on every page (NG0913 warning) → `logo-132.png` (17 kB) in the shell, auth screens and favicon.
+- Verified: 610 backend + 274 frontend tests, lint/Prettier/build clean, initial bundle 996 kB. No date code changed, so no `test:tz` rerun.
+- Test data: `rt86a…` (original), `rt86b…` (imported copy) in UAT.
+- **Phase 4 (Sessions 78a–86) is complete.**
+- Next: Phase 5 — Session 90 (Reports 1), per the plan.
