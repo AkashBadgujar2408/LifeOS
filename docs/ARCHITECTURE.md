@@ -250,6 +250,12 @@ Swagger UI (`/swagger`, Development only) has the full request/response shapes.
   423 while locked, logged in Vault activity). Pages that keep a card layout (inventory rooms, applications board,
   question practice, network, purchases by month) add `<app-view-toggle key [(view)]>` (Cards | Table, remembered).
   The component registers its ag-Grid modules itself and is only imported by lazy routes.
+- **Searchable dropdowns** (Session 75b): long or growing pickers are `<ng-select>` + `<ng-option>` bound through
+  the form control (`formControlName`, `labelForId` for the label; `ng-select-sm` where a plain select was
+  `form-select-sm`; `is-invalid` + the usual `fieldError` markup). The default theme is re-pointed at LifeOS tokens
+  in `styles.scss`. Short fixed lists (kind, status, frequency) stay plain `<select>`s. "Add one, then clear"
+  pickers bind `[ngModel]="null"` and call `clearModel()` after a pick. The tag picker
+  (`shared/components/tag-picker/`) is an ng-select multi with "Create tag". Only lazy routes import ng-select.
 - **Styling**: CoreUI CSS as the single framework, LifeOS colour tokens in `styles.scss` (`--lifeos-*`), Sora +
   Manrope. Bespoke CSS only where a module needs its own visuals (My Day, Calendar, habit cells, life balance bars).
 
