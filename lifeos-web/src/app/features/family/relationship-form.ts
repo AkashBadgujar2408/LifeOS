@@ -49,7 +49,7 @@ const YOU = 0;
             labelForId="relation-other"
             [class.is-invalid]="fieldError('other')"
             formControlName="other"
-            placeholder="Choose…"
+            placeholder="Pick a person"
             [clearable]="false"
           >
             <ng-option [value]="you">You</ng-option>

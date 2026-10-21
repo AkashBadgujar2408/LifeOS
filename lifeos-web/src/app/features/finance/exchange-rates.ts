@@ -120,7 +120,7 @@ import { currentRates } from './finance-view';
             class="ng-select-sm"
             [class.is-invalid]="fieldError('currency')"
             formControlName="currency"
-            placeholder="Choose…"
+            placeholder="Choose a currency"
             [clearable]="false"
           >
             @for (c of choices(); track c.code) {

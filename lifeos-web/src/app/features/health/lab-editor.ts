@@ -217,7 +217,7 @@ export async function openLabEditor(
           </div>
           <div class="col-sm-6">
             <label class="form-label" for="lab-visit">Ordered at</label>
-            <ng-select labelForId="lab-visit" formControlName="visitId" placeholder="—">
+            <ng-select labelForId="lab-visit" formControlName="visitId" placeholder="Pick a visit (optional)">
               @for (v of visits(); track v.id) {
                 <ng-option [value]="v.id"> {{ v.reason }} ({{ v.visitOn | date }}) </ng-option>
               }

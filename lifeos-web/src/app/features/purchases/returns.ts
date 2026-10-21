@@ -77,7 +77,7 @@ async function openReturnEditor(
               labelForId="return-purchase"
               [class.is-invalid]="fieldError('purchaseId')"
               formControlName="purchaseId"
-              placeholder="Choose…"
+              placeholder="Pick a purchase"
             >
               @for (p of purchases(); track p.id) {
                 <ng-option [value]="p.id">

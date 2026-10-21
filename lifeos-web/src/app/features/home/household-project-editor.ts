@@ -118,7 +118,7 @@ const STATUSES: HouseholdProject['status'][] = ['Active', 'Completed', 'Archived
               labelForId="hp-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
-              placeholder="—"
+              placeholder="Choose a currency"
             >
               @for (c of currencies(); track c.code) {
                 <ng-option [value]="c.code">

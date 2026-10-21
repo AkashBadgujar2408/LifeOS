@@ -31,7 +31,7 @@ import { ToastService } from '../../core/services/toast.service';
               labelForId="base-currency"
               [ngModel]="code()"
               (ngModelChange)="code.set($event)"
-              placeholder="Choose…"
+              placeholder="Choose a currency"
               [clearable]="false"
             >
               @for (c of currencies(); track c.code) {

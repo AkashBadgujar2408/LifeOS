@@ -276,7 +276,7 @@
         <label class="form-label" for="event-life-area">
           Life area <span class="text-body-secondary small">(optional)</span>
         </label>
-        <ng-select labelForId="event-life-area" formControlName="lifeAreaId" placeholder="None">
+        <ng-select labelForId="event-life-area" formControlName="lifeAreaId" placeholder="Pick a life area (optional)">
           @for (
             area of pickableLifeAreas(lifeAreas(), hiddenAreaIds(), form.controls.lifeAreaId.value);
             track area.id

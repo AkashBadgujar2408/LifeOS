@@ -85,7 +85,7 @@ export async function openAccountEditor(
               labelForId="account-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
-              placeholder="Choose…"
+              placeholder="Choose a currency"
               [clearable]="false"
             >
               @for (c of currencies(); track c.code) {

@@ -81,7 +81,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
                 [class.is-invalid]="accountError()"
                 [ngModel]="accountId()"
                 (ngModelChange)="accountId.set($event); resetCheck()"
-                placeholder="Choose…"
+                placeholder="Choose an account"
                 [clearable]="false"
               >
                 @for (a of accounts(); track a.id) {

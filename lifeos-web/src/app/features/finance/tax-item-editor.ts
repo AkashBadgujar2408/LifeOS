@@ -150,7 +150,7 @@ const TRANSACTION_DAYS = 550;
           <ng-select
             labelForId="tax-transaction"
             formControlName="transactionId"
-            placeholder="None"
+            placeholder="Pick a payment (optional)"
           >
             @for (t of transactions(); track t.id) {
               <ng-option [value]="t.id">
@@ -189,7 +189,7 @@ const TRANSACTION_DAYS = 550;
               labelForId="tax-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
-              placeholder="—"
+              placeholder="Choose a currency"
             >
               @for (c of currencies(); track c.code) {
                 <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>

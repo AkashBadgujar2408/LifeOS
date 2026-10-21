@@ -228,7 +228,7 @@ const CODED_KINDS: readonly BenefitKind[] = ['Voucher', 'GiftCard', 'StoreCredit
                 labelForId="benefit-wallet"
                 [class.is-invalid]="fieldError('accountId')"
                 formControlName="accountId"
-                placeholder="Choose…"
+                placeholder="Choose an account"
               >
                 @for (a of accounts(); track a.id) {
                   <ng-option [value]="a.id">

@@ -165,7 +165,7 @@
                       labelForId="step-target"
                       [class.is-invalid]="stepError('targetId')"
                       formControlName="targetId"
-                      placeholder="Choose…"
+                      placeholder="Pick one"
                     >
                       @for (option of targetOptions(); track option.id) {
                         <ng-option [value]="option.id">

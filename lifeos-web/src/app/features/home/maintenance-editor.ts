@@ -210,7 +210,7 @@ const UNIT_WORDS: Record<RecurrenceFrequency, string> = {
             <ng-select
               labelForId="maintenance-contact"
               formControlName="contactId"
-              placeholder="None"
+              placeholder="Pick a contact (optional)"
             >
               @for (c of contacts(); track c.id) {
                 <ng-option [value]="c.id">
@@ -594,7 +594,7 @@ export async function openMaintenanceDone(
               labelForId="done-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
-              placeholder="—"
+              placeholder="Choose a currency"
             >
               @for (c of currencies(); track c.code) {
                 <ng-option [value]="c.code">

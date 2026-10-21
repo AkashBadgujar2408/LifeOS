@@ -129,7 +129,7 @@ export async function openLoanEditor(
               labelForId="loan-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
-              placeholder="Choose…"
+              placeholder="Choose a currency"
               [clearable]="false"
             >
               @for (c of currencies(); track c.code) {
@@ -316,7 +316,7 @@ export async function openLoanEditor(
             <label class="form-label" for="loan-contact">
               Contact <span class="text-body-secondary small">(optional)</span>
             </label>
-            <ng-select labelForId="loan-contact" formControlName="contactId" placeholder="None">
+            <ng-select labelForId="loan-contact" formControlName="contactId" placeholder="Pick a contact (optional)">
               @for (c of contacts(); track c.id) {
                 <ng-option [value]="c.id">
                   {{ c.name }}

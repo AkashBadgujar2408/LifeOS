@@ -176,7 +176,7 @@ export async function openPropertyEditor(
                 labelForId="property-currency"
                 [class.is-invalid]="fieldError('currency')"
                 formControlName="currency"
-                placeholder="—"
+                placeholder="Choose a currency"
               >
                 @for (c of currencies(); track c.code) {
                   <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>

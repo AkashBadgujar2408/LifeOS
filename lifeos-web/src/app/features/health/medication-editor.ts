@@ -259,7 +259,7 @@ const pad = (n: number) => String(n).padStart(2, '0');
             <ng-select
               labelForId="medication-visit"
               formControlName="prescribedAtVisitId"
-              placeholder="—"
+              placeholder="Pick a visit (optional)"
             >
               @for (v of visits(); track v.id) {
                 <ng-option [value]="v.id"> {{ v.reason }} ({{ v.visitOn | date }}) </ng-option>

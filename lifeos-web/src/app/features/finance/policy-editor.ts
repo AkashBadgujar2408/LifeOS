@@ -139,7 +139,7 @@ export async function openPolicyEditor(
               labelForId="policy-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
-              placeholder="Choose…"
+              placeholder="Choose a currency"
               [clearable]="false"
             >
               @for (c of currencies(); track c.code) {
@@ -172,7 +172,7 @@ export async function openPolicyEditor(
             <label class="form-label" for="policy-contact">
               Agent <span class="text-body-secondary small">(optional)</span>
             </label>
-            <ng-select labelForId="policy-contact" formControlName="contactId" placeholder="None">
+            <ng-select labelForId="policy-contact" formControlName="contactId" placeholder="Pick a contact (optional)">
               @for (c of contacts(); track c.id) {
                 <ng-option [value]="c.id">
                   {{ c.name }}

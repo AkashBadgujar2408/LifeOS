@@ -81,7 +81,7 @@ const coverKey = (type: HomeTargetType, id: number) => `${type}:${id}`;
               labelForId="warranty-cover"
               [class.is-invalid]="fieldError('cover')"
               formControlName="cover"
-              placeholder="Choose…"
+              placeholder="Pick what it covers"
               [clearable]="false"
             >
               @if (assets().length) {
@@ -145,7 +145,7 @@ const coverKey = (type: HomeTargetType, id: number) => `${type}:${id}`;
             <label class="form-label" for="warranty-contact">
               Service centre <span class="text-body-secondary small">(a contact)</span>
             </label>
-            <ng-select labelForId="warranty-contact" formControlName="contactId" placeholder="None">
+            <ng-select labelForId="warranty-contact" formControlName="contactId" placeholder="Pick a contact (optional)">
               @for (c of contacts(); track c.id) {
                 <ng-option [value]="c.id">
                   {{ c.name }}
@@ -239,7 +239,7 @@ const coverKey = (type: HomeTargetType, id: number) => `${type}:${id}`;
               labelForId="warranty-currency"
               [class.is-invalid]="fieldError('currency')"
               formControlName="currency"
-              placeholder="—"
+              placeholder="Choose a currency"
             >
               @for (c of currencies(); track c.code) {
                 <ng-option [value]="c.code"> {{ c.code }} — {{ c.name }} </ng-option>
