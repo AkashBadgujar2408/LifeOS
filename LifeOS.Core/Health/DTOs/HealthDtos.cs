@@ -588,3 +588,25 @@ public class GoalTargetRequest
 
     public decimal TargetValue { get; init; }
 }
+
+/// <summary>
+/// The Health lists a CSV can be exported from (Session 75a), each with the words logged in Vault activity — a fixed
+/// set, so nothing typed by a client ends up in the log.
+/// </summary>
+public static class HealthExportLists
+{
+    public static readonly IReadOnlyDictionary<string, string> Words = new Dictionary<string, string>
+    {
+        ["workouts"] = "Exercise",
+        ["sleep"] = "Sleep",
+        ["measurements"] = "Body measurements",
+        ["lab-results"] = "Lab results",
+    };
+}
+
+/// <summary>POST api/Health/Exports — <c>List</c> is one of <see cref="HealthExportLists"/>.</summary>
+public class HealthExportRequest
+{
+    [Required(ErrorMessage = "Say which list was exported.")]
+    public string List { get; init; } = string.Empty;
+}

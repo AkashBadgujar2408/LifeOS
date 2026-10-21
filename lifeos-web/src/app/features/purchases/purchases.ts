@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  LOCALE_ID,
   computed,
   effect,
   inject,
@@ -13,7 +14,11 @@ import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ColDef } from 'ag-grid-community';
 import { todayIso } from '../../core/dates/today';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayComparator, dayFormatter } from '../../core/grid/grid-format';
+import { GridView, ViewToggle } from '../../core/grid/view-toggle';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { Purchase, PurchasesService } from '../../core/services/purchases.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -26,12 +31,12 @@ type Span = 'month' | 'year' | 'all';
 
 /**
  * Everything you've bought, month by month: what was paid (per currency), where, whether it's in Finance and the
- * inventory, and how it compared with what you expected.
+ * inventory, and how it compared with what you expected. Or one table (Session 75a) to sort, page and export.
  */
 @Component({
   selector: 'app-purchases',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, LoadError],
+  imports: [DatePipe, RouterLink, LoadError, DataGrid, ViewToggle],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -76,6 +81,15 @@ type Span = 'month' | 'year' | 'all';
           [value]="query()"
           (input)="query.set($any($event.target).value)"
         />
+        <div class="ms-auto">
+          <app-view-toggle
+            key="purchases"
+            label="Show purchases"
+            cardsLabel="By month"
+            cardsIcon="bi-calendar3"
+            [(view)]="view"
+          />
+        </div>
       </div>
 
       @if (loadFailed() && !purchases()) {
@@ -135,76 +149,93 @@ type Span = 'month' | 'year' | 'all';
             </div>
           </div>
 
-          @for (month of months(); track month.key) {
-            <section class="mb-4" [attr.aria-labelledby]="'purchase-month-' + month.key">
-              <div class="d-flex flex-wrap justify-content-between align-items-baseline mb-2">
-                <h2 class="h6 mb-0" [id]="'purchase-month-' + month.key">
-                  {{ month.key + '-01' | date: 'MMMM yyyy' }}
-                </h2>
-                <span class="small text-body-secondary">
-                  @for (t of month.totals; track t.currency; let last = $last) {
-                    {{ money(t.amount, t.currency) }}{{ last ? '' : ' + ' }}
-                  }
-                </span>
-              </div>
-              <div class="card">
-                <ul class="list-group list-group-flush">
-                  @for (p of month.purchases; track p.id) {
-                    <li class="list-group-item py-3">
-                      <div class="d-flex flex-wrap gap-2 align-items-start">
-                        <div class="min-w-0 flex-grow-1">
-                          <button
-                            type="button"
-                            class="btn btn-link p-0 fw-semibold link-body-emphasis text-decoration-none text-start text-break"
-                            (click)="edit(p)"
-                          >
-                            {{ p.title }}
-                          </button>
-                          <div class="small text-body-secondary">
-                            {{ p.purchasedOn | date }}
-                            @if (p.store) {
-                              · {{ p.store }}
-                            }
-                            @for (t of p.tags; track t.id) {
-                              · <span class="badge text-bg-light border">{{ t.name }}</span>
-                            }
+          @if (view() === 'table') {
+            @if (shown().length) {
+              <app-data-grid
+                name="purchases"
+                [rows]="shown()"
+                [columns]="columns"
+                [phoneColumns]="['purchasedOn', 'title', 'amount']"
+                [rowId]="rowId"
+                [noun]="['purchase', 'purchases']"
+                (open)="edit($event)"
+              />
+            } @else {
+              <p class="text-body-secondary">Nothing matches.</p>
+            }
+          } @else {
+            @for (month of months(); track month.key) {
+              <section class="mb-4" [attr.aria-labelledby]="'purchase-month-' + month.key">
+                <div class="d-flex flex-wrap justify-content-between align-items-baseline mb-2">
+                  <h2 class="h6 mb-0" [id]="'purchase-month-' + month.key">
+                    {{ month.key + '-01' | date: 'MMMM yyyy' }}
+                  </h2>
+                  <span class="small text-body-secondary">
+                    @for (t of month.totals; track t.currency; let last = $last) {
+                      {{ money(t.amount, t.currency) }}{{ last ? '' : ' + ' }}
+                    }
+                  </span>
+                </div>
+                <div class="card">
+                  <ul class="list-group list-group-flush">
+                    @for (p of month.purchases; track p.id) {
+                      <li class="list-group-item py-3">
+                        <div class="d-flex flex-wrap gap-2 align-items-start">
+                          <div class="min-w-0 flex-grow-1">
+                            <button
+                              type="button"
+                              class="btn btn-link p-0 fw-semibold link-body-emphasis text-decoration-none text-start text-break"
+                              (click)="edit(p)"
+                            >
+                              {{ p.title }}
+                            </button>
+                            <div class="small text-body-secondary">
+                              {{ p.purchasedOn | date }}
+                              @if (p.store) {
+                                · {{ p.store }}
+                              }
+                              @for (t of p.tags; track t.id) {
+                                · <span class="badge text-bg-light border">{{ t.name }}</span>
+                              }
+                            </div>
+                            <div class="small text-body-secondary">
+                              @if (p.transactionId) {
+                                <i class="bi bi-check2-circle" aria-hidden="true"></i> in Finance
+                              }
+                              @if (p.assetName) {
+                                <span class="ms-1">
+                                  <i class="bi bi-box-seam" aria-hidden="true"></i> in your
+                                  inventory
+                                </span>
+                              }
+                              @if (p.listItemCount) {
+                                <span class="ms-1">
+                                  <i class="bi bi-cart-check" aria-hidden="true"></i>
+                                  {{ p.listItemCount }} from a list
+                                </span>
+                              }
+                              @if (p.wishlistItemName) {
+                                <span class="ms-1">
+                                  <i class="bi bi-gift" aria-hidden="true"></i> from your wishlist
+                                </span>
+                              }
+                            </div>
                           </div>
-                          <div class="small text-body-secondary">
-                            @if (p.transactionId) {
-                              <i class="bi bi-check2-circle" aria-hidden="true"></i> in Finance
-                            }
-                            @if (p.assetName) {
-                              <span class="ms-1">
-                                <i class="bi bi-box-seam" aria-hidden="true"></i> in your inventory
-                              </span>
-                            }
-                            @if (p.listItemCount) {
-                              <span class="ms-1">
-                                <i class="bi bi-cart-check" aria-hidden="true"></i>
-                                {{ p.listItemCount }} from a list
-                              </span>
-                            }
-                            @if (p.wishlistItemName) {
-                              <span class="ms-1">
-                                <i class="bi bi-gift" aria-hidden="true"></i> from your wishlist
-                              </span>
+                          <div class="text-end small">
+                            <div class="fw-semibold">{{ money(p.amount, p.currency) }}</div>
+                            @if (estimate(p); as text) {
+                              <div class="text-body-secondary">{{ text }}</div>
                             }
                           </div>
                         </div>
-                        <div class="text-end small">
-                          <div class="fw-semibold">{{ money(p.amount, p.currency) }}</div>
-                          @if (estimate(p); as text) {
-                            <div class="text-body-secondary">{{ text }}</div>
-                          }
-                        </div>
-                      </div>
-                    </li>
-                  }
-                </ul>
-              </div>
-            </section>
-          } @empty {
-            <p class="text-body-secondary">Nothing matches.</p>
+                      </li>
+                    }
+                  </ul>
+                </div>
+              </section>
+            } @empty {
+              <p class="text-body-secondary">Nothing matches.</p>
+            }
           }
         }
       } @else {
@@ -219,6 +250,7 @@ export class Purchases {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly locale = inject(LOCALE_ID);
 
   /** `?open=<id>` (from search or a reminder) opens that purchase. */
   readonly open = input<string>();
@@ -235,6 +267,50 @@ export class Purchases {
   protected readonly purchases = signal<Purchase[] | null>(null);
   protected readonly loadFailed = signal(false);
   private opened = false;
+  protected readonly view = signal<GridView>('cards');
+  protected readonly rowId = (p: Purchase) => p.id;
+  protected readonly columns: ColDef<Purchase>[] = [
+    {
+      headerName: 'Day',
+      field: 'purchasedOn',
+      sort: 'desc',
+      width: 125,
+      valueFormatter: dayFormatter(this.locale),
+      comparator: dayComparator,
+    },
+    { headerName: 'What', field: 'title', flex: 2, minWidth: 160 },
+    { headerName: 'Where', field: 'store', flex: 1, minWidth: 120 },
+    {
+      headerName: 'Paid',
+      field: 'amount',
+      width: 130,
+      type: 'rightAligned',
+      valueFormatter: (p) => (p.data ? formatMoney(p.data.amount, p.data.currency) : ''),
+    },
+    {
+      headerName: 'Expected',
+      field: 'estimatedAmount',
+      width: 130,
+      type: 'rightAligned',
+      valueFormatter: (p) =>
+        p.data && p.data.estimatedAmount !== null
+          ? formatMoney(p.data.estimatedAmount, p.data.currency)
+          : '',
+    },
+    {
+      headerName: 'Paid from',
+      field: 'paidFromAccountName',
+      width: 140,
+    },
+    { headerName: 'Inventory item', field: 'assetName', width: 150 },
+    {
+      headerName: 'Tags',
+      colId: 'tags',
+      flex: 1,
+      minWidth: 120,
+      valueGetter: (p) => p.data?.tags.map((t) => t.name).join(', ') ?? '',
+    },
+  ];
 
   protected readonly shown = computed(() => {
     const q = this.query().trim().toLowerCase();

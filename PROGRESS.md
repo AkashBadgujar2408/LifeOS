@@ -1214,3 +1214,10 @@
 - Test data: `rt75a…` (original), `rt75b…` (imported copy) in UAT.
 
 - Next up: **Session 75a — Heavy-data grids** (ag-Grid pagination + CSV export), then 75b (searchable dropdowns), then Phase 4 — Travel (76–78).
+
+## Last session: 2026-10-21 — Session 75a — Heavy-data grids
+- Shipped: `core/grid/` — `<app-data-grid>` (LifeOS theme, 25/50/100 pages remembered per list, phone columns, row open on click/Enter, count line, Export CSV of the filtered + sorted rows of every page as displayed), pure `grid-csv.ts` (BOM, quoting, formula neutralising; 5 spec cases), `grid-format.ts` (day/number formatters), `<app-view-toggle>` (Cards | Table). `POST api/Health/Exports` logs a Health CSV export (423 while locked).
+- Converted 14 lists (ledger, Health exercise/sleep/body/labs, inventory, paid bills, fuel, study sessions, applications, questions, network, statement-import preview, purchases, times in touch, people); the ones left as they are, with reasons, are in plan row 75a.
+- Verified: plan row 75a — ledger paging/size memory/totals, filtered + sorted CSV with ₹/€, BOM, `'=SUM(...)` neutralised; Health export refused while locked, logged when unlocked; every converted page at 375 px. 600 + 269 tests, lint/Prettier/build clean, initial bundle unchanged.
+- Gotchas: (1) ag-Grid v36 API calls need their API modules (`RowApiModule`, `ClientSideRowModelApiModule`, `CellApiModule`) — without them dev shows an "AG Grid found N errors" overlay and the call does nothing. (2) `TaskStop` on `ng serve` left the node process listening on 4200; the old watch-mode server kept serving the new code, so a second `ng serve` just failed with EADDRINUSE. (3) Bash heredocs choke on some backtick/quote mixes — write longer Node scripts with the Write tool.
+- Test data: `g75a446999` (60 transactions, 30 workouts, 28 contacts, one of each other converted list).

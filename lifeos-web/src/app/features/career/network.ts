@@ -2,13 +2,18 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  LOCALE_ID,
   computed,
   inject,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ColDef } from 'ag-grid-community';
 import { todayIso } from '../../core/dates/today';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayFormatter } from '../../core/grid/grid-format';
+import { GridView, ViewToggle } from '../../core/grid/view-toggle';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { CareerService } from '../../core/services/career.service';
 import { Contact, ContactsService } from '../../core/services/contacts.service';
@@ -20,12 +25,13 @@ import { CATCH_UP_DAYS, contactedText, networkOrder } from './career-view';
 /**
  * Your professional network: the shared contact list, longest out of touch first, narrowed by a tag (mentors,
  * recruiters, ex-colleagues — groupings are tags). Marking "in touch today" keeps the order honest; how many of your
- * applications each person is on comes from the applications list.
+ * applications each person is on comes from the applications list. Searchable, and also one table (Session 75a)
+ * to sort, page and export.
  */
 @Component({
   selector: 'app-career-network',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [LoadError],
+  imports: [LoadError, DataGrid, ViewToggle],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -50,6 +56,26 @@ import { CATCH_UP_DAYS, contactedText, networkOrder } from './career-view';
             work with again — and tag them that way.
           </p>
         } @else {
+          <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+            <input
+              type="search"
+              class="form-control flex-grow-1"
+              style="max-width: 24rem"
+              placeholder="Search name, organisation, email…"
+              aria-label="Search your network"
+              [value]="query()"
+              (input)="query.set($any($event.target).value)"
+            />
+            <div class="ms-auto">
+              <app-view-toggle
+                key="network"
+                label="Show your network"
+                cardsLabel="List"
+                cardsIcon="bi-people"
+                [(view)]="view"
+              />
+            </div>
+          </div>
           @if (tagOptions().length > 0) {
             <div class="d-flex flex-wrap gap-2 mb-3" role="group" aria-label="Filter by tag">
               <button
@@ -76,57 +102,75 @@ import { CATCH_UP_DAYS, contactedText, networkOrder } from './career-view';
               }
             </div>
           }
-          <div class="card">
-            <ul class="list-group list-group-flush">
-              @for (c of listed(); track c.id) {
-                <li class="list-group-item py-3">
-                  <div class="d-flex flex-wrap align-items-start gap-2">
-                    <div class="min-w-0 flex-grow-1">
-                      <button
-                        type="button"
-                        class="btn btn-link p-0 fw-semibold link-body-emphasis text-decoration-none text-start text-break"
-                        (click)="open(c)"
-                      >
-                        {{ c.name }}
-                      </button>
-                      @if (c.jobTitle || c.organisation) {
-                        <span class="small text-body-secondary">
-                          · {{ c.jobTitle }}{{ c.jobTitle && c.organisation ? ' at ' : ''
-                          }}{{ c.organisation }}
-                        </span>
-                      }
-                      <div class="small">
-                        <span [class.text-body-secondary]="!c.catchUp">
-                          @if (c.catchUp) {
-                            <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>
-                          }
-                          {{ contactedText(c.lastContactedOn, today()) }}
-                        </span>
-                        @if (applicationCounts().get(c.id); as count) {
-                          <span class="text-body-secondary">
-                            · on {{ count }} {{ count === 1 ? 'application' : 'applications' }}
+          @if (view() === 'table') {
+            @if (listed().length) {
+              <app-data-grid
+                name="network"
+                [rows]="listed()"
+                [columns]="columns()"
+                [phoneColumns]="['name', 'lastContactedOn']"
+                [rowId]="rowId"
+                [noun]="['person', 'people']"
+                (open)="open($event)"
+              />
+            } @else {
+              <p class="text-body-secondary">Nobody matches.</p>
+            }
+          } @else {
+            <div class="card">
+              <ul class="list-group list-group-flush">
+                @for (c of listed(); track c.id) {
+                  <li class="list-group-item py-3">
+                    <div class="d-flex flex-wrap align-items-start gap-2">
+                      <div class="min-w-0 flex-grow-1">
+                        <button
+                          type="button"
+                          class="btn btn-link p-0 fw-semibold link-body-emphasis text-decoration-none text-start text-break"
+                          (click)="open(c)"
+                        >
+                          {{ c.name }}
+                        </button>
+                        @if (c.jobTitle || c.organisation) {
+                          <span class="small text-body-secondary">
+                            · {{ c.jobTitle }}{{ c.jobTitle && c.organisation ? ' at ' : ''
+                            }}{{ c.organisation }}
                           </span>
                         }
-                        @for (tag of c.tags; track tag.id) {
-                          <span class="badge rounded-pill text-bg-light border fw-normal ms-1">{{
-                            tag.name
-                          }}</span>
-                        }
+                        <div class="small">
+                          <span [class.text-body-secondary]="!c.catchUp">
+                            @if (c.catchUp) {
+                              <i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>
+                            }
+                            {{ contactedText(c.lastContactedOn, today()) }}
+                          </span>
+                          @if (applicationCounts().get(c.id); as count) {
+                            <span class="text-body-secondary">
+                              · on {{ count }} {{ count === 1 ? 'application' : 'applications' }}
+                            </span>
+                          }
+                          @for (tag of c.tags; track tag.id) {
+                            <span class="badge rounded-pill text-bg-light border fw-normal ms-1">{{
+                              tag.name
+                            }}</span>
+                          }
+                        </div>
                       </div>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        [disabled]="busyId() === c.id || c.lastContactedOn === today()"
+                        (click)="contacted(c)"
+                      >
+                        <i class="bi bi-check2"></i> In touch today
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline-primary"
-                      [disabled]="busyId() === c.id || c.lastContactedOn === today()"
-                      (click)="contacted(c)"
-                    >
-                      <i class="bi bi-check2"></i> In touch today
-                    </button>
-                  </div>
-                </li>
-              }
-            </ul>
-          </div>
+                  </li>
+                } @empty {
+                  <li class="list-group-item text-body-secondary">Nobody matches.</li>
+                }
+              </ul>
+            </div>
+          }
         }
       } @else {
         <p class="text-body-secondary">Loading...</p>
@@ -140,6 +184,7 @@ export class CareerNetwork {
   private readonly modal = inject(NgbModal);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly locale = inject(LOCALE_ID);
 
   protected readonly catchUpDays = CATCH_UP_DAYS;
   protected readonly contactedText = contactedText;
@@ -148,13 +193,52 @@ export class CareerNetwork {
   protected readonly loadFailed = signal(false);
   protected readonly busyId = signal<number | null>(null);
   protected readonly tagId = signal<number | null>(null);
+  protected readonly query = signal('');
+  protected readonly view = signal<GridView>('cards');
+  protected readonly rowId = (c: Contact) => c.id;
+  protected readonly columns = computed<ColDef<Contact>[]>(() => {
+    const counts = this.applicationCounts();
+    return [
+      { headerName: 'Name', field: 'name', flex: 1.5, minWidth: 150 },
+      { headerName: 'Job title', field: 'jobTitle', flex: 1, minWidth: 130 },
+      { headerName: 'Organisation', field: 'organisation', flex: 1, minWidth: 130 },
+      { headerName: 'Email', field: 'email', flex: 1, minWidth: 160 },
+      { headerName: 'Phone', field: 'phone', width: 140 },
+      {
+        headerName: 'Last in touch',
+        field: 'lastContactedOn',
+        width: 135,
+        valueFormatter: dayFormatter(this.locale),
+      },
+      {
+        headerName: 'Applications',
+        colId: 'applications',
+        width: 125,
+        type: 'rightAligned',
+        valueGetter: (p) => (p.data ? (counts.get(p.data.id) ?? 0) : 0),
+      },
+      {
+        headerName: 'Tags',
+        colId: 'tags',
+        flex: 1,
+        minWidth: 120,
+        valueGetter: (p) => p.data?.tags.map((t) => t.name).join(', ') ?? '',
+      },
+    ];
+  });
   /** Applications per contact (recruiter or referrer). */
   protected readonly applicationCounts = signal<ReadonlyMap<number, number>>(new Map());
 
   protected readonly listed = computed(() => {
     const tagId = this.tagId();
+    const words = this.query().trim().toLowerCase();
     const contacts = (this.contacts() ?? []).filter(
-      (c) => tagId === null || c.tags.some((t) => t.id === tagId),
+      (c) =>
+        (tagId === null || c.tags.some((t) => t.id === tagId)) &&
+        (!words ||
+          [c.name, c.organisation, c.jobTitle, c.email, c.phone].some((v) =>
+            v?.toLowerCase().includes(words),
+          )),
     );
     return networkOrder(contacts, this.today());
   });

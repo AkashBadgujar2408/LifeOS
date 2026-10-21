@@ -10,7 +10,10 @@ import {
 import { DatePipe, formatDate } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ColDef } from 'ag-grid-community';
 import { APP_DAY_MONTH_FORMAT } from '../../core/dates/date-format';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayComparator, dayFormatter } from '../../core/grid/grid-format';
 import {
   HealthLockedError,
   HealthService,
@@ -23,11 +26,14 @@ import { HealthTrend, TrendSeries } from './health-trend';
 import { labRangeText, labValueText } from './health-view';
 import { openLabEditor } from './lab-editor';
 
-/** Lab results by test: out of range first, each with its history and — once there are two numbers — a line. */
+/**
+ * Lab results by test: out of range first, each with its history and — once there are two numbers — a line; then
+ * every result in one grid (a few reports a year soon make a long list).
+ */
 @Component({
   selector: 'app-health-labs',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, LoadError, HealthTrend],
+  imports: [DatePipe, LoadError, HealthTrend, DataGrid],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -142,6 +148,19 @@ import { openLabEditor } from './lab-editor';
             </section>
           }
         </div>
+        @if (allResults().length) {
+          <h2 class="h6 text-body-secondary text-uppercase small mt-4">Every result</h2>
+          <app-data-grid
+            name="lab-results"
+            [rows]="allResults()"
+            [columns]="columns"
+            [phoneColumns]="['takenOn', 'testName', 'value']"
+            [rowId]="rowId"
+            [noun]="['result', 'results']"
+            [beforeExport]="exportGuard"
+            (open)="edit($event)"
+          />
+        }
       } @else {
         <p class="text-body-secondary">Loading...</p>
       }
@@ -159,6 +178,48 @@ export class HealthLabs {
   protected readonly range = labRangeText;
   protected readonly tests = signal<LabTest[] | null>(null);
   protected readonly loadFailed = signal<string | null>(null);
+  protected readonly allResults = computed(() => (this.tests() ?? []).flatMap((t) => t.results));
+  protected readonly rowId = (r: LabResult) => r.id;
+  protected readonly exportGuard = this.healthService.exportGuard('lab-results');
+  protected readonly columns: ColDef<LabResult>[] = [
+    {
+      headerName: 'Day',
+      field: 'takenOn',
+      sort: 'desc',
+      width: 125,
+      valueFormatter: dayFormatter(this.locale),
+      comparator: dayComparator,
+    },
+    { headerName: 'Test', field: 'testName', flex: 1, minWidth: 140 },
+    {
+      headerName: 'Result',
+      field: 'value',
+      width: 130,
+      type: 'rightAligned',
+      valueFormatter: (p) => (p.data ? labValueText(p.data) : ''),
+    },
+    {
+      headerName: 'Range',
+      colId: 'range',
+      width: 130,
+      valueGetter: (p) => (p.data ? (labRangeText(p.data) ?? '') : ''),
+    },
+    {
+      headerName: 'Flag',
+      field: 'flag',
+      width: 120,
+      valueFormatter: (p) =>
+        p.value === 'High'
+          ? 'Above range'
+          : p.value === 'Low'
+            ? 'Below range'
+            : p.value === 'Normal'
+              ? 'In range'
+              : '',
+    },
+    { headerName: 'Laboratory', field: 'laboratory', width: 150 },
+    { headerName: 'Notes', field: 'notes', flex: 1, minWidth: 160 },
+  ];
 
   constructor() {
     this.load();

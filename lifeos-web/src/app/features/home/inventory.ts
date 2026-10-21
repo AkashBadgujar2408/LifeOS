@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  LOCALE_ID,
   OnInit,
   computed,
   inject,
@@ -12,8 +13,12 @@ import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ColDef } from 'ag-grid-community';
 import { forkJoin } from 'rxjs';
 import { todayIso } from '../../core/dates/today';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayFormatter } from '../../core/grid/grid-format';
+import { GridView, ViewToggle } from '../../core/grid/view-toggle';
 import { Asset, HomeService, Property } from '../../core/services/home.service';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { ToastService } from '../../core/services/toast.service';
@@ -30,11 +35,14 @@ import {
 } from './home-view';
 import { openWarrantyEditor } from './warranty-editor';
 
-/** Everything you own, by property and room; search and categories (tags) narrow it down. */
+/**
+ * Everything you own, by property and room — or as one table (Session 75a) to sort, page and export; search,
+ * property and categories (tags) narrow both down.
+ */
 @Component({
   selector: 'app-home-inventory',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, FormsModule, LoadError],
+  imports: [DatePipe, FormsModule, LoadError, DataGrid, ViewToggle],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -100,104 +108,129 @@ import { openWarrantyEditor } from './warranty-editor';
               </select>
             </div>
           </div>
-          <p class="small text-body-secondary">
-            {{ shownCount() }} {{ shownCount() === 1 ? 'thing' : 'things' }}
-            @if (shownValue().length) {
-              · bought for
-              @for (v of shownValue(); track v.currency; let last = $last) {
-                {{ money(v.total, v.currency) }}{{ last ? '' : ' + ' }}
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+            <p class="small text-body-secondary mb-0">
+              {{ shownCount() }} {{ shownCount() === 1 ? 'thing' : 'things' }}
+              @if (shownValue().length) {
+                · bought for
+                @for (v of shownValue(); track v.currency; let last = $last) {
+                  {{ money(v.total, v.currency) }}{{ last ? '' : ' + ' }}
+                }
               }
+            </p>
+            <app-view-toggle
+              key="inventory"
+              label="Show the inventory"
+              cardsLabel="By room"
+              cardsIcon="bi-door-open"
+              [(view)]="view"
+            />
+          </div>
+          @if (view() === 'table') {
+            @if (shown().length) {
+              <app-data-grid
+                name="inventory"
+                [rows]="shown()"
+                [columns]="columns"
+                [phoneColumns]="['name', 'room', 'purchasePrice']"
+                [rowId]="rowId"
+                [noun]="['item', 'items']"
+                (open)="edit($event)"
+              />
+            } @else {
+              <p class="text-body-secondary">Nothing matches.</p>
             }
-          </p>
-          @for (group of groups(); track group.key) {
-            <section class="card mb-3" [attr.aria-label]="groupLabel(group)">
-              <div class="card-header d-flex align-items-center gap-2 bg-transparent">
-                <h2 class="h6 mb-0 me-auto">
-                  {{ group.room ?? 'No room' }}
-                  @if (group.propertyName) {
-                    <span class="text-body-secondary fw-normal"> · {{ group.propertyName }}</span>
-                  }
-                </h2>
-                <span class="small text-body-secondary">{{ group.count }}</span>
-                <button
-                  type="button"
-                  class="btn btn-link btn-sm p-0"
-                  [attr.aria-label]="'Add an item to ' + groupLabel(group)"
-                  (click)="addTo(group)"
-                >
-                  <i class="bi bi-plus-lg"></i>
-                </button>
-              </div>
-              <ul class="list-group list-group-flush">
-                @for (a of group.assets; track a.id) {
-                  <li class="list-group-item">
-                    <div class="d-flex flex-wrap gap-2 align-items-start">
-                      <div class="min-w-0 flex-grow-1">
-                        <button
-                          type="button"
-                          class="btn btn-link p-0 fw-semibold link-body-emphasis text-decoration-none text-start text-break"
-                          (click)="edit(a)"
-                        >
-                          {{ a.name }}
-                          @if (a.quantity > 1) {
-                            <span class="text-body-secondary fw-normal">× {{ a.quantity }}</span>
-                          }
-                        </button>
-                        <div class="small text-body-secondary text-break">
-                          @if (a.brand || a.model) {
-                            {{ [a.brand, a.model].filter(isSet).join(' ') }}
-                          }
-                          @if (a.purchasedOn) {
-                            · bought {{ a.purchasedOn | date }}
-                          }
-                          @if (a.purchasePrice !== null && a.currency) {
-                            · {{ money(a.purchasePrice, a.currency) }}
-                          }
-                          @for (t of a.tags; track t.id) {
-                            <span class="badge text-bg-light border ms-1">{{ t.name }}</span>
-                          }
-                        </div>
-                      </div>
-                      <div class="small text-end d-flex flex-column align-items-end gap-1">
-                        @if (a.coveredUntil; as until) {
-                          @let status = runsOut(until);
-                          <span
-                            [class.text-danger-emphasis]="status.state === 'past'"
-                            [class.fw-semibold]="
-                              status.state === 'soon' || status.state === 'today'
-                            "
+          } @else {
+            @for (group of groups(); track group.key) {
+              <section class="card mb-3" [attr.aria-label]="groupLabel(group)">
+                <div class="card-header d-flex align-items-center gap-2 bg-transparent">
+                  <h2 class="h6 mb-0 me-auto">
+                    {{ group.room ?? 'No room' }}
+                    @if (group.propertyName) {
+                      <span class="text-body-secondary fw-normal"> · {{ group.propertyName }}</span>
+                    }
+                  </h2>
+                  <span class="small text-body-secondary">{{ group.count }}</span>
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0"
+                    [attr.aria-label]="'Add an item to ' + groupLabel(group)"
+                    (click)="addTo(group)"
+                  >
+                    <i class="bi bi-plus-lg"></i>
+                  </button>
+                </div>
+                <ul class="list-group list-group-flush">
+                  @for (a of group.assets; track a.id) {
+                    <li class="list-group-item">
+                      <div class="d-flex flex-wrap gap-2 align-items-start">
+                        <div class="min-w-0 flex-grow-1">
+                          <button
+                            type="button"
+                            class="btn btn-link p-0 fw-semibold link-body-emphasis text-decoration-none text-start text-break"
+                            (click)="edit(a)"
                           >
-                            <i class="bi bi-patch-check" aria-hidden="true"></i>
-                            @if (status.state === 'past') {
-                              Cover ran out {{ until | date }}
-                            } @else {
-                              Covered until {{ until | date }}
+                            {{ a.name }}
+                            @if (a.quantity > 1) {
+                              <span class="text-body-secondary fw-normal">× {{ a.quantity }}</span>
                             }
-                          </span>
-                        } @else {
+                          </button>
+                          <div class="small text-body-secondary text-break">
+                            @if (a.brand || a.model) {
+                              {{ [a.brand, a.model].filter(isSet).join(' ') }}
+                            }
+                            @if (a.purchasedOn) {
+                              · bought {{ a.purchasedOn | date }}
+                            }
+                            @if (a.purchasePrice !== null && a.currency) {
+                              · {{ money(a.purchasePrice, a.currency) }}
+                            }
+                            @for (t of a.tags; track t.id) {
+                              <span class="badge text-bg-light border ms-1">{{ t.name }}</span>
+                            }
+                          </div>
+                        </div>
+                        <div class="small text-end d-flex flex-column align-items-end gap-1">
+                          @if (a.coveredUntil; as until) {
+                            @let status = runsOut(until);
+                            <span
+                              [class.text-danger-emphasis]="status.state === 'past'"
+                              [class.fw-semibold]="
+                                status.state === 'soon' || status.state === 'today'
+                              "
+                            >
+                              <i class="bi bi-patch-check" aria-hidden="true"></i>
+                              @if (status.state === 'past') {
+                                Cover ran out {{ until | date }}
+                              } @else {
+                                Covered until {{ until | date }}
+                              }
+                            </span>
+                          } @else {
+                            <button
+                              type="button"
+                              class="btn btn-link btn-sm p-0 link-secondary"
+                              (click)="addWarranty(a)"
+                            >
+                              Add warranty
+                            </button>
+                          }
                           <button
                             type="button"
                             class="btn btn-link btn-sm p-0 link-secondary"
-                            (click)="addWarranty(a)"
+                            (click)="letGo(a)"
                           >
-                            Add warranty
+                            Let go…
                           </button>
-                        }
-                        <button
-                          type="button"
-                          class="btn btn-link btn-sm p-0 link-secondary"
-                          (click)="letGo(a)"
-                        >
-                          Let go…
-                        </button>
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                }
-              </ul>
-            </section>
-          } @empty {
-            <p class="text-body-secondary">Nothing matches.</p>
+                    </li>
+                  }
+                </ul>
+              </section>
+            } @empty {
+              <p class="text-body-secondary">Nothing matches.</p>
+            }
           }
         }
         @if (letGoItems().length) {
@@ -258,6 +291,7 @@ export class HomeInventory implements OnInit {
   private readonly modal = inject(NgbModal);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly locale = inject(LOCALE_ID);
 
   /** ?propertyId= from the overview's "N things" link. */
   readonly propertyId = input<string | undefined>();
@@ -296,7 +330,54 @@ export class HomeInventory implements OnInit {
       .sort((a, b) => a.name.localeCompare(b.name));
   });
 
-  private readonly shown = computed(() => {
+  /** By room (cards) or one table; the toggle remembers it on this device. */
+  protected readonly view = signal<GridView>('cards');
+  protected readonly rowId = (a: Asset) => a.id;
+  protected readonly columns: ColDef<Asset>[] = [
+    { headerName: 'Item', field: 'name', flex: 2, minWidth: 160, sort: 'asc' },
+    { headerName: 'Qty', field: 'quantity', width: 80, type: 'rightAligned' },
+    { headerName: 'Room', field: 'room', flex: 1, minWidth: 110 },
+    { headerName: 'Property', field: 'propertyName', flex: 1, minWidth: 120 },
+    {
+      headerName: 'Brand & model',
+      colId: 'brandModel',
+      flex: 1,
+      minWidth: 140,
+      valueGetter: (p) => (p.data ? [p.data.brand, p.data.model].filter(Boolean).join(' ') : ''),
+    },
+    { headerName: 'Serial number', field: 'serialNumber', width: 150 },
+    {
+      headerName: 'Bought',
+      field: 'purchasedOn',
+      width: 125,
+      valueFormatter: dayFormatter(this.locale),
+    },
+    {
+      headerName: 'Price',
+      field: 'purchasePrice',
+      width: 130,
+      type: 'rightAligned',
+      valueFormatter: (p) =>
+        p.data && p.data.purchasePrice !== null && p.data.currency
+          ? formatMoney(p.data.purchasePrice, p.data.currency)
+          : '',
+    },
+    {
+      headerName: 'Covered until',
+      field: 'coveredUntil',
+      width: 135,
+      valueFormatter: dayFormatter(this.locale),
+    },
+    {
+      headerName: 'Categories',
+      colId: 'tags',
+      flex: 1,
+      minWidth: 120,
+      valueGetter: (p) => p.data?.tags.map((t) => t.name).join(', ') ?? '',
+    },
+  ];
+
+  protected readonly shown = computed(() => {
     const property = this.propertyFilter();
     return filterAssets(this.assets() ?? [], this.search(), this.tagFilter()).filter(
       (a) => property === null || a.propertyId === property,

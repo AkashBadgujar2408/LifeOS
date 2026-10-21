@@ -2,6 +2,7 @@ using LifeOS.Api.Infrastructure;
 using LifeOS.Core.Health.DTOs;
 using LifeOS.Core.Health.ServiceContracts;
 using LifeOS.Core.Shared.DTOs;
+using LifeOS.Core.Shared.ServiceContracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -154,4 +155,28 @@ public class DoseSummaryController(IMedicationsService medicationsService) : Con
     [HttpGet]
     public async Task<IActionResult> Get(DateOnly today) =>
         Ok(ApiResponse<DoseSummaryDto>.Ok(await medicationsService.GetSummaryAsync(today)));
+}
+
+/// <summary>
+/// POST api/Health/Exports — logs a CSV export of a Health list in Vault activity (the grid builds the file from rows
+/// it already holds; this only needs a live unlock, so a locked export is refused with 423 and the client asks).
+/// </summary>
+[ApiController]
+[Area("Health")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+[VaultUnlockRequired]
+public class ExportsController(IVaultService vaultService) : ControllerBase
+{
+    [HttpPost]
+    public async Task<IActionResult> Log(HealthExportRequest request)
+    {
+        if (!HealthExportLists.Words.TryGetValue(request.List, out var words))
+        {
+            return BadRequest(ApiResponse<bool>.Fail("That list can't be exported."));
+        }
+
+        await vaultService.LogAsync(VaultActions.Opened, null, null, $"Health › {words} exported to CSV");
+        return Ok(ApiResponse<bool>.Ok(true));
+    }
 }

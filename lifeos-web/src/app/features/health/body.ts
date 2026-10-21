@@ -10,8 +10,11 @@ import {
 import { DatePipe, formatDate } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ColDef } from 'ag-grid-community';
 import { forkJoin } from 'rxjs';
 import { APP_DAY_MONTH_FORMAT } from '../../core/dates/date-format';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayComparator, dayFormatter } from '../../core/grid/grid-format';
 import {
   HealthLockedError,
   HealthService,
@@ -30,7 +33,7 @@ import { openMeasurementEditor } from './measurement-editor';
 @Component({
   selector: 'app-health-body',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, LoadError, HealthTrend],
+  imports: [DatePipe, LoadError, HealthTrend, DataGrid],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -110,22 +113,17 @@ import { openMeasurementEditor } from './measurement-editor';
                 <p class="small text-body-secondary mt-2 mb-1">{{ summary() }}</p>
               }
               @if (history().length) {
-                <details class="small" [open]="history().length < 2">
-                  <summary>All readings</summary>
-                  <ul class="list-unstyled mt-2 mb-0">
-                    @for (m of reversed(); track m.id) {
-                      <li>
-                        <button
-                          type="button"
-                          class="btn btn-link btn-sm p-0 text-decoration-none"
-                          (click)="edit(m)"
-                        >
-                          {{ m.measuredOn | date }} — {{ text(m) }}
-                        </button>
-                      </li>
-                    }
-                  </ul>
-                </details>
+                <h3 class="h6 text-body-secondary text-uppercase small mt-3">All readings</h3>
+                <app-data-grid
+                  name="measurements"
+                  [rows]="history()"
+                  [columns]="columns"
+                  [phoneColumns]="['measuredOn', 'value']"
+                  [rowId]="rowId"
+                  [noun]="['reading', 'readings']"
+                  [beforeExport]="exportGuard"
+                  (open)="edit($event)"
+                />
               }
             </div>
           </div>
@@ -152,7 +150,32 @@ export class HealthBody {
   protected readonly kind = signal<MeasurementKind>('Weight');
   protected readonly loadFailed = signal<string | null>(null);
 
-  protected readonly reversed = computed(() => [...this.history()].reverse());
+  protected readonly rowId = (m: Measurement) => m.id;
+  protected readonly exportGuard = this.healthService.exportGuard('measurements');
+  protected readonly columns: ColDef<Measurement>[] = [
+    {
+      headerName: 'Day',
+      field: 'measuredOn',
+      sort: 'desc',
+      width: 125,
+      valueFormatter: dayFormatter(this.locale),
+      comparator: dayComparator,
+    },
+    {
+      headerName: 'Measure',
+      field: 'kind',
+      width: 150,
+      valueFormatter: (p) => (p.value ? MEASUREMENTS[p.value as MeasurementKind].label : ''),
+    },
+    {
+      headerName: 'Reading',
+      field: 'value',
+      width: 140,
+      type: 'rightAligned',
+      valueFormatter: (p) => (p.data ? measurementText(p.data) : ''),
+    },
+    { headerName: 'Notes', field: 'notes', flex: 1, minWidth: 160 },
+  ];
   protected readonly labels = computed(() =>
     this.history().map((m) => formatDate(m.measuredOn, APP_DAY_MONTH_FORMAT, this.locale)),
   );

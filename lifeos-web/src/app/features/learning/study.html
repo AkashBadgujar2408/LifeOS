@@ -162,7 +162,7 @@
     </div>
   </section>
 
-  <h2 class="h5 mb-3">The last 90 days</h2>
+  <h2 class="h5 mb-3">The last 12 months</h2>
   @if (loadFailed() && !sessions()) {
     <app-load-error message="Couldn't load your study log." (retry)="load()" />
   } @else if (sessions(); as sessions) {
@@ -171,48 +171,18 @@
         Nothing logged yet. Start the timer when you sit down to study, or log time you've already
         spent.
       </p>
+    } @else {
+      <p class="small text-body-secondary mb-2">Pick a session to remove it.</p>
+      <app-data-grid
+        name="study-sessions"
+        [rows]="sessions"
+        [columns]="columns"
+        [phoneColumns]="['studiedOn', 'subject', 'minutes']"
+        [rowId]="rowId"
+        [noun]="['session', 'sessions']"
+        (open)="remove($event)"
+      />
     }
-    <div class="d-flex flex-column gap-3">
-      @for (day of days(); track day.day) {
-        <section class="card" [attr.aria-label]="(day.day | date) + ' study'">
-          <div class="card-body">
-            <div class="d-flex justify-content-between mb-2">
-              <h3 class="h6 mb-0">{{ day.day | date }}</h3>
-              <span class="small fw-semibold">{{ formatMinutes(day.minutes) }}</span>
-            </div>
-            <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
-              @for (session of day.sessions; track session.id) {
-                <li class="d-flex gap-2 align-items-start">
-                  <div class="flex-grow-1 min-w-0">
-                    <div class="text-break">{{ sessionSubject(session) }}</div>
-                    <div class="small text-body-secondary">
-                      @if (session.startedAt) {
-                        <i class="bi bi-stopwatch" aria-hidden="true"></i>
-                        {{ session.startedAt | date: dateTimeFormat }}
-                      } @else {
-                        Logged by hand
-                      }
-                      @if (session.notes) {
-                        · {{ session.notes }}
-                      }
-                    </div>
-                  </div>
-                  <span class="small text-nowrap">{{ formatMinutes(session.minutes) }}</span>
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-link link-secondary p-0"
-                    [attr.aria-label]="'Remove the ' + session.minutes + '-minute session'"
-                    (click)="remove(session)"
-                  >
-                    <i class="bi bi-x-lg"></i>
-                  </button>
-                </li>
-              }
-            </ul>
-          </div>
-        </section>
-      }
-    </div>
   } @else {
     <p class="text-body-secondary">Loading your study log...</p>
   }

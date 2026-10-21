@@ -275,3 +275,22 @@ h6 {
 .document-row:hover {
   background: var(--lifeos-canvas);
 }
+
+// Data grids (Session 75a, core/grid/data-grid.ts): ag-Grid's paging bar wraps on a phone instead of widening the page.
+.lifeos-grid .ag-paging-panel {
+  flex-wrap: wrap;
+  justify-content: center;
+  height: auto;
+  min-height: 2.75rem;
+  row-gap: 0.25rem;
+  column-gap: 0.75rem;
+  padding-block: 0.375rem;
+}
+
+.lifeos-grid .ag-paging-panel > span {
+  margin-inline: 0;
+}
+
+.lifeos-grid-clickable .ag-row {
+  cursor: pointer;
+}

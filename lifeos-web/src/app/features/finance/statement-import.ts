@@ -1,10 +1,19 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  LOCALE_ID,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { ColDef } from 'ag-grid-community';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { catchError, map, of } from 'rxjs';
 import { saveBlob } from '../../core/files/files';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayFormatter } from '../../core/grid/grid-format';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { FinanceService, ImportResult } from '../../core/services/finance.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -22,8 +31,6 @@ import {
   parseCsv,
 } from './statement-csv';
 
-/** The most rows shown in the preview table (all of them are still checked and imported). */
-const PREVIEW_ROWS = 200;
 /** How many of the first rows can be picked as the one holding the column names. */
 const HEADER_CHOICE_ROWS = 30;
 /** Matches StatementImport.MaxLines on the server. */
@@ -38,7 +45,7 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
 @Component({
   selector: 'app-statement-import',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, DatePipe, RouterLink, TagPicker, BaseCurrencyPrompt],
+  imports: [FormsModule, RouterLink, TagPicker, BaseCurrencyPrompt, DataGrid],
   template: `
     <div class="container py-4">
       <div class="mb-4">
@@ -378,64 +385,17 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
                 </label>
               </div>
             }
-            <div class="table-responsive border rounded mb-3" style="max-height: 420px">
-              <table class="table table-sm align-middle mb-0">
-                <thead class="sticky-top">
-                  <tr>
-                    <th scope="col">Line</th>
-                    <th scope="col">Day</th>
-                    <th scope="col">Description</th>
-                    <th scope="col" class="text-end">Amount</th>
-                    <th scope="col">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (r of shown(); track r.fileLine) {
-                    @let status = statusOf(r);
-                    <tr [class.text-body-secondary]="status.kind === 'duplicate'">
-                      <td>{{ r.fileLine }}</td>
-                      <td class="text-nowrap">{{ r.line ? (r.line.occurredOn | date) : '—' }}</td>
-                      <td class="text-break">{{ r.line?.description ?? rawText(r) }}</td>
-                      <td class="text-end text-nowrap">
-                        @if (r.line) {
-                          {{ r.line.amount > 0 ? '+' : '−'
-                          }}{{ money(abs(r.line.amount), currency()) }}
-                        }
-                      </td>
-                      <td class="small">
-                        @switch (status.kind) {
-                          @case ('new') {
-                            <span class="text-success-emphasis"
-                              ><i class="bi bi-plus-circle"></i> New</span
-                            >
-                          }
-                          @case ('duplicate') {
-                            <i class="bi bi-check2-all"></i> Already imported
-                          }
-                          @case ('error') {
-                            <span class="text-danger-emphasis"
-                              ><i class="bi bi-exclamation-circle"></i> {{ status.text }}</span
-                            >
-                          }
-                          @case ('skipped') {
-                            Left out — {{ status.text }}
-                          }
-                          @default {
-                            <span class="text-body-secondary">Not checked yet</span>
-                          }
-                        }
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
+            <div class="mb-3">
+              <app-data-grid
+                name="statement-preview"
+                [rows]="mapped()"
+                [columns]="previewColumns()"
+                [phoneColumns]="['line', 'description', 'amount']"
+                [rowId]="previewRowId"
+                [noun]="['line', 'lines']"
+                [clickable]="false"
+              />
             </div>
-            @if (mapped().length > shown().length) {
-              <p class="small text-body-secondary">
-                Showing the first {{ shown().length }} of {{ mapped().length }} lines — all of them
-                are checked and imported.
-              </p>
-            }
             <div class="d-flex flex-wrap gap-2">
               <button
                 type="button"
@@ -468,10 +428,9 @@ export class StatementImport {
   private readonly financeService = inject(FinanceService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly locale = inject(LOCALE_ID);
 
   protected readonly dateFormats = DATE_FORMATS;
-  protected readonly money = formatMoney;
-  protected readonly abs = Math.abs;
   protected readonly accounts = toSignal(
     this.financeService.accounts().pipe(
       map((accounts) => accounts.filter((a) => !a.isArchived)),
@@ -520,7 +479,58 @@ export class StatementImport {
   protected readonly mapped = computed(() => mapStatement(this.rows(), this.mapping()));
   protected readonly readable = computed(() => this.mapped().filter((r) => r.line));
   protected readonly unreadable = computed(() => this.mapped().filter((r) => !r.line));
-  protected readonly shown = computed(() => this.mapped().slice(0, PREVIEW_ROWS));
+  protected readonly previewRowId = (r: MappedRow) => r.fileLine;
+
+  /** Rebuilt when the check's results or "leave out" change, so the Status column re-reads. */
+  protected readonly previewColumns = computed<ColDef<MappedRow>[]>(() => {
+    this.serverStatus();
+    this.skipUnreadable();
+    const currency = this.currency();
+    return [
+      { headerName: 'Line', colId: 'line', field: 'fileLine', width: 85, type: 'rightAligned' },
+      {
+        headerName: 'Day',
+        colId: 'day',
+        width: 125,
+        valueGetter: (p) => p.data?.line?.occurredOn ?? null,
+        valueFormatter: dayFormatter(this.locale),
+      },
+      {
+        headerName: 'Description',
+        colId: 'description',
+        flex: 2,
+        minWidth: 180,
+        valueGetter: (p) => (p.data ? (p.data.line?.description ?? this.rawText(p.data)) : ''),
+      },
+      {
+        headerName: 'Amount',
+        colId: 'amount',
+        width: 140,
+        type: 'rightAligned',
+        valueGetter: (p) => p.data?.line?.amount ?? null,
+        valueFormatter: (p) =>
+          p.value === null || p.value === undefined
+            ? ''
+            : (p.value > 0 ? '+' : '') + formatMoney(p.value as number, currency),
+        context: {
+          csv: (r: MappedRow) => (r.line ? formatMoney(r.line.amount, currency) : ''),
+        },
+      },
+      {
+        headerName: 'Status',
+        colId: 'status',
+        flex: 1,
+        minWidth: 170,
+        valueGetter: (p) => (p.data ? this.statusText(p.data) : ''),
+        cellClassRules: {
+          'text-success-emphasis': (p) => !!p.data && this.statusOf(p.data).kind === 'new',
+          'text-danger-emphasis': (p) => !!p.data && this.statusOf(p.data).kind === 'error',
+          'text-body-secondary': (p) =>
+            !!p.data && ['duplicate', 'skipped', 'unchecked'].includes(this.statusOf(p.data).kind),
+        },
+      },
+    ];
+  });
 
   /** What the server said about each readable line, by its file line. */
   private readonly serverStatus = computed(() => {
@@ -565,6 +575,22 @@ export class StatementImport {
       : server.status === 'Duplicate'
         ? { kind: 'duplicate' }
         : { kind: 'error', text: server.error ?? '' };
+  }
+
+  protected statusText(row: MappedRow): string {
+    const status = this.statusOf(row);
+    switch (status.kind) {
+      case 'new':
+        return 'New';
+      case 'duplicate':
+        return 'Already imported';
+      case 'error':
+        return status.text ?? 'A problem';
+      case 'skipped':
+        return `Left out — ${status.text}`;
+      default:
+        return 'Not checked yet';
+    }
   }
 
   protected rawText(row: MappedRow): string {

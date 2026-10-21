@@ -2,40 +2,44 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  LOCALE_ID,
   computed,
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { formatDate } from '@angular/common';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbInputDatepicker } from '@ng-bootstrap/ng-bootstrap';
 import Swal from 'sweetalert2';
+import { ColDef } from 'ag-grid-community';
 import { catchError, of } from 'rxjs';
 import { APP_DATE_TIME_FORMAT, dateFieldError } from '../../core/dates/date-format';
 import { addDaysIso, todayIso } from '../../core/dates/today';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayComparator, dayFormatter } from '../../core/grid/grid-format';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { LearningService, StudySession } from '../../core/services/learning.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { formatMinutes } from '../calendar/calendar-feed';
-import { sessionSubject, sessionsByDay, studyTotals } from './learning-plan-view';
+import { sessionSubject, studyTotals } from './learning-plan-view';
 import { StudyChart } from './study-chart';
 import { StudySubject, StudyTimer } from './study-timer';
 
-/** How far back the log shows. */
-const LOG_DAYS = 90;
+/** How far back the log shows (the grid pages it). */
+const LOG_DAYS = 365;
 
 type SubjectKind = 'Skill' | 'Course' | 'Book';
 
 /**
- * The study log: a timer for studying now, a form for time already spent, and the last 90 days of sessions by day
- * with this week's and the last 30 days' totals.
+ * The study log: a timer for studying now, a form for time already spent, and the last year of sessions in a
+ * grid with this week's and the last 30 days' totals.
  */
 @Component({
   selector: 'app-study',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, NgbInputDatepicker, LoadError, StudyTimer, StudyChart],
+  imports: [ReactiveFormsModule, NgbInputDatepicker, LoadError, StudyTimer, StudyChart, DataGrid],
   templateUrl: './study.html',
 })
 export class Study {
@@ -43,12 +47,12 @@ export class Study {
   private readonly learningService = inject(LearningService);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly locale = inject(LOCALE_ID);
 
   protected readonly formatMinutes = formatMinutes;
   /** Bumped whenever the log reloads, so the chart follows. */
   protected readonly version = signal(0);
   protected readonly sessionSubject = sessionSubject;
-  protected readonly dateTimeFormat = APP_DATE_TIME_FORMAT;
   protected readonly today = signal(todayIso());
   protected readonly maxDate = computed(() => {
     const [year, month, day] = this.today().split('-').map(Number);
@@ -58,7 +62,41 @@ export class Study {
 
   protected readonly sessions = signal<StudySession[] | null>(null);
   protected readonly loadFailed = signal(false);
-  protected readonly days = computed(() => sessionsByDay(this.sessions() ?? []));
+  protected readonly rowId = (s: StudySession) => s.id;
+  protected readonly columns: ColDef<StudySession>[] = [
+    {
+      headerName: 'Day',
+      field: 'studiedOn',
+      sort: 'desc',
+      width: 125,
+      valueFormatter: dayFormatter(this.locale),
+      comparator: dayComparator,
+    },
+    {
+      headerName: 'Studied',
+      colId: 'subject',
+      flex: 2,
+      minWidth: 160,
+      valueGetter: (p) => (p.data ? sessionSubject(p.data) : ''),
+    },
+    {
+      headerName: 'Time',
+      field: 'minutes',
+      width: 100,
+      type: 'rightAligned',
+      valueFormatter: (p) => formatMinutes((p.value as number) ?? 0),
+    },
+    {
+      headerName: 'How',
+      field: 'startedAt',
+      width: 190,
+      valueFormatter: (p) =>
+        p.value
+          ? `Timer, ${formatDate(p.value as string, APP_DATE_TIME_FORMAT, this.locale)}`
+          : 'Logged by hand',
+    },
+    { headerName: 'Notes', field: 'notes', flex: 1, minWidth: 150 },
+  ];
   protected readonly totals = computed(() => studyTotals(this.sessions() ?? [], this.today()));
   protected readonly saving = signal(false);
   protected readonly manualAttempted = signal(false);

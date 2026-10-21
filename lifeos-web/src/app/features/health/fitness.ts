@@ -10,8 +10,11 @@ import {
 import { DatePipe, DecimalPipe, formatDate, formatNumber } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ColDef } from 'ag-grid-community';
 import { APP_DAY_MONTH_FORMAT } from '../../core/dates/date-format';
 import { addDaysIso, todayIso } from '../../core/dates/today';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayComparator, dayFormatter, numberFormatter } from '../../core/grid/grid-format';
 import {
   Fitness,
   HealthLockedError,
@@ -21,16 +24,18 @@ import {
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { HealthTrend } from './health-trend';
-import { WORKOUT_KIND_ICONS, WORKOUT_KIND_LABELS, durationText } from './health-view';
+import { WORKOUT_KIND_LABELS, durationText } from './health-view';
 import { openWorkoutEditor } from './workout-editor';
 
 const WEEKS = 12;
+/** The workouts list covers a year; the grid pages it. */
+const LIST_DAYS = 365;
 
-/** Exercise: minutes a week for the last twelve weeks, this week's figures, and the last 60 days of workouts. */
+/** Exercise: minutes a week for the last twelve weeks, this week's figures, and the last year of workouts. */
 @Component({
   selector: 'app-health-fitness',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, LoadError, HealthTrend],
+  imports: [DatePipe, DecimalPipe, LoadError, HealthTrend, DataGrid],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -95,43 +100,20 @@ const WEEKS = 12;
             </details>
           </div>
         </div>
-        <h2 class="h6 text-body-secondary text-uppercase small mt-3">Last 60 days</h2>
+        <h2 class="h6 text-body-secondary text-uppercase small mt-3">Last 12 months</h2>
         @if (d.workouts.length === 0) {
           <p class="text-body-secondary">Nothing logged yet. A ten-minute walk counts.</p>
         } @else {
-          <div class="card">
-            <ul class="list-group list-group-flush">
-              @for (w of d.workouts; track w.id) {
-                <li class="list-group-item d-flex gap-3 align-items-start">
-                  <i class="bi {{ icons[w.kind] }} mt-1" aria-hidden="true"></i>
-                  <div class="min-w-0 flex-grow-1">
-                    <button
-                      type="button"
-                      class="btn btn-link p-0 fw-semibold link-body-emphasis text-decoration-none text-start"
-                      (click)="edit(w)"
-                    >
-                      {{ labels[w.kind] }} · {{ duration(w.minutes) }}
-                    </button>
-                    <div class="small text-body-secondary">
-                      {{ w.occurredOn | date }}
-                      @if (w.steps !== null) {
-                        · {{ w.steps | number }} steps
-                      }
-                      @if (w.distanceKm !== null) {
-                        · {{ w.distanceKm }} km
-                      }
-                      @if (w.calories !== null) {
-                        · {{ w.calories }} kcal
-                      }
-                      @if (w.intensity) {
-                        · {{ w.intensity }}
-                      }
-                    </div>
-                  </div>
-                </li>
-              }
-            </ul>
-          </div>
+          <app-data-grid
+            name="workouts"
+            [rows]="d.workouts"
+            [columns]="columns"
+            [phoneColumns]="['occurredOn', 'kind', 'minutes']"
+            [rowId]="rowId"
+            [noun]="['workout', 'workouts']"
+            [beforeExport]="exportGuard"
+            (open)="edit($event)"
+          />
         }
       } @else {
         <p class="text-body-secondary">Loading...</p>
@@ -146,9 +128,56 @@ export class HealthFitness {
   private readonly destroyRef = inject(DestroyRef);
   private readonly locale = inject(LOCALE_ID);
 
-  protected readonly labels = WORKOUT_KIND_LABELS;
-  protected readonly icons = WORKOUT_KIND_ICONS;
-  protected readonly duration = durationText;
+  protected readonly rowId = (w: Workout) => w.id;
+  protected readonly exportGuard = this.healthService.exportGuard('workouts');
+  protected readonly columns: ColDef<Workout>[] = [
+    {
+      headerName: 'Day',
+      field: 'occurredOn',
+      sort: 'desc',
+      width: 125,
+      valueFormatter: dayFormatter(this.locale),
+      comparator: dayComparator,
+    },
+    {
+      headerName: 'Exercise',
+      field: 'kind',
+      flex: 1,
+      minWidth: 110,
+      valueFormatter: (p) => (p.value ? WORKOUT_KIND_LABELS[p.value as Workout['kind']] : ''),
+      getQuickFilterText: (p) => (p.data ? WORKOUT_KIND_LABELS[p.data.kind] : ''),
+    },
+    {
+      headerName: 'Time',
+      field: 'minutes',
+      width: 100,
+      type: 'rightAligned',
+      valueFormatter: (p) => durationText((p.value as number) ?? 0),
+    },
+    {
+      headerName: 'Steps',
+      field: 'steps',
+      width: 105,
+      type: 'rightAligned',
+      valueFormatter: numberFormatter(this.locale, '1.0-0'),
+    },
+    {
+      headerName: 'Km',
+      field: 'distanceKm',
+      width: 90,
+      type: 'rightAligned',
+      valueFormatter: numberFormatter(this.locale),
+    },
+    {
+      headerName: 'kcal',
+      field: 'calories',
+      width: 90,
+      type: 'rightAligned',
+      valueFormatter: numberFormatter(this.locale, '1.0-0'),
+    },
+    { headerName: 'Intensity', field: 'intensity', width: 115 },
+    { headerName: 'Notes', field: 'notes', flex: 1, minWidth: 160 },
+  ];
   protected readonly minutesAxis = (value: number) => `${value} min`;
   protected readonly data = signal<Fitness | null>(null);
   protected readonly loadFailed = signal<string | null>(null);
@@ -194,7 +223,7 @@ export class HealthFitness {
 
   protected load(): void {
     this.healthService
-      .fitness(addDaysIso(this.today, -59), this.today, this.today, WEEKS)
+      .fitness(addDaysIso(this.today, -(LIST_DAYS - 1)), this.today, this.today, WEEKS)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => {

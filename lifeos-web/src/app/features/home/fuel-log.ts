@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  LOCALE_ID,
   computed,
   effect,
   inject,
@@ -13,7 +14,10 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { ColDef } from 'ag-grid-community';
 import { forkJoin } from 'rxjs';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayComparator, dayFormatter, numberFormatter } from '../../core/grid/grid-format';
 import { itemTitle } from '../../core/layout/item-title';
 import { FuelFill, FuelHistory, HomeService, Vehicle } from '../../core/services/home.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -29,7 +33,7 @@ import { FUEL_UNIT_SHORT, fuelTrendByFill, mileageLine, mileageText } from './ho
 @Component({
   selector: 'app-home-fuel-log',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, RouterLink, LoadError],
+  imports: [DatePipe, DecimalPipe, RouterLink, LoadError, DataGrid],
   template: `
     <div class="container py-4">
       <nav aria-label="breadcrumb" class="small mb-2">
@@ -77,44 +81,15 @@ import { FUEL_UNIT_SHORT, fuelTrendByFill, mileageLine, mileageText } from './ho
         } @else {
           <section class="mb-4" aria-labelledby="fuel-fills">
             <h2 id="fuel-fills" class="h5 mb-3">Fills</h2>
-            <div class="card">
-              <ul class="list-group list-group-flush">
-                @for (f of h.fills; track f.id) {
-                  <li class="list-group-item py-3">
-                    <div class="d-flex flex-wrap gap-2 align-items-start">
-                      <div class="min-w-0 flex-grow-1">
-                        <button
-                          type="button"
-                          class="btn btn-link p-0 fw-semibold link-body-emphasis text-decoration-none text-start"
-                          (click)="edit(f)"
-                        >
-                          {{ f.filledOn | date }} · {{ f.odometerKm | number }} km
-                        </button>
-                        <div class="small text-body-secondary">
-                          {{ f.quantity | number: '1.0-2' }} {{ unit() }} at
-                          {{ money(f.pricePerUnit, f.currency) }}/{{ unit() }}
-                          @if (f.transactionId) {
-                            · <i class="bi bi-check2-circle" aria-hidden="true"></i> in Finance
-                          }
-                          @if (f.missedFillBefore) {
-                            · <span class="fst-italic">average restarted</span>
-                          }
-                          @if (f.notes) {
-                            · <span class="text-break">{{ f.notes }}</span>
-                          }
-                        </div>
-                      </div>
-                      <div class="text-end small">
-                        <div class="fw-semibold">{{ money(f.amount, f.currency) }}</div>
-                        @if (trend().get(f.id); as perUnit) {
-                          <div class="text-body-secondary">avg {{ text(perUnit) }}</div>
-                        }
-                      </div>
-                    </div>
-                  </li>
-                }
-              </ul>
-            </div>
+            <app-data-grid
+              name="fuel"
+              [rows]="h.fills"
+              [columns]="columns()"
+              [phoneColumns]="['filledOn', 'odometerKm', 'amount']"
+              [rowId]="rowId"
+              [noun]="['fill', 'fills']"
+              (open)="edit($event)"
+            />
           </section>
 
           @if (h.monthly.length) {
@@ -152,6 +127,7 @@ export class HomeFuelLog {
   private readonly modal = inject(NgbModal);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly locale = inject(LOCALE_ID);
 
   /** Route parameter (`/home/vehicles/:id/fuel`). */
   readonly id = input.required<string>();
@@ -162,6 +138,76 @@ export class HomeFuelLog {
   protected readonly loadFailed = signal(false);
   protected readonly unit = computed(() => FUEL_UNIT_SHORT[this.history()?.fuelUnit ?? 'Litre']);
   protected readonly trend = computed(() => fuelTrendByFill(this.history()?.trend ?? []));
+  protected readonly rowId = (f: FuelFill) => f.id;
+  protected readonly columns = computed<ColDef<FuelFill>[]>(() => {
+    const unit = this.unit();
+    const trend = this.trend();
+    return [
+      {
+        headerName: 'Day',
+        field: 'filledOn',
+        sort: 'desc',
+        width: 125,
+        valueFormatter: dayFormatter(this.locale),
+        comparator: dayComparator,
+      },
+      {
+        headerName: 'Odometer',
+        field: 'odometerKm',
+        width: 120,
+        type: 'rightAligned',
+        valueFormatter: (p) =>
+          p.value === null ? '' : `${numberFormatter(this.locale, '1.0-0')(p)} km`,
+      },
+      {
+        headerName: `Fuel (${unit})`,
+        field: 'quantity',
+        width: 110,
+        type: 'rightAligned',
+        valueFormatter: numberFormatter(this.locale),
+      },
+      {
+        headerName: `Price / ${unit}`,
+        field: 'pricePerUnit',
+        width: 120,
+        type: 'rightAligned',
+        valueFormatter: (p) => (p.data ? formatMoney(p.data.pricePerUnit, p.data.currency) : ''),
+      },
+      {
+        headerName: 'Amount',
+        field: 'amount',
+        width: 125,
+        type: 'rightAligned',
+        valueFormatter: (p) => (p.data ? formatMoney(p.data.amount, p.data.currency) : ''),
+      },
+      {
+        headerName: 'Average after',
+        colId: 'average',
+        width: 140,
+        valueGetter: (p) => (p.data ? (trend.get(p.data.id) ?? null) : null),
+        valueFormatter: (p) =>
+          p.value === null || p.value === undefined ? '' : this.text(p.value as number),
+      },
+      {
+        headerName: 'In Finance',
+        field: 'paidFromAccountName',
+        width: 130,
+        valueGetter: (p) => (p.data?.transactionId ? (p.data.paidFromAccountName ?? 'Yes') : ''),
+      },
+      {
+        headerName: 'Note',
+        field: 'notes',
+        flex: 1,
+        minWidth: 150,
+        valueGetter: (p) =>
+          p.data
+            ? [p.data.missedFillBefore ? 'Average restarted' : '', p.data.notes ?? '']
+                .filter(Boolean)
+                .join(' · ')
+            : '',
+      },
+    ];
+  });
   protected readonly line = computed(() => {
     const v = this.vehicle();
     return v ? mileageLine(v) : '';

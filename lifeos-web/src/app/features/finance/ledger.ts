@@ -5,7 +5,6 @@ import {
   LOCALE_ID,
   computed,
   inject,
-  isDevMode,
   signal,
 } from '@angular/core';
 import { formatDate } from '@angular/common';
@@ -13,23 +12,11 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NgbInputDatepicker, NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { AgGridAngular } from 'ag-grid-angular';
-import {
-  CellStyleModule,
-  ClientSideRowModelModule,
-  ColDef,
-  ModuleRegistry,
-  QuickFilterModule,
-  CellKeyDownEvent,
-  FullWidthCellKeyDownEvent,
-  RowClickedEvent,
-  RowStyleModule,
-  ValidationModule,
-  themeQuartz,
-} from 'ag-grid-community';
+import { ColDef } from 'ag-grid-community';
 import { catchError, of } from 'rxjs';
 import { APP_DATE_FORMAT } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
+import { DataGrid, GridColumnContext } from '../../core/grid/data-grid';
 import {
   Account,
   FinanceService,
@@ -54,27 +41,6 @@ import {
 } from './finance-view';
 import { openTransactionEditor } from './transaction-editor';
 
-// Only what this grid uses: client-side rows, the search box, row/cell classes (ValidationModule explains a
-// missing module in development; it's tree-shaken from production builds).
-ModuleRegistry.registerModules([
-  ClientSideRowModelModule,
-  QuickFilterModule,
-  RowStyleModule,
-  CellStyleModule,
-  ...(isDevMode() ? [ValidationModule] : []),
-]);
-
-/** The grid in LifeOS tokens: hairline borders, the body font, teal for focus and selection. */
-const LEDGER_THEME = themeQuartz.withParams({
-  fontFamily: 'inherit',
-  accentColor: 'var(--lifeos-teal)',
-  borderColor: 'var(--lifeos-border)',
-  foregroundColor: 'var(--lifeos-ink)',
-  backgroundColor: 'var(--cui-body-bg, #fff)',
-  headerBackgroundColor: 'var(--lifeos-canvas)',
-  wrapperBorderRadius: '0.375rem',
-});
-
 /**
  * The ledger: transactions filtered by day range, account, tag and kind (on the server, so the totals match what's
  * shown), searched and sorted in the grid. A row opens its editor. Totals are in the base currency; transfers move
@@ -83,14 +49,7 @@ const LEDGER_THEME = themeQuartz.withParams({
 @Component({
   selector: 'app-finance-ledger',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    FormsModule,
-    NgbInputDatepicker,
-    AgGridAngular,
-    RouterLink,
-    LoadError,
-    BaseCurrencyPrompt,
-  ],
+  imports: [FormsModule, NgbInputDatepicker, DataGrid, RouterLink, LoadError, BaseCurrencyPrompt],
   template: `
     <div class="container-fluid container-xxl py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
@@ -264,13 +223,11 @@ const LEDGER_THEME = themeQuartz.withParams({
               <div class="small text-body-secondary">Net</div>
               <div class="h5 mb-0">{{ money(ledger.totals.net, currency) }}</div>
             </div>
-            <div class="align-self-end small text-body-secondary">
-              {{ ledger.transactions.length }}
-              {{ ledger.transactions.length === 1 ? 'transaction' : 'transactions' }}
-              @if (ledger.totals.unconverted > 0) {
-                · {{ ledger.totals.unconverted }} in another currency without a rate, left out
-              }
-            </div>
+            @if (ledger.totals.unconverted > 0) {
+              <div class="align-self-end small text-body-secondary">
+                {{ ledger.totals.unconverted }} in another currency without a rate, left out
+              </div>
+            }
           </div>
         }
         @if (ledger.transactions.length === 0) {
@@ -281,18 +238,15 @@ const LEDGER_THEME = themeQuartz.withParams({
             }
           </p>
         } @else {
-          <ag-grid-angular
-            class="d-block ledger-grid"
-            style="height: 65vh; min-height: 360px"
-            [theme]="theme"
-            [rowData]="ledger.transactions"
-            [columnDefs]="columns()"
-            [defaultColDef]="defaultColumn"
-            [quickFilterText]="search()"
-            [getRowId]="rowId"
-            [animateRows]="false"
-            (rowClicked)="open($event)"
-            (cellKeyDown)="keyOpen($event)"
+          <app-data-grid
+            name="transactions"
+            [rows]="ledger.transactions"
+            [columns]="columns()"
+            [phoneColumns]="phoneColumns"
+            [search]="search()"
+            [rowId]="rowId"
+            [noun]="['transaction', 'transactions']"
+            (open)="openTransaction($event)"
           />
         }
       } @else {
@@ -309,7 +263,6 @@ export class FinanceLedger {
   private readonly destroyRef = inject(DestroyRef);
   private readonly locale = inject(LOCALE_ID);
 
-  protected readonly theme = LEDGER_THEME;
   protected readonly kinds = TRANSACTION_KINDS;
   protected readonly kindLabels = TRANSACTION_KIND_LABELS;
   protected readonly money = formatMoney;
@@ -331,11 +284,8 @@ export class FinanceLedger {
   protected readonly to = computed(() => this.filter().to);
 
   /** On a phone only the day, what and amount fit; the rest is in the editor a tap away. */
-  private readonly narrow =
-    typeof matchMedia === 'function' && matchMedia('(max-width: 575.98px)').matches;
-
-  protected readonly defaultColumn: ColDef<Transaction> = { sortable: true, resizable: true };
-  protected readonly rowId = (params: { data: Transaction }) => String(params.data.id);
+  protected readonly phoneColumns = ['occurredOn', 'what', 'amount'];
+  protected readonly rowId = (t: Transaction) => t.id;
 
   protected readonly columns = computed<ColDef<Transaction>[]>(() => {
     const accountId = this.filter().accountId;
@@ -366,7 +316,6 @@ export class FinanceLedger {
         colId: 'tags',
         flex: 1,
         minWidth: 120,
-        hide: this.narrow,
         valueGetter: (p) => p.data?.tags.map((t) => t.name).join(', ') ?? '',
       },
       {
@@ -374,14 +323,12 @@ export class FinanceLedger {
         colId: 'account',
         flex: 1.5,
         minWidth: 150,
-        hide: this.narrow,
         valueGetter: (p) => (p.data ? accountLine(p.data) : ''),
       },
       {
         headerName: 'Kind',
         field: 'kind',
         width: 110,
-        hide: this.narrow,
         valueFormatter: (p) => (p.value ? TRANSACTION_KIND_LABELS[p.value as TransactionKind] : ''),
       },
       {
@@ -392,6 +339,13 @@ export class FinanceLedger {
         valueGetter: (p) => (p.data ? signedAmount(p.data, accountId).amount : 0),
         valueFormatter: (p) => (p.data ? signedMoney(p.data, accountId) : ''),
         getQuickFilterText: () => '',
+        // In a spreadsheet a leading "+" reads as a formula: income goes out unsigned, spending with its minus.
+        context: {
+          csv: (t) => {
+            const { amount, currency } = signedAmount(t, accountId);
+            return formatMoney(amount, currency);
+          },
+        } satisfies GridColumnContext<Transaction>,
         cellClassRules: {
           'fw-semibold': (p) => !!p.data && signedAmount(p.data, accountId).sign === 1,
         },
@@ -464,22 +418,7 @@ export class FinanceLedger {
     }
   }
 
-  /** Enter on a focused cell opens its row, as a click does. */
-  protected keyOpen(
-    event: CellKeyDownEvent<Transaction> | FullWidthCellKeyDownEvent<Transaction>,
-  ): void {
-    if ((event.event as KeyboardEvent | null)?.key === 'Enter' && event.data) {
-      void this.openTransaction(event.data);
-    }
-  }
-
-  protected open(event: RowClickedEvent<Transaction>): void {
-    if (event.data) {
-      void this.openTransaction(event.data);
-    }
-  }
-
-  private async openTransaction(transaction: Transaction): Promise<void> {
+  protected async openTransaction(transaction: Transaction): Promise<void> {
     const result = await openTransactionEditor(this.modal, { transaction });
     if (result) {
       this.toast.success(result.kind === 'saved' ? 'Transaction saved.' : 'Transaction deleted.');

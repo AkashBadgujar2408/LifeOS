@@ -1,7 +1,17 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { Observable, catchError, defer, from, map, switchMap, tap, throwError } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  defer,
+  firstValueFrom,
+  from,
+  map,
+  switchMap,
+  tap,
+  throwError,
+} from 'rxjs';
 import { ensureVaultUnlocked } from '../../shared/components/vault-unlock/vault-unlock';
 import { ApiResponse } from './api-response';
 import { RemindersService } from './reminders.service';
@@ -340,6 +350,9 @@ export class HealthLockedError extends Error {
   }
 }
 
+/** The Health lists with "Export CSV" — each matches HealthExportLists on the server. */
+export type HealthExportList = 'workouts' | 'sleep' | 'measurements' | 'lab-results';
+
 /**
  * Health records. Every call needs the vault unlock: it asks for the password first when locked, sends the unlock
  * header, and on a 423 (the unlock ran out on the server) locks, asks again and retries once. Dismissing the prompt
@@ -379,6 +392,26 @@ export class HealthService {
       'Your health records are private.',
     ).finally(() => (this.pendingUnlock = null));
     return this.pendingUnlock;
+  }
+
+  /**
+   * For a grid's [beforeExport] (Session 75a): asks for the unlock if needed and logs the export in Vault activity;
+   * resolves false (no file) while the vault stays locked or the log fails.
+   */
+  exportGuard(list: HealthExportList): () => Promise<boolean> {
+    return () =>
+      firstValueFrom(
+        this.guarded(() =>
+          this.http.post<ApiResponse<boolean>>(
+            `${this.base}/Exports`,
+            { list },
+            { headers: this.vault.headers() },
+          ),
+        ),
+      ).then(
+        () => true,
+        () => false,
+      );
   }
 
   // ---- Profile ----

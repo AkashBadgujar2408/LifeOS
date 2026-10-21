@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  LOCALE_ID,
   computed,
   inject,
   signal,
@@ -10,7 +11,10 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import Swal from 'sweetalert2';
+import { ColDef } from 'ag-grid-community';
 import { addDaysIso, todayIso } from '../../core/dates/today';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayComparator, dayFormatter, numberFormatter } from '../../core/grid/grid-format';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { HomeService, UtilityBill } from '../../core/services/home.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -23,7 +27,7 @@ import { BILL_KIND_ICONS, BILL_KIND_LABELS, billTotals, dueStatus } from './home
 @Component({
   selector: 'app-home-bills',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, LoadError],
+  imports: [DatePipe, DecimalPipe, LoadError, DataGrid],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -135,51 +139,52 @@ import { BILL_KIND_ICONS, BILL_KIND_LABELS, billTotals, dueStatus } from './home
           @if (paid().length) {
             <section aria-labelledby="bills-paid">
               <h2 id="bills-paid" class="h5 mb-3">Paid</h2>
-              <div class="card">
-                <ul class="list-group list-group-flush">
-                  @for (b of paid(); track b.id) {
-                    <li class="list-group-item">
-                      <div class="d-flex flex-wrap gap-2 align-items-center">
-                        <i
-                          class="bi {{ kindIcons[b.kind] }} text-body-secondary"
-                          aria-hidden="true"
-                        ></i>
-                        <div class="min-w-0 flex-grow-1">
-                          <button
-                            type="button"
-                            class="btn btn-link p-0 link-body-emphasis text-decoration-none text-start text-break"
-                            (click)="edit(b)"
-                          >
-                            {{ b.provider ?? kindLabels[b.kind] }}
-                          </button>
-                          <div class="small text-body-secondary">
-                            Due {{ b.dueOn | date }} · paid {{ b.paidOn | date }}
-                            @if (b.paidFromAccountName) {
-                              from {{ b.paidFromAccountName }}
-                            }
-                            @if (b.unitsUsed !== null) {
-                              · {{ b.unitsUsed | number }} units
-                            }
-                          </div>
-                        </div>
-                        <span class="small">{{ money(b.amount, b.currency) }}</span>
-                        <div class="d-flex gap-2 small">
-                          <button type="button" class="btn btn-link btn-sm p-0" (click)="next(b)">
-                            Next bill
-                          </button>
-                          <button
-                            type="button"
-                            class="btn btn-link btn-sm p-0 link-secondary"
-                            (click)="unpay(b)"
-                          >
-                            Take back
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  }
-                </ul>
-              </div>
+              @if (selectedPaid(); as b) {
+                <div
+                  class="card mb-2 border-primary-subtle"
+                  role="region"
+                  aria-label="The bill you picked"
+                >
+                  <div class="card-body py-2 d-flex flex-wrap gap-2 align-items-center small">
+                    <span class="fw-semibold me-auto text-break">
+                      {{ b.provider ?? kindLabels[b.kind] }} · {{ money(b.amount, b.currency) }} ·
+                      paid {{ b.paidOn | date }}
+                    </span>
+                    <button type="button" class="btn btn-link btn-sm p-0" (click)="edit(b)">
+                      Open
+                    </button>
+                    <button type="button" class="btn btn-link btn-sm p-0" (click)="next(b)">
+                      Next bill
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-link btn-sm p-0 link-secondary"
+                      (click)="unpay(b)"
+                    >
+                      Take back
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-close btn-sm"
+                      aria-label="Close"
+                      (click)="selectedPaidId.set(null)"
+                    ></button>
+                  </div>
+                </div>
+              } @else {
+                <p class="small text-body-secondary mb-2">
+                  Pick a bill to open it, add the next one like it, or take its payment back.
+                </p>
+              }
+              <app-data-grid
+                name="paid-bills"
+                [rows]="paid()"
+                [columns]="columns"
+                [phoneColumns]="['dueOn', 'provider', 'amount']"
+                [rowId]="rowId"
+                [noun]="['bill', 'bills']"
+                (open)="selectedPaidId.set($event.id)"
+              />
             </section>
           }
         }
@@ -194,6 +199,7 @@ export class HomeBills {
   private readonly modal = inject(NgbModal);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly locale = inject(LOCALE_ID);
 
   protected readonly kindLabels = BILL_KIND_LABELS;
   protected readonly kindIcons = BILL_KIND_ICONS;
@@ -205,6 +211,56 @@ export class HomeBills {
   /** The API's order: unpaid due soonest first, then paid latest first. */
   protected readonly unpaid = computed(() => (this.bills() ?? []).filter((b) => !b.paidOn));
   protected readonly paid = computed(() => (this.bills() ?? []).filter((b) => b.paidOn));
+  protected readonly selectedPaidId = signal<number | null>(null);
+  protected readonly selectedPaid = computed(
+    () => this.paid().find((b) => b.id === this.selectedPaidId()) ?? null,
+  );
+  protected readonly rowId = (b: UtilityBill) => b.id;
+  protected readonly columns: ColDef<UtilityBill>[] = [
+    {
+      headerName: 'Due',
+      field: 'dueOn',
+      sort: 'desc',
+      width: 125,
+      valueFormatter: dayFormatter(this.locale),
+      comparator: dayComparator,
+    },
+    {
+      headerName: 'Bill',
+      field: 'provider',
+      flex: 1,
+      minWidth: 140,
+      valueGetter: (p) => (p.data ? (p.data.provider ?? BILL_KIND_LABELS[p.data.kind]) : ''),
+    },
+    {
+      headerName: 'Kind',
+      field: 'kind',
+      width: 120,
+      valueFormatter: (p) => (p.value ? BILL_KIND_LABELS[p.value as UtilityBill['kind']] : ''),
+    },
+    { headerName: 'Property', field: 'propertyName', width: 130 },
+    {
+      headerName: 'Amount',
+      field: 'amount',
+      width: 130,
+      type: 'rightAligned',
+      valueFormatter: (p) => (p.data ? formatMoney(p.data.amount, p.data.currency) : ''),
+    },
+    {
+      headerName: 'Paid',
+      field: 'paidOn',
+      width: 125,
+      valueFormatter: dayFormatter(this.locale),
+    },
+    { headerName: 'From', field: 'paidFromAccountName', width: 140 },
+    {
+      headerName: 'Units',
+      field: 'unitsUsed',
+      width: 95,
+      type: 'rightAligned',
+      valueFormatter: numberFormatter(this.locale),
+    },
+  ];
   protected readonly yearTotals = computed(() =>
     billTotals(this.bills() ?? [], addDaysIso(this.today, -364), this.today),
   );

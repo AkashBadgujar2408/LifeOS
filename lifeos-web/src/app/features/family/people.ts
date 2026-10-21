@@ -2,15 +2,18 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  LOCALE_ID,
   OnInit,
   computed,
   inject,
   signal,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
+import { ColDef } from 'ag-grid-community';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { DataGrid } from '../../core/grid/data-grid';
+import { dayFormatter } from '../../core/grid/grid-format';
 import { FamilyPerson, FamilyService } from '../../core/services/family.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { openContactEditor } from '../contacts/contact-editor';
@@ -19,12 +22,13 @@ type PeopleFilter = 'family' | 'everyone';
 
 /**
  * The people directory: the one shared contact list, as Family sees it — how each person is related to you and when
- * their birthday comes round. "Family" shows only people in the tree; "Everyone" the whole list.
+ * their birthday comes round. "Family" shows only people in the tree; "Everyone" the whole list (a data grid:
+ * sort, page, export; a row opens the person).
  */
 @Component({
   selector: 'app-family-people',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, LoadError],
+  imports: [LoadError, DataGrid],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -85,37 +89,15 @@ type PeopleFilter = 'family' | 'everyone';
             }
           </p>
         } @else {
-          <div class="card">
-            <ul class="list-group list-group-flush">
-              @for (p of shown(); track p.contactId) {
-                <li class="list-group-item py-3">
-                  <div class="d-flex flex-wrap align-items-center gap-2">
-                    <a
-                      [routerLink]="['/family/people', p.contactId]"
-                      class="fw-semibold me-auto text-break"
-                      >{{ p.name }}</a
-                    >
-                    @if (p.relation) {
-                      <span class="badge text-bg-light border">{{ p.relation }}</span>
-                    }
-                  </div>
-                  <div class="small text-body-secondary">
-                    @if (p.nextBirthday) {
-                      <i class="bi bi-cake2" aria-hidden="true"></i>
-                      {{ p.turnsAge ? 'Turns ' + p.turnsAge + ' on' : 'Birthday' }}
-                      {{ p.nextBirthday | date }}
-                    }
-                    @if (p.phone) {
-                      <span class="ms-2">{{ p.phone }}</span>
-                    }
-                    @if (p.email) {
-                      <span class="ms-2 text-break">{{ p.email }}</span>
-                    }
-                  </div>
-                </li>
-              }
-            </ul>
-          </div>
+          <app-data-grid
+            name="people"
+            [rows]="shown()"
+            [columns]="columns"
+            [phoneColumns]="['name', 'relation', 'nextBirthday']"
+            [rowId]="rowId"
+            [noun]="['person', 'people']"
+            (open)="openPerson($event)"
+          />
         }
       } @else {
         <p class="text-body-secondary">Loading…</p>
@@ -128,11 +110,32 @@ export class FamilyPeople implements OnInit {
   private readonly modal = inject(NgbModal);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly locale = inject(LOCALE_ID);
 
   protected readonly people = signal<FamilyPerson[] | null>(null);
   protected readonly loadFailed = signal(false);
   protected readonly filter = signal<PeopleFilter>('family');
   protected readonly search = signal('');
+  protected readonly rowId = (p: FamilyPerson) => p.contactId;
+  protected readonly columns: ColDef<FamilyPerson>[] = [
+    { headerName: 'Name', field: 'name', flex: 1.5, minWidth: 150, sort: 'asc' },
+    { headerName: 'To you', field: 'relation', flex: 1, minWidth: 120 },
+    {
+      headerName: 'Next birthday',
+      field: 'nextBirthday',
+      width: 140,
+      valueFormatter: dayFormatter(this.locale),
+    },
+    { headerName: 'Turns', field: 'turnsAge', width: 90, type: 'rightAligned' },
+    {
+      headerName: 'Last in touch',
+      field: 'lastContactedOn',
+      width: 135,
+      valueFormatter: dayFormatter(this.locale),
+    },
+    { headerName: 'Phone', field: 'phone', width: 140 },
+    { headerName: 'Email', field: 'email', flex: 1, minWidth: 160 },
+  ];
 
   protected readonly shown = computed(() => {
     const term = this.search().trim().toLowerCase();
@@ -165,6 +168,10 @@ export class FamilyPeople implements OnInit {
         },
         error: () => this.loadFailed.set(true),
       });
+  }
+
+  protected openPerson(person: FamilyPerson): void {
+    void this.router.navigate(['/family/people', person.contactId]);
   }
 
   protected async addPerson(): Promise<void> {

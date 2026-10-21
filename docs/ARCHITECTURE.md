@@ -222,7 +222,7 @@ All routes need a JWT except register, login and ping.
 | `api/Story/Achievements` | `GET ?tz=` — all 20 achievements, unlocked with the local day or locked with progress/target; unlocks also appear in the Life Story as `AchievementUnlocked` beats |
 | `api/Story/LifeAreas` | `GET stats` (XP + level per area), `GET ratings?from&to` (months by first day), `PUT ratings/{month}` (`{ today, ratings: [{ lifeAreaId, rating 1–10 | null, note }] }`, null clears; rewritten in place) |
 | `api/Story/Missions` | goals as missions (`GET`, `GET {goalId}`), `POST {goalId}/prerequisites`, `DELETE {goalId}/prerequisites/{requiresGoalId}`, `GET {goalId}/passed`, `PUT {goalId}/debrief` |
-| `api/Health/*` | All need `X-Vault-Unlock` (423 without) except `DoseSummary`. `HealthProfile` (`GET ?today`, `PUT`), `MedicalConditions` (CRUD), `DoctorVisits` (CRUD; `startsAt`/`endsAt` = the calendar entry, `followUpOn` = the reminder), `Medications` (CRUD `?today`, schedules replaced whole; `GET doses/{day}`, `PUT doses/{day}/{scheduleId}` `{ status: Taken | Skipped | null, today }`, `POST {id}/as-needed`, `DELETE {id}/as-needed/{day}`), `GET DoseSummary?today` (counts only); `Workouts?from&to&today&weeks` (+ weekly totals), `Sleep?from&to&today` (+ nights, 7/30-day averages), `Measurements/latest`, `Measurements?kind`, `Nutrition/day/{day}`, `Nutrition?from&to`, `Nutrition/meals`, `Nutrition/water` — each CRUD; `LabResults` (tests with history, CRUD), `Wellness?from&to&today` + `PUT Wellness/{day}`, `GoalTargets` (`GET`, `GET/PUT/DELETE {goalId}`) |
+| `api/Health/*` | All need `X-Vault-Unlock` (423 without) except `DoseSummary`. `HealthProfile` (`GET ?today`, `PUT`), `MedicalConditions` (CRUD), `DoctorVisits` (CRUD; `startsAt`/`endsAt` = the calendar entry, `followUpOn` = the reminder), `Medications` (CRUD `?today`, schedules replaced whole; `GET doses/{day}`, `PUT doses/{day}/{scheduleId}` `{ status: Taken | Skipped | null, today }`, `POST {id}/as-needed`, `DELETE {id}/as-needed/{day}`), `GET DoseSummary?today` (counts only); `Workouts?from&to&today&weeks` (+ weekly totals), `Sleep?from&to&today` (+ nights, 7/30-day averages), `Measurements/latest`, `Measurements?kind`, `Nutrition/day/{day}`, `Nutrition?from&to`, `Nutrition/meals`, `Nutrition/water` — each CRUD; `LabResults` (tests with history, CRUD), `Wellness?from&to&today` + `PUT Wellness/{day}`, `GoalTargets` (`GET`, `GET/PUT/DELETE {goalId}`), `POST Exports` (`{ list }` from `HealthExportLists` — logs a grid's CSV export in Vault activity) |
 | `api/Documents/Documents` | CRUD (`GET ?kind&search&tagId`; `number` is cut to its last 4 characters; `expiryReminderDays` keeps one reminder about the document at 09:00 local, N days before `ExpiresOn`); files: `POST {id}/files` (multipart `files`, 1–10, all or none), `PUT {id}/files/{fileId}` (new version), `DELETE {id}/files/{fileId}`, `GET {id}/files/{fileId}[?download=true | ?raw=true]` (owner only; inline for PDF/images/text, nosniff, `X-Content-SHA256`; `raw` = the app's own fetch: no file name, neutral type, so download managers leave it alone); a vault document's files need `X-Vault-Unlock` (423 without), and leaving the vault (`isVault` false on `PUT`) does too |
 
 Swagger UI (`/swagger`, Development only) has the full request/response shapes.
@@ -240,6 +240,16 @@ Swagger UI (`/swagger`, Development only) has the full request/response shapes.
   `<input type="date">`); local-date helpers in `core/dates/today.ts`, tested in six timezones (`npm run test:tz`).
 - **Failure handling**: `apiErrorMessage` for toasts; `<app-load-error>` instead of an empty state when a page's
   load fails; a 401 sends the user to login and back.
+- **Data grids** (Session 75a, `core/grid/`): every heavy list is `<app-data-grid name [rows] [columns]
+  [phoneColumns] [search] [rowId] (open)>` — ag-Grid Community with the LifeOS theme (`LIFEOS_GRID_THEME`),
+  25/50/100-row pages (remembered per list in `localStorage`), auto height, a count line and **Export CSV**: the
+  filtered + sorted rows of every page, the columns a wide screen shows (phone-hidden ones included), cells as
+  displayed (`grid-format.ts` day/number formatters), `context.csv` for a column whose CSV text differs (the ledger
+  amount without "+"), built by the pure `grid-csv.ts` (BOM, RFC 4180, formula neutralising) and saved via
+  `saveBlob`. `[beforeExport]` can refuse or log (`HealthService.exportGuard(list)` → `POST api/Health/Exports`,
+  423 while locked, logged in Vault activity). Pages that keep a card layout (inventory rooms, applications board,
+  question practice, network, purchases by month) add `<app-view-toggle key [(view)]>` (Cards | Table, remembered).
+  The component registers its ag-Grid modules itself and is only imported by lazy routes.
 - **Styling**: CoreUI CSS as the single framework, LifeOS colour tokens in `styles.scss` (`--lifeos-*`), Sora +
   Manrope. Bespoke CSS only where a module needs its own visuals (My Day, Calendar, habit cells, life balance bars).
 
@@ -257,7 +267,7 @@ Swagger UI (`/swagger`, Development only) has the full request/response shapes.
    Export, import and account deletion pick up the new tables by themselves (they have `UserId`); a linkable type
    named differently from its model class needs an entry in `AccountData.ModelTypeFor`.
 5. `core/services/<module>.service.ts`, `features/<module>/`, a route replacing the `placeholder(...)` one, and a
-   nav entry.
+   nav entry. A growing log or a list past ~50 rows is an `<app-data-grid>` from the start.
 6. Pure rules get xUnit or vitest tests; date logic gets `npm run test:tz`.
 7. Build clean, lint and Prettier clean, check it in the browser (including phone width), commit, update
    `PROGRESS.md`.
