@@ -145,7 +145,11 @@ const coverKey = (type: HomeTargetType, id: number) => `${type}:${id}`;
             <label class="form-label" for="warranty-contact">
               Service centre <span class="text-body-secondary small">(a contact)</span>
             </label>
-            <ng-select labelForId="warranty-contact" formControlName="contactId" placeholder="Pick a contact (optional)">
+            <ng-select
+              labelForId="warranty-contact"
+              formControlName="contactId"
+              placeholder="Pick a contact (optional)"
+            >
               @for (c of contacts(); track c.id) {
                 <ng-option [value]="c.id">
                   {{ c.name }}

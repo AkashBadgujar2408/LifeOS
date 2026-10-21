@@ -167,7 +167,11 @@ const minutesOf = (t: NgbTimeStruct) => t.hour * 60 + t.minute;
             <label class="form-label" for="visit-doctor">
               Doctor <span class="text-body-secondary small">(a contact)</span>
             </label>
-            <ng-select labelForId="visit-doctor" formControlName="contactId" placeholder="Pick a doctor (optional)">
+            <ng-select
+              labelForId="visit-doctor"
+              formControlName="contactId"
+              placeholder="Pick a doctor (optional)"
+            >
               @for (c of contacts(); track c.id) {
                 <ng-option [value]="c.id">
                   {{ c.name }}

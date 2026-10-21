@@ -105,7 +105,11 @@ const dateFields = [
           </div>
           <div class="col-sm-4">
             <label class="form-label" for="bill-property">Property</label>
-            <ng-select labelForId="bill-property" formControlName="propertyId" placeholder="Pick a property (optional)">
+            <ng-select
+              labelForId="bill-property"
+              formControlName="propertyId"
+              placeholder="Pick a property (optional)"
+            >
               @for (p of properties(); track p.id) {
                 <ng-option [value]="p.id">
                   {{ p.name }}

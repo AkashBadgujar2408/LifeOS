@@ -316,7 +316,11 @@ export async function openLoanEditor(
             <label class="form-label" for="loan-contact">
               Contact <span class="text-body-secondary small">(optional)</span>
             </label>
-            <ng-select labelForId="loan-contact" formControlName="contactId" placeholder="Pick a contact (optional)">
+            <ng-select
+              labelForId="loan-contact"
+              formControlName="contactId"
+              placeholder="Pick a contact (optional)"
+            >
               @for (c of contacts(); track c.id) {
                 <ng-option [value]="c.id">
                   {{ c.name }}

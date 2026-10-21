@@ -40,7 +40,11 @@
               @if (subjectForm.controls.kind.value) {
                 <div class="col-sm-8">
                   <label class="visually-hidden" for="study-item">Which one</label>
-                  <ng-select labelForId="study-item" formControlName="itemId" placeholder="Pick one">
+                  <ng-select
+                    labelForId="study-item"
+                    formControlName="itemId"
+                    placeholder="Pick one"
+                  >
                     @for (option of itemOptions(); track option.id) {
                       <ng-option [value]="option.id">
                         {{ option.title }}
