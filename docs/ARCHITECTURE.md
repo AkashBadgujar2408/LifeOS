@@ -124,6 +124,12 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   its model but throws on reading/writing those columns. Whole areas that are sensitive (Health) put
   `[VaultUnlockRequired]` on their controllers (`LifeOS.Api/Infrastructure`): 423 without a live unlock for every
   call. The export needs the unlock too when there are health rows (their notes leave decrypted) and logs it.
+  **What reads Health without the unlock** (reviewed Session 75 — keep this list exact): `DoseSummary` (counts
+  only), the lock-aware linkable providers (a type word as title, nothing from search), `WorkoutGoalSource` and body
+  targets (Locked), a visit's calendar event and follow-up reminder (neutral titles), Finance's plan (the age in whole
+  years from `HealthProfiles.DateOfBirth`, never the date), and deletes that release a contact or event (they only
+  null `DoctorVisits.ContactId`/`EventId`). Plain columns in `health` (names, kinds, `DoctorVisits.Reason`,
+  `Meals.Description`, lab values) stay plain on purpose — they are searched, sorted or charted behind the vault.
 - **Attachments** (Session 41): `shared.Attachments` (open `EntityType`/`EntityId`, same file columns as document
   files) through `IAttachmentsService` / `api/Shared/Attachments`. Only `AttachmentsService.AttachableTypes` take
   files (Goal, Task); each of those modules' deletes calls `RemoveAllForEntityAsync`. UI:

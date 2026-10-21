@@ -1204,3 +1204,13 @@
 - Test data: `fam73…`, `f74a…`/`f74b…`, `famdel…` accounts left in UAT.
 
 - Next up: **Session 75 — Phase 3 polish**, per the plan.
+
+## Last session: 2026-10-21 — Session 75 — Phase 3 polish
+- Reviewed (no code changes needed): Health unlock rules — every Health controller is gated except `DoseSummary`; every `Notes` column in `health` is encrypted; everything that reads `health` outside the vault was traced and is now listed in `docs/ARCHITECTURE.md` ("What reads Health without the unlock"), with a CLAUDE.md rule that new readers join that list. The one non-count reader is Finance's plan (the age in whole years from the Health date of birth, a deliberate Session 71b choice).
+- Exporter coverage: only `LifeAreas`/`Users` lack `UserId`, so every Phase 3 table goes out. `roundtrip75.mjs` (42 checks) + `compare75.mjs`: Health/Family/Home/Purchases export refused while locked, logged when unlocked, imported into an empty account, re-exported and **identical table by table** (ids/timestamps aside), no ciphertext in exports; SQL check: no imported FK points at another user's rows.
+- 375 px: 29 Phase 3 list pages + person page + plan, My Day, Goals measured in a 375 px frame (Health unlocked): no horizontal scroll; no console errors. 600 backend tests, lint/Prettier clean. No code changes, so no `ng build`/`test:tz` rerun.
+- Gotchas: (1) the browser window wouldn't resize below its maximised width — a 375 px same-origin `<iframe>` per route, measuring `scrollWidth` vs `clientWidth`, worked (vault unlock is per app instance, so Health pages were walked inside one iframe via `history.pushState` + `popstate` after one unlock). (2) The Chrome tool blocks results containing `?`/`=` — strip them before returning. (3) No Python on this machine — doc edits by Node. (4) `POST api/Health/Medications` without `?today=` saves the medicine and then fails with a 500 (DateOnly.MinValue − 29 days); the app always sends `today`, so it was left alone.
+- **Phase 3 (Sessions 62–75) is complete.**
+- Test data: `rt75a…` (original), `rt75b…` (imported copy) in UAT.
+
+- Next up: **Session 75a — Heavy-data grids** (ag-Grid pagination + CSV export), then 75b (searchable dropdowns), then Phase 4 — Travel (76–78).
