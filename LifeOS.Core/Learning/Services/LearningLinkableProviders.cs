@@ -63,37 +63,6 @@ public class CourseLinkableProvider(AppDbContext db) : ILinkableEntityProvider
     }
 }
 
-public class BookLinkableProvider(AppDbContext db) : ILinkableEntityProvider
-{
-    public const string Type = "Book";
-
-    public string EntityType => Type;
-
-    public string DisplayName => "Book";
-
-    public async Task<Dictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> ids) =>
-        await db.Books.Where(b => ids.Contains(b.Id)).ToDictionaryAsync(b => b.Id, b => b.Title);
-
-    public async Task<List<LinkableItemDto>> SearchAsync(string? search, int take)
-    {
-        var query = db.Books.AsQueryable();
-        if (!string.IsNullOrEmpty(search))
-        {
-            // A highlight remembered word for word finds its book too.
-            query = query.Where(b => b.Title.Contains(search)
-                || (b.Author != null && b.Author.Contains(search))
-                || b.BookNotes.Any(n => n.Text.Contains(search)));
-        }
-
-        return await query
-            .OrderBy(b => b.Status != BookStatuses.Reading)
-            .ThenBy(b => b.Title)
-            .Take(take)
-            .Select(b => new LinkableItemDto { EntityType = Type, EntityId = b.Id, Title = b.Title })
-            .ToListAsync();
-    }
-}
-
 public class RoadmapLinkableProvider(AppDbContext db) : ILinkableEntityProvider
 {
     public const string Type = "Roadmap";

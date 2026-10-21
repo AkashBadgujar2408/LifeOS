@@ -21,8 +21,6 @@ public partial class Tag
 
     public virtual ICollection<AssetTag> AssetTags { get; set; } = new List<AssetTag>();
 
-    public virtual ICollection<BookTag> BookTags { get; set; } = new List<BookTag>();
-
     public virtual ICollection<Budget> Budgets { get; set; } = new List<Budget>();
 
     public virtual ICollection<ContactTag> ContactTags { get; set; } = new List<ContactTag>();
@@ -38,6 +36,8 @@ public partial class Tag
     public virtual ICollection<JournalEntryTag> JournalEntryTags { get; set; } = new List<JournalEntryTag>();
 
     public virtual ICollection<KnowledgeNoteTag> KnowledgeNoteTags { get; set; } = new List<KnowledgeNoteTag>();
+
+    public virtual ICollection<MediaItemTag> MediaItemTags { get; set; } = new List<MediaItemTag>();
 
     public virtual ICollection<PurchaseTag> PurchaseTags { get; set; } = new List<PurchaseTag>();
 

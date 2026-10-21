@@ -70,11 +70,11 @@ public class RoadmapsService(AppDbContext db, IEntityLinksService entityLinksSer
                     SortOrder = s.SortOrder,
                     CompletedAt = s.CompletedAt,
                     TargetType = s.CourseId != null ? RoadmapStepTargets.Course
-                        : s.BookId != null ? RoadmapStepTargets.Book
+                        : s.MediaItemId != null ? RoadmapStepTargets.MediaItem
                         : s.GoalId != null ? RoadmapStepTargets.Goal : null,
-                    TargetId = s.CourseId ?? s.BookId ?? s.GoalId,
-                    TargetTitle = s.Course != null ? s.Course.Title : s.Book != null ? s.Book.Title : s.Goal != null ? s.Goal.Title : null,
-                    TargetStatus = s.Course != null ? s.Course.Status : s.Book != null ? s.Book.Status : s.Goal != null ? s.Goal.Status : null,
+                    TargetId = s.CourseId ?? s.MediaItemId ?? s.GoalId,
+                    TargetTitle = s.Course != null ? s.Course.Title : s.MediaItem != null ? s.MediaItem.Title : s.Goal != null ? s.Goal.Title : null,
+                    TargetStatus = s.Course != null ? s.Course.Status : s.MediaItem != null ? s.MediaItem.Status : s.Goal != null ? s.Goal.Status : null,
                 }).ToList(),
             })
             .AsSplitQuery()
@@ -324,7 +324,7 @@ public class RoadmapsService(AppDbContext db, IEntityLinksService entityLinksSer
         {
             null => true,
             RoadmapStepTargets.Course => await db.Courses.AnyAsync(c => c.Id == request.TargetId),
-            RoadmapStepTargets.Book => await db.Books.AnyAsync(b => b.Id == request.TargetId),
+            RoadmapStepTargets.MediaItem => await db.MediaItems.AnyAsync(m => m.Id == request.TargetId),
             RoadmapStepTargets.Goal => await db.Goals.AnyAsync(g => g.Id == request.TargetId),
             _ => false,
         };
@@ -335,7 +335,7 @@ public class RoadmapsService(AppDbContext db, IEntityLinksService entityLinksSer
 
         step.Title = title;
         step.CourseId = request.TargetType == RoadmapStepTargets.Course ? request.TargetId : null;
-        step.BookId = request.TargetType == RoadmapStepTargets.Book ? request.TargetId : null;
+        step.MediaItemId = request.TargetType == RoadmapStepTargets.MediaItem ? request.TargetId : null;
         step.GoalId = request.TargetType == RoadmapStepTargets.Goal ? request.TargetId : null;
         return null;
     }

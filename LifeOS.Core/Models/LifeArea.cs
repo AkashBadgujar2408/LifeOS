@@ -19,8 +19,6 @@ public partial class LifeArea
 
     public DateTime? DeletedAt { get; set; }
 
-    public virtual ICollection<Book> Books { get; set; } = new List<Book>();
-
     public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
 
     public virtual ICollection<Event> Events { get; set; } = new List<Event>();
@@ -29,9 +27,13 @@ public partial class LifeArea
 
     public virtual ICollection<Habit> Habits { get; set; } = new List<Habit>();
 
+    public virtual ICollection<Hobby> Hobbies { get; set; } = new List<Hobby>();
+
     public virtual ICollection<JournalEntry> JournalEntries { get; set; } = new List<JournalEntry>();
 
     public virtual ICollection<LifeAreaRating> LifeAreaRatings { get; set; } = new List<LifeAreaRating>();
+
+    public virtual ICollection<MediaItem> MediaItems { get; set; } = new List<MediaItem>();
 
     public virtual ICollection<Skill> Skills { get; set; } = new List<Skill>();
 

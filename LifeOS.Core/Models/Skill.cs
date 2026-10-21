@@ -27,8 +27,6 @@ public partial class Skill
 
     public DateTime? DeletedAt { get; set; }
 
-    public virtual ICollection<Book> Books { get; set; } = new List<Book>();
-
     public virtual ICollection<Certification> Certifications { get; set; } = new List<Certification>();
 
     public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
@@ -36,6 +34,8 @@ public partial class Skill
     public virtual ICollection<KnowledgeNote> KnowledgeNotes { get; set; } = new List<KnowledgeNote>();
 
     public virtual LifeArea? LifeArea { get; set; }
+
+    public virtual ICollection<MediaItem> MediaItems { get; set; } = new List<MediaItem>();
 
     public virtual ICollection<SkillLevelChange> SkillLevelChanges { get; set; } = new List<SkillLevelChange>();
 

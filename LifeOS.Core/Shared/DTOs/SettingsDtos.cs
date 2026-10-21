@@ -21,9 +21,10 @@ public static class ModuleKeys
     public const string Home = "Home";
     public const string Purchases = "Purchases";
     public const string Family = "Family";
+    public const string Leisure = "Leisure";
 
     public static readonly IReadOnlySet<string> All =
-        new HashSet<string>([Calendar, Reminders, Goals, Tasks, Projects, Habits, Journal, Story, Documents, Learning, Career, Finance, Health, Home, Purchases, Family], StringComparer.Ordinal);
+        new HashSet<string>([Calendar, Reminders, Goals, Tasks, Projects, Habits, Journal, Story, Documents, Learning, Career, Finance, Health, Home, Purchases, Family, Leisure], StringComparer.Ordinal);
 }
 
 /// <summary>Everything on the Settings page, and what the shell needs to know (hidden modules) on every load.</summary>

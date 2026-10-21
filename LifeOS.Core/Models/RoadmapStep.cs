@@ -17,8 +17,6 @@ public partial class RoadmapStep
 
     public int? CourseId { get; set; }
 
-    public int? BookId { get; set; }
-
     public int? GoalId { get; set; }
 
     public DateTime? CompletedAt { get; set; }
@@ -31,11 +29,13 @@ public partial class RoadmapStep
 
     public DateTime? DeletedAt { get; set; }
 
-    public virtual Book? Book { get; set; }
+    public int? MediaItemId { get; set; }
 
     public virtual Course? Course { get; set; }
 
     public virtual Goal? Goal { get; set; }
+
+    public virtual MediaItem? MediaItem { get; set; }
 
     public virtual Roadmap Roadmap { get; set; } = null!;
 

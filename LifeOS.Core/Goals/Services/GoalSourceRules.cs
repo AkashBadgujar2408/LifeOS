@@ -52,7 +52,7 @@ public static class GoalSourceRules
         var ok = kind switch
         {
             GoalSourceKinds.Habit => entityType == "Habit",
-            GoalSourceKinds.StudyTime => entityType is "Skill" or "Course" or "Book",
+            GoalSourceKinds.StudyTime => entityType is "Skill" or "Course" or "MediaItem",
             GoalSourceKinds.BooksFinished or GoalSourceKinds.CoursesCompleted => entityType is null or "Skill",
             GoalSourceKinds.Roadmap => entityType == "Roadmap",
             GoalSourceKinds.ProjectTasks or GoalSourceKinds.ProjectFocus => entityType == "Project",

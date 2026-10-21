@@ -44,8 +44,8 @@ public class StudySessionsService(AppDbContext db) : IStudySessionsService
                 SkillName = s.Skill != null ? s.Skill.Name : null,
                 CourseId = s.CourseId,
                 CourseTitle = s.Course != null ? s.Course.Title : null,
-                BookId = s.BookId,
-                BookTitle = s.Book != null ? s.Book.Title : null,
+                MediaItemId = s.MediaItemId,
+                MediaItemTitle = s.MediaItem != null ? s.MediaItem.Title : null,
                 StartedAt = s.StartedAt,
                 Notes = s.Notes,
             })
@@ -160,7 +160,7 @@ public class StudySessionsService(AppDbContext db) : IStudySessionsService
         }
 
         var topic = string.IsNullOrWhiteSpace(request.Topic) ? null : request.Topic.Trim();
-        if (topic is null && request.SkillId is null && request.CourseId is null && request.BookId is null)
+        if (topic is null && request.SkillId is null && request.CourseId is null && request.MediaItemId is null)
         {
             return "Say what you studied: a topic, or a skill, course or book.";
         }
@@ -181,9 +181,9 @@ public class StudySessionsService(AppDbContext db) : IStudySessionsService
             return "Course not found.";
         }
 
-        if (request.BookId is { } bookId && !await db.Books.AnyAsync(b => b.Id == bookId))
+        if (request.MediaItemId is { } mediaItemId && !await db.MediaItems.AnyAsync(m => m.Id == mediaItemId))
         {
-            return "Book not found.";
+            return "Item not found.";
         }
 
         session.StudiedOn = request.StudiedOn;
@@ -191,7 +191,7 @@ public class StudySessionsService(AppDbContext db) : IStudySessionsService
         session.Topic = topic;
         session.SkillId = request.SkillId;
         session.CourseId = request.CourseId;
-        session.BookId = request.BookId;
+        session.MediaItemId = request.MediaItemId;
         session.StartedAt = request.StartedAt?.ToUniversalTime();
         session.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
         return null;

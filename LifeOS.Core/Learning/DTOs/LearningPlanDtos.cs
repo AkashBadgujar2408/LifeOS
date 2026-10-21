@@ -14,7 +14,8 @@ public static class RoadmapStatuses
 public static class RoadmapStepTargets
 {
     public const string Course = "Course";
-    public const string Book = "Book";
+    /// <summary>A media item — a book, usually (Session 78a; was "Book").</summary>
+    public const string MediaItem = "MediaItem";
     public const string Goal = "Goal";
 }
 
@@ -47,7 +48,7 @@ public class RoadmapStepDto
     public string Title { get; init; } = string.Empty;
     public int SortOrder { get; init; }
     public DateTime? CompletedAt { get; init; }
-    /// <summary>Course / Book / Goal, or null for a plain step.</summary>
+    /// <summary>Course / MediaItem / Goal, or null for a plain step.</summary>
     public string? TargetType { get; init; }
     public int? TargetId { get; init; }
     public string? TargetTitle { get; init; }
@@ -78,8 +79,8 @@ public class RoadmapStepRequest
     [StringLength(200)]
     public string Title { get; init; } = string.Empty;
 
-    [AllowedValues(null, RoadmapStepTargets.Course, RoadmapStepTargets.Book, RoadmapStepTargets.Goal,
-        ErrorMessage = "A step points at a Course, a Book or a Goal.")]
+    [AllowedValues(null, RoadmapStepTargets.Course, RoadmapStepTargets.MediaItem, RoadmapStepTargets.Goal,
+        ErrorMessage = "A step points at a Course, a MediaItem or a Goal.")]
     public string? TargetType { get; init; }
 
     public int? TargetId { get; init; }
@@ -116,8 +117,8 @@ public class StudySessionDto
     public string? SkillName { get; init; }
     public int? CourseId { get; init; }
     public string? CourseTitle { get; init; }
-    public int? BookId { get; init; }
-    public string? BookTitle { get; init; }
+    public int? MediaItemId { get; init; }
+    public string? MediaItemTitle { get; init; }
     public DateTime? StartedAt { get; init; }
     public string? Notes { get; init; }
 }
@@ -134,7 +135,7 @@ public class StudyAnalyticsDto
 
 public class StudySubjectSeriesDto
 {
-    /// <summary>Skill / Course / Book / Topic, or Other (the rest folded together).</summary>
+    /// <summary>Skill / Course / MediaItem / Topic, or Other (the rest folded together).</summary>
     public string Kind { get; init; } = string.Empty;
     public int? Id { get; init; }
     public string Name { get; init; } = string.Empty;
@@ -147,7 +148,7 @@ public static class StudySubjectKinds
 {
     public const string Skill = "Skill";
     public const string Course = "Course";
-    public const string Book = "Book";
+    public const string MediaItem = "MediaItem";
     public const string Topic = "Topic";
     public const string Other = "Other";
 }
@@ -164,7 +165,7 @@ public class StudySessionRequest
 
     public int? SkillId { get; init; }
     public int? CourseId { get; init; }
-    public int? BookId { get; init; }
+    public int? MediaItemId { get; init; }
 
     /// <summary>Set when the study timer logged it (UTC, with a "Z").</summary>
     public DateTime? StartedAt { get; init; }

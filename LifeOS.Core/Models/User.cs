@@ -47,12 +47,6 @@ public partial class User
 
     public virtual ICollection<BodyMeasurement> BodyMeasurements { get; set; } = new List<BodyMeasurement>();
 
-    public virtual ICollection<BookNote> BookNotes { get; set; } = new List<BookNote>();
-
-    public virtual ICollection<BookTag> BookTags { get; set; } = new List<BookTag>();
-
-    public virtual ICollection<Book> Books { get; set; } = new List<Book>();
-
     public virtual ICollection<Budget> Budgets { get; set; } = new List<Budget>();
 
     public virtual ICollection<CareerAchievement> CareerAchievements { get; set; } = new List<CareerAchievement>();
@@ -119,6 +113,10 @@ public partial class User
 
     public virtual HealthProfile? HealthProfile { get; set; }
 
+    public virtual ICollection<Hobby> Hobbies { get; set; } = new List<Hobby>();
+
+    public virtual ICollection<HobbySession> HobbySessions { get; set; } = new List<HobbySession>();
+
     public virtual ICollection<HoldingValuation> HoldingValuations { get; set; } = new List<HoldingValuation>();
 
     public virtual ICollection<Holding> Holdings { get; set; } = new List<Holding>();
@@ -166,6 +164,14 @@ public partial class User
     public virtual ICollection<MaintenanceTask> MaintenanceTasks { get; set; } = new List<MaintenanceTask>();
 
     public virtual ICollection<Meal> Meals { get; set; } = new List<Meal>();
+
+    public virtual ICollection<MediaItemTag> MediaItemTags { get; set; } = new List<MediaItemTag>();
+
+    public virtual ICollection<MediaItem> MediaItems { get; set; } = new List<MediaItem>();
+
+    public virtual ICollection<MediaLog> MediaLogs { get; set; } = new List<MediaLog>();
+
+    public virtual ICollection<MediaNote> MediaNotes { get; set; } = new List<MediaNote>();
 
     public virtual ICollection<MedicalCondition> MedicalConditions { get; set; } = new List<MedicalCondition>();
 

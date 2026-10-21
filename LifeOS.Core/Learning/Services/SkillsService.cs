@@ -34,7 +34,7 @@ public class SkillsService(AppDbContext db, IEntityLinksService entityLinksServi
                 LifeAreaName = s.LifeArea != null ? s.LifeArea.Name : null,
                 Tags = s.SkillTags.OrderBy(st => st.Tag.Name).Select(st => new TagDto { Id = st.TagId, Name = st.Tag.Name }).ToList(),
                 CourseCount = s.Courses.Count,
-                BookCount = s.Books.Count,
+                MediaCount = s.MediaItems.Count(m => !m.IsDeleted),
                 LevelSince = s.SkillLevelChanges.OrderByDescending(c => c.ChangedOn).ThenByDescending(c => c.Id)
                     .Select(c => (DateOnly?)c.ChangedOn).FirstOrDefault(),
             })
@@ -56,7 +56,7 @@ public class SkillsService(AppDbContext db, IEntityLinksService entityLinksServi
                 LifeAreaName = s.LifeArea != null ? s.LifeArea.Name : null,
                 Tags = s.SkillTags.OrderBy(st => st.Tag.Name).Select(st => new TagDto { Id = st.TagId, Name = st.Tag.Name }).ToList(),
                 CourseCount = s.Courses.Count,
-                BookCount = s.Books.Count,
+                MediaCount = s.MediaItems.Count(m => !m.IsDeleted),
                 LevelSince = s.SkillLevelChanges.OrderByDescending(c => c.ChangedOn).ThenByDescending(c => c.Id)
                     .Select(c => (DateOnly?)c.ChangedOn).FirstOrDefault(),
                 History = s.SkillLevelChanges.OrderByDescending(c => c.ChangedOn).ThenByDescending(c => c.Id)
@@ -70,8 +70,8 @@ public class SkillsService(AppDbContext db, IEntityLinksService entityLinksServi
                     }).ToList(),
                 Courses = s.Courses.OrderBy(c => c.Title)
                     .Select(c => new LearningItemDto { Id = c.Id, Title = c.Title, Status = c.Status }).ToList(),
-                Books = s.Books.OrderBy(b => b.Title)
-                    .Select(b => new LearningItemDto { Id = b.Id, Title = b.Title, Status = b.Status }).ToList(),
+                Media = s.MediaItems.Where(m => !m.IsDeleted).OrderBy(m => m.Title)
+                    .Select(m => new LearningItemDto { Id = m.Id, Title = m.Title, Status = m.Status, Kind = m.Kind }).ToList(),
             })
             .AsSplitQuery()
             .FirstOrDefaultAsync();
@@ -193,7 +193,7 @@ public class SkillsService(AppDbContext db, IEntityLinksService entityLinksServi
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.IsDeleted, true).SetProperty(t => t.DeletedAt, now));
         await db.Courses.Where(c => c.SkillId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.SkillId, (int?)null).SetProperty(c => c.UpdatedAt, now));
-        await db.Books.Where(b => b.SkillId == id)
+        await db.MediaItems.Where(b => b.SkillId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(b => b.SkillId, (int?)null).SetProperty(b => b.UpdatedAt, now));
         await db.Certifications.Where(c => c.SkillId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.SkillId, (int?)null).SetProperty(c => c.UpdatedAt, now));

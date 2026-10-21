@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LifeOS.Core.Models;
 
-public partial class Book
+public partial class MediaItem
 {
     public int Id { get; set; }
 
@@ -13,21 +13,33 @@ public partial class Book
 
     public int? LifeAreaId { get; set; }
 
+    public string Kind { get; set; } = null!;
+
     public string Title { get; set; } = null!;
 
-    public string? Author { get; set; }
+    public string? Creator { get; set; }
+
+    public string? WhereToFind { get; set; }
 
     public string Status { get; set; } = null!;
+
+    public bool UpNext { get; set; }
 
     public int? TotalPages { get; set; }
 
     public int CurrentPage { get; set; }
+
+    public short? Season { get; set; }
+
+    public short? Episode { get; set; }
 
     public DateOnly? StartedOn { get; set; }
 
     public DateOnly? FinishedOn { get; set; }
 
     public byte? Rating { get; set; }
+
+    public string? Review { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
@@ -37,11 +49,13 @@ public partial class Book
 
     public DateTime? DeletedAt { get; set; }
 
-    public virtual ICollection<BookNote> BookNotes { get; set; } = new List<BookNote>();
-
-    public virtual ICollection<BookTag> BookTags { get; set; } = new List<BookTag>();
-
     public virtual LifeArea? LifeArea { get; set; }
+
+    public virtual ICollection<MediaItemTag> MediaItemTags { get; set; } = new List<MediaItemTag>();
+
+    public virtual ICollection<MediaLog> MediaLogs { get; set; } = new List<MediaLog>();
+
+    public virtual ICollection<MediaNote> MediaNotes { get; set; } = new List<MediaNote>();
 
     public virtual ICollection<RoadmapStep> RoadmapSteps { get; set; } = new List<RoadmapStep>();
 

@@ -101,12 +101,6 @@ public partial class SkillTag : ISoftDeletable, IUserOwned;
 
 public partial class Course : ISoftDeletable, IUserOwned;
 
-public partial class Book : ISoftDeletable, IUserOwned;
-
-public partial class BookTag : ISoftDeletable, IUserOwned;
-
-public partial class BookNote : ISoftDeletable, IUserOwned;
-
 public partial class Certification : ISoftDeletable, IUserOwned;
 
 public partial class StudySession : ISoftDeletable, IUserOwned;
@@ -259,3 +253,16 @@ public partial class KeepInTouch : ISoftDeletable, IUserOwned;
 public partial class GiftIdea : ISoftDeletable, IUserOwned;
 
 public partial class Responsibility : ISoftDeletable, IUserOwned;
+
+// Leisure & media (Session 78a; books moved here from Learning)
+public partial class MediaItem : ISoftDeletable, IUserOwned;
+
+public partial class MediaItemTag : ISoftDeletable, IUserOwned;
+
+public partial class MediaNote : ISoftDeletable, IUserOwned;
+
+public partial class MediaLog : ISoftDeletable, IUserOwned;
+
+public partial class Hobby : ISoftDeletable, IUserOwned;
+
+public partial class HobbySession : ISoftDeletable, IUserOwned;

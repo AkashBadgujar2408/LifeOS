@@ -1229,3 +1229,12 @@
 - Gotchas: a `prettier --check … | tail` chain hides Prettier's exit code — check before committing. Required ng-selects aren't clearable (no ×), so their error only shows before a first pick.
 - Test data: `ui75b84476` (habits Stretch, Drink water; tag Fitness75b).
 - Next: Session 78a — Leisure & media 1 (schema + API, books moved in).
+
+## Last session: 2026-10-21 — Session 78a — Leisure & media 1 (schema + API, books moved in)
+- Shipped: `17_leisure.sql` (schema `leisure`: MediaItems, MediaItemTags, MediaNotes, MediaLogs, Hobbies, HobbySessions) and the upgrade that drops `learning.Books/BookTags/BookNotes` — you said the book data wasn't needed, so links/reminders/attachments/goal sources pointing at a book were deleted and book-only study sessions removed. `StudySessions`/`RoadmapSteps` have `MediaItemId` (last column on fresh and old DBs alike, FK added by 17). `02_goals` CHECK takes `MediaItem` for study time; `Leisure` module key. Procs `learning.GetStudyBySubject` (subject kind `MediaItem`) and `story.GetLifeAreaStats` read media items.
+- Server: `Leisure/` — `LeisureRules` (pure, 10 tests: books' rules folded in + episodes, kinds, reviews, up next), `MediaItemsService` (CRUD, progress by page or episode, notes, logs; delete releases goal counting, roadmap steps, links, reminders), `HobbiesService` (sessions; unique name with the race safety net), linkable `MediaItem`/`Hobby`, `api/Leisure/{MediaItems,Hobbies}`. Learning: `BooksService`/controller/DTOs gone; skills report `mediaCount`/`media` (with kind), study sessions `mediaItemId`/`mediaItemTitle`, roadmap target type `MediaItem`; a habit delete nulls a hobby's habit.
+- Verified: see plan row 78a (constraints, upgrade + re-run, fresh-DB scaffold, API end to end, export → import identical). UAT backup before the upgrade: `LifeOS_UAT_pre78a.bak` in this session's scratchpad.
+- **The client still calls `api/Learning/Books`** (book pages, study/roadmap/skill pickers) — Session 78b replaces those with the Leisure pages.
+- Gotchas: a Node edit helper that mutates a captured string and then returns the callback's own copy silently drops edits — check the diff after any scripted multi-edit. `dotnet ef … --no-build` scaffolds while the API is running (the build would hit the locked exe).
+- Test data: `ui75b84476` (Severance up next → episode 3, Perfect Days 5★ with a 124-min log, Guitar 30 min, goals "Study writing 20 hours" / "Read 12 books"), `imp78a…` (its import).
+- Next: Session 78b — Leisure & media 2 (UI, year in media, books' pages move from Learning).

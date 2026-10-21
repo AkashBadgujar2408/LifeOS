@@ -2,6 +2,8 @@ using LifeOS.Core.Goals.DTOs;
 using LifeOS.Core.Goals.ServiceContracts;
 using LifeOS.Core.Goals.Services;
 using LifeOS.Core.Learning.DTOs;
+using LifeOS.Core.Leisure.DTOs;
+using LifeOS.Core.Leisure.Services;
 using LifeOS.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -57,9 +59,9 @@ public class LearningGoalSources(AppDbContext db) : IGoalProgressSource
                 .Where(x => x.StudiedOn >= earliest && x.StudiedOn <= today)
                 .Select(x => new
                 {
-                    x.StudiedOn, x.Minutes, x.SkillId, x.CourseId, x.BookId,
-                    // The skill it serves: its own, else its course's, else its book's.
-                    ServesSkillId = x.SkillId ?? (x.Course != null ? x.Course.SkillId : null) ?? (x.Book != null ? x.Book.SkillId : null),
+                    x.StudiedOn, x.Minutes, x.SkillId, x.CourseId, x.MediaItemId,
+                    // The skill it serves: its own, else its course's, else its media item's (a book read for it).
+                    ServesSkillId = x.SkillId ?? (x.Course != null ? x.Course.SkillId : null) ?? (x.MediaItem != null ? x.MediaItem.SkillId : null),
                 })
                 .ToListAsync();
             foreach (var source in study)
@@ -68,7 +70,7 @@ public class LearningGoalSources(AppDbContext db) : IGoalProgressSource
                 {
                     SkillLinkableProvider.Type => sessions.Where(x => x.ServesSkillId == source.EntityId),
                     CourseLinkableProvider.Type => sessions.Where(x => x.CourseId == source.EntityId),
-                    _ => sessions.Where(x => x.BookId == source.EntityId),
+                    _ => sessions.Where(x => x.MediaItemId == source.EntityId),
                 };
                 amounts.AddRange(matching
                     .Where(x => x.StudiedOn >= source.CountsFrom)
@@ -79,8 +81,8 @@ public class LearningGoalSources(AppDbContext db) : IGoalProgressSource
 
         foreach (var source in sources.Where(s => s.Kind == GoalSourceKinds.BooksFinished))
         {
-            var books = await db.Books
-                .Where(b => b.Status == BookStatuses.Finished && b.FinishedOn != null
+            var books = await db.MediaItems
+                .Where(b => b.Kind == MediaKinds.Book && b.Status == MediaStatuses.Finished && b.FinishedOn != null
                     && b.FinishedOn >= source.CountsFrom && b.FinishedOn <= today
                     && (source.EntityId == null || b.SkillId == source.EntityId))
                 .Select(b => b.FinishedOn!.Value)
@@ -129,7 +131,7 @@ public class LearningGoalSources(AppDbContext db) : IGoalProgressSource
         var skills = await db.Skills.OrderBy(s => s.Name).Select(s => new { s.Id, s.Name }).ToListAsync();
         var courses = await db.Courses.Where(c => c.Status != CourseStatuses.Dropped)
             .OrderBy(c => c.Title).Select(c => new { c.Id, c.Title }).ToListAsync();
-        var books = await db.Books.Where(b => b.Status != BookStatuses.Abandoned)
+        var media = await db.MediaItems.Where(b => b.Status != MediaStatuses.Dropped)
             .OrderBy(b => b.Title).Select(b => new { b.Id, b.Title }).ToListAsync();
         var roadmaps = await db.Roadmaps.Where(r => r.Status != RoadmapStatuses.Archived)
             .OrderBy(r => r.Title).Select(r => new { r.Id, r.Title }).ToListAsync();
@@ -137,7 +139,7 @@ public class LearningGoalSources(AppDbContext db) : IGoalProgressSource
         var options = new List<GoalSourceOptionDto>();
         options.AddRange(skills.Select(s => Option(GoalSourceKinds.StudyTime, SkillLinkableProvider.Type, s.Id, $"Study time: {s.Name}", HoursUnit)));
         options.AddRange(courses.Select(c => Option(GoalSourceKinds.StudyTime, CourseLinkableProvider.Type, c.Id, $"Study time: {c.Title}", HoursUnit)));
-        options.AddRange(books.Select(b => Option(GoalSourceKinds.StudyTime, BookLinkableProvider.Type, b.Id, $"Study time: {b.Title}", HoursUnit)));
+        options.AddRange(media.Select(b => Option(GoalSourceKinds.StudyTime, MediaItemLinkableProvider.Type, b.Id, $"Study time: {b.Title}", HoursUnit)));
         options.Add(Option(GoalSourceKinds.BooksFinished, null, null, "Books finished (any)", BooksUnit));
         options.AddRange(skills.Select(s => Option(GoalSourceKinds.BooksFinished, SkillLinkableProvider.Type, s.Id, $"Books finished: {s.Name}", BooksUnit)));
         options.Add(Option(GoalSourceKinds.CoursesCompleted, null, null, "Courses completed (any)", CoursesUnit));
@@ -152,7 +154,7 @@ public class LearningGoalSources(AppDbContext db) : IGoalProgressSource
     private static GoalSourceOptionDto Option(string kind, string? entityType, int? entityId, string title, string unit) =>
         new() { Kind = kind, EntityType = entityType, EntityId = entityId, Title = title, Unit = unit };
 
-    /// <summary>Names of the skills, courses, books and roadmaps the sources point at (missing ones left out).</summary>
+    /// <summary>Names of the skills, courses, media items and roadmaps the sources point at (missing ones left out).</summary>
     private async Task<Dictionary<(string Type, int Id), string>> NamesAsync(IReadOnlyCollection<GoalSourceRef> sources)
     {
         List<int> Ids(string type) =>
@@ -171,10 +173,10 @@ public class LearningGoalSources(AppDbContext db) : IGoalProgressSource
             names[(CourseLinkableProvider.Type, c.Id)] = c.Title;
         }
 
-        var bookIds = Ids(BookLinkableProvider.Type);
-        foreach (var b in await db.Books.Where(x => bookIds.Contains(x.Id)).Select(x => new { x.Id, x.Title }).ToListAsync())
+        var mediaIds = Ids(MediaItemLinkableProvider.Type);
+        foreach (var b in await db.MediaItems.Where(x => mediaIds.Contains(x.Id)).Select(x => new { x.Id, x.Title }).ToListAsync())
         {
-            names[(BookLinkableProvider.Type, b.Id)] = b.Title;
+            names[(MediaItemLinkableProvider.Type, b.Id)] = b.Title;
         }
 
         var roadmapIds = Ids(RoadmapLinkableProvider.Type);

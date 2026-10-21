@@ -196,8 +196,8 @@ GO
 
 -- What a Linked goal is counted from. Kind says what is counted (each kind has its own unit — a goal's unit must match):
 --   Habit            a habit (EntityType 'Habit'): logged values of a measurable habit, else 1 per day done
---   StudyTime        hours studied for a Skill / Course / Book (EntityType + EntityId)
---   BooksFinished    books finished — of a Skill, or every book (no entity)
+--   StudyTime        hours studied for a Skill / Course / MediaItem (EntityType + EntityId)
+--   BooksFinished    books finished (media items of kind Book) — of a Skill, or every book (no entity)
 --   CoursesCompleted courses completed — of a Skill, or every course (no entity)
 --   Roadmap          a Roadmap's % (the goal's only source, unit '%')
 --   ProjectTasks     tasks done in a Project
@@ -225,7 +225,7 @@ BEGIN
         CONSTRAINT CK_GoalSources_EntityPair CHECK ((EntityType IS NULL AND EntityId IS NULL) OR (EntityType IS NOT NULL AND EntityId IS NOT NULL)),
         CONSTRAINT CK_GoalSources_Shape CHECK (
             (Kind = 'Habit' AND EntityType = 'Habit' AND Filter IS NULL AND Metric IS NULL)
-            OR (Kind = 'StudyTime' AND EntityType IN ('Skill', 'Course', 'Book') AND Filter IS NULL AND Metric IS NULL)
+            OR (Kind = 'StudyTime' AND EntityType IN ('Skill', 'Course', 'MediaItem') AND Filter IS NULL AND Metric IS NULL)
             OR (Kind IN ('BooksFinished', 'CoursesCompleted') AND (EntityType IS NULL OR EntityType = 'Skill') AND Filter IS NULL AND Metric IS NULL)
             OR (Kind = 'Roadmap' AND EntityType = 'Roadmap' AND Filter IS NULL AND Metric IS NULL)
             OR (Kind IN ('ProjectTasks', 'ProjectFocus') AND EntityType = 'Project' AND Filter IS NULL AND Metric IS NULL)

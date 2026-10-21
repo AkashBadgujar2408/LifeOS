@@ -7,9 +7,11 @@ GO
 
 -- Education & Learning (Phase 2, Sessions 47-50). Depends on 01_shared.sql (Users, LifeAreas, Tags), 02_goals.sql
 -- (Goals, for roadmap steps) and 04_calendar.sql (Reminders, for certification renewals).
--- What you know (Skills), how you're learning it (Courses, Books, StudySessions, Roadmaps), what proves it
+-- What you know (Skills), how you're learning it (Courses, StudySessions, Roadmaps), what proves it
 -- (Certifications) and what you want to keep (KnowledgeNotes, reviewed on a spaced schedule). Anything computed —
--- hours studied, a roadmap's progress, the next review interval — is worked out in C#, never stored.
+-- hours studied, a roadmap's progress, the next review interval — is worked out in C#, never stored. Books were
+-- here until Session 78a; they are media items now (leisure.MediaItems, 17_leisure.sql), which a study session or
+-- a roadmap step can point at through MediaItemId — its foreign key is added by 17_leisure.sql, which runs later.
 
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'learning')
     EXEC('CREATE SCHEMA learning');
@@ -124,86 +126,6 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('learning.C
     CREATE INDEX IX_Courses_User_Status ON learning.Courses(UserId, Status) WHERE IsDeleted = 0;
 GO
 
--- A book on the reading list. Status: WantToRead → Reading → Finished (or Abandoned). CurrentPage can't pass
--- TotalPages; a Finished book has a FinishedOn day (and only then). Rating 1-5, once read (or given up).
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('learning.Books'))
-BEGIN
-    CREATE TABLE learning.Books
-    (
-        Id                  INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Books PRIMARY KEY,
-        UserId              INT               NOT NULL CONSTRAINT FK_Books_Users REFERENCES shared.Users(Id),
-        SkillId             INT               NULL     CONSTRAINT FK_Books_Skills REFERENCES learning.Skills(Id),
-        LifeAreaId          INT               NULL     CONSTRAINT FK_Books_LifeAreas REFERENCES shared.LifeAreas(Id),
-        Title               NVARCHAR(200)     NOT NULL,
-        Author              NVARCHAR(200)     NULL,
-        Status              NVARCHAR(20)      NOT NULL CONSTRAINT DF_Books_Status DEFAULT ('WantToRead')
-                                CONSTRAINT CK_Books_Status CHECK (Status IN ('WantToRead', 'Reading', 'Finished', 'Abandoned')),
-        TotalPages          INT               NULL     CONSTRAINT CK_Books_TotalPages CHECK (TotalPages BETWEEN 1 AND 100000),
-        CurrentPage         INT               NOT NULL CONSTRAINT DF_Books_CurrentPage DEFAULT (0)
-                                CONSTRAINT CK_Books_CurrentPage CHECK (CurrentPage >= 0),
-        StartedOn           DATE              NULL,
-        FinishedOn          DATE              NULL,
-        Rating              TINYINT           NULL     CONSTRAINT CK_Books_Rating CHECK (Rating BETWEEN 1 AND 5),
-        CreatedAt           DATETIME2         NOT NULL CONSTRAINT DF_Books_CreatedAt DEFAULT (SYSUTCDATETIME()),
-        UpdatedAt           DATETIME2         NULL,
-        IsDeleted           BIT               NOT NULL CONSTRAINT DF_Books_IsDeleted DEFAULT (0),
-        DeletedAt           DATETIME2         NULL,
-        CONSTRAINT CK_Books_Pages CHECK (TotalPages IS NULL OR CurrentPage <= TotalPages),
-        CONSTRAINT CK_Books_Finished CHECK ((Status = 'Finished' AND FinishedOn IS NOT NULL) OR (Status <> 'Finished' AND FinishedOn IS NULL)),
-        CONSTRAINT CK_Books_Dates CHECK (StartedOn IS NULL OR FinishedOn IS NULL OR FinishedOn >= StartedOn),
-        CONSTRAINT CK_Books_RatedOnceRead CHECK (Rating IS NULL OR Status IN ('Finished', 'Abandoned'))
-    );
-END
-GO
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('learning.Books') AND name = 'IX_Books_User_Status')
-    CREATE INDEX IX_Books_User_Status ON learning.Books(UserId, Status) WHERE IsDeleted = 0;
-GO
-
--- Genres and the like are tags.
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('learning.BookTags'))
-BEGIN
-    CREATE TABLE learning.BookTags
-    (
-        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_BookTags PRIMARY KEY,
-        UserId          INT               NOT NULL CONSTRAINT FK_BookTags_Users REFERENCES shared.Users(Id),
-        BookId          INT               NOT NULL CONSTRAINT FK_BookTags_Books REFERENCES learning.Books(Id),
-        TagId           INT               NOT NULL CONSTRAINT FK_BookTags_Tags REFERENCES shared.Tags(Id),
-        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_BookTags_CreatedAt DEFAULT (SYSUTCDATETIME()),
-        UpdatedAt       DATETIME2         NULL,
-        IsDeleted       BIT               NOT NULL CONSTRAINT DF_BookTags_IsDeleted DEFAULT (0),
-        DeletedAt       DATETIME2         NULL
-    );
-END
-GO
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('learning.BookTags') AND name = 'UX_BookTags_Book_Tag')
-    CREATE UNIQUE INDEX UX_BookTags_Book_Tag ON learning.BookTags(BookId, TagId) WHERE IsDeleted = 0;
-GO
-
--- What a book left behind: a Note (your own thought) or a Highlight (a passage worth keeping), optionally at a page.
-IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('learning.BookNotes'))
-BEGIN
-    CREATE TABLE learning.BookNotes
-    (
-        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_BookNotes PRIMARY KEY,
-        UserId          INT               NOT NULL CONSTRAINT FK_BookNotes_Users REFERENCES shared.Users(Id),
-        BookId          INT               NOT NULL CONSTRAINT FK_BookNotes_Books REFERENCES learning.Books(Id),
-        Kind            NVARCHAR(20)      NOT NULL CONSTRAINT CK_BookNotes_Kind CHECK (Kind IN ('Note', 'Highlight')),
-        Text            NVARCHAR(4000)    NOT NULL CONSTRAINT CK_BookNotes_Text CHECK (LEN(Text) > 0),
-        Page            INT               NULL     CONSTRAINT CK_BookNotes_Page CHECK (Page BETWEEN 1 AND 100000),
-        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_BookNotes_CreatedAt DEFAULT (SYSUTCDATETIME()),
-        UpdatedAt       DATETIME2         NULL,
-        IsDeleted       BIT               NOT NULL CONSTRAINT DF_BookNotes_IsDeleted DEFAULT (0),
-        DeletedAt       DATETIME2         NULL
-    );
-END
-GO
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('learning.BookNotes') AND name = 'IX_BookNotes_Book')
-    CREATE INDEX IX_BookNotes_Book ON learning.BookNotes(BookId, Page) WHERE IsDeleted = 0;
-GO
-
 -- A certification: issued, maybe expiring (never before it was issued). The renewal reminder works like a
 -- document's expiry reminder (one ordinary calendar.Reminders row kept in step by the service, Session 49):
 -- RenewalReminderDays before ExpiresOn, 0-365, only with an expiry.
@@ -237,7 +159,8 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('learning.C
     CREATE INDEX IX_Certifications_User_ExpiresOn ON learning.Certifications(UserId, ExpiresOn) WHERE IsDeleted = 0;
 GO
 
--- Time spent learning: Minutes on a local day (StudiedOn), about a Topic and/or a skill, course or book. StartedAt is
+-- Time spent learning: Minutes on a local day (StudiedOn), about a Topic and/or a skill, course or media item (a book
+-- read for it). StartedAt is
 -- set when the study timer logged it (Session 49), NULL for a session entered by hand. Hours by subject (Session 50)
 -- are summed from these, never stored.
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('learning.StudySessions'))
@@ -248,7 +171,6 @@ BEGIN
         UserId          INT               NOT NULL CONSTRAINT FK_StudySessions_Users REFERENCES shared.Users(Id),
         SkillId         INT               NULL     CONSTRAINT FK_StudySessions_Skills REFERENCES learning.Skills(Id),
         CourseId        INT               NULL     CONSTRAINT FK_StudySessions_Courses REFERENCES learning.Courses(Id),
-        BookId          INT               NULL     CONSTRAINT FK_StudySessions_Books REFERENCES learning.Books(Id),
         Topic           NVARCHAR(200)     NULL,
         StudiedOn       DATE              NOT NULL,
         Minutes         INT               NOT NULL CONSTRAINT CK_StudySessions_Minutes CHECK (Minutes BETWEEN 1 AND 1440),
@@ -258,14 +180,16 @@ BEGIN
         UpdatedAt       DATETIME2         NULL,
         IsDeleted       BIT               NOT NULL CONSTRAINT DF_StudySessions_IsDeleted DEFAULT (0),
         DeletedAt       DATETIME2         NULL,
-        -- A session is about something: a topic, or a skill/course/book.
-        CONSTRAINT CK_StudySessions_Subject CHECK (Topic IS NOT NULL OR SkillId IS NOT NULL OR CourseId IS NOT NULL OR BookId IS NOT NULL)
+        -- Last, where databases from before Session 78a got it (FK added by 17_leisure.sql).
+        MediaItemId     INT               NULL,
+        -- A session is about something: a topic, or a skill/course/media item.
+        CONSTRAINT CK_StudySessions_Subject CHECK (Topic IS NOT NULL OR SkillId IS NOT NULL OR CourseId IS NOT NULL OR MediaItemId IS NOT NULL)
     );
 END
 GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('learning.StudySessions') AND name = 'IX_StudySessions_User_Day')
-    CREATE INDEX IX_StudySessions_User_Day ON learning.StudySessions(UserId, StudiedOn) INCLUDE (Minutes, SkillId, CourseId, BookId) WHERE IsDeleted = 0;
+    CREATE INDEX IX_StudySessions_User_Day ON learning.StudySessions(UserId, StudiedOn) INCLUDE (Minutes, SkillId, CourseId, MediaItemId) WHERE IsDeleted = 0;
 GO
 
 -- A learning roadmap ("Become a backend developer"): ordered steps, optionally serving a goal. Progress is the share
@@ -290,7 +214,7 @@ END
 GO
 
 -- A step of a roadmap, in order; done = CompletedAt set. It can point at the one thing that is the step — a course,
--- a book or a goal — at most one of them.
+-- a media item (a book) or a goal — at most one of them.
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('learning.RoadmapSteps'))
 BEGIN
     CREATE TABLE learning.RoadmapSteps
@@ -301,16 +225,17 @@ BEGIN
         Title           NVARCHAR(200)     NOT NULL,
         SortOrder       INT               NOT NULL CONSTRAINT DF_RoadmapSteps_SortOrder DEFAULT (0),
         CourseId        INT               NULL     CONSTRAINT FK_RoadmapSteps_Courses REFERENCES learning.Courses(Id),
-        BookId          INT               NULL     CONSTRAINT FK_RoadmapSteps_Books REFERENCES learning.Books(Id),
         GoalId          INT               NULL     CONSTRAINT FK_RoadmapSteps_Goals REFERENCES goals.Goals(Id),
         CompletedAt     DATETIME2         NULL,
         CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_RoadmapSteps_CreatedAt DEFAULT (SYSUTCDATETIME()),
         UpdatedAt       DATETIME2         NULL,
         IsDeleted       BIT               NOT NULL CONSTRAINT DF_RoadmapSteps_IsDeleted DEFAULT (0),
         DeletedAt       DATETIME2         NULL,
+        -- Last, where databases from before Session 78a got it (FK added by 17_leisure.sql).
+        MediaItemId     INT               NULL,
         CONSTRAINT CK_RoadmapSteps_OneTarget CHECK (
             (CASE WHEN CourseId IS NULL THEN 0 ELSE 1 END)
-          + (CASE WHEN BookId IS NULL THEN 0 ELSE 1 END)
+          + (CASE WHEN MediaItemId IS NULL THEN 0 ELSE 1 END)
           + (CASE WHEN GoalId IS NULL THEN 0 ELSE 1 END) <= 1)
     );
 END

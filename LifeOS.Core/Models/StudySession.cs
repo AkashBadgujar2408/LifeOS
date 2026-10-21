@@ -13,8 +13,6 @@ public partial class StudySession
 
     public int? CourseId { get; set; }
 
-    public int? BookId { get; set; }
-
     public string? Topic { get; set; }
 
     public DateOnly StudiedOn { get; set; }
@@ -33,9 +31,11 @@ public partial class StudySession
 
     public DateTime? DeletedAt { get; set; }
 
-    public virtual Book? Book { get; set; }
+    public int? MediaItemId { get; set; }
 
     public virtual Course? Course { get; set; }
+
+    public virtual MediaItem? MediaItem { get; set; }
 
     public virtual Skill? Skill { get; set; }
 

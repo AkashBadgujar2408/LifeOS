@@ -41,6 +41,8 @@ public partial class Habit
 
     public virtual ICollection<HabitTag> HabitTags { get; set; } = new List<HabitTag>();
 
+    public virtual ICollection<Hobby> Hobbies { get; set; } = new List<Hobby>();
+
     public virtual LifeArea? LifeArea { get; set; }
 
     public virtual ICollection<RoutineHabit> RoutineHabits { get; set; } = new List<RoutineHabit>();

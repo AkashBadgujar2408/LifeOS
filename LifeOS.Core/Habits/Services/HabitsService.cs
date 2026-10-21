@@ -270,6 +270,10 @@ public class HabitsService(AppDbContext db, IMapper mapper, IEntityLinksService 
         await db.RoutineHabits
             .Where(r => r.HabitId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsDeleted, true).SetProperty(r => r.DeletedAt, now));
+        // A hobby practised through it carries on without a habit.
+        await db.Hobbies
+            .Where(h => h.HabitId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(h => h.HabitId, (int?)null).SetProperty(h => h.UpdatedAt, now));
 
         habit.IsDeleted = true;
         habit.DeletedAt = now;

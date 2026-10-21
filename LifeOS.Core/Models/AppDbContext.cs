@@ -29,12 +29,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<BodyMeasurement> BodyMeasurements { get; set; }
 
-    public virtual DbSet<Book> Books { get; set; }
-
-    public virtual DbSet<BookNote> BookNotes { get; set; }
-
-    public virtual DbSet<BookTag> BookTags { get; set; }
-
     public virtual DbSet<Budget> Budgets { get; set; }
 
     public virtual DbSet<CareerAchievement> CareerAchievements { get; set; }
@@ -101,6 +95,10 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<HealthProfile> HealthProfiles { get; set; }
 
+    public virtual DbSet<Hobby> Hobbies { get; set; }
+
+    public virtual DbSet<HobbySession> HobbySessions { get; set; }
+
     public virtual DbSet<Holding> Holdings { get; set; }
 
     public virtual DbSet<HoldingValuation> HoldingValuations { get; set; }
@@ -150,6 +148,14 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<MaintenanceTask> MaintenanceTasks { get; set; }
 
     public virtual DbSet<Meal> Meals { get; set; }
+
+    public virtual DbSet<MediaItem> MediaItems { get; set; }
+
+    public virtual DbSet<MediaItemTag> MediaItemTags { get; set; }
+
+    public virtual DbSet<MediaLog> MediaLogs { get; set; }
+
+    public virtual DbSet<MediaNote> MediaNotes { get; set; }
 
     public virtual DbSet<MedicalCondition> MedicalConditions { get; set; }
 
@@ -521,80 +527,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_BodyMeasurements_Users");
-        });
-
-        modelBuilder.Entity<Book>(entity =>
-        {
-            entity.ToTable("Books", "learning");
-
-            entity.HasIndex(e => new { e.UserId, e.Status }, "IX_Books_User_Status").HasFilter("([IsDeleted]=(0))");
-
-            entity.Property(e => e.Author).HasMaxLength(200);
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Books_CreatedAt");
-            entity.Property(e => e.Status)
-                .HasMaxLength(20)
-                .HasDefaultValue("WantToRead", "DF_Books_Status");
-            entity.Property(e => e.Title).HasMaxLength(200);
-
-            entity.HasOne(d => d.LifeArea).WithMany(p => p.Books)
-                .HasForeignKey(d => d.LifeAreaId)
-                .HasConstraintName("FK_Books_LifeAreas");
-
-            entity.HasOne(d => d.Skill).WithMany(p => p.Books)
-                .HasForeignKey(d => d.SkillId)
-                .HasConstraintName("FK_Books_Skills");
-
-            entity.HasOne(d => d.User).WithMany(p => p.Books)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Books_Users");
-        });
-
-        modelBuilder.Entity<BookNote>(entity =>
-        {
-            entity.ToTable("BookNotes", "learning");
-
-            entity.HasIndex(e => new { e.BookId, e.Page }, "IX_BookNotes_Book").HasFilter("([IsDeleted]=(0))");
-
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_BookNotes_CreatedAt");
-            entity.Property(e => e.Kind).HasMaxLength(20);
-            entity.Property(e => e.Text).HasMaxLength(4000);
-
-            entity.HasOne(d => d.Book).WithMany(p => p.BookNotes)
-                .HasForeignKey(d => d.BookId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BookNotes_Books");
-
-            entity.HasOne(d => d.User).WithMany(p => p.BookNotes)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BookNotes_Users");
-        });
-
-        modelBuilder.Entity<BookTag>(entity =>
-        {
-            entity.ToTable("BookTags", "learning");
-
-            entity.HasIndex(e => new { e.BookId, e.TagId }, "UX_BookTags_Book_Tag")
-                .IsUnique()
-                .HasFilter("([IsDeleted]=(0))");
-
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_BookTags_CreatedAt");
-
-            entity.HasOne(d => d.Book).WithMany(p => p.BookTags)
-                .HasForeignKey(d => d.BookId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BookTags_Books");
-
-            entity.HasOne(d => d.Tag).WithMany(p => p.BookTags)
-                .HasForeignKey(d => d.TagId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BookTags_Tags");
-
-            entity.HasOne(d => d.User).WithMany(p => p.BookTags)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_BookTags_Users");
         });
 
         modelBuilder.Entity<Budget>(entity =>
@@ -1453,6 +1385,57 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_HealthProfiles_Users");
         });
 
+        modelBuilder.Entity<Hobby>(entity =>
+        {
+            entity.ToTable("Hobbies", "leisure");
+
+            entity.HasIndex(e => new { e.UserId, e.Name }, "UX_Hobbies_User_Name")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Hobbies_CreatedAt");
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Active", "DF_Hobbies_Status");
+
+            entity.HasOne(d => d.Habit).WithMany(p => p.Hobbies)
+                .HasForeignKey(d => d.HabitId)
+                .HasConstraintName("FK_Hobbies_Habits");
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.Hobbies)
+                .HasForeignKey(d => d.LifeAreaId)
+                .HasConstraintName("FK_Hobbies_LifeAreas");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Hobbies)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Hobbies_Users");
+        });
+
+        modelBuilder.Entity<HobbySession>(entity =>
+        {
+            entity.ToTable("HobbySessions", "leisure");
+
+            entity.HasIndex(e => new { e.HobbyId, e.PracticedOn }, "IX_HobbySessions_Hobby_Day").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.UserId, e.PracticedOn }, "IX_HobbySessions_User_Day").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_HobbySessions_CreatedAt");
+            entity.Property(e => e.Note).HasMaxLength(1000);
+
+            entity.HasOne(d => d.Hobby).WithMany(p => p.HobbySessions)
+                .HasForeignKey(d => d.HobbyId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HobbySessions_Hobbies");
+
+            entity.HasOne(d => d.User).WithMany(p => p.HobbySessions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_HobbySessions_Users");
+        });
+
         modelBuilder.Entity<Holding>(entity =>
         {
             entity.ToTable("Holdings", "finance");
@@ -2066,6 +2049,107 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("FK_Meals_Users");
         });
 
+        modelBuilder.Entity<MediaItem>(entity =>
+        {
+            entity.ToTable("MediaItems", "leisure");
+
+            entity.HasIndex(e => e.SkillId, "IX_MediaItems_Skill").HasFilter("([IsDeleted]=(0) AND [SkillId] IS NOT NULL)");
+
+            entity.HasIndex(e => new { e.UserId, e.Kind, e.Status }, "IX_MediaItems_User_Kind_Status").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MediaItems_CreatedAt");
+            entity.Property(e => e.Creator).HasMaxLength(200);
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Review).HasMaxLength(2000);
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("Want", "DF_MediaItems_Status");
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.WhereToFind).HasMaxLength(200);
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.MediaItems)
+                .HasForeignKey(d => d.LifeAreaId)
+                .HasConstraintName("FK_MediaItems_LifeAreas");
+
+            entity.HasOne(d => d.Skill).WithMany(p => p.MediaItems)
+                .HasForeignKey(d => d.SkillId)
+                .HasConstraintName("FK_MediaItems_Skills");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MediaItems)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MediaItems_Users");
+        });
+
+        modelBuilder.Entity<MediaItemTag>(entity =>
+        {
+            entity.ToTable("MediaItemTags", "leisure");
+
+            entity.HasIndex(e => new { e.MediaItemId, e.TagId }, "UX_MediaItemTags_Item_Tag")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MediaItemTags_CreatedAt");
+
+            entity.HasOne(d => d.MediaItem).WithMany(p => p.MediaItemTags)
+                .HasForeignKey(d => d.MediaItemId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MediaItemTags_MediaItems");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.MediaItemTags)
+                .HasForeignKey(d => d.TagId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MediaItemTags_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MediaItemTags)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MediaItemTags_Users");
+        });
+
+        modelBuilder.Entity<MediaLog>(entity =>
+        {
+            entity.ToTable("MediaLogs", "leisure");
+
+            entity.HasIndex(e => new { e.MediaItemId, e.LoggedOn }, "IX_MediaLogs_Item").HasFilter("([IsDeleted]=(0))");
+
+            entity.HasIndex(e => new { e.UserId, e.LoggedOn }, "IX_MediaLogs_User_Day").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MediaLogs_CreatedAt");
+            entity.Property(e => e.Note).HasMaxLength(500);
+
+            entity.HasOne(d => d.MediaItem).WithMany(p => p.MediaLogs)
+                .HasForeignKey(d => d.MediaItemId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MediaLogs_MediaItems");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MediaLogs)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MediaLogs_Users");
+        });
+
+        modelBuilder.Entity<MediaNote>(entity =>
+        {
+            entity.ToTable("MediaNotes", "leisure");
+
+            entity.HasIndex(e => new { e.MediaItemId, e.Page }, "IX_MediaNotes_Item").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MediaNotes_CreatedAt");
+            entity.Property(e => e.Kind).HasMaxLength(20);
+            entity.Property(e => e.Text).HasMaxLength(4000);
+
+            entity.HasOne(d => d.MediaItem).WithMany(p => p.MediaNotes)
+                .HasForeignKey(d => d.MediaItemId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MediaNotes_MediaItems");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MediaNotes)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MediaNotes_Users");
+        });
+
         modelBuilder.Entity<MedicalCondition>(entity =>
         {
             entity.ToTable("MedicalConditions", "health");
@@ -2643,10 +2727,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_RoadmapSteps_CreatedAt");
             entity.Property(e => e.Title).HasMaxLength(200);
 
-            entity.HasOne(d => d.Book).WithMany(p => p.RoadmapSteps)
-                .HasForeignKey(d => d.BookId)
-                .HasConstraintName("FK_RoadmapSteps_Books");
-
             entity.HasOne(d => d.Course).WithMany(p => p.RoadmapSteps)
                 .HasForeignKey(d => d.CourseId)
                 .HasConstraintName("FK_RoadmapSteps_Courses");
@@ -2654,6 +2734,10 @@ public partial class AppDbContext : DbContext
             entity.HasOne(d => d.Goal).WithMany(p => p.RoadmapSteps)
                 .HasForeignKey(d => d.GoalId)
                 .HasConstraintName("FK_RoadmapSteps_Goals");
+
+            entity.HasOne(d => d.MediaItem).WithMany(p => p.RoadmapSteps)
+                .HasForeignKey(d => d.MediaItemId)
+                .HasConstraintName("FK_RoadmapSteps_MediaItems");
 
             entity.HasOne(d => d.Roadmap).WithMany(p => p.RoadmapSteps)
                 .HasForeignKey(d => d.RoadmapId)
@@ -2979,13 +3063,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Notes).HasMaxLength(2000);
             entity.Property(e => e.Topic).HasMaxLength(200);
 
-            entity.HasOne(d => d.Book).WithMany(p => p.StudySessions)
-                .HasForeignKey(d => d.BookId)
-                .HasConstraintName("FK_StudySessions_Books");
-
             entity.HasOne(d => d.Course).WithMany(p => p.StudySessions)
                 .HasForeignKey(d => d.CourseId)
                 .HasConstraintName("FK_StudySessions_Courses");
+
+            entity.HasOne(d => d.MediaItem).WithMany(p => p.StudySessions)
+                .HasForeignKey(d => d.MediaItemId)
+                .HasConstraintName("FK_StudySessions_MediaItems");
 
             entity.HasOne(d => d.Skill).WithMany(p => p.StudySessions)
                 .HasForeignKey(d => d.SkillId)

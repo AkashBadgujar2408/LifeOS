@@ -21,6 +21,8 @@ using LifeOS.Core.Family.Services;
 using LifeOS.Core.Health.ServiceContracts;
 using LifeOS.Core.Health.Services;
 using LifeOS.Core.Family;
+using LifeOS.Core.Leisure.ServiceContracts;
+using LifeOS.Core.Leisure.Services;
 using LifeOS.Core.Home.ServiceContracts;
 using LifeOS.Core.Home.Services;
 using LifeOS.Core.Purchases.ServiceContracts;
@@ -100,7 +102,6 @@ try
     builder.Services.AddScoped<ILifeVisionService, LifeVisionService>();
     builder.Services.AddScoped<ISkillsService, SkillsService>();
     builder.Services.AddScoped<ICoursesService, CoursesService>();
-    builder.Services.AddScoped<IBooksService, BooksService>();
     builder.Services.AddScoped<IRoadmapsService, RoadmapsService>();
     builder.Services.AddScoped<IStudySessionsService, StudySessionsService>();
     builder.Services.AddScoped<ICertificationsService, CertificationsService>();
@@ -200,7 +201,6 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, DecisionLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, SkillLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, CourseLinkableProvider>();
-    builder.Services.AddScoped<ILinkableEntityProvider, BookLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, RoadmapLinkableProvider>();
     builder.Services.AddScoped<IGoalProgressSource, LearningGoalSources>();
     builder.Services.AddScoped<ILinkableEntityProvider, CertificationLinkableProvider>();
@@ -225,6 +225,12 @@ try
     builder.Services.AddScoped<IRelationshipsService, RelationshipsService>();
     builder.Services.AddScoped<ISignificantDatesService, SignificantDatesService>();
     builder.Services.AddFamilyLog();
+
+    // Leisure & media (Session 78a; books included)
+    builder.Services.AddScoped<IMediaItemsService, MediaItemsService>();
+    builder.Services.AddScoped<IHobbiesService, HobbiesService>();
+    builder.Services.AddScoped<ILinkableEntityProvider, MediaItemLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, HobbyLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, PropertyLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, AssetLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, VehicleLinkableProvider>();
