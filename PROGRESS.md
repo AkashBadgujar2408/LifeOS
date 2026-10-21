@@ -1255,3 +1255,11 @@
 - Test data: `rt86a…` (original), `rt86b…` (imported copy) in UAT.
 - **Phase 4 (Sessions 78a–86) is complete.**
 - Next: Phase 5 — Session 90 (Reports 1), per the plan.
+
+## Last session: 2026-10-21 — Session 90 — Reports 1 (infrastructure, goals, habits)
+- Shipped: `18_reports.sql` (schema `reports`, no tables) + procs `reports.GetGoalReport` / `reports.GetHabitReport`; `Reports/` — pure `GoalReport` (one outcome per goal: on time / late / undated / abandoned / missed / still going; pushes + started alongside; by life area) and `HabitReport` (the habit page's counting rule, longest run, weekly line from the first scheduled week; archived habits up to their archive day); `api/Reports/{Goals,Habits}?from&to&today&tz`. Client: `/reports` (Overview nav; Finance's entry is now "Money reports") with one range in `?from=&to=` (presets, default This year, or two dates), Goals / Habits / Money tabs, tiles, a weekly consistency chart, grids with CSV; `PrintService` + print styles (every grid row on paper).
+- Verified: `reports90.mjs` (23 checks, in this session's scratchpad) — hand-worked goal and habit figures, areas add up, the goals list agrees, each habit equals the habit page's own counting; bad range / zone refused. Browser: presets, custom range + inline error, tabs keep the range, CSV, print layout (43 weeks vs 25 on screen), 375 px, console clean. 620 backend + 279 frontend tests (`test:tz` all six zones), lint/Prettier/build clean, initial bundle 997 kB.
+- Fixed on the way: `dayComparator` needs rows with an `id` (a TS error the dev server only logged — it kept serving the old bundle, so `/reports` fell through to My Day); week rows sort by their ISO day without it. Leading empty weeks ("This year" before any habit started) are trimmed.
+- Not tested in the browser: a report tab hiding when its module is switched off (same `hiddenModules` pattern as elsewhere). Printing was checked by stubbing `window.print` (a real print dialog would block the browser tool) — the paper output itself wasn't looked at.
+- Test data: `rep90…` accounts (seven goals, four habits) in UAT.
+- Next: Session 91 — Reports 2 (productivity, learning, health).

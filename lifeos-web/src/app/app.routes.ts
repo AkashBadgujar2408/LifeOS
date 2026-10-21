@@ -1,5 +1,6 @@
 import { FAMILY_LOG_ROUTES } from './features/family/family-log.routes';
 import { LEISURE_ROUTES } from './features/leisure/leisure.routes';
+import { REPORTS_ROUTES } from './features/reports/reports.routes';
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { Shell } from './core/layout/shell';
@@ -130,6 +131,7 @@ export const routes: Routes = [
         loadComponent: () => import('./features/learning/courses').then((m) => m.Courses),
       },
       ...LEISURE_ROUTES,
+      ...REPORTS_ROUTES,
       {
         path: 'learning/roadmaps',
         title: 'Roadmaps | LifeOS',

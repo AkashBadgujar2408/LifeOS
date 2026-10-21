@@ -23,6 +23,8 @@ using LifeOS.Core.Health.Services;
 using LifeOS.Core.Family;
 using LifeOS.Core.Leisure.ServiceContracts;
 using LifeOS.Core.Leisure.Services;
+using LifeOS.Core.Reports.ServiceContracts;
+using LifeOS.Core.Reports.Services;
 using LifeOS.Core.Home.ServiceContracts;
 using LifeOS.Core.Home.Services;
 using LifeOS.Core.Purchases.ServiceContracts;
@@ -225,6 +227,9 @@ try
     builder.Services.AddScoped<IRelationshipsService, RelationshipsService>();
     builder.Services.AddScoped<ISignificantDatesService, SignificantDatesService>();
     builder.Services.AddFamilyLog();
+
+    // Reports (Session 90): goal achievement and habit consistency, read through reports.* procedures
+    builder.Services.AddScoped<IReportsService, ReportsService>();
 
     // Leisure & media (Session 78a; books included)
     builder.Services.AddScoped<IMediaItemsService, MediaItemsService>();

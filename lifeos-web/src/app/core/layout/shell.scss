@@ -229,3 +229,16 @@
   font-weight: 500;
   color: rgba(255, 255, 255, 0.85);
 }
+
+// Printing (Session 90): only the page itself goes on paper.
+@media print {
+  .app-sidebar,
+  .app-topbar {
+    display: none !important;
+  }
+
+  .app-frame {
+    display: block;
+    min-height: 0;
+  }
+}

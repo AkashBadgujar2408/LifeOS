@@ -29,6 +29,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Inbox', route: '/inbox', icon: 'bi-inbox' },
       { label: 'Calendar', route: '/calendar', icon: 'bi-calendar3', module: 'Calendar' },
       { label: 'Reminders', route: '/reminders', icon: 'bi-bell', module: 'Reminders' },
+      { label: 'Reports', route: '/reports', icon: 'bi-graph-up' },
     ],
   },
   {
@@ -165,7 +166,12 @@ export const NAV_GROUPS: NavGroup[] = [
         module: 'Finance',
       },
       { label: 'Taxes', route: '/finance/taxes', icon: 'bi-file-earmark-text', module: 'Finance' },
-      { label: 'Reports', route: '/finance/reports', icon: 'bi-bar-chart', module: 'Finance' },
+      {
+        label: 'Money reports',
+        route: '/finance/reports',
+        icon: 'bi-bar-chart',
+        module: 'Finance',
+      },
     ],
   },
   {

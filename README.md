@@ -133,7 +133,7 @@ LifeOS.Core/           Everything else on the server
                        Each: DTOs/, ServiceContracts/, Services/, AutoMapper/
 LifeOS.Core.Tests/     xUnit tests for the pure logic
 database/
-  schema/              00_create_database.sql ... 14_home.sql (one SQL schema per module)
+  schema/              00_create_database.sql ... 18_reports.sql (one SQL schema per module)
   procedures/          <schema>.<Name>.sql stored procedures (calendar feed, My Day, KPIs, life story, balances, ...)
 lifeos-web/            Angular app
   src/app/core/        Services (one per API area), layout/shell, guards, interceptor, date helpers

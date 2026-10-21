@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   isDevMode,
   output,
@@ -31,6 +32,7 @@ import {
 } from 'ag-grid-community';
 import { todayIso } from '../dates/today';
 import { saveBlob } from '../files/files';
+import { PrintService } from '../services/print.service';
 import { buildCsv, csvFileName } from './grid-csv';
 
 // Only what LifeOS grids use: client-side rows, paging, the search box, row/cell classes, and the row/cell APIs the
@@ -97,14 +99,17 @@ function storePageSize(name: string, size: number): void {
  * The one grid for heavy lists (Session 75a): ag-Grid with 25/50/100-row pages (the size remembered per list), the
  * page's search text as a quick filter, a phone column set, Enter or a click opening a row, and "Export CSV" of the
  * filtered + sorted rows on every page, formatted as shown. `beforeExport` can refuse or log an export (Health asks
- * for the vault and logs it). Totals stay with the page (from the server for server-filtered lists).
+ * for the vault and logs it). Totals stay with the page (from the server for server-filtered lists). Printing (via
+ * PrintService) lays out every row without paging.
  */
 @Component({
   selector: 'app-data-grid',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [AgGridAngular],
   template: `
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <div
+      class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2 d-print-none"
+    >
       <span class="small text-body-secondary" aria-live="polite">{{ countText() }}</span>
       <button
         type="button"
@@ -118,7 +123,7 @@ function storePageSize(name: string, size: number): void {
     <ag-grid-angular
       class="d-block lifeos-grid"
       [class.lifeos-grid-clickable]="clickable()"
-      domLayout="autoHeight"
+      [domLayout]="printing() ? 'print' : 'autoHeight'"
       [theme]="theme"
       [rowData]="rows()"
       [columnDefs]="shownColumns()"
@@ -126,7 +131,7 @@ function storePageSize(name: string, size: number): void {
       [quickFilterText]="search()"
       [getRowId]="rowId() ? getRowId : undefined"
       [animateRows]="false"
-      [pagination]="true"
+      [pagination]="!printing()"
       [paginationPageSize]="pageSize()"
       [paginationPageSizeSelector]="pageSizes"
       (gridReady)="ready($event)"
@@ -156,6 +161,8 @@ export class DataGrid<T> {
   readonly open = output<T>();
 
   protected readonly theme = LIFEOS_GRID_THEME;
+  /** While a page prints, every row is laid out (no paging) — see PrintService. */
+  protected readonly printing = inject(PrintService).printing;
   protected readonly pageSizes = GRID_PAGE_SIZES;
   protected readonly pageSize = computed(() => storedPageSize(this.name()));
   protected readonly defaultColumn: ColDef<T> = { sortable: true, resizable: true };

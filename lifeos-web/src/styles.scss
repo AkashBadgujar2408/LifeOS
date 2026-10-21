@@ -351,3 +351,28 @@ h6 {
 .cdk-overlay-container {
   z-index: 1056;
 }
+
+// ---- Print (Session 90, reports first) ----
+// Paper gets the page's content only: no buttons, floating capture button or toasts, white background, cards that
+// don't split across pages. The shell hides its sidebar/top bar in shell.scss; grids lay out every row while
+// PrintService.printing is set.
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .btn,
+  .btn-group,
+  app-quick-add,
+  app-toasts {
+    display: none !important;
+  }
+
+  .card {
+    break-inside: avoid;
+  }
+
+  .container {
+    max-width: none;
+  }
+}
