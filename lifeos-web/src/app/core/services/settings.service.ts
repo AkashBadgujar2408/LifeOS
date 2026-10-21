@@ -21,7 +21,8 @@ export type ModuleKey =
   | 'Health'
   | 'Home'
   | 'Purchases'
-  | 'Family';
+  | 'Family'
+  | 'Leisure';
 
 export interface ModuleInfo {
   key: ModuleKey;
@@ -73,6 +74,11 @@ export const MODULES: ModuleInfo[] = [
     label: 'Family & relationships',
     hides:
       'the family directory and tree, birthdays and anniversaries (also on the calendar and My Day)',
+  },
+  {
+    key: 'Leisure',
+    label: 'Leisure & media',
+    hides: 'books, films, series, games and other media, hobbies and the year in media',
   },
   {
     key: 'Documents',

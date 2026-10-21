@@ -15,6 +15,16 @@ export interface BeatText {
   headline: string;
 }
 
+/** How a finished, well-rated media item reads in the story (the beat's detail carries its kind). */
+const MEDIA_FINISHED_VERB: Record<string, string> = {
+  Book: 'Read',
+  Film: 'Watched',
+  Series: 'Watched',
+  Game: 'Played',
+  Album: 'Listened to',
+  Podcast: 'Listened to',
+};
+
 export function beatText(beat: StoryBeat): BeatText {
   const title = beat.title ?? '';
   const mission = beat.missionKind ? MISSION_LABELS[beat.missionKind] : 'goal';
@@ -39,6 +49,12 @@ export function beatText(beat: StoryBeat): BeatText {
       };
     case 'HabitStarted':
       return { icon: 'bi-arrow-repeat', tone: 'step', headline: `Started a habit: ${title}` };
+    case 'MediaFinished':
+      return {
+        icon: 'bi-star-fill',
+        tone: 'win',
+        headline: `${MEDIA_FINISHED_VERB[beat.detail ?? ''] ?? 'Finished'} ${title}${beat.parentTitle ? ' by ' + beat.parentTitle : ''}${beat.mood ? ' — ' + '★'.repeat(beat.mood) : ''}`,
+      };
     case 'AchievementUnlocked':
       return { icon: 'bi-award', tone: 'win', headline: `Achievement unlocked: ${title}` };
     case 'NewRole':
@@ -98,6 +114,8 @@ export function beatLink(beat: StoryBeat): (string | number)[] | null {
       return ['/career'];
     case 'CareerAchievement':
       return ['/career/achievements'];
+    case 'MediaItem':
+      return ['/leisure', beat.entityId];
     default:
       return null;
   }

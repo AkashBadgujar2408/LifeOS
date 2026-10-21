@@ -1,4 +1,5 @@
 import { FAMILY_LOG_ROUTES } from './features/family/family-log.routes';
+import { LEISURE_ROUTES } from './features/leisure/leisure.routes';
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { Shell } from './core/layout/shell';
@@ -128,16 +129,7 @@ export const routes: Routes = [
         title: 'Courses | LifeOS',
         loadComponent: () => import('./features/learning/courses').then((m) => m.Courses),
       },
-      {
-        path: 'learning/books',
-        title: 'Reading | LifeOS',
-        loadComponent: () => import('./features/learning/books').then((m) => m.Books),
-      },
-      {
-        path: 'learning/books/:id',
-        title: 'Book | LifeOS',
-        loadComponent: () => import('./features/learning/book-detail').then((m) => m.BookDetail),
-      },
+      ...LEISURE_ROUTES,
       {
         path: 'learning/roadmaps',
         title: 'Roadmaps | LifeOS',

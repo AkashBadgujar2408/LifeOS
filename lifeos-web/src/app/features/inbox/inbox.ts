@@ -27,6 +27,7 @@ import { JournalService } from '../../core/services/journal.service';
 import { Router } from '@angular/router';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { LoadError } from '../../shared/components/load-error/load-error';
+import { SettingsService } from '../../core/services/settings.service';
 
 const KIND_ICONS: Record<InboxKind, string> = {
   Task: 'bi-check2-square',
@@ -48,6 +49,9 @@ export class Inbox {
   private readonly modal = inject(NgbModal);
   private readonly journalService = inject(JournalService);
   private readonly router = inject(Router);
+  /** "Make it a media item" only while Leisure is switched on. */
+  private readonly hiddenModules = inject(SettingsService).hiddenModules;
+  protected readonly leisureOn = computed(() => !this.hiddenModules().has('Leisure'));
 
   protected readonly kinds = INBOX_KINDS;
   protected readonly kindIcons = KIND_ICONS;
@@ -106,6 +110,27 @@ export class Inbox {
         },
         error: (err) => this.toast.error(apiErrorMessage(err, 'Could not update item.')),
       });
+  }
+
+  /**
+   * Turns a captured Idea ("Watch Severance") into a media item: the editor opens with the kind and title read from
+   * it; the API moves its links and marks it processed. The editor is loaded on demand (keeps Leisure out of here).
+   */
+  protected async makeMediaItem(item: InboxItem): Promise<void> {
+    const [{ openMediaEditor }, { guessFromIdea }] = await Promise.all([
+      import('../leisure/media-editor'),
+      import('../leisure/leisure-view'),
+    ]);
+    const saved = await openMediaEditor(this.modal, undefined, {
+      ...guessFromIdea(item.title),
+      inboxItemId: item.id,
+    });
+    if (!saved) {
+      return;
+    }
+    this.inboxService.refreshOpenCounts();
+    this.load(this.showProcessed());
+    this.toast.success(`"${saved.title}" is now on your Leisure list.`);
   }
 
   /** Turns a captured Task into a real one (the API keeps its links and marks it processed). */

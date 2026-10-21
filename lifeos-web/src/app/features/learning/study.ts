@@ -21,6 +21,7 @@ import { DataGrid } from '../../core/grid/data-grid';
 import { dayComparator, dayFormatter } from '../../core/grid/grid-format';
 import { apiErrorMessage } from '../../core/services/api-error';
 import { LearningService, StudySession } from '../../core/services/learning.service';
+import { LeisureService } from '../../core/services/leisure.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { formatMinutes } from '../calendar/calendar-feed';
@@ -31,7 +32,7 @@ import { StudySubject, StudyTimer } from './study-timer';
 /** How far back the log shows (the grid pages it). */
 const LOG_DAYS = 365;
 
-type SubjectKind = 'Skill' | 'Course' | 'Book';
+type SubjectKind = 'Skill' | 'Course' | 'MediaItem';
 
 /**
  * The study log: a timer for studying now, a form for time already spent, and the last year of sessions in a
@@ -121,9 +122,13 @@ export class Study {
     this.learningService.courses().pipe(catchError(() => of([]))),
     { initialValue: [] },
   );
-  protected readonly books = toSignal(this.learningService.books().pipe(catchError(() => of([]))), {
-    initialValue: [],
-  });
+  /** Books and other media (Leisure) — a book read for a skill is studied too. */
+  protected readonly media = toSignal(
+    inject(LeisureService)
+      .mediaItems()
+      .pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
 
   /** What the time is for — shared by the timer and the hand-entered form. */
   protected readonly subjectForm = this.fb.group({
@@ -151,7 +156,7 @@ export class Study {
       topic: v.topic?.trim() || null,
       skillId: v.kind === 'Skill' ? id : null,
       courseId: v.kind === 'Course' ? id : null,
-      bookId: v.kind === 'Book' ? id : null,
+      mediaItemId: v.kind === 'MediaItem' ? id : null,
     };
   });
   protected readonly itemOptions = computed(() => {
@@ -160,8 +165,8 @@ export class Study {
         return this.skills().map((s) => ({ id: s.id, title: s.name }));
       case 'Course':
         return this.courses().map((c) => ({ id: c.id, title: c.title }));
-      case 'Book':
-        return this.books().map((b) => ({ id: b.id, title: b.title }));
+      case 'MediaItem':
+        return this.media().map((m) => ({ id: m.id, title: m.title }));
       default:
         return [];
     }
@@ -202,11 +207,11 @@ export class Study {
       this.subjectForm.controls.kind.value &&
       s.skillId === null &&
       s.courseId === null &&
-      s.bookId === null
+      s.mediaItemId === null
     ) {
       return 'Choose which one, or leave it as just a topic.';
     }
-    return s.topic || s.skillId || s.courseId || s.bookId
+    return s.topic || s.skillId || s.courseId || s.mediaItemId
       ? null
       : 'Say what you studied: a topic, or a skill, course or book.';
   }
@@ -241,7 +246,7 @@ export class Study {
         topic: subject.topic,
         skillId: subject.skillId,
         courseId: subject.courseId,
-        bookId: subject.bookId,
+        mediaItemId: subject.mediaItemId,
         startedAt: null,
         notes: v.notes.trim() || null,
         today: todayIso(),

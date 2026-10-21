@@ -1,5 +1,5 @@
 import type { SkillLevelChange } from '../../core/services/learning.service';
-import { groupByStatus, levelChangeText, pagesText, targetText } from './learning-view';
+import { groupByStatus, levelChangeText, targetText } from './learning-view';
 
 describe('groupByStatus', () => {
   it('keeps the given order and drops empty groups', () => {
@@ -41,17 +41,5 @@ describe('levelChangeText', () => {
     expect(levelChangeText(change(null, 2))).toBe('Started at Getting the basics');
     expect(levelChangeText(change(2, 3))).toBe('Up to Comfortable');
     expect(levelChangeText(change(3, 1))).toBe('Down to Just starting');
-  });
-});
-
-describe('pagesText', () => {
-  it('reads progress through a book', () => {
-    expect(pagesText({ status: 'Reading', currentPage: 120, totalPages: 320 })).toBe(
-      'Page 120 of 320 · 200 to go',
-    );
-    expect(pagesText({ status: 'Reading', currentPage: 40, totalPages: null })).toBe('Page 40');
-    expect(pagesText({ status: 'WantToRead', currentPage: 0, totalPages: 320 })).toBe('320 pages');
-    expect(pagesText({ status: 'Finished', currentPage: 320, totalPages: 320 })).toBe('320 pages');
-    expect(pagesText({ status: 'WantToRead', currentPage: 0, totalPages: null })).toBeNull();
   });
 });

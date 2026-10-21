@@ -84,11 +84,11 @@ export function sessionsByDay<T extends Pick<StudySession, 'studiedOn' | 'minute
 
 /** What a session was about, in one line: "Subjunctive · Spanish", "Angular Signals in depth", "A removed item". */
 export function sessionSubject(
-  session: Pick<StudySession, 'topic' | 'skillName' | 'courseTitle' | 'bookTitle'>,
+  session: Pick<StudySession, 'topic' | 'skillName' | 'courseTitle' | 'mediaItemTitle'>,
 ): string {
   const parts = [
     session.topic,
-    session.courseTitle ?? session.bookTitle ?? session.skillName,
+    session.courseTitle ?? session.mediaItemTitle ?? session.skillName,
   ].filter((p): p is string => !!p);
   return parts.length ? parts.join(' · ') : 'Something since removed';
 }

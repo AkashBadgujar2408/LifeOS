@@ -118,6 +118,18 @@
                       <span class="d-none d-md-inline ms-1">Make it a task</span>
                     </button>
                   }
+                  @if (item.kind === 'Idea' && leisureOn()) {
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline-primary"
+                      title="Put it on your Leisure list"
+                      aria-label="Put it on your Leisure list"
+                      (click)="makeMediaItem(item)"
+                    >
+                      <i class="bi bi-collection-play"></i>
+                      <span class="d-none d-md-inline ms-1">To watch, read, play…</span>
+                    </button>
+                  }
                   @if (item.kind === 'Journal') {
                     <button
                       type="button"

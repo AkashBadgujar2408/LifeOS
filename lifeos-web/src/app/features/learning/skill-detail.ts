@@ -16,8 +16,6 @@ import Swal from 'sweetalert2';
 import { itemTitle } from '../../core/layout/item-title';
 import { apiErrorMessage } from '../../core/services/api-error';
 import {
-  BOOK_STATUSES,
-  BookStatus,
   COURSE_STATUSES,
   CourseStatus,
   KnowledgeNote,
@@ -26,14 +24,15 @@ import {
   SKILL_ENTITY_TYPE,
   SkillDetail as SkillDetailModel,
 } from '../../core/services/learning.service';
+import { MEDIA_STATUSES, MediaKind, MediaStatus } from '../../core/services/leisure.service';
 import { ToastService } from '../../core/services/toast.service';
+import { statusLabel } from '../leisure/leisure-view';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
 import { CountsToward } from '../../shared/components/counts-toward/counts-toward';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { openCourseEditor } from './course-editor';
 import {
-  BOOK_STATUS_LABELS,
   COURSE_STATUS_LABELS,
   PROFICIENCY_LABELS,
   levelChangeText,
@@ -125,9 +124,11 @@ export class SkillDetail {
       : item.status;
   }
 
+  /** A media item's status in the words Leisure uses ("Reading now", "Want to watch"). */
   protected bookStatus(item: LearningItem): string {
-    return BOOK_STATUSES.includes(item.status as BookStatus)
-      ? BOOK_STATUS_LABELS[item.status as BookStatus]
+    const kind = (item.kind ?? 'Other') as MediaKind;
+    return MEDIA_STATUSES.includes(item.status as MediaStatus)
+      ? statusLabel(kind, item.status as MediaStatus)
       : item.status;
   }
 

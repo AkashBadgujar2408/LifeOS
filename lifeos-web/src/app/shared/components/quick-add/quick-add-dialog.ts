@@ -10,7 +10,7 @@ const KIND_META: Record<InboxKind, { icon: string; placeholder: string }> = {
   Task: { icon: 'bi-check2-square', placeholder: 'e.g. Renew passport' },
   Note: { icon: 'bi-sticky', placeholder: 'e.g. Wi-Fi password for the new router' },
   Journal: { icon: 'bi-journal-text', placeholder: 'e.g. Great run this morning, felt strong' },
-  Idea: { icon: 'bi-lightbulb', placeholder: 'e.g. Build a recipe tracker in LifeOS' },
+  Idea: { icon: 'bi-lightbulb', placeholder: 'e.g. Watch Severance, or build a recipe tracker' },
 };
 
 /** Opened from anywhere via QuickAdd (shell FAB / "q" shortcut); everything lands in the capture inbox. */

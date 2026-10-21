@@ -78,9 +78,10 @@
                 @if (skill.levelSince) {
                   since {{ skill.levelSince | date }}
                 }
-                @if (skill.courseCount + skill.bookCount > 0) {
+                @if (skill.courseCount + skill.mediaCount > 0) {
                   · {{ skill.courseCount }} {{ skill.courseCount === 1 ? 'course' : 'courses' }},
-                  {{ skill.bookCount }} {{ skill.bookCount === 1 ? 'book' : 'books' }}
+                  {{ skill.mediaCount }}
+                  {{ skill.mediaCount === 1 ? 'book or other' : 'books and others' }}
                 }
               </div>
               @if (skill.tags.length > 0) {

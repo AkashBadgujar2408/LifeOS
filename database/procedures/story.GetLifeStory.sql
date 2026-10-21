@@ -25,6 +25,9 @@ GO
 --   CareerPromotion / CareerProject / CareerAward / CareerContribution / CareerOther
 --                    a career achievement ('Career' + its Kind) on its day, the description's start as Detail and the
 --                    role's organisation as ParentTitle. Depends on 11_career.sql.
+--   MediaFinished    a book, film, show, game… finished and rated 4 or 5 (Session 78b) on its FinishedOn day: Detail =
+--                    its kind (Book, Film…), Mood = its rating, ParentTitle = its creator, Note = the review's start.
+--                    Depends on 17_leisure.sql.
 --
 -- Moments come back as UTC (OccurredAt); calendar days as DATE (OccurredOn). Exactly one is set per row. Turning a
 -- moment into the user's local day needs their timezone, which only the caller has — StoryService does it.
@@ -176,6 +179,18 @@ BEGIN
     FROM career.CareerAchievements ca
     LEFT JOIN career.Employments e ON e.Id = ca.EmploymentId AND e.UserId = @UserId AND e.IsDeleted = 0
     WHERE ca.UserId = @UserId
-      AND ca.IsDeleted = 0;
+      AND ca.IsDeleted = 0
+
+    UNION ALL
+
+    SELECT
+        N'MediaFinished', m.FinishedOn, NULL, m.Title, m.Kind, LEFT(m.Review, 280), NULL,
+        NULL, la.Name, m.Rating, NULL, NULL, N'MediaItem', m.Id, m.Creator
+    FROM leisure.MediaItems m
+    LEFT JOIN shared.LifeAreas la ON la.Id = m.LifeAreaId
+    WHERE m.UserId = @UserId
+      AND m.IsDeleted = 0
+      AND m.Status = N'Finished'
+      AND m.Rating >= 4;
 END
 GO

@@ -45,6 +45,7 @@ export type StoryBeatKind =
   | 'JournalHighlight'
   | 'Memory'
   | 'AchievementUnlocked'
+  | 'MediaFinished'
   | 'NewRole'
   | 'CareerPromotion'
   | 'CareerProject'
@@ -68,7 +69,8 @@ export interface StoryBeat {
   mood: Mood | null;
   fromDate: string | null;
   toDate: string | null;
-  entityType: 'Goal' | 'Habit' | 'JournalEntry' | 'Employment' | 'CareerAchievement' | null;
+  entityType:
+    'Goal' | 'Habit' | 'JournalEntry' | 'Employment' | 'CareerAchievement' | 'MediaItem' | null;
   entityId: number | null;
   parentTitle: string | null;
 }

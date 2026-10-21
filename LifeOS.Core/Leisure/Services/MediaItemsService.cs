@@ -85,6 +85,62 @@ public class MediaItemsService(AppDbContext db, IEntityLinksService entityLinksS
         return await GetAsync(item.Id);
     }
 
+    public async Task<OperationResult<MediaItemDetailDto>> CreateFromInboxAsync(int inboxItemId, MediaItemRequest request)
+    {
+        var inboxItem = await db.InboxItems.FindAsync(inboxItemId);
+        if (inboxItem is null)
+        {
+            return OperationResult<MediaItemDetailDto>.Fail("Inbox item not found.");
+        }
+
+        if (inboxItem.ProcessedAt is not null)
+        {
+            return OperationResult<MediaItemDetailDto>.Fail("This inbox item has already been processed.");
+        }
+
+        var userId = db.CurrentUserId!.Value;
+        var item = new MediaItem { UserId = userId };
+        var error = await ApplyAsync(item, request);
+        if (error is not null)
+        {
+            return OperationResult<MediaItemDetailDto>.Fail(error);
+        }
+
+        foreach (var tagId in request.TagIds.Distinct())
+        {
+            item.MediaItemTags.Add(new MediaItemTag { UserId = userId, TagId = tagId });
+        }
+
+        await using var transaction = await db.Database.BeginOrJoinTransactionAsync();
+        db.MediaItems.Add(item);
+        inboxItem.ProcessedAt = DateTime.UtcNow;
+        inboxItem.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        // What the captured idea was linked to moves to the real item (copy, then drop the inbox item's own links).
+        await entityLinksService.CopyLinksAsync(InboxLinkableProvider.Type, inboxItemId, MediaItemLinkableProvider.Type, item.Id);
+        await entityLinksService.RemoveAllForEntityAsync(InboxLinkableProvider.Type, inboxItemId);
+        await transaction.CommitAsync();
+        return await GetAsync(item.Id);
+    }
+
+    public async Task<YearInMediaDto> YearInMediaAsync(int year)
+    {
+        var items = await db.MediaItems
+            .Select(m => new
+            {
+                m.Id, m.Kind, m.Title, m.Creator, m.Status, m.FinishedOn, m.Rating,
+                Tags = m.MediaItemTags.Where(t => !t.IsDeleted && !t.Tag.IsDeleted).Select(t => t.Tag.Name).ToList(),
+            })
+            .AsSplitQuery()
+            .ToListAsync();
+        var logs = await db.MediaLogs
+            .Select(l => new MediaLogFact(l.MediaItemId, l.MediaItem.Kind, l.LoggedOn, l.Minutes))
+            .ToListAsync();
+        return LeisureFigures.YearInMedia(year,
+            items.Select(i => new MediaFact(i.Id, i.Kind, i.Title, i.Creator, i.Status, i.FinishedOn, i.Rating, i.Tags)).ToList(),
+            logs);
+    }
+
     public async Task<OperationResult<MediaItemDetailDto>> UpdateAsync(int id, MediaItemRequest request)
     {
         var item = await db.MediaItems.FindAsync(id);

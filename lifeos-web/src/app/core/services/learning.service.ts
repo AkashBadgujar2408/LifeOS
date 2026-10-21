@@ -5,18 +5,13 @@ import { ApiResponse } from './api-response';
 import { RemindersService } from './reminders.service';
 import { Tag } from './tags.service';
 
-/** Match SkillLinkableProvider / CourseLinkableProvider / BookLinkableProvider on the API. */
+/** Match SkillLinkableProvider / CourseLinkableProvider on the API (books are Leisure media items since Session 78b). */
 export const SKILL_ENTITY_TYPE = 'Skill';
 export const COURSE_ENTITY_TYPE = 'Course';
-export const BOOK_ENTITY_TYPE = 'Book';
 
 export const COURSE_STATUSES = ['InProgress', 'Planned', 'Completed', 'Dropped'] as const;
 export type CourseStatus = (typeof COURSE_STATUSES)[number];
 
-export const BOOK_STATUSES = ['Reading', 'WantToRead', 'Finished', 'Abandoned'] as const;
-export type BookStatus = (typeof BOOK_STATUSES)[number];
-
-export type BookNoteKind = 'Note' | 'Highlight';
 export type Proficiency = 1 | 2 | 3 | 4 | 5;
 
 export interface Skill {
@@ -29,7 +24,8 @@ export interface Skill {
   lifeAreaName: string | null;
   tags: Tag[];
   courseCount: number;
-  bookCount: number;
+  /** Books and other media read or watched for it (Leisure). */
+  mediaCount: number;
   /** "yyyy-MM-dd": the day it reached its current level. */
   levelSince: string | null;
 }
@@ -47,13 +43,15 @@ export interface LearningItem {
   id: number;
   title: string;
   status: string;
+  /** A media item's kind (Book, Film…); null for a course. */
+  kind: string | null;
 }
 
 export interface SkillDetail extends Skill {
   /** Newest first. */
   history: SkillLevelChange[];
   courses: LearningItem[];
-  books: LearningItem[];
+  media: LearningItem[];
 }
 
 export interface SkillPayload {
@@ -98,66 +96,12 @@ export interface CoursePayload {
   today: string;
 }
 
-export interface Book {
-  id: number;
-  title: string;
-  author: string | null;
-  status: BookStatus;
-  totalPages: number | null;
-  currentPage: number;
-  /** Worked out by the API; null without a page count. */
-  progressPercent: number | null;
-  startedOn: string | null;
-  finishedOn: string | null;
-  rating: number | null;
-  skillId: number | null;
-  skillName: string | null;
-  lifeAreaId: number | null;
-  lifeAreaName: string | null;
-  tags: Tag[];
-  noteCount: number;
-}
-
-export interface BookNote {
-  id: number;
-  kind: BookNoteKind;
-  text: string;
-  page: number | null;
-  createdAt: string;
-}
-
-export interface BookDetail extends Book {
-  /** By page, unpaged last. */
-  notes: BookNote[];
-}
-
-export interface BookPayload {
-  title: string;
-  author: string | null;
-  status: BookStatus;
-  totalPages: number | null;
-  currentPage: number;
-  startedOn: string | null;
-  finishedOn: string | null;
-  rating: number | null;
-  skillId: number | null;
-  lifeAreaId: number | null;
-  tagIds: number[];
-  today: string;
-}
-
-export interface BookNotePayload {
-  kind: BookNoteKind;
-  text: string;
-  page: number | null;
-}
-
 export const ROADMAP_ENTITY_TYPE = 'Roadmap';
 export const CERTIFICATION_ENTITY_TYPE = 'Certification';
 
 export const ROADMAP_STATUSES = ['Active', 'Completed', 'Archived'] as const;
 export type RoadmapStatus = (typeof ROADMAP_STATUSES)[number];
-export type RoadmapStepTarget = 'Course' | 'Book' | 'Goal';
+export type RoadmapStepTarget = 'Course' | 'MediaItem' | 'Goal';
 
 export interface Roadmap {
   id: number;
@@ -218,8 +162,8 @@ export interface StudySession {
   skillName: string | null;
   courseId: number | null;
   courseTitle: string | null;
-  bookId: number | null;
-  bookTitle: string | null;
+  mediaItemId: number | null;
+  mediaItemTitle: string | null;
   /** Set when the timer logged it. */
   startedAt: string | null;
   notes: string | null;
@@ -231,7 +175,7 @@ export interface StudySessionPayload {
   topic: string | null;
   skillId: number | null;
   courseId: number | null;
-  bookId: number | null;
+  mediaItemId: number | null;
   startedAt: string | null;
   notes: string | null;
   today: string;
@@ -291,8 +235,8 @@ export interface KnowledgeNotePayload {
   tagIds: number[];
 }
 
-/** Skill / Course / Book / Topic, or Other ("Everything else" — the smaller subjects folded together). */
-export type StudySubjectKind = 'Skill' | 'Course' | 'Book' | 'Topic' | 'Other';
+/** Skill / Course / MediaItem / Topic, or Other ("Everything else" — the smaller subjects folded together). */
+export type StudySubjectKind = 'Skill' | 'Course' | 'MediaItem' | 'Topic' | 'Other';
 
 export interface StudySubjectSeries {
   kind: StudySubjectKind;
@@ -370,60 +314,6 @@ export class LearningService {
       map(() => undefined),
       tap(() => this.remindersService.notifyChanged()),
     );
-  }
-
-  books(status?: BookStatus): Observable<Book[]> {
-    const params = status ? new HttpParams().set('status', status) : undefined;
-    return this.http
-      .get<ApiResponse<Book[]>>(`${this.base}/Books`, { params })
-      .pipe(map((response) => response.data ?? []));
-  }
-
-  book(id: number): Observable<BookDetail> {
-    return this.http
-      .get<ApiResponse<BookDetail>>(`${this.base}/Books/${id}`)
-      .pipe(map((response) => response.data!));
-  }
-
-  saveBook(id: number | null, payload: BookPayload): Observable<BookDetail> {
-    const request = id
-      ? this.http.put<ApiResponse<BookDetail>>(`${this.base}/Books/${id}`, payload)
-      : this.http.post<ApiResponse<BookDetail>>(`${this.base}/Books`, payload);
-    return request.pipe(map((response) => response.data!));
-  }
-
-  /** "I'm on page N": starts a book not yet started, finishes it on the last page. */
-  setBookPage(id: number, currentPage: number, today: string): Observable<BookDetail> {
-    return this.http
-      .put<ApiResponse<BookDetail>>(`${this.base}/Books/${id}/progress`, { currentPage, today })
-      .pipe(map((response) => response.data!));
-  }
-
-  removeBook(id: number): Observable<void> {
-    return this.http.delete<ApiResponse<boolean>>(`${this.base}/Books/${id}`).pipe(
-      map(() => undefined),
-      tap(() => this.remindersService.notifyChanged()),
-    );
-  }
-
-  saveBookNote(
-    bookId: number,
-    noteId: number | null,
-    payload: BookNotePayload,
-  ): Observable<BookNote> {
-    const request = noteId
-      ? this.http.put<ApiResponse<BookNote>>(
-          `${this.base}/Books/${bookId}/notes/${noteId}`,
-          payload,
-        )
-      : this.http.post<ApiResponse<BookNote>>(`${this.base}/Books/${bookId}/notes`, payload);
-    return request.pipe(map((response) => response.data!));
-  }
-
-  removeBookNote(bookId: number, noteId: number): Observable<void> {
-    return this.http
-      .delete<ApiResponse<boolean>>(`${this.base}/Books/${bookId}/notes/${noteId}`)
-      .pipe(map(() => undefined));
   }
 
   // ---- Roadmaps ----

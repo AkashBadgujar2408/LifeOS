@@ -261,3 +261,56 @@ public class HobbySessionRequest
 
     public DateOnly Today { get; init; }
 }
+
+// ---- Figures (Session 78b) ----
+
+/// <summary>The year in media: what was finished, time logged, the best-rated and the genres — computed, never stored.</summary>
+public class YearInMediaDto
+{
+    public int Year { get; init; }
+    public int Finished { get; init; }
+    public int Minutes { get; init; }
+    /// <summary>Every kind in a fixed order, zeros included.</summary>
+    public List<MediaKindYearDto> ByKind { get; init; } = [];
+    public List<MediaHighlightDto> TopRated { get; init; } = [];
+    public List<GenreCountDto> Genres { get; init; } = [];
+    /// <summary>Years with anything finished or logged (and this one), newest first — for the year picker.</summary>
+    public List<int> Years { get; init; } = [];
+}
+
+public class MediaKindYearDto
+{
+    public string Kind { get; init; } = string.Empty;
+    public int Finished { get; init; }
+    public int Logged { get; init; }
+    public int Minutes { get; init; }
+}
+
+public class MediaHighlightDto
+{
+    public int Id { get; init; }
+    public string Kind { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string? Creator { get; init; }
+    public byte Rating { get; init; }
+    public DateOnly FinishedOn { get; init; }
+}
+
+public class GenreCountDto
+{
+    public string Name { get; init; } = string.Empty;
+    public int Count { get; init; }
+}
+
+/// <summary>One month of hobby time: minutes per hobby (only hobbies practised that month).</summary>
+public class HobbyMonthDto
+{
+    public DateOnly Month { get; init; }
+    public List<HobbyMinutesDto> Hobbies { get; init; } = [];
+}
+
+public class HobbyMinutesDto
+{
+    public int HobbyId { get; init; }
+    public int Minutes { get; init; }
+}

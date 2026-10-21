@@ -28,6 +28,17 @@ public class HobbiesService(AppDbContext db, IEntityLinksService entityLinksServ
             .Select(ToDto)
             .ToListAsync();
 
+    public async Task<List<HobbyMonthDto>> TimeByMonthAsync(DateOnly today, int months)
+    {
+        var last = LeisureFigures.MonthStart(today);
+        var first = last.AddMonths(-(Math.Clamp(months, 1, 24) - 1));
+        var sessions = await db.HobbySessions
+            .Where(s => s.PracticedOn >= first && s.PracticedOn < last.AddMonths(1))
+            .Select(s => new HobbySessionFact(s.HobbyId, s.PracticedOn, s.Minutes))
+            .ToListAsync();
+        return LeisureFigures.ByMonth(sessions, first, last);
+    }
+
     public async Task<OperationResult<HobbyDetailDto>> GetAsync(int id)
     {
         var hobby = await db.Hobbies.Where(h => h.Id == id).Select(ToDetailDto).FirstOrDefaultAsync();

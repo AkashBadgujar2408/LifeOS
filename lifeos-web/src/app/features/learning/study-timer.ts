@@ -20,7 +20,7 @@ export interface StudySubject {
   topic: string | null;
   skillId: number | null;
   courseId: number | null;
-  bookId: number | null;
+  mediaItemId: number | null;
 }
 
 type TimerState = 'idle' | 'running' | 'paused';
@@ -79,7 +79,7 @@ export class StudyTimer {
   protected readonly state = signal<TimerState>('idle');
   protected readonly ready = computed(() => {
     const s = this.subject();
-    return !!(s.topic?.trim() || s.skillId || s.courseId || s.bookId);
+    return !!(s.topic?.trim() || s.skillId || s.courseId || s.mediaItemId);
   });
 
   private banked = 0;
@@ -170,7 +170,7 @@ export class StudyTimer {
         topic: subject.topic?.trim() || null,
         skillId: subject.skillId,
         courseId: subject.courseId,
-        bookId: subject.bookId,
+        mediaItemId: subject.mediaItemId,
         startedAt: startedAt.toISOString(),
         notes: null,
         today,

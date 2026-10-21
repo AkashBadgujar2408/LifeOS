@@ -305,8 +305,11 @@ export class EntityOpener {
       case 'Skill':
         void this.router.navigate(['/learning/skills', entityId]);
         break;
-      case 'Book':
-        void this.router.navigate(['/learning/books', entityId]);
+      case 'MediaItem':
+        void this.router.navigate(['/leisure', entityId]);
+        break;
+      case 'Hobby':
+        void this.router.navigate(['/leisure/hobbies', entityId]);
         break;
       case 'Roadmap':
         void this.router.navigate(['/learning/roadmaps', entityId]);

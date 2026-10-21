@@ -56,7 +56,7 @@ describe('sessionsByDay', () => {
 
 describe('sessionSubject', () => {
   it('names the topic and what it was for', () => {
-    const none = { topic: null, skillName: null, courseTitle: null, bookTitle: null };
+    const none = { topic: null, skillName: null, courseTitle: null, mediaItemTitle: null };
     expect(sessionSubject({ ...none, topic: 'Subjunctive', skillName: 'Spanish' })).toBe(
       'Subjunctive · Spanish',
     );

@@ -26,6 +26,7 @@ import {
   RoadmapStep,
   RoadmapStepTarget,
 } from '../../core/services/learning.service';
+import { LeisureService } from '../../core/services/leisure.service';
 import { ToastService } from '../../core/services/toast.service';
 import { EntityReminders } from '../../shared/components/entity-reminders/entity-reminders';
 import { LinkedItems } from '../../shared/components/linked-items/linked-items';
@@ -33,13 +34,14 @@ import { CountsToward } from '../../shared/components/counts-toward/counts-towar
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { openCourseEditor } from './course-editor';
 import { ROADMAP_STATUS_LABELS } from './learning-plan-view';
-import { BOOK_STATUS_LABELS, COURSE_STATUS_LABELS } from './learning-view';
+import { COURSE_STATUS_LABELS } from './learning-view';
 import { openRoadmapEditor } from './roadmap-editor';
 
-/** Statuses a step's target can be in, as words (courses, books and goals each have their own). */
+/** Statuses a step's target can be in, as words (courses, media items and goals each have their own). */
 const TARGET_STATUS_LABELS: Record<string, string> = {
   ...COURSE_STATUS_LABELS,
-  ...BOOK_STATUS_LABELS,
+  Want: 'On the list',
+  Finished: 'Finished',
   Active: 'Active',
   Postponed: 'Postponed',
   Abandoned: 'Abandoned',
@@ -92,9 +94,12 @@ export class RoadmapDetail {
       initialValue: [],
     },
   );
-  protected readonly books = toSignal(this.learningService.books().pipe(catchError(() => of([]))), {
-    initialValue: [],
-  });
+  protected readonly media = toSignal(
+    inject(LeisureService)
+      .mediaItems()
+      .pipe(catchError(() => of([]))),
+    { initialValue: [] },
+  );
   protected readonly goals = toSignal(
     inject(GoalsService)
       .list()
@@ -115,8 +120,8 @@ export class RoadmapDetail {
     switch (this.targetType()) {
       case 'Course':
         return this.courses().map((c) => ({ id: c.id, title: c.title }));
-      case 'Book':
-        return this.books().map((b) => ({ id: b.id, title: b.title }));
+      case 'MediaItem':
+        return this.media().map((m) => ({ id: m.id, title: m.title }));
       case 'Goal':
         return this.goals().map((g) => ({ id: g.id, title: g.title }));
       default:
@@ -276,8 +281,8 @@ export class RoadmapDetail {
       return;
     }
     switch (step.targetType) {
-      case 'Book':
-        void this.router.navigate(['/learning/books', step.targetId]);
+      case 'MediaItem':
+        void this.router.navigate(['/leisure', step.targetId]);
         break;
       case 'Goal':
         void this.router.navigate(['/goals', step.targetId]);

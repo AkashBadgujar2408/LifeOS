@@ -20,7 +20,8 @@ export type ReminderTargetType =
   | 'Decision'
   | 'Skill'
   | 'Course'
-  | 'Book'
+  | 'MediaItem'
+  | 'Hobby'
   | 'Roadmap'
   | 'Certification'
   | 'KnowledgeNote'
@@ -65,7 +66,8 @@ export const REMINDER_TARGET_LABELS: Record<ReminderTargetType, string> = {
   Decision: 'Decision',
   Skill: 'Skill',
   Course: 'Course',
-  Book: 'Book',
+  MediaItem: 'Book or media',
+  Hobby: 'Hobby',
   Roadmap: 'Roadmap',
   Certification: 'Certification',
   KnowledgeNote: 'Note',

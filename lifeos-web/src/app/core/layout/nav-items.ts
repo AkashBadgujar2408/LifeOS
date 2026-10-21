@@ -45,7 +45,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Skills', route: '/learning/skills', icon: 'bi-mortarboard', module: 'Learning' },
       { label: 'Courses', route: '/learning/courses', icon: 'bi-easel', module: 'Learning' },
-      { label: 'Reading', route: '/learning/books', icon: 'bi-book-half', module: 'Learning' },
       {
         label: 'Roadmaps',
         route: '/learning/roadmaps',
@@ -215,6 +214,25 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'People', route: '/family/people', icon: 'bi-people', module: 'Family' },
       { label: 'Family tree', route: '/family/tree', icon: 'bi-diagram-3', module: 'Family' },
       ...FAMILY_LOG_NAV,
+    ],
+  },
+  {
+    label: 'Leisure & media',
+    items: [
+      {
+        label: 'Books & media',
+        route: '/leisure',
+        icon: 'bi-collection-play',
+        exact: true,
+        module: 'Leisure',
+      },
+      { label: 'Hobbies', route: '/leisure/hobbies', icon: 'bi-palette', module: 'Leisure' },
+      {
+        label: 'Year in media',
+        route: '/leisure/year',
+        icon: 'bi-calendar-heart',
+        module: 'Leisure',
+      },
     ],
   },
   {

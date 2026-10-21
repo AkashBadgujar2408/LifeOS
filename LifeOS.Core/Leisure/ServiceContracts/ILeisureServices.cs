@@ -9,6 +9,10 @@ public interface IMediaItemsService
     Task<List<MediaItemDto>> GetAllAsync(string? kind, string? status);
     Task<OperationResult<MediaItemDetailDto>> GetAsync(int id);
     Task<OperationResult<MediaItemDetailDto>> CreateAsync(MediaItemRequest request);
+    /// <summary>Turns a captured inbox idea into a media item (links move to it, the inbox item is marked processed).</summary>
+    Task<OperationResult<MediaItemDetailDto>> CreateFromInboxAsync(int inboxItemId, MediaItemRequest request);
+    /// <summary>The year in media (LeisureFigures.YearInMedia).</summary>
+    Task<YearInMediaDto> YearInMediaAsync(int year);
     Task<OperationResult<MediaItemDetailDto>> UpdateAsync(int id, MediaItemRequest request);
     Task<OperationResult<MediaItemDetailDto>> SetProgressAsync(int id, MediaProgressRequest request);
     Task<OperationResult<bool>> DeleteAsync(int id);
@@ -25,6 +29,8 @@ public interface IMediaItemsService
 public interface IHobbiesService
 {
     Task<List<HobbyDto>> GetAllAsync();
+    /// <summary>Minutes per hobby for the <paramref name="months"/> months up to the one <paramref name="today"/> is in.</summary>
+    Task<List<HobbyMonthDto>> TimeByMonthAsync(DateOnly today, int months);
     Task<OperationResult<HobbyDetailDto>> GetAsync(int id);
     Task<OperationResult<HobbyDetailDto>> CreateAsync(HobbyRequest request);
     Task<OperationResult<HobbyDetailDto>> UpdateAsync(int id, HobbyRequest request);

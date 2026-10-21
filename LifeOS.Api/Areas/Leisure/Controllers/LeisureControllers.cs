@@ -37,6 +37,16 @@ public class MediaItemsController(IMediaItemsService mediaItemsService) : Leisur
     [HttpPost]
     public async Task<IActionResult> Create(MediaItemRequest request) => Saved(await mediaItemsService.CreateAsync(request));
 
+    /// <summary>POST api/Leisure/MediaItems/from-inbox/12 — the item the inbox idea becomes.</summary>
+    [HttpPost("from-inbox/{inboxItemId:int}")]
+    public async Task<IActionResult> CreateFromInbox(int inboxItemId, MediaItemRequest request) =>
+        Saved(await mediaItemsService.CreateFromInboxAsync(inboxItemId, request));
+
+    /// <summary>GET api/Leisure/MediaItems/year/2026 — the year in media.</summary>
+    [HttpGet("year/{year:int:range(1900,2200)}")]
+    public async Task<IActionResult> YearInMedia(int year) =>
+        Ok(ApiResponse<YearInMediaDto>.Ok(await mediaItemsService.YearInMediaAsync(year)));
+
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, MediaItemRequest request) => Saved(await mediaItemsService.UpdateAsync(id, request));
 
@@ -78,6 +88,11 @@ public class HobbiesController(IHobbiesService hobbiesService) : LeisureControll
     /// <summary>GET api/Leisure/Hobbies — active first, by name, with their time so far.</summary>
     [HttpGet]
     public async Task<IActionResult> GetAll() => Ok(ApiResponse<List<HobbyDto>>.Ok(await hobbiesService.GetAllAsync()));
+
+    /// <summary>GET api/Leisure/Hobbies/time?today=2026-10-21&amp;months=6 — minutes per hobby per month, oldest first.</summary>
+    [HttpGet("time")]
+    public async Task<IActionResult> Time([FromQuery] DateOnly today, [FromQuery] int months = 6) =>
+        Ok(ApiResponse<List<HobbyMonthDto>>.Ok(await hobbiesService.TimeByMonthAsync(today, months)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id) => Found(await hobbiesService.GetAsync(id));

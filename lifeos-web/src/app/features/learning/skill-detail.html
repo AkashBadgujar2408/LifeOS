@@ -110,22 +110,21 @@
           </div>
         </section>
 
-        <section class="card" aria-labelledby="skill-books-heading">
+        <section class="card" aria-labelledby="skill-media-heading">
           <div class="card-body">
-            <h2 id="skill-books-heading" class="h6 mb-2">Books</h2>
+            <h2 id="skill-media-heading" class="h6 mb-2">Books and media</h2>
             <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
-              @for (book of skill.books; track book.id) {
+              @for (book of skill.media; track book.id) {
                 <li class="d-flex justify-content-between gap-2">
-                  <a [routerLink]="['/learning/books', book.id]" class="text-break">{{
-                    book.title
-                  }}</a>
+                  <a [routerLink]="['/leisure', book.id]" class="text-break">{{ book.title }}</a>
                   <span class="small text-body-secondary flex-shrink-0">{{
                     bookStatus(book)
                   }}</span>
                 </li>
               } @empty {
                 <li class="small text-body-secondary">
-                  No book for this skill yet. Pick this skill when you add one to your reading list.
+                  Nothing for this skill yet. Pick this skill when you add a book (or a course-like
+                  show) in Leisure & media.
                 </li>
               }
             </ul>

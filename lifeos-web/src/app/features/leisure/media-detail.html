@@ -1,0 +1,472 @@
+<div class="container py-4">
+  <a routerLink="/leisure" class="small text-decoration-none d-inline-block mb-2">
+    <i class="bi bi-arrow-left"></i> Leisure &amp; media
+  </a>
+
+  @if (loadFailed() && !item()) {
+    <app-load-error message="Couldn't load this item." (retry)="load()" />
+  } @else if (item(); as item) {
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-4">
+      <div class="min-w-0">
+        <div class="small text-body-secondary mb-1">
+          <i class="bi" [class]="kindInfo[item.kind].icon" aria-hidden="true"></i>
+          {{ kindInfo[item.kind].one }} · {{ statusLabel(item.kind, item.status) }}
+          @if (item.upNext) {
+            · up next
+          }
+          @if (item.skillName) {
+            · <a [routerLink]="['/learning/skills', item.skillId]">{{ item.skillName }}</a>
+          }
+        </div>
+        <h1 class="h3 mb-0 text-break">{{ item.title }}</h1>
+        @if (item.creator || item.whereToFind) {
+          <div class="text-body-secondary text-break">
+            {{ item.creator }}
+            @if (item.creator && item.whereToFind) {
+              ·
+            }
+            {{ item.whereToFind }}
+          </div>
+        }
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="edit(item)">
+          <i class="bi bi-pencil"></i> Edit
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" (click)="remove(item)">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-8 d-flex flex-column gap-3">
+        @if (item.kind === 'Book' || hasEpisodes(item.kind)) {
+          <section class="card" aria-labelledby="media-progress-heading">
+            <div class="card-body">
+              <h2 id="media-progress-heading" class="h6 mb-2">Where you are</h2>
+              @if (item.progressPercent !== null && item.kind === 'Book') {
+                <div
+                  class="progress mb-1"
+                  style="height: 0.5rem"
+                  role="progressbar"
+                  [attr.aria-label]="item.title + ' progress'"
+                  [attr.aria-valuenow]="item.progressPercent"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  <div class="progress-bar" [style.width.%]="item.progressPercent"></div>
+                </div>
+              }
+              <div class="small text-body-secondary mb-3">
+                @if (progressText(item); as progress) {
+                  {{ progress }}
+                }
+                @if (item.kind === 'Book' && item.progressPercent !== null) {
+                  · {{ item.progressPercent }}%
+                }
+                @if (item.startedOn) {
+                  · started {{ item.startedOn | date }}
+                }
+                @if (item.finishedOn) {
+                  · finished {{ item.finishedOn | date }}
+                }
+              </div>
+              @if (item.kind === 'Book') {
+                <form
+                  [formGroup]="pageForm"
+                  (ngSubmit)="savePage(item)"
+                  class="d-flex flex-wrap align-items-start gap-2"
+                  novalidate
+                >
+                  <div>
+                    <label class="visually-hidden" for="media-page">I'm on page</label>
+                    <div class="input-group" style="max-width: 16rem">
+                      <span class="input-group-text">I'm on page</span>
+                      <input
+                        id="media-page"
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        [class.is-invalid]="pageError()"
+                        formControlName="currentPage"
+                        placeholder="e.g. 120"
+                      />
+                    </div>
+                    @if (pageError(); as error) {
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    }
+                  </div>
+                  <button type="submit" class="btn btn-primary" [disabled]="savingProgress()">
+                    Save
+                  </button>
+                </form>
+                @if (item.totalPages && item.status !== 'Finished') {
+                  <div class="form-text">
+                    The last page ({{ item.totalPages }}) marks it finished.
+                  </div>
+                }
+              } @else {
+                <form
+                  [formGroup]="episodeForm"
+                  (ngSubmit)="saveEpisode(item)"
+                  class="d-flex flex-wrap align-items-start gap-2"
+                  novalidate
+                >
+                  @if (item.kind === 'Series') {
+                    <div>
+                      <label class="visually-hidden" for="media-season">Season</label>
+                      <div class="input-group" style="max-width: 10rem">
+                        <span class="input-group-text">Season</span>
+                        <input
+                          id="media-season"
+                          type="number"
+                          min="1"
+                          class="form-control"
+                          [class.is-invalid]="episodeError('season')"
+                          formControlName="season"
+                          placeholder="e.g. 2"
+                        />
+                      </div>
+                      @if (episodeError('season'); as error) {
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                      }
+                    </div>
+                  }
+                  <div>
+                    <label class="visually-hidden" for="media-episode">Episode</label>
+                    <div class="input-group" style="max-width: 10rem">
+                      <span class="input-group-text">Episode</span>
+                      <input
+                        id="media-episode"
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        [class.is-invalid]="episodeError('episode')"
+                        formControlName="episode"
+                        placeholder="e.g. 4"
+                      />
+                    </div>
+                    @if (episodeError('episode'); as error) {
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    }
+                  </div>
+                  <button type="submit" class="btn btn-primary" [disabled]="savingProgress()">
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary"
+                    [disabled]="savingProgress()"
+                    (click)="saveEpisode(item, 1)"
+                  >
+                    <i class="bi bi-skip-forward"></i> Next episode
+                  </button>
+                </form>
+                <div class="form-text">
+                  Mark it finished from Edit when you've seen the last one.
+                </div>
+              }
+            </div>
+          </section>
+        }
+
+        <section class="card" aria-labelledby="media-notes-heading">
+          <div class="card-body">
+            <h2 id="media-notes-heading" class="h6 mb-3">
+              Notes and highlights
+              @if (item.notes.length > 0) {
+                <span class="text-body-secondary fw-normal small"
+                  >· {{ highlights() }} {{ highlights() === 1 ? 'highlight' : 'highlights' }},
+                  {{ item.notes.length - highlights() }}
+                  {{ item.notes.length - highlights() === 1 ? 'note' : 'notes' }}</span
+                >
+              }
+            </h2>
+
+            <ul class="list-unstyled mb-3 d-flex flex-column gap-3">
+              @for (note of item.notes; track note.id) {
+                @if (editingNoteId() !== note.id) {
+                  <li class="d-flex gap-2 align-items-start">
+                    <div class="flex-grow-1 min-w-0">
+                      <div
+                        class="text-break"
+                        style="white-space: pre-line"
+                        [class.media-highlight]="note.kind === 'Highlight'"
+                      >
+                        {{ note.text }}
+                      </div>
+                      <div class="small text-body-secondary mt-1">
+                        {{ note.kind === 'Highlight' ? 'Highlight' : 'Note' }}
+                        @if (note.page) {
+                          · p. {{ note.page }}
+                        }
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link link-secondary p-0"
+                      [attr.aria-label]="'Edit this ' + note.kind.toLowerCase()"
+                      (click)="editNote(note)"
+                    >
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-link link-danger p-0"
+                      [attr.aria-label]="'Delete this ' + note.kind.toLowerCase()"
+                      (click)="removeNote(item, note)"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </li>
+                }
+              } @empty {
+                <li class="small text-body-secondary">
+                  Nothing kept yet. Paste a line worth remembering, or write what it made you think.
+                </li>
+              }
+            </ul>
+
+            <form
+              [formGroup]="noteForm"
+              (ngSubmit)="saveNote(item)"
+              class="border-top pt-3 d-flex flex-column gap-2"
+              novalidate
+            >
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="btn-group btn-group-sm" role="group" aria-label="Kind of note">
+                  <input
+                    type="radio"
+                    class="btn-check"
+                    id="note-kind-highlight"
+                    value="Highlight"
+                    formControlName="kind"
+                  />
+                  <label class="btn btn-outline-primary" for="note-kind-highlight">Highlight</label>
+                  <input
+                    type="radio"
+                    class="btn-check"
+                    id="note-kind-note"
+                    value="Note"
+                    formControlName="kind"
+                  />
+                  <label class="btn btn-outline-primary" for="note-kind-note">My note</label>
+                </div>
+                <span class="small text-body-secondary">
+                  {{ editingNoteId() ? 'Editing' : 'Add one' }}
+                </span>
+              </div>
+              <div>
+                <label class="visually-hidden" for="note-text">Text</label>
+                <textarea
+                  id="note-text"
+                  class="form-control"
+                  rows="3"
+                  [class.is-invalid]="noteError('text')"
+                  formControlName="text"
+                  [placeholder]="
+                    noteForm.controls.kind.value === 'Highlight'
+                      ? 'Paste the line, word for word'
+                      : 'What it made you think, or want to try'
+                  "
+                ></textarea>
+                @if (noteError('text'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <div class="d-flex flex-wrap align-items-start gap-2">
+                @if (item.kind === 'Book') {
+                  <div>
+                    <label class="visually-hidden" for="note-page">Page</label>
+                    <input
+                      id="note-page"
+                      type="number"
+                      min="1"
+                      class="form-control"
+                      style="max-width: 9rem"
+                      [class.is-invalid]="noteError('page')"
+                      formControlName="page"
+                      placeholder="Page (optional)"
+                    />
+                    @if (noteError('page'); as error) {
+                      <div class="invalid-feedback d-block">{{ error }}</div>
+                    }
+                  </div>
+                }
+                <button type="submit" class="btn btn-primary" [disabled]="savingNote()">
+                  {{ editingNoteId() ? 'Save' : 'Add' }}
+                </button>
+                @if (editingNoteId()) {
+                  <button type="button" class="btn btn-outline-secondary" (click)="cancelNote()">
+                    Cancel
+                  </button>
+                }
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="media-logs-heading">
+          <div class="card-body">
+            <h2 id="media-logs-heading" class="h6 mb-1">
+              {{ logVerb(item) }} it
+              @if (item.logCount > 0) {
+                <span class="text-body-secondary fw-normal small"
+                  >· {{ item.logCount }} {{ item.logCount === 1 ? 'time' : 'times' }}
+                  @if (item.minutesLogged > 0) {
+                    · {{ formatMinutes(item.minutesLogged) }}
+                  }
+                </span>
+              }
+            </h2>
+            <p class="small text-body-secondary mb-3">
+              Each sitting, rewatch or playthrough — so the year in media can add up your time.
+            </p>
+            <ul class="list-unstyled mb-3 d-flex flex-column gap-2">
+              @for (log of item.logs; track log.id) {
+                <li class="d-flex gap-2 align-items-start">
+                  <div class="flex-grow-1 min-w-0 small">
+                    <span class="fw-semibold">{{ log.loggedOn | date }}</span>
+                    @if (log.minutes) {
+                      · {{ formatMinutes(log.minutes) }}
+                    }
+                    @if (log.note) {
+                      <div class="text-body-secondary text-break">{{ log.note }}</div>
+                    }
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-link link-danger p-0"
+                    [attr.aria-label]="'Remove the log of ' + (log.loggedOn | date)"
+                    (click)="removeLog(item, log)"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </li>
+              }
+            </ul>
+            <form
+              [formGroup]="logForm"
+              (ngSubmit)="addLog(item)"
+              class="border-top pt-3 d-flex flex-wrap align-items-start gap-2"
+              novalidate
+            >
+              <div>
+                <label class="visually-hidden" for="log-day">Day</label>
+                <div class="input-group" style="max-width: 12rem">
+                  <input
+                    id="log-day"
+                    type="text"
+                    class="form-control"
+                    [class.is-invalid]="logError('loggedOn')"
+                    formControlName="loggedOn"
+                    placeholder="e.g. 14/Oct/2026"
+                    autocomplete="off"
+                    ngbDatepicker
+                    #logPicker="ngbDatepicker"
+                    [minDate]="minDate"
+                    [maxDate]="maxDate"
+                    container="body"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary"
+                    aria-label="Pick the day"
+                    (click)="logPicker.toggle()"
+                  >
+                    <i class="bi bi-calendar3"></i>
+                  </button>
+                </div>
+                @if (logError('loggedOn'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <div>
+                <label class="visually-hidden" for="log-minutes">Minutes</label>
+                <input
+                  id="log-minutes"
+                  type="number"
+                  min="1"
+                  class="form-control"
+                  style="max-width: 9rem"
+                  [class.is-invalid]="logError('minutes')"
+                  formControlName="minutes"
+                  placeholder="Minutes (optional)"
+                />
+                @if (logError('minutes'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <div class="flex-grow-1" style="min-width: 10rem">
+                <label class="visually-hidden" for="log-note">Note</label>
+                <input
+                  id="log-note"
+                  type="text"
+                  class="form-control"
+                  [class.is-invalid]="logError('note')"
+                  formControlName="note"
+                  placeholder="With whom, where (optional)"
+                  (keydown.enter)="$event.preventDefault(); addLog(item)"
+                />
+                @if (logError('note'); as error) {
+                  <div class="invalid-feedback d-block">{{ error }}</div>
+                }
+              </div>
+              <button type="submit" class="btn btn-primary" [disabled]="savingLog()">Log it</button>
+            </form>
+          </div>
+        </section>
+      </div>
+
+      <div class="col-lg-4 d-flex flex-column gap-3">
+        @if (item.rating || item.review || item.tags.length > 0) {
+          <div class="card">
+            <div class="card-body d-flex flex-column gap-2">
+              @if (item.rating) {
+                <div [attr.aria-label]="item.rating + ' of 5 stars'">
+                  @for (star of [1, 2, 3, 4, 5]; track star) {
+                    <i
+                      class="bi"
+                      style="color: var(--lifeos-amber)"
+                      [class.bi-star-fill]="item.rating >= star"
+                      [class.bi-star]="item.rating < star"
+                      aria-hidden="true"
+                    ></i>
+                  }
+                </div>
+              }
+              @if (item.review) {
+                <p class="mb-0 text-break" style="white-space: pre-line">{{ item.review }}</p>
+              }
+              @if (item.tags.length > 0) {
+                <div class="d-flex flex-wrap gap-1">
+                  @for (tag of item.tags; track tag.id) {
+                    <span class="badge text-bg-light border fw-normal">{{ tag.name }}</span>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+        <app-counts-toward [entityType]="entityType" [entityId]="item.id" [version]="item" />
+        <div class="card">
+          <div class="card-body">
+            <app-linked-items [entityType]="entityType" [entityId]="item.id" />
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <app-entity-reminders
+              entityType="MediaItem"
+              [entityId]="item.id"
+              [entityTitle]="item.title"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <p class="text-body-secondary">Loading...</p>
+  }
+</div>

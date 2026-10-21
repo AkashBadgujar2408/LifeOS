@@ -66,6 +66,8 @@ public static class StoryBeatKinds
     public const string CareerOther = "CareerOther";
     /// <summary>Not from the procedure: an achievement, on the day it was earned (Achievements.Evaluate).</summary>
     public const string AchievementUnlocked = "AchievementUnlocked";
+    /// <summary>A book, film, show… finished and rated 4–5 (Leisure, Session 78b); Mood carries the rating, Detail the kind, Note the review.</summary>
+    public const string MediaFinished = "MediaFinished";
 }
 
 /// <summary>

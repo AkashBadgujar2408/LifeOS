@@ -1,6 +1,4 @@
 import type {
-  Book,
-  BookStatus,
   CourseStatus,
   Proficiency,
   Skill,
@@ -23,13 +21,6 @@ export const COURSE_STATUS_LABELS: Record<CourseStatus, string> = {
   Planned: 'Planned',
   Completed: 'Completed',
   Dropped: 'Dropped',
-};
-
-export const BOOK_STATUS_LABELS: Record<BookStatus, string> = {
-  Reading: 'Reading now',
-  WantToRead: 'Want to read',
-  Finished: 'Finished',
-  Abandoned: 'Set aside',
 };
 
 /** Items grouped under their status, in the given order; empty groups are left out. */
@@ -61,20 +52,4 @@ export function levelChangeText(change: SkillLevelChange): string {
     return `Started at ${to}`;
   }
   return change.toProficiency > change.fromProficiency ? `Up to ${to}` : `Down to ${to}`;
-}
-
-/** "Page 120 of 320 · 200 to go", "Page 40", or null before the first page. */
-export function pagesText(
-  book: Pick<Book, 'currentPage' | 'totalPages' | 'status'>,
-): string | null {
-  if (book.status === 'Finished') {
-    return book.totalPages ? `${book.totalPages} pages` : null;
-  }
-  if (book.currentPage === 0) {
-    return book.totalPages ? `${book.totalPages} pages` : null;
-  }
-  if (!book.totalPages) {
-    return `Page ${book.currentPage}`;
-  }
-  return `Page ${book.currentPage} of ${book.totalPages} · ${book.totalPages - book.currentPage} to go`;
 }
