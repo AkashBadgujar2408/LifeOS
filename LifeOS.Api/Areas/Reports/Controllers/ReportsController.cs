@@ -1,3 +1,4 @@
+using LifeOS.Api.Infrastructure;
 using LifeOS.Core.Reports.DTOs;
 using LifeOS.Core.Reports.ServiceContracts;
 using LifeOS.Core.Shared.DTOs;
@@ -40,4 +41,35 @@ public class ReportsController(IReportsService reportsService) : ControllerBase
             ? Ok(ApiResponse<HabitReportDto>.Ok(result.Data))
             : BadRequest(ApiResponse<HabitReportDto>.Fail(result.Error!));
     }
+
+    /// <summary>GET api/Reports/Productivity?from=2026-01-01&amp;to=2026-12-31&amp;today=2026-10-22&amp;tz=Asia/Kolkata</summary>
+    [HttpGet("Productivity")]
+    public async Task<IActionResult> Productivity(
+        [FromQuery, BindRequired] DateOnly from,
+        [FromQuery, BindRequired] DateOnly to,
+        [FromQuery, BindRequired] DateOnly today,
+        [FromQuery] string? tz) =>
+        Result(await reportsService.GetProductivityReportAsync(from, to, today, tz));
+
+    /// <summary>GET api/Reports/Learning?from=2026-01-01&amp;to=2026-12-31&amp;today=2026-10-22&amp;tz=Asia/Kolkata</summary>
+    [HttpGet("Learning")]
+    public async Task<IActionResult> Learning(
+        [FromQuery, BindRequired] DateOnly from,
+        [FromQuery, BindRequired] DateOnly to,
+        [FromQuery, BindRequired] DateOnly today,
+        [FromQuery] string? tz) =>
+        Result(await reportsService.GetLearningReportAsync(from, to, today, tz));
+
+    /// <summary>GET api/Reports/Health?… — health figures, so 423 without the vault unlock like every Health endpoint.</summary>
+    [HttpGet("Health")]
+    [VaultUnlockRequired]
+    public async Task<IActionResult> Health(
+        [FromQuery, BindRequired] DateOnly from,
+        [FromQuery, BindRequired] DateOnly to,
+        [FromQuery, BindRequired] DateOnly today,
+        [FromQuery] string? tz) =>
+        Result(await reportsService.GetHealthReportAsync(from, to, today, tz));
+
+    private IActionResult Result<T>(OperationResult<T> result) =>
+        result.Success ? Ok(ApiResponse<T>.Ok(result.Data)) : BadRequest(ApiResponse<T>.Fail(result.Error!));
 }

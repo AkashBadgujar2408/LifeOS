@@ -15,6 +15,7 @@ import {
 import { ensureVaultUnlocked } from '../../shared/components/vault-unlock/vault-unlock';
 import { ApiResponse } from './api-response';
 import { RemindersService } from './reminders.service';
+import { HealthReport, ReportRange, reportParams } from './reports.service';
 import { VaultService } from './vault.service';
 
 export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
@@ -351,7 +352,7 @@ export class HealthLockedError extends Error {
 }
 
 /** The Health lists with "Export CSV" — each matches HealthExportLists on the server. */
-export type HealthExportList = 'workouts' | 'sleep' | 'measurements' | 'lab-results';
+export type HealthExportList = 'workouts' | 'sleep' | 'measurements' | 'lab-results' | 'report';
 
 /**
  * Health records. Every call needs the vault unlock: it asks for the password first when locked, sends the unlock
@@ -412,6 +413,17 @@ export class HealthService {
         () => true,
         () => false,
       );
+  }
+
+  // ---- Report (Session 91; served by api/Reports/Health, behind the unlock like everything here) ----
+
+  report(range: ReportRange): Observable<HealthReport> {
+    return this.guarded(() =>
+      this.http.get<ApiResponse<HealthReport>>('/api/Reports/Health', {
+        params: reportParams(range),
+        headers: this.vault.headers(),
+      }),
+    ).pipe(map((response) => response.data!));
   }
 
   // ---- Profile ----

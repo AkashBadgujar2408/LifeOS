@@ -24,6 +24,7 @@ import {
   rangeError,
   readRange,
 } from './report-range';
+import { REPORT_TABS } from './report-view';
 
 /**
  * Reports (Session 90): one range for every report — in the URL (`?from=&to=`), so it survives switching tabs, a
@@ -141,29 +142,19 @@ import {
       </section>
 
       <ul class="nav nav-tabs mb-3 d-print-none">
-        @if (!hidden().has('Goals')) {
-          <li class="nav-item">
-            <a
-              class="nav-link"
-              routerLink="/reports/goals"
-              routerLinkActive="active"
-              ariaCurrentWhenActive="page"
-              queryParamsHandling="preserve"
-              >Goals</a
-            >
-          </li>
-        }
-        @if (!hidden().has('Habits')) {
-          <li class="nav-item">
-            <a
-              class="nav-link"
-              routerLink="/reports/habits"
-              routerLinkActive="active"
-              ariaCurrentWhenActive="page"
-              queryParamsHandling="preserve"
-              >Habits</a
-            >
-          </li>
+        @for (tab of tabs; track tab.path) {
+          @if (!hidden().has(tab.module)) {
+            <li class="nav-item">
+              <a
+                class="nav-link"
+                [routerLink]="['/reports', tab.path]"
+                routerLinkActive="active"
+                ariaCurrentWhenActive="page"
+                queryParamsHandling="preserve"
+                >{{ tab.label }}</a
+              >
+            </li>
+          }
         }
         @if (!hidden().has('Finance')) {
           <li class="nav-item">
@@ -188,6 +179,7 @@ export class Reports {
   readonly to = input<string | undefined>();
 
   protected readonly presets = REPORT_PRESETS;
+  protected readonly tabs = REPORT_TABS;
   protected readonly minDate = { year: 1960, month: 1, day: 1 };
   protected readonly hidden = inject(SettingsService).hiddenModules;
   protected readonly range = computed(() => readRange(this.from(), this.to(), todayIso()));

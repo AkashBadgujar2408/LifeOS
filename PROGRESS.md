@@ -1263,3 +1263,11 @@
 - Not tested in the browser: a report tab hiding when its module is switched off (same `hiddenModules` pattern as elsewhere). Printing was checked by stubbing `window.print` (a real print dialog would block the browser tool) — the paper output itself wasn't looked at.
 - Test data: `rep90…` accounts (seven goals, four habits) in UAT.
 - Next: Session 91 — Reports 2 (productivity, learning, health).
+
+## Last session: 2026-10-22 — Session 91 — Reports 2 (productivity, learning, health)
+- Shipped: procs `reports.GetProductivityReport` (eight sets), `reports.GetLearningReport` (EXECs `learning.GetStudyBySubject`), `reports.GetHealthReport` (no Notes read); pure `ProductivityReport` (one outcome per task; overdue rate; estimate vs actual; focus by local day; planned vs tracked by life area — a task's area is the goal it serves), `LearningReport` (every subject, weeks, courses/books/level-ups/certifications reached), `HealthReport` (Health pages' rules); `ReportMath.Weeks`/`Average`; `api/Reports/{Productivity,Learning,Health}` (Health `[VaultUnlockRequired]`). Client: Productivity / Learning / Health tabs from `REPORT_TABS` (hidden with their modules; `/reports` opens the first visible), charts through `<app-health-trend>`, grids with CSV (Health's behind `exportGuard('report')`), Health through `HealthService.report()`.
+- Verified: `reports91.mjs` (28 checks, this session's scratchpad) — hand-worked task/estimate/focus/area figures (incl. a 00:30-IST focus session on its local day, a weekly block with one skipped occurrence, an all-day event planning nothing), calendar feed and study chart agree; health 423 locked, then workouts/sleep/wellbeing/weight as worked out, fitness and sleep pages agree. Browser: the three tabs, unlock prompt on Health, 375 px (no sideways scroll), console clean. 630 backend + 279 frontend tests (`test:tz` all six zones), lint/Prettier/build clean, initial bundle 999 kB.
+- Fixed on the way: "→" in a proc literal came back as mojibake (sqlcmd reads scripts as ANSI) — built with `NCHAR(8594)`.
+- Not checked: printing these tabs on paper (same `PrintService` as Session 90); the browser window wouldn't resize, so 375 px was measured in a same-origin 375 px iframe.
+- Test data: `rep91…` accounts in UAT.
+- Next: Session 92 — Reports 3 (finance, life balance, annual review).

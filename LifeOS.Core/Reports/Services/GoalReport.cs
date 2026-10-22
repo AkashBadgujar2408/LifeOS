@@ -148,4 +148,28 @@ public static class ReportMath
 
     /// <summary>The longest ask for one report: about five years of days.</summary>
     public const int MaxDays = 1830;
+
+    /// <summary>
+    /// The ISO weeks overlapping <paramref name="from"/>..<paramref name="to"/> up to <paramref name="today"/>, oldest
+    /// first, each with the part of it inside the range (a first or last week can be partial). Empty when the range
+    /// is all ahead.
+    /// </summary>
+    public static List<(DateOnly WeekStart, DateOnly From, DateOnly To)> Weeks(DateOnly from, DateOnly to, DateOnly today)
+    {
+        var last = to < today ? to : today;
+        var weeks = new List<(DateOnly, DateOnly, DateOnly)>();
+        for (var week = Journal.Services.JournalWeeks.WeekStart(from); week <= last; week = week.AddDays(7))
+        {
+            weeks.Add((week, week > from ? week : from, week.AddDays(6) < last ? week.AddDays(6) : last));
+        }
+
+        return weeks;
+    }
+
+    /// <summary>The average of the values given, to one decimal (null when none was given).</summary>
+    public static decimal? Average(IEnumerable<int?> values)
+    {
+        var known = values.Where(v => v is not null).Select(v => v!.Value).ToList();
+        return known.Count == 0 ? null : Math.Round((decimal)known.Average(), 1, MidpointRounding.AwayFromZero);
+    }
 }

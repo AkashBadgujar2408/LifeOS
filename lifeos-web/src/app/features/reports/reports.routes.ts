@@ -1,9 +1,10 @@
 import { inject } from '@angular/core';
 import { Route } from '@angular/router';
 import { SettingsService } from '../../core/services/settings.service';
+import { REPORT_TABS } from './report-view';
 
 /**
- * Reports (Session 90): one page with a tab per report, the range shared through `?from=&to=` (a redirect keeps the
+ * Reports (Sessions 90–91): one page with a tab per report, the range shared through `?from=&to=` (a redirect keeps the
  * query). `/reports` opens the first report whose module is switched on.
  */
 export const REPORTS_ROUTES: Route[] = [
@@ -14,8 +15,10 @@ export const REPORTS_ROUTES: Route[] = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: () =>
-          inject(SettingsService).hiddenModules().has('Goals') ? 'habits' : 'goals',
+        redirectTo: () => {
+          const hidden = inject(SettingsService).hiddenModules();
+          return REPORT_TABS.find((tab) => !hidden.has(tab.module))?.path ?? 'goals';
+        },
       },
       {
         path: 'goals',
@@ -26,6 +29,21 @@ export const REPORTS_ROUTES: Route[] = [
         path: 'habits',
         title: 'Habit report | LifeOS',
         loadComponent: () => import('./habit-report').then((m) => m.HabitReport),
+      },
+      {
+        path: 'productivity',
+        title: 'Productivity report | LifeOS',
+        loadComponent: () => import('./productivity-report').then((m) => m.ProductivityReport),
+      },
+      {
+        path: 'learning',
+        title: 'Learning report | LifeOS',
+        loadComponent: () => import('./learning-report').then((m) => m.LearningReport),
+      },
+      {
+        path: 'health',
+        title: 'Health report | LifeOS',
+        loadComponent: () => import('./health-report').then((m) => m.HealthReport),
       },
     ],
   },

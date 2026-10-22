@@ -601,6 +601,7 @@ public static class HealthExportLists
         ["sleep"] = "Sleep",
         ["measurements"] = "Body measurements",
         ["lab-results"] = "Lab results",
+        ["report"] = "Health report",
     };
 }
 
