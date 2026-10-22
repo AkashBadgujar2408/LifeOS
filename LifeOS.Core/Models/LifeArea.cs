@@ -35,6 +35,8 @@ public partial class LifeArea
 
     public virtual ICollection<MediaItem> MediaItems { get; set; } = new List<MediaItem>();
 
+    public virtual ICollection<SavedReport> SavedReports { get; set; } = new List<SavedReport>();
+
     public virtual ICollection<Skill> Skills { get; set; } = new List<Skill>();
 
     public virtual ICollection<UserHiddenLifeArea> UserHiddenLifeAreas { get; set; } = new List<UserHiddenLifeArea>();

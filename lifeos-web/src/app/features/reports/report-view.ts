@@ -10,6 +10,7 @@ export const REPORT_TABS: readonly { path: string; label: string; module: Module
   { path: 'health', label: 'Health', module: 'Health' },
   { path: 'money', label: 'Money', module: 'Finance' },
   { path: 'balance', label: 'Life balance', module: null },
+  { path: 'custom', label: 'Custom', module: null },
 ];
 
 /** How each goal outcome reads in the report (the API decides which one a goal gets). */

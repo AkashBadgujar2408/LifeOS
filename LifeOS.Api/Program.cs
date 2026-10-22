@@ -231,6 +231,7 @@ try
     // Reports (Session 90): goal achievement and habit consistency, read through reports.* procedures
     builder.Services.AddScoped<IReportsService, ReportsService>();
     builder.Services.AddScoped<IAnnualReviewService, AnnualReviewService>();
+    builder.Services.AddScoped<ICustomReportsService, CustomReportsService>();
 
     // Leisure & media (Session 78a; books included)
     builder.Services.AddScoped<IMediaItemsService, MediaItemsService>();

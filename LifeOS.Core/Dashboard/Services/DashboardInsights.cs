@@ -15,7 +15,10 @@ public record InsightInputs(
     IReadOnlyList<InsightDocument>? ExpiringDocuments = null,
     IReadOnlyList<InsightBudget>? OverBudgets = null,
     IReadOnlyList<InsightLowBalance>? LowBalances = null,
-    IReadOnlyList<InsightKeepInTouch>? KeepInTouch = null);
+    IReadOnlyList<InsightKeepInTouch>? KeepInTouch = null,
+    InsightStudy? Study = null,
+    InsightUntagged? Untagged = null,
+    InsightWorkouts? Workouts = null);
 
 public record InsightHabit(int Id, string Title, byte ScheduleDays, DateOnly StartDate, IReadOnlyCollection<DateOnly> DoneDates, HabitStreak Streak);
 
@@ -35,6 +38,15 @@ public record InsightLowBalance(int AccountId, string Name, string Currency, Dat
 /// <summary>Someone with a keep-in-touch cadence (Family): when you were last in touch and when the next touch is due.</summary>
 public record InsightKeepInTouch(int ContactId, string Name, DateOnly? LastContactedOn, DateOnly DueOn);
 
+/// <summary>Learning on the go (a course in progress or a skill below its target) and the last day anything was studied.</summary>
+public record InsightStudy(bool LearningOnTheGo, DateOnly? LastStudiedOn);
+
+/// <summary>This month's expenses with no tag at all.</summary>
+public record InsightUntagged(int Count);
+
+/// <summary>Only counts and a day — what My Day may read from Health without the unlock.</summary>
+public record InsightWorkouts(DateOnly? LastWorkoutOn, int WorkoutsLast60Days);
+
 /// <summary>
 /// The lightweight, deterministic "insights" (plan, Section 2 #6 — no AI): a handful of plain rules over data the
 /// dashboard already has. Pure, so every rule is unit-tested; nothing is stored — the list is worked out per request
@@ -51,6 +63,16 @@ public static class DashboardInsights
 
     /// <summary>At most this many keep-in-touch nudges a day (the longest past due).</summary>
     public const int KeepInTouchNudges = 3;
+
+    /// <summary>Days without study (while learning is on the go) before a nudge.</summary>
+    public const int StudyGapDays = 14;
+
+    /// <summary>Untagged expenses this month before a nudge.</summary>
+    public const int UntaggedExpensesThreshold = 3;
+
+    /// <summary>Days without a workout before a nudge — only for someone with at least WorkoutRegularCount in 60 days.</summary>
+    public const int WorkoutGapDays = 7;
+    public const int WorkoutRegularCount = 4;
 
     /// <summary>Streak lengths worth a word of congratulation.</summary>
     public static readonly IReadOnlySet<int> StreakMilestones = new HashSet<int> { 7, 14, 21, 30, 50, 100, 200, 365 };
@@ -181,6 +203,47 @@ public static class DashboardInsights
             });
         }
 
+        // Keyed by the last study day: logging a session moves it (and the gap closes), so the nudge clears itself.
+        if (inputs.Study is { LearningOnTheGo: true, LastStudiedOn: { } lastStudied }
+            && inputs.Today.DayNumber - lastStudied.DayNumber >= StudyGapDays)
+        {
+            insights.Add(new InsightDto
+            {
+                Kind = InsightKinds.StudyGap,
+                Key = Invariant($"{InsightKinds.StudyGap}:{lastStudied:yyyy-MM-dd}"),
+                Tone = InsightTones.Nudge,
+                Message = StudyGapMessage(lastStudied, inputs.Today),
+                EntityType = "Study",
+            });
+        }
+
+        // One per month: tagging them (or the month turning) clears it.
+        if (inputs.Untagged is { Count: >= UntaggedExpensesThreshold } untagged)
+        {
+            insights.Add(new InsightDto
+            {
+                Kind = InsightKinds.UntaggedExpenses,
+                Key = Invariant($"{InsightKinds.UntaggedExpenses}:{inputs.Today:yyyy-MM}"),
+                Tone = InsightTones.Nudge,
+                Message = UntaggedMessage(untagged.Count, inputs.Today),
+                EntityType = "Transactions",
+            });
+        }
+
+        // Keyed by the last workout day; logging one clears it. Neutral wording — My Day shows without the vault.
+        if (inputs.Workouts is { LastWorkoutOn: { } lastWorkout, WorkoutsLast60Days: >= WorkoutRegularCount }
+            && inputs.Today.DayNumber - lastWorkout.DayNumber >= WorkoutGapDays)
+        {
+            insights.Add(new InsightDto
+            {
+                Kind = InsightKinds.WorkoutGap,
+                Key = Invariant($"{InsightKinds.WorkoutGap}:{lastWorkout:yyyy-MM-dd}"),
+                Tone = InsightTones.Nudge,
+                Message = Invariant($"No workout logged for {inputs.Today.DayNumber - lastWorkout.DayNumber} days. A short one counts too."),
+                EntityType = "Fitness",
+            });
+        }
+
         foreach (var habit in inputs.Habits.Where(h => h.Streak.DoneToday && StreakMilestones.Contains(h.Streak.Current)))
         {
             insights.Add(new InsightDto
@@ -211,6 +274,14 @@ public static class DashboardInsights
 
         return insights;
     }
+
+    /// <summary>"No study logged since 02/Oct/2026 (20 days). A short session keeps it moving."</summary>
+    public static string StudyGapMessage(DateOnly lastStudied, DateOnly today) =>
+        Invariant($"No study logged since {lastStudied.ToString("dd/MMM/yyyy", System.Globalization.CultureInfo.InvariantCulture)} ({today.DayNumber - lastStudied.DayNumber} days). A short session keeps it moving.");
+
+    /// <summary>"4 expenses in October have no tag, so budgets and reports can't place them."</summary>
+    public static string UntaggedMessage(int count, DateOnly today) =>
+        Invariant($"{count} expenses in {today.ToString("MMMM", System.Globalization.CultureInfo.InvariantCulture)} have no tag, so budgets and reports can't place them.");
 
     /// <summary>Only a goal measured by a number or an amount "reaches" something; milestones finish on their own.</summary>
     private static bool TargetReached(InsightGoal goal) =>

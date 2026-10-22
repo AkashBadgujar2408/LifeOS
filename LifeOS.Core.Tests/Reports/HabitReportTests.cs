@@ -15,7 +15,7 @@ public class HabitReportTests
     private static HabitFact Habit(int id, string kind = HabitKinds.Build, byte schedule = 127, DateOnly? start = null,
         decimal? target = null, DateOnly? archived = null) =>
         new(id, $"Habit {id}", kind, archived is null ? HabitStatuses.Active : HabitStatuses.Archived, schedule,
-            start ?? D(1), target, null, archived);
+            start ?? D(1), target, null, null, archived);
 
     private static HabitEntryFact E(int habit, int day, decimal? value = null) => new(habit, D(day), value);
 

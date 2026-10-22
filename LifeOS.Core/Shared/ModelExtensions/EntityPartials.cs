@@ -93,6 +93,8 @@ public partial class KpiTile : ISoftDeletable, IUserOwned;
 
 public partial class DismissedInsight : ISoftDeletable, IUserOwned;
 
+public partial class SavedReport : ISoftDeletable, IUserOwned;
+
 public partial class Skill : ISoftDeletable, IUserOwned;
 
 public partial class SkillLevelChange : ISoftDeletable, IUserOwned;

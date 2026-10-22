@@ -1278,3 +1278,11 @@
 - Fixed on the way: a stray space in the review's money sentence (now one computed sentence). The dev server kept a stale TS error after the fix (`ng build` was clean) and served the old bundle — touching the files made it rebuild.
 - Test data: `rep92…` accounts in UAT.
 - Next: Session 93 — Reports 4 (custom reports + insights).
+
+## Last session: 2026-10-22 — Session 93 — Reports 4 (custom reports + insights) — Reports complete
+- Shipped: `reports.SavedReports` (definitions only; UAT backed up to `C:\Users\Hp\LifeOS_UAT_pre93.bak`, re-scaffolded, `SavedReport : ISoftDeletable, IUserOwned`); pure `CustomReports` (15 metrics, each read off the report tab it repeats; presets, checks, compare range) + `CustomReportsService` (run per week/month bucket and for the whole period, compare with the period before / the year before, saved CRUD) and `api/Reports/Custom`; habit report rows carry `LifeAreaId`; tag delete widens saved spending reports. Insights `StudyGap`, `UntaggedExpenses`, `WorkoutGap` (counts only from Health, neutral words) with links. Client: Custom tab (saved list, builder, Save/Delete, tiles, chart with the compared period, grid with CSV); My Day links + module hiding for the new insights.
+- Verified: `reports93.mjs` (21 checks, this session's scratchpad) — custom figures equal the learning / money / habit tabs, comparisons worked out by hand, bad definitions refused, a saved report reruns identically, the three insights appear and clear once acted on. Fresh-DB scaffold identical (only `User.Username` position). Browser: saved report rerun, a new one built in the form, the untagged insight on My Day, 375 px, console clean. 642 backend + 279 frontend tests (`test:tz` all six zones), lint/Prettier/build clean.
+- Fixed on the way: period tiles showed days without the year (ambiguous next to a year-earlier comparison) — full dates now. The dev server again kept a stale error after the fix until the files were touched.
+- Not checked: printing the custom tab on paper; export → import of an account with saved reports (the exporter picks the table up from the EF model — the model-based unit tests pass).
+- Test data: `rep93…` accounts in UAT.
+- Next: Session 94 — Automation 1 (background jobs + Web Push notifications; the VAPID library decision gets recorded in Section 3).

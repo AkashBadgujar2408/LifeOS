@@ -15,6 +15,7 @@ public record HabitFact(
     DateOnly StartDate,
     decimal? TargetValue,
     string? LifeAreaName,
+    int? LifeAreaId,
     DateOnly? ArchivedOn);
 
 /// <summary>One logged day of a habit (every entry; whether it counts is decided here).</summary>
@@ -101,6 +102,7 @@ public static class HabitReport
                 Kind = habit.Kind,
                 Status = habit.Status,
                 LifeAreaName = habit.LifeAreaName,
+                LifeAreaId = habit.LifeAreaId,
                 ScheduleDays = habit.ScheduleDays,
                 Total = total,
                 Good = good,

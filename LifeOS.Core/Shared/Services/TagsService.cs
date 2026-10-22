@@ -90,6 +90,11 @@ public class TagsService(AppDbContext db, IMapper mapper) : ITagsService
             .Where(tt => tt.TagId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(tt => tt.IsDeleted, true).SetProperty(tt => tt.DeletedAt, now));
 
+        // A saved custom report filtered by this tag goes back to counting all spending (Session 93).
+        await db.SavedReports
+            .Where(r => r.TagId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.TagId, (int?)null).SetProperty(r => r.UpdatedAt, now));
+
         tag.IsDeleted = true;
         tag.DeletedAt = now;
         await db.SaveChangesAsync();

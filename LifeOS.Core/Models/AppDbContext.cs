@@ -211,6 +211,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<SalaryRecord> SalaryRecords { get; set; }
 
+    public virtual DbSet<SavedReport> SavedReports { get; set; }
+
     public virtual DbSet<Scenario> Scenarios { get; set; }
 
     public virtual DbSet<ScenarioLine> ScenarioLines { get; set; }
@@ -2827,6 +2829,37 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_SalaryRecords_Users");
+        });
+
+        modelBuilder.Entity<SavedReport>(entity =>
+        {
+            entity.ToTable("SavedReports", "reports");
+
+            entity.HasIndex(e => new { e.UserId, e.Name }, "UX_SavedReports_User_Name")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Compare)
+                .HasMaxLength(20)
+                .HasDefaultValue("None", "DF_SavedReports_Compare");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_SavedReports_CreatedAt");
+            entity.Property(e => e.Grouping).HasMaxLength(10);
+            entity.Property(e => e.Metric).HasMaxLength(40);
+            entity.Property(e => e.Name).HasMaxLength(100);
+            entity.Property(e => e.RangePreset).HasMaxLength(20);
+
+            entity.HasOne(d => d.LifeArea).WithMany(p => p.SavedReports)
+                .HasForeignKey(d => d.LifeAreaId)
+                .HasConstraintName("FK_SavedReports_LifeAreas");
+
+            entity.HasOne(d => d.Tag).WithMany(p => p.SavedReports)
+                .HasForeignKey(d => d.TagId)
+                .HasConstraintName("FK_SavedReports_Tags");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SavedReports)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_SavedReports_Users");
         });
 
         modelBuilder.Entity<Scenario>(entity =>

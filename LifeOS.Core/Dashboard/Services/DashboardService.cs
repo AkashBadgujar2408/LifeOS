@@ -58,6 +58,9 @@ public class DashboardService(
         var goalProgress = await ActiveGoalProgressAsync(today);
         var upcomingDays = await significantDatesService.UpcomingAsync(today, UpcomingDayWindow);
         var keepInTouch = await keepInTouchService.GetAllAsync(today);
+        var study = await StudyFactsAsync();
+        var untagged = await UntaggedExpensesAsync(today);
+        var workouts = await WorkoutFactsAsync(today);
 
         var parameters = new DynamicParameters();
         parameters.Add("UserId", db.CurrentUserId!.Value, DbType.Int32);
@@ -211,7 +214,10 @@ public class DashboardService(
             myDay.ExpiringDocuments.Select(d => new InsightDocument(d.Id, d.Title, d.ExpiresOn)).ToList(),
             overBudget.Select(b => new InsightBudget(b.TagId, b.TagName, b.Spent, b.Budget!.Value, b.BudgetCurrency!)).ToList(),
             lowAhead.Select(l => new InsightLowBalance(l.AccountId, l.Name, l.Currency, l.Day, l.Balance)).ToList(),
-            keepInTouch.Select(k => new InsightKeepInTouch(k.ContactId, k.Name, k.LastContactedOn, k.DueOn)).ToList()));
+            keepInTouch.Select(k => new InsightKeepInTouch(k.ContactId, k.Name, k.LastContactedOn, k.DueOn)).ToList(),
+            study,
+            untagged,
+            workouts));
 
         // Dismissed insights stay hidden while their situation (the key) is unchanged.
         var keys = myDay.Insights.Select(i => i.Key).ToList();
@@ -249,6 +255,38 @@ public class DashboardService(
         var now = DateTime.UtcNow;
         return await db.DismissedInsights
             .ExecuteUpdateAsync(s => s.SetProperty(d => d.IsDeleted, true).SetProperty(d => d.DeletedAt, now));
+    }
+
+    // ---- Insight facts (Session 93): read before the My Day reader opens, through EF (user + soft-delete filters apply) ----
+
+    /// <summary>Is learning on the go (a course in progress, or a skill below its target), and when was the last study?</summary>
+    private async Task<InsightStudy> StudyFactsAsync()
+    {
+        var onTheGo = await db.Courses.AnyAsync(c => c.Status == Learning.DTOs.CourseStatuses.InProgress)
+            || await db.Skills.AnyAsync(s => s.TargetProficiency != null && s.Proficiency < s.TargetProficiency);
+        var last = await db.StudySessions.MaxAsync(s => (DateOnly?)s.StudiedOn);
+        return new InsightStudy(onTheGo, last);
+    }
+
+    /// <summary>This month's expenses with no tag at all.</summary>
+    private async Task<InsightUntagged> UntaggedExpensesAsync(DateOnly today)
+    {
+        var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var count = await db.Transactions.CountAsync(t =>
+            t.Kind == Finance.DTOs.TransactionKinds.Expense && t.OccurredOn >= monthStart && t.OccurredOn <= today && !t.TransactionTags.Any());
+        return new InsightUntagged(count);
+    }
+
+    /// <summary>
+    /// Health without the unlock: only the last workout's day and a count (listed in ARCHITECTURE.md's "What reads
+    /// Health without the unlock") — the insight's wording names nothing else.
+    /// </summary>
+    private async Task<InsightWorkouts> WorkoutFactsAsync(DateOnly today)
+    {
+        var since = today.AddDays(-59);
+        var last = await db.Workouts.Where(w => w.OccurredOn <= today).MaxAsync(w => (DateOnly?)w.OccurredOn);
+        var recent = await db.Workouts.CountAsync(w => w.OccurredOn >= since && w.OccurredOn <= today);
+        return new InsightWorkouts(last, recent);
     }
 
     public async Task<OperationResult<LifeBalanceDto>> GetLifeBalanceAsync(

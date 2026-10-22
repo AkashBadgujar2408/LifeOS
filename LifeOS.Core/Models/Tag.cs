@@ -43,6 +43,8 @@ public partial class Tag
 
     public virtual ICollection<RecurringTransactionTag> RecurringTransactionTags { get; set; } = new List<RecurringTransactionTag>();
 
+    public virtual ICollection<SavedReport> SavedReports { get; set; } = new List<SavedReport>();
+
     public virtual ICollection<SkillTag> SkillTags { get; set; } = new List<SkillTag>();
 
     public virtual ICollection<TaskTag> TaskTags { get; set; } = new List<TaskTag>();

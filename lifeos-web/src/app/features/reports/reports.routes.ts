@@ -64,6 +64,11 @@ export const REPORTS_ROUTES: Route[] = [
         loadComponent: () => import('./balance-report').then((m) => m.BalanceReport),
       },
       {
+        path: 'custom',
+        title: 'Custom report | LifeOS',
+        loadComponent: () => import('./custom-report').then((m) => m.CustomReport),
+      },
+      {
         path: 'health',
         title: 'Health report | LifeOS',
         loadComponent: () => import('./health-report').then((m) => m.HealthReport),

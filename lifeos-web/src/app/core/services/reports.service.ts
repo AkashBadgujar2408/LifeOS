@@ -5,6 +5,7 @@ import { browserTimeZone, todayIso } from '../dates/today';
 import { ApiResponse } from './api-response';
 import { CashFlowMonth, CashFlowReport, NetWorthPoint } from './finance.service';
 import { YearInMedia } from './leisure.service';
+import { ModuleKey } from './settings.service';
 import { Achievement, Chapter, StoryBeat } from './story.service';
 
 /** A report's range: local days, "yyyy-MM-dd", inclusive. */
@@ -316,6 +317,61 @@ export interface AnnualReview {
   lifeBalance: LifeBalanceReportArea[];
 }
 
+/** Mirrors CustomMetricUnits on the API. */
+export type CustomMetricUnit = 'Count' | 'Percent' | 'Minutes' | 'Money' | 'Score';
+
+/** One thing a custom report can count (CustomReports.Metrics on the API). */
+export interface CustomMetric {
+  key: string;
+  label: string;
+  unit: CustomMetricUnit;
+  filter: 'None' | 'LifeArea' | 'LifeAreaRequired' | 'Tag';
+  /** Hidden with this module; null = always offered. */
+  module: ModuleKey | null;
+  /** The report tab whose figure it repeats. */
+  report: string;
+}
+
+export type CustomGrouping = 'Week' | 'Month';
+export type CustomCompare = 'None' | 'PreviousPeriod' | 'PreviousYear';
+
+/** What to count, over which days (a moving preset, or two fixed days), grouped how, compared with what. */
+export interface CustomReportDefinition {
+  metric: string;
+  lifeAreaId: number | null;
+  tagId: number | null;
+  grouping: CustomGrouping;
+  compare: CustomCompare;
+  rangePreset: string | null;
+  from: string | null;
+  to: string | null;
+}
+
+export interface SavedReport extends CustomReportDefinition {
+  id: number;
+  name: string;
+}
+
+export interface CustomPeriod {
+  from: string;
+  to: string;
+  total: number | null;
+  buckets: { from: string; to: string; value: number | null }[];
+}
+
+export interface CustomReportResult {
+  metric: CustomMetric;
+  lifeAreaId: number | null;
+  lifeAreaName: string | null;
+  tagId: number | null;
+  tagName: string | null;
+  currency: string | null;
+  grouping: CustomGrouping;
+  period: CustomPeriod;
+  compared: CustomPeriod | null;
+  change: number | null;
+}
+
 /** A report's query: the range plus the client's today and IANA zone (moments go on the user's local days). */
 export function reportParams(range: ReportRange): HttpParams {
   return new HttpParams()
@@ -325,7 +381,7 @@ export function reportParams(range: ReportRange): HttpParams {
     .set('tz', browserTimeZone());
 }
 
-/** Reports (Sessions 90–92): every figure is computed by the API for the range asked, never stored. */
+/** Reports (Sessions 90–93): every figure is computed by the API for the range asked, never stored. */
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
   private readonly http = inject(HttpClient);
@@ -377,6 +433,52 @@ export class ReportsService {
         params: { today: todayIso(), tz: browserTimeZone() },
       })
       .pipe(map((res) => res.data!));
+  }
+
+  // ---- Custom reports (Session 93) ----
+
+  customMetrics(): Observable<CustomMetric[]> {
+    return this.http
+      .get<ApiResponse<CustomMetric[]>>(`${this.baseUrl}/Custom/metrics`)
+      .pipe(map((res) => res.data ?? []));
+  }
+
+  runCustom(definition: CustomReportDefinition): Observable<CustomReportResult> {
+    return this.http
+      .post<ApiResponse<CustomReportResult>>(`${this.baseUrl}/Custom/run`, {
+        ...definition,
+        today: todayIso(),
+        timeZone: browserTimeZone(),
+      })
+      .pipe(map((res) => res.data!));
+  }
+
+  savedReports(): Observable<SavedReport[]> {
+    return this.http
+      .get<ApiResponse<SavedReport[]>>(`${this.baseUrl}/Custom`)
+      .pipe(map((res) => res.data ?? []));
+  }
+
+  runSaved(id: number): Observable<CustomReportResult> {
+    return this.http
+      .get<ApiResponse<CustomReportResult>>(`${this.baseUrl}/Custom/${id}/run`, {
+        params: { today: todayIso(), tz: browserTimeZone() },
+      })
+      .pipe(map((res) => res.data!));
+  }
+
+  saveReport(id: number | null, report: Omit<SavedReport, 'id'>): Observable<SavedReport> {
+    const options = { params: { today: todayIso() } };
+    const call = id
+      ? this.http.put<ApiResponse<SavedReport>>(`${this.baseUrl}/Custom/${id}`, report, options)
+      : this.http.post<ApiResponse<SavedReport>>(`${this.baseUrl}/Custom`, report, options);
+    return call.pipe(map((res) => res.data!));
+  }
+
+  removeReport(id: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.baseUrl}/Custom/${id}`)
+      .pipe(map(() => undefined));
   }
 
   // The health report needs the vault unlock, so it goes through HealthService.report().

@@ -85,6 +85,7 @@ public class ReportsService(
                 DateOnly.FromDateTime(h.StartDate),
                 h.TargetValue,
                 h.LifeAreaName,
+                h.LifeAreaId,
                 h.ArchivedAt is { } archived ? LocalDay(archived, zone) : null))
             .ToList();
         var entries = (await reader.ReadAsync<EntryRow>())
@@ -323,6 +324,7 @@ public class ReportsService(
         public decimal? TargetValue { get; init; }
         public string? Unit { get; init; }
         public string? LifeAreaName { get; init; }
+        public int? LifeAreaId { get; init; }
         public DateTime? ArchivedAt { get; init; }
     }
 

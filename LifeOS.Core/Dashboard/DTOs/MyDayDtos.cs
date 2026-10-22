@@ -142,6 +142,12 @@ public static class InsightKinds
     public const string LowBalanceAhead = "LowBalanceAhead";
     public const string GoalTargetReached = "GoalTargetReached";
     public const string KeepInTouch = "KeepInTouch";
+    /// <summary>Session 93: a skill or course on the go, and no study logged for a while.</summary>
+    public const string StudyGap = "StudyGap";
+    /// <summary>Session 93: several of this month's expenses have no tag, so budgets and reports can't place them.</summary>
+    public const string UntaggedExpenses = "UntaggedExpenses";
+    /// <summary>Session 93: someone who works out regularly hasn't logged one for a week (counts only — no Health detail).</summary>
+    public const string WorkoutGap = "WorkoutGap";
 }
 
 public static class InsightTones

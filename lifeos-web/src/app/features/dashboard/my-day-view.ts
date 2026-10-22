@@ -125,6 +125,12 @@ export function insightLink(insight: Insight): { link: (string | number)[]; labe
       return insight.entityId
         ? { link: ['/family/people', insight.entityId], label: 'Open their page' }
         : null;
+    case 'Study':
+      return { link: ['/learning/study'], label: 'Log study time' };
+    case 'Transactions':
+      return { link: ['/finance/transactions'], label: 'Open transactions' };
+    case 'Fitness':
+      return { link: ['/health/fitness'], label: 'Log a workout' };
     default:
       return null;
   }
@@ -162,6 +168,9 @@ const INSIGHT_MODULES: Record<string, ModuleKey> = {
   Budgets: 'Finance',
   Forecast: 'Finance',
   Contact: 'Family',
+  Study: 'Learning',
+  Transactions: 'Finance',
+  Fitness: 'Health',
 };
 
 /**

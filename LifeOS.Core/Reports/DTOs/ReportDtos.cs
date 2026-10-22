@@ -102,6 +102,7 @@ public class HabitReportItemDto : HabitShareDto
     public string Kind { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public string? LifeAreaName { get; init; }
+    public int? LifeAreaId { get; init; }
     public byte ScheduleDays { get; init; }
     /// <summary>Avoid: days with a slip.</summary>
     public int Slips { get; init; }

@@ -31,6 +31,7 @@ BEGIN
         h.Status,
         h.TargetValue,
         h.Unit,
+        h.LifeAreaId,
         LifeAreaName = la.Name,
         ArchivedAt = CASE WHEN h.Status = 'Archived' THEN COALESCE(h.UpdatedAt, h.CreatedAt) END
     FROM habits.Habits h
