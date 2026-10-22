@@ -596,6 +596,13 @@ public class NetWorthDto
     public List<NetWorthPointDto> History { get; init; } = [];
 }
 
+/// <summary>Net worth on chosen days (Reports): <see cref="Currency"/> null when no base currency is chosen.</summary>
+public class NetWorthPointsDto
+{
+    public string? Currency { get; init; }
+    public List<NetWorthPointDto> Points { get; init; } = [];
+}
+
 /// <summary>A savings goal's progress: the accounts and investments linked to it, against its target.</summary>
 public class SavingsProgressDto
 {

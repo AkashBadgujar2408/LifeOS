@@ -22,4 +22,10 @@ public interface IReportsService
 
     /// <summary>Workouts, sleep, body and wellbeing for the range — only call behind the vault unlock.</summary>
     Task<OperationResult<HealthReportDto>> GetHealthReportAsync(DateOnly from, DateOnly to, DateOnly today, string? timeZone);
+
+    /// <summary>Cash flow over the range (as the ledger counts it) and net worth before → after, in the base currency.</summary>
+    Task<OperationResult<FinanceReportDto>> GetFinanceReportAsync(DateOnly from, DateOnly to, DateOnly today, string? timeZone);
+
+    /// <summary>Each month's life balance (as My Day counts it) beside that month's self-ratings.</summary>
+    Task<OperationResult<LifeBalanceReportDto>> GetLifeBalanceReportAsync(DateOnly from, DateOnly to, DateOnly today, string? timeZone);
 }

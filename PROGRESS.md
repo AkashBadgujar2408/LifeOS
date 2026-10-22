@@ -1271,3 +1271,10 @@
 - Not checked: printing these tabs on paper (same `PrintService` as Session 90); the browser window wouldn't resize, so 375 px was measured in a same-origin 375 px iframe.
 - Test data: `rep91…` accounts in UAT.
 - Next: Session 92 — Reports 3 (finance, life balance, annual review).
+
+## Last session: 2026-10-22 — Session 92 — Reports 3 (money, life balance over time, Annual Life Review)
+- Shipped: `api/Reports/Finance` (repeating transactions written first; cash flow for any day range through `finance.GetCashFlow` — `IFinanceReportsService.GetCashFlowAsync(from, to)`, the month-count overload now shares it; net worth by `NetWorth.At` before / at month ends / after — `IWealthService.GetNetWorthOnAsync`), `api/Reports/LifeBalance` (each month = `IDashboardService.GetLifeBalanceAsync` for its days, beside that month's self-ratings), `api/Reports/Year/{year}` (`AnnualReviewService`: the report methods over Jan 1 – Dec 31 + chapters, achievements, the Life Story's beats and big moments, year in media; no Health). Pure `FinanceReport`, `LifeBalanceReport`, `AnnualReview`, `ReportMath.Months`; 5 xUnit cases. Client: Money and Life balance tabs (the external Money link replaced; the tab links to Finance's page), "2026 in review" header button, `/reports/year/:year` with previous/next and Print.
+- Verified: `reports92.mjs` (23 checks, this session's scratchpad) — partial-month money, net worth at month ends, tags; September equals the Finance reports page, today's net worth the net worth page; each life-balance month equals My Day's card for its days; the 2026 review equals the goal/habit/money/productivity reports and the Life Story's 2026 beats and achievements. Browser: both tabs and the review page, 375 px, console clean. 635 backend + 279 frontend tests (`test:tz` all six zones), lint/Prettier/build clean.
+- Fixed on the way: a stray space in the review's money sentence (now one computed sentence). The dev server kept a stale TS error after the fix (`ng build` was clean) and served the old bundle — touching the files made it rebuild.
+- Test data: `rep92…` accounts in UAT.
+- Next: Session 93 — Reports 4 (custom reports + insights).

@@ -166,6 +166,23 @@ public static class ReportMath
         return weeks;
     }
 
+    /// <summary>
+    /// The calendar months touching <paramref name="from"/>..<paramref name="to"/> up to <paramref name="today"/>, oldest
+    /// first, each with its part inside the range (first days of months as keys). Empty when the range is all ahead.
+    /// </summary>
+    public static List<(DateOnly MonthStart, DateOnly From, DateOnly To)> Months(DateOnly from, DateOnly to, DateOnly today)
+    {
+        var last = to < today ? to : today;
+        var months = new List<(DateOnly, DateOnly, DateOnly)>();
+        for (var month = new DateOnly(from.Year, from.Month, 1); month <= last; month = month.AddMonths(1))
+        {
+            var monthEnd = month.AddMonths(1).AddDays(-1);
+            months.Add((month, month > from ? month : from, monthEnd < last ? monthEnd : last));
+        }
+
+        return months;
+    }
+
     /// <summary>The average of the values given, to one decimal (null when none was given).</summary>
     public static decimal? Average(IEnumerable<int?> values)
     {

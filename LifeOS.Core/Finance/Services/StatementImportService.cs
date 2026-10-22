@@ -183,7 +183,13 @@ public class StatementImportService(AppDbContext db) : IStatementImportService
 /// <summary>Money over time for the Reports page: cash flow and savings rate by month, spending by tag.</summary>
 public class FinanceReportsService(AppDbContext db) : IFinanceReportsService
 {
-    public async Task<CashFlowReportDto> GetCashFlowAsync(DateOnly today, int months)
+    public Task<CashFlowReportDto> GetCashFlowAsync(DateOnly today, int months) =>
+        ReadAsync(CashFlowReport.FirstMonth(today, months), today);
+
+    public Task<CashFlowReportDto> GetCashFlowAsync(DateOnly from, DateOnly to) => ReadAsync(from, to);
+
+    /// <summary>Money in and out on the days from..to, month by month (the months holding from and to included whole in the list).</summary>
+    private async Task<CashFlowReportDto> ReadAsync(DateOnly from, DateOnly to)
     {
         var userId = db.CurrentUserId!.Value;
         var baseCurrency = await db.Users.Where(u => u.Id == userId).Select(u => u.BaseCurrency).FirstOrDefaultAsync();
@@ -192,12 +198,10 @@ public class FinanceReportsService(AppDbContext db) : IFinanceReportsService
             return new CashFlowReportDto();
         }
 
-        var firstMonth = CashFlowReport.FirstMonth(today, months);
-        var lastMonth = CashFlowReport.FirstMonth(today, 1);
         var parameters = new DynamicParameters();
         parameters.Add("UserId", userId, DbType.Int32);
-        parameters.Add("FromMonth", firstMonth.ToDateTime(TimeOnly.MinValue), DbType.Date);
-        parameters.Add("ToDate", today.ToDateTime(TimeOnly.MinValue), DbType.Date);
+        parameters.Add("FromMonth", from.ToDateTime(TimeOnly.MinValue), DbType.Date);
+        parameters.Add("ToDate", to.ToDateTime(TimeOnly.MinValue), DbType.Date);
         parameters.Add("BaseCurrency", baseCurrency, DbType.AnsiStringFixedLength, size: 3);
         await using var reader = await db.Database.GetDbConnection().QueryMultipleAsync(
             "finance.GetCashFlow", parameters, commandType: CommandType.StoredProcedure);
@@ -209,8 +213,8 @@ public class FinanceReportsService(AppDbContext db) : IFinanceReportsService
 
         var monthList = CashFlowReport.Months(
             monthRows.Select(r => new CashFlowRow(DateOnly.FromDateTime(r.MonthStart), r.Income, r.Spending, r.Unconverted)),
-            firstMonth,
-            lastMonth);
+            new DateOnly(from.Year, from.Month, 1),
+            new DateOnly(to.Year, to.Month, 1));
         return new CashFlowReportDto
         {
             Currency = baseCurrency,

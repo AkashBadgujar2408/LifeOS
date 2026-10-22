@@ -27,9 +27,9 @@ import {
 import { REPORT_TABS } from './report-view';
 
 /**
- * Reports (Session 90): one range for every report — in the URL (`?from=&to=`), so it survives switching tabs, a
+ * Reports (Sessions 90–92): one range for every report — in the URL (`?from=&to=`), so it survives switching tabs, a
  * reload and printing — picked from presets or two dates, a tab per report, and a Print button that puts every row
- * of every table on paper. Money reports stay on their own page (`/finance/reports`), linked from here.
+ * of every table on paper. The Annual Life Review (one year, not a range) is its own page, linked from the header.
  */
 @Component({
   selector: 'app-reports',
@@ -51,9 +51,14 @@ import { REPORT_TABS } from './report-view';
             {{ range().from | date }} – {{ range().to | date }}
           </p>
         </div>
-        <button type="button" class="btn btn-outline-secondary" (click)="print()">
-          <i class="bi bi-printer"></i> Print
-        </button>
+        <div class="d-flex gap-2 d-print-none">
+          <a class="btn btn-outline-secondary" [routerLink]="['/reports/year', reviewYear()]">
+            <i class="bi bi-journal-richtext"></i> {{ reviewYear() }} in review
+          </a>
+          <button type="button" class="btn btn-outline-secondary" (click)="print()">
+            <i class="bi bi-printer"></i> Print
+          </button>
+        </div>
       </div>
 
       <section class="card mb-3 d-print-none" aria-label="Report range">
@@ -143,7 +148,7 @@ import { REPORT_TABS } from './report-view';
 
       <ul class="nav nav-tabs mb-3 d-print-none">
         @for (tab of tabs; track tab.path) {
-          @if (!hidden().has(tab.module)) {
+          @if (!tab.module || !hidden().has(tab.module)) {
             <li class="nav-item">
               <a
                 class="nav-link"
@@ -155,13 +160,6 @@ import { REPORT_TABS } from './report-view';
               >
             </li>
           }
-        }
-        @if (!hidden().has('Finance')) {
-          <li class="nav-item">
-            <a class="nav-link" routerLink="/finance/reports">
-              Money <i class="bi bi-box-arrow-up-right small" aria-hidden="true"></i>
-            </a>
-          </li>
         }
       </ul>
 
@@ -183,6 +181,10 @@ export class Reports {
   protected readonly minDate = { year: 1960, month: 1, day: 1 };
   protected readonly hidden = inject(SettingsService).hiddenModules;
   protected readonly range = computed(() => readRange(this.from(), this.to(), todayIso()));
+  /** The year the range ends in (never ahead of this one): the review the header offers. */
+  protected readonly reviewYear = computed(() =>
+    Math.min(Number(this.range().to.slice(0, 4)), Number(todayIso().slice(0, 4))),
+  );
   protected readonly preset = computed(() => presetOf(this.range(), todayIso()));
   protected readonly attempted = signal(false);
 

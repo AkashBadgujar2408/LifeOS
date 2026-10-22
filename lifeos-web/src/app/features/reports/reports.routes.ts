@@ -8,6 +8,17 @@ import { REPORT_TABS } from './report-view';
  * query). `/reports` opens the first report whose module is switched on.
  */
 export const REPORTS_ROUTES: Route[] = [
+  // The Annual Life Review is a page of its own (one year, not the shared range), so it comes before 'reports'.
+  {
+    path: 'reports/year',
+    pathMatch: 'full',
+    redirectTo: () => `reports/year/${new Date().getFullYear()}`,
+  },
+  {
+    path: 'reports/year/:year',
+    title: 'Year in review | LifeOS',
+    loadComponent: () => import('./annual-review').then((m) => m.AnnualReviewPage),
+  },
   {
     path: 'reports',
     loadComponent: () => import('./reports').then((m) => m.Reports),
@@ -17,7 +28,9 @@ export const REPORTS_ROUTES: Route[] = [
         pathMatch: 'full',
         redirectTo: () => {
           const hidden = inject(SettingsService).hiddenModules();
-          return REPORT_TABS.find((tab) => !hidden.has(tab.module))?.path ?? 'goals';
+          return (
+            REPORT_TABS.find((tab) => !tab.module || !hidden.has(tab.module))?.path ?? 'balance'
+          );
         },
       },
       {
@@ -39,6 +52,16 @@ export const REPORTS_ROUTES: Route[] = [
         path: 'learning',
         title: 'Learning report | LifeOS',
         loadComponent: () => import('./learning-report').then((m) => m.LearningReport),
+      },
+      {
+        path: 'money',
+        title: 'Money report | LifeOS',
+        loadComponent: () => import('./money-report').then((m) => m.MoneyReport),
+      },
+      {
+        path: 'balance',
+        title: 'Life balance report | LifeOS',
+        loadComponent: () => import('./balance-report').then((m) => m.BalanceReport),
       },
       {
         path: 'health',

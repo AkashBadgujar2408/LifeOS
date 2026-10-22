@@ -3,6 +3,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
 import { browserTimeZone, todayIso } from '../dates/today';
 import { ApiResponse } from './api-response';
+import { CashFlowMonth, CashFlowReport, NetWorthPoint } from './finance.service';
+import { YearInMedia } from './leisure.service';
+import { Achievement, Chapter, StoryBeat } from './story.service';
 
 /** A report's range: local days, "yyyy-MM-dd", inclusive. */
 export interface ReportRange {
@@ -248,6 +251,71 @@ export interface HealthReportWeek {
   averageMood: number | null;
 }
 
+export interface FinanceReport {
+  from: string;
+  to: string;
+  /** The base currency; null when none is chosen (nothing else is filled). */
+  currency: string | null;
+  income: number;
+  spending: number;
+  net: number;
+  savingsRate: number | null;
+  unconverted: number;
+  months: CashFlowMonth[];
+  tags: CashFlowReport['tags'];
+  untaggedSpending: number;
+  netWorthStart: NetWorthPoint | null;
+  netWorthEnd: NetWorthPoint | null;
+  netWorthChange: number | null;
+  netWorth: NetWorthPoint[];
+}
+
+export interface LifeBalanceReportArea {
+  lifeAreaId: number;
+  lifeAreaName: string;
+  averageScore: number | null;
+  averageRating: number | null;
+  monthsRated: number;
+  points: number;
+}
+
+export interface LifeBalanceMonth {
+  monthStart: string;
+  from: string;
+  to: string;
+  areas: { lifeAreaId: number; points: number; score: number; rating: number | null }[];
+}
+
+export interface LifeBalanceReport {
+  from: string;
+  to: string;
+  areas: LifeBalanceReportArea[];
+  months: LifeBalanceMonth[];
+}
+
+export interface AnnualReview {
+  year: number;
+  from: string;
+  to: string;
+  chapters: Chapter[];
+  achievements: Achievement[];
+  storyBeats: number;
+  highlights: StoryBeat[];
+  goals: GoalReportCounts;
+  habitsBuild: HabitShare;
+  habitsAvoid: HabitShare;
+  tasks: ProductivityReport['tasks'];
+  focus: ProductivityReport['focus'];
+  studyMinutes: number;
+  coursesCompleted: number;
+  booksFinished: number;
+  skillLevelUps: number;
+  certifications: number;
+  money: FinanceReport;
+  media: YearInMedia;
+  lifeBalance: LifeBalanceReportArea[];
+}
+
 /** A report's query: the range plus the client's today and IANA zone (moments go on the user's local days). */
 export function reportParams(range: ReportRange): HttpParams {
   return new HttpParams()
@@ -257,7 +325,7 @@ export function reportParams(range: ReportRange): HttpParams {
     .set('tz', browserTimeZone());
 }
 
-/** Reports (Sessions 90–91): every figure is computed by the API for the range asked, never stored. */
+/** Reports (Sessions 90–92): every figure is computed by the API for the range asked, never stored. */
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
   private readonly http = inject(HttpClient);
@@ -286,6 +354,28 @@ export class ReportsService {
   learning(range: ReportRange): Observable<LearningReport> {
     return this.http
       .get<ApiResponse<LearningReport>>(`${this.baseUrl}/Learning`, { params: reportParams(range) })
+      .pipe(map((res) => res.data!));
+  }
+
+  finance(range: ReportRange): Observable<FinanceReport> {
+    return this.http
+      .get<ApiResponse<FinanceReport>>(`${this.baseUrl}/Finance`, { params: reportParams(range) })
+      .pipe(map((res) => res.data!));
+  }
+
+  lifeBalance(range: ReportRange): Observable<LifeBalanceReport> {
+    return this.http
+      .get<ApiResponse<LifeBalanceReport>>(`${this.baseUrl}/LifeBalance`, {
+        params: reportParams(range),
+      })
+      .pipe(map((res) => res.data!));
+  }
+
+  year(year: number): Observable<AnnualReview> {
+    return this.http
+      .get<ApiResponse<AnnualReview>>(`${this.baseUrl}/Year/${year}`, {
+        params: { today: todayIso(), tz: browserTimeZone() },
+      })
       .pipe(map((res) => res.data!));
   }
 

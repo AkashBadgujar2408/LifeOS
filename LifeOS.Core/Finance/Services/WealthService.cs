@@ -43,6 +43,25 @@ public class WealthService(AppDbContext db) : IWealthService
         };
     }
 
+    public async Task<NetWorthPointsDto> GetNetWorthOnAsync(IReadOnlyList<DateOnly> days)
+    {
+        var baseCurrency = await BaseCurrencyAsync();
+        if (baseCurrency is null)
+        {
+            return new NetWorthPointsDto();
+        }
+
+        var inputs = await LoadAsync(baseCurrency);
+        return new NetWorthPointsDto
+        {
+            Currency = baseCurrency,
+            Points = days
+                .Select(day => NetWorth.At(day, inputs, baseCurrency))
+                .Select(s => new NetWorthPointDto { Day = s.Day, Assets = s.Assets, Liabilities = s.Liabilities, Net = s.Net })
+                .ToList(),
+        };
+    }
+
     public async Task<OperationResult<SavingsProgressDto?>> GetSavingsAsync(int goalId, DateOnly today)
     {
         if (!await db.Goals.AnyAsync(g => g.Id == goalId))

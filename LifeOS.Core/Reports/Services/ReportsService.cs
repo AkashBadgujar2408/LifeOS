@@ -1,6 +1,8 @@
 using System.Data;
 using Dapper;
 using LifeOS.Core.Calendar.Services;
+using LifeOS.Core.Dashboard.ServiceContracts;
+using LifeOS.Core.Finance.ServiceContracts;
 using LifeOS.Core.Health.Services;
 using LifeOS.Core.Learning.Services;
 using LifeOS.Core.Models;
@@ -17,7 +19,12 @@ namespace LifeOS.Core.Reports.Services;
 /// user's local days, and hands them to a pure builder (<see cref="GoalReport"/>, <see cref="HabitReport"/>,
 /// <see cref="ProductivityReport"/>, <see cref="LearningReport"/>, <see cref="HealthReport"/>).
 /// </summary>
-public class ReportsService(AppDbContext db) : IReportsService
+public class ReportsService(
+    AppDbContext db,
+    IFinanceReportsService financeReportsService,
+    IWealthService wealthService,
+    IRecurringTransactionsService recurringTransactionsService,
+    IDashboardService dashboardService) : IReportsService
 {
     public async Task<OperationResult<GoalReportDto>> GetGoalReportAsync(DateOnly from, DateOnly to, DateOnly today, string? timeZone)
     {
@@ -200,6 +207,57 @@ public class ReportsService(AppDbContext db) : IReportsService
             .ToList();
 
         return OperationResult<HealthReportDto>.Ok(HealthReport.Build(workouts, sleep, measurements, wellbeing, from, to, today));
+    }
+
+    public async Task<OperationResult<FinanceReportDto>> GetFinanceReportAsync(DateOnly from, DateOnly to, DateOnly today, string? timeZone)
+    {
+        if (CheckRange(from, to, timeZone, out _) is { } error)
+        {
+            return OperationResult<FinanceReportDto>.Fail(error);
+        }
+
+        // Like every Finance read: repeating transactions due by today are written first, so the money is all there.
+        await recurringTransactionsService.GenerateDueAsync(today);
+        var cashFlow = await financeReportsService.GetCashFlowAsync(from, to);
+        var netWorth = await wealthService.GetNetWorthOnAsync(FinanceReport.NetWorthDays(from, to, today));
+        return OperationResult<FinanceReportDto>.Ok(FinanceReport.Build(cashFlow, netWorth, from, to));
+    }
+
+    public async Task<OperationResult<LifeBalanceReportDto>> GetLifeBalanceReportAsync(DateOnly from, DateOnly to, DateOnly today, string? timeZone)
+    {
+        if (CheckRange(from, to, timeZone, out var zone) is { } error)
+        {
+            return OperationResult<LifeBalanceReportDto>.Fail(error);
+        }
+
+        var areas = await db.LifeAreas.AsNoTracking()
+            .OrderBy(a => a.SortOrder).ThenBy(a => a.Id)
+            .Select(a => new AreaFact(a.Id, a.Name))
+            .ToListAsync();
+
+        // Each month exactly as My Day's life balance card counts those days (one call per month, in turn — one DbContext).
+        var months = new List<LifeBalanceMonthFact>();
+        foreach (var (monthStart, monthFrom, monthTo) in ReportMath.Months(from, to, today))
+        {
+            var balance = await dashboardService.GetLifeBalanceAsync(
+                monthFrom, monthTo, LocalMidnightUtc(monthFrom, zone), LocalMidnightUtc(monthTo.AddDays(1), zone));
+            if (!balance.Success)
+            {
+                return OperationResult<LifeBalanceReportDto>.Fail(balance.Error!);
+            }
+
+            months.Add(new LifeBalanceMonthFact(
+                monthStart, monthFrom, monthTo,
+                [.. balance.Data!.Areas.Select(a => (a.LifeAreaId, a.Points, a.Score))]));
+        }
+
+        var firstMonth = new DateOnly(from.Year, from.Month, 1);
+        var ratings = await db.LifeAreaRatings.AsNoTracking()
+            .Where(r => r.MonthStart >= firstMonth && r.MonthStart <= to)
+            .Select(r => new RatingFact(r.MonthStart, r.LifeAreaId, r.Rating))
+            .ToListAsync();
+
+        return OperationResult<LifeBalanceReportDto>.Ok(LifeBalanceReport.Build(areas, months, ratings, from, to));
     }
 
     private DynamicParameters RangeParameters(DateOnly from, DateOnly to)

@@ -86,6 +86,9 @@ public interface IWealthService
 
     /// <summary>The same for many goals at once (net worth worked out once); goals without an amount are left out.</summary>
     Task<Dictionary<int, SavingsProgressDto>> GetSavingsForGoalsAsync(IReadOnlyCollection<int> goalIds, DateOnly today);
+
+    /// <summary>Net worth at the end of each of <paramref name="days"/> (Reports, Session 92), worked out by <c>NetWorth.At</c>.</summary>
+    Task<NetWorthPointsDto> GetNetWorthOnAsync(IReadOnlyList<DateOnly> days);
 }
 
 /// <summary>The exchange-rate master (rates into the base currency, set by hand, with history).</summary>
@@ -129,6 +132,12 @@ public interface IFinanceReportsService
 {
     /// <summary>The last <paramref name="months"/> months up to today's, in the base currency.</summary>
     Task<CashFlowReportDto> GetCashFlowAsync(DateOnly today, int months);
+
+    /// <summary>
+    /// The days <paramref name="from"/>..<paramref name="to"/> (Reports, Session 92), by calendar month — the first and
+    /// last months hold only their days inside the range; each month counts the way the ledger does.
+    /// </summary>
+    Task<CashFlowReportDto> GetCashFlowAsync(DateOnly from, DateOnly to);
 }
 
 /// <summary>The cash-flow forecast: balances carried forward with money already known to be coming — never stored.</summary>

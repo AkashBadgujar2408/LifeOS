@@ -12,7 +12,7 @@ namespace LifeOS.Api.Areas.Reports.Controllers;
 [Area("Reports")]
 [Route("api/[area]")]
 [Authorize]
-public class ReportsController(IReportsService reportsService) : ControllerBase
+public class ReportsController(IReportsService reportsService, IAnnualReviewService annualReviewService) : ControllerBase
 {
     /// <summary>GET api/Reports/Goals?from=2026-01-01&amp;to=2026-12-31&amp;today=2026-10-21&amp;tz=Asia/Kolkata</summary>
     [HttpGet("Goals")]
@@ -69,6 +69,29 @@ public class ReportsController(IReportsService reportsService) : ControllerBase
         [FromQuery, BindRequired] DateOnly today,
         [FromQuery] string? tz) =>
         Result(await reportsService.GetHealthReportAsync(from, to, today, tz));
+
+    /// <summary>GET api/Reports/Finance?from&amp;to&amp;today&amp;tz — cash flow and net worth before → after.</summary>
+    [HttpGet("Finance")]
+    public async Task<IActionResult> Finance(
+        [FromQuery, BindRequired] DateOnly from,
+        [FromQuery, BindRequired] DateOnly to,
+        [FromQuery, BindRequired] DateOnly today,
+        [FromQuery] string? tz) =>
+        Result(await reportsService.GetFinanceReportAsync(from, to, today, tz));
+
+    /// <summary>GET api/Reports/LifeBalance?from&amp;to&amp;today&amp;tz — month by month, activity beside self-ratings.</summary>
+    [HttpGet("LifeBalance")]
+    public async Task<IActionResult> LifeBalance(
+        [FromQuery, BindRequired] DateOnly from,
+        [FromQuery, BindRequired] DateOnly to,
+        [FromQuery, BindRequired] DateOnly today,
+        [FromQuery] string? tz) =>
+        Result(await reportsService.GetLifeBalanceReportAsync(from, to, today, tz));
+
+    /// <summary>GET api/Reports/Year/2026?today=2026-10-22&amp;tz=Asia/Kolkata — the Annual Life Review.</summary>
+    [HttpGet("Year/{year:int}")]
+    public async Task<IActionResult> Year(int year, [FromQuery, BindRequired] DateOnly today, [FromQuery] string? tz) =>
+        Result(await annualReviewService.GetAsync(year, today, tz));
 
     private IActionResult Result<T>(OperationResult<T> result) =>
         result.Success ? Ok(ApiResponse<T>.Ok(result.Data)) : BadRequest(ApiResponse<T>.Fail(result.Error!));

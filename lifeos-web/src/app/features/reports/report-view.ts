@@ -1,13 +1,16 @@
+import { ModuleKey } from '../../core/services/settings.service';
 import { GoalOutcome, LearningReachedKind, TaskOutcome } from '../../core/services/reports.service';
 
-/** The report tabs in order, each hidden with its module (the Money tab links out to /finance/reports). */
-export const REPORT_TABS = [
+/** The report tabs in order, each hidden with its module (null: never hidden). */
+export const REPORT_TABS: readonly { path: string; label: string; module: ModuleKey | null }[] = [
   { path: 'goals', label: 'Goals', module: 'Goals' },
   { path: 'habits', label: 'Habits', module: 'Habits' },
   { path: 'productivity', label: 'Productivity', module: 'Tasks' },
   { path: 'learning', label: 'Learning', module: 'Learning' },
   { path: 'health', label: 'Health', module: 'Health' },
-] as const;
+  { path: 'money', label: 'Money', module: 'Finance' },
+  { path: 'balance', label: 'Life balance', module: null },
+];
 
 /** How each goal outcome reads in the report (the API decides which one a goal gets). */
 export const GOAL_OUTCOME_LABELS: Record<GoalOutcome, string> = {
