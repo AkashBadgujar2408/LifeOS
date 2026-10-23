@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 
 namespace LifeOS.Core.Assistant.Services;
 
@@ -12,8 +13,10 @@ public enum MistralOutcome
     Ok,
     /// <summary>401/403 — the key is wrong, revoked or expired.</summary>
     KeyRejected,
-    /// <summary>429 even after one wait — the plan's rate or monthly limit.</summary>
+    /// <summary>429 after the waits — the plan's rate or monthly limit.</summary>
     RateLimited,
+    /// <summary>429 "capacity exceeded" — the model is full for the user's tier right now; another model may work.</summary>
+    Busy,
     /// <summary>No answer, a timeout or a 5xx.</summary>
     Unreachable,
     /// <summary>Mistral refused the request itself (another 4xx).</summary>
@@ -37,11 +40,15 @@ public interface IMistralClient
     Task<MistralResult<bool>> CheckKeyAsync(string apiKey, CancellationToken cancellationToken);
 }
 
-public class MistralClient(HttpClient http) : IMistralClient
+public class MistralClient(HttpClient http, ILogger<MistralClient>? logger = null) : IMistralClient
 {
     public const string BaseAddress = "https://api.mistral.ai/v1/";
 
-    /// <summary>The free plan allows about one request a second; a 429 is waited out once before giving up.</summary>
+    /// <summary>
+    /// The free plan allows about one request a second, so a 429 is waited out (Retry-After, else 1.5 s then 3 s) up to
+    /// <see cref="MaxAttempts"/> tries before giving up.
+    /// </summary>
+    private const int MaxAttempts = 3;
     private static readonly TimeSpan RetryAfterDefault = TimeSpan.FromMilliseconds(1500);
     private static readonly TimeSpan RetryAfterMax = TimeSpan.FromSeconds(5);
 
@@ -109,9 +116,13 @@ public class MistralClient(HttpClient http) : IMistralClient
                     return new MistralResult<string>(MistralOutcome.Ok, await response.Content.ReadAsStringAsync(cancellationToken));
                 }
 
-                if (response.StatusCode == HttpStatusCode.TooManyRequests && attempt == 1)
+                var detail = await ErrorDetailAsync(response, cancellationToken);
+                // Mistral's own reason, never the key (the Authorization header is redacted from every log).
+                logger?.LogWarning("Mistral answered {Status} (try {Attempt}): {Detail}", (int)response.StatusCode, attempt, detail ?? "(no message)");
+
+                if (response.StatusCode == HttpStatusCode.TooManyRequests && attempt < MaxAttempts)
                 {
-                    var wait = response.Headers.RetryAfter?.Delta ?? RetryAfterDefault;
+                    var wait = response.Headers.RetryAfter?.Delta ?? RetryAfterDefault * attempt;
                     await Task.Delay(wait < RetryAfterMax ? wait : RetryAfterMax, cancellationToken);
                     continue;
                 }
@@ -119,26 +130,47 @@ public class MistralClient(HttpClient http) : IMistralClient
                 return response.StatusCode switch
                 {
                     HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => new MistralResult<string>(MistralOutcome.KeyRejected, null),
-                    HttpStatusCode.TooManyRequests => new MistralResult<string>(MistralOutcome.RateLimited, null),
+                    HttpStatusCode.TooManyRequests when detail?.Contains("capacity", StringComparison.OrdinalIgnoreCase) == true =>
+                        new MistralResult<string>(MistralOutcome.Busy, null, detail),
+                    HttpStatusCode.TooManyRequests => new MistralResult<string>(MistralOutcome.RateLimited, null, detail),
                     >= HttpStatusCode.InternalServerError => new MistralResult<string>(MistralOutcome.Unreachable, null),
-                    _ => new MistralResult<string>(MistralOutcome.Refused, null, await ErrorDetailAsync(response, cancellationToken)),
+                    _ => new MistralResult<string>(MistralOutcome.Refused, null, detail),
                 };
             }
         }
     }
 
-    /// <summary>Mistral's own words for a refused request (e.g. a model the plan doesn't include), kept short.</summary>
+    /// <summary>Mistral's own words for a refused request (a model the plan doesn't include, a full model, a limit), kept short.</summary>
     private static async Task<string?> ErrorDetailAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         try
         {
-            using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-            var message = doc.RootElement.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String
-                ? m.GetString()
-                : null;
-            return message is null ? null : AssistantRules.Clip(message, 200);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return null;
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                var message = root.ValueKind != JsonValueKind.Object
+                    ? null
+                    : root.TryGetProperty("message", out var m) && m.ValueKind == JsonValueKind.String
+                        ? m.GetString()
+                        : root.TryGetProperty("detail", out var d) && d.ValueKind == JsonValueKind.String
+                            ? d.GetString()
+                            : null;
+                return message is null ? null : AssistantRules.Clip(message, 200);
+            }
+            catch (JsonException)
+            {
+                // Not JSON (a gateway page): its first words are still better than nothing.
+                return AssistantRules.Clip(body.Trim(), 200);
+            }
         }
-        catch (JsonException)
+        catch (HttpRequestException)
         {
             return null;
         }

@@ -57,7 +57,8 @@ public class AssistantService(
 
         var check = await mistral.ChatAsync(key, new MistralChatRequest
         {
-            Model = AssistantRules.DefaultModel,
+            // The user's own model, so picking another in Settings also helps when one is full.
+            Model = row.Model,
             Messages =
             [
                 new MistralMessage { Role = "system", Content = AssistantPrompts.TopicCheck },

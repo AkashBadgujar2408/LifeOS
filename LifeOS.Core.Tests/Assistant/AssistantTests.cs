@@ -142,6 +142,18 @@ public class AssistantTests
         limited.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.Zero);
         var retried = await Client(new Queue<HttpResponseMessage>([limited, Json(HttpStatusCode.OK, "{}")])).CheckKeyAsync("k", CancellationToken.None);
         Assert.True(retried.IsOk);
+
+        // A model that stays full is "busy" (pick another), told apart from a plain limit, with Mistral's words.
+        HttpResponseMessage Full()
+        {
+            var full = Json(HttpStatusCode.TooManyRequests, """{"message":"Service tier capacity exceeded for this model.","type":"service_tier_capacity_exceeded"}""");
+            full.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.Zero);
+            return full;
+        }
+        var busy = await Client(new Queue<HttpResponseMessage>([Full(), Full(), Full()])).ChatAsync("k", new MistralChatRequest { Model = "m" }, CancellationToken.None);
+        Assert.Equal(MistralOutcome.Busy, busy.Outcome);
+        Assert.Contains("choose another model", AssistantRules.OutcomeMessage(busy.Outcome, busy.Detail));
+        Assert.Contains("capacity exceeded", AssistantRules.OutcomeMessage(busy.Outcome, busy.Detail));
     }
 
     private static MistralClient Client(Queue<HttpResponseMessage> responses) =>

@@ -160,8 +160,11 @@ public static class AssistantRules
     {
         MistralOutcome.KeyRejected =>
             "Mistral didn't accept your API key — it may be mistyped, revoked or expired. Create a new key in Mistral's console and save it in Settings › AI assistant.",
-        MistralOutcome.RateLimited =>
-            "Mistral says you've hit your plan's limit for now. Wait a moment and try again (the free plan allows about one request a second and a monthly amount).",
+        MistralOutcome.Busy =>
+            $"Mistral's free tier is full for this model right now (Mistral says: \"{detail}\"). Try again in a minute, or choose another model in Settings › AI assistant.",
+        MistralOutcome.RateLimited => detail is null
+            ? "Mistral says you've hit your plan's limit for now. Wait a moment and try again (the free plan allows about one request a second and a monthly amount)."
+            : $"Mistral says you've hit a limit for now (\"{detail}\"). Wait a moment and try again — the free plan allows about one request a second and a monthly amount.",
         MistralOutcome.Refused => detail is null
             ? "Mistral refused the request. Try another model in Settings › AI assistant."
             : $"Mistral refused the request: {detail}",
