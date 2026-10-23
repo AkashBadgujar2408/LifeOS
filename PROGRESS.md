@@ -1286,3 +1286,8 @@
 - Not checked: printing the custom tab on paper; export → import of an account with saved reports (the exporter picks the table up from the EF model — the model-based unit tests pass).
 - Test data: `rep93…` accounts in UAT.
 - Next: Session 94 — Automation 1 (background jobs + Web Push notifications; the VAPID library decision gets recorded in Section 3).
+
+## Plan change: 2026-10-23 — after Session 93 (no code)
+- At your request: dropped Automation 1 (background jobs + Web Push), Automation 2 (rules), Integrations (ICS/vCard/bank presets) and Email reminders (old 100). The AI assistant (old 97) and the Mistral chatbot (old 101–102) are now **94–96**; **97** is the regression pass and **98 go-live is the last session**. Total 102 sessions.
+- Each user sets **their own Mistral API key in Settings** (encrypted at rest, never returned to the browser, never exported), with step-by-step help on getting one from Mistral's console.
+- Next: Session 94 — AI assistant 1 (key in Settings + help, chat panel with read tools, on-topic guard).

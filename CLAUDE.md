@@ -1,6 +1,6 @@
 # LifeOS — Project Conventions
 
-**`LifeOS_Development_Plan.md` is the main project document** (roadmap, decisions, what's done, and every remaining session to 1.0 — Sessions 34–99 in Section 7). Session-to-session detail: `PROGRESS.md`. Code map: `docs/ARCHITECTURE.md`; setup/run: `README.md`. Read the plan and the latest `PROGRESS.md` entry at the start of a session. `docs/BLUEPRINT.md` is the original concept (all 20 modules, converted from the Blueprint Word file, which was removed); `LifeOS_Development_Plan.docx` is a stale early copy of the plan — never update or rely on it.
+**`LifeOS_Development_Plan.md` is the main project document** (roadmap, decisions, what's done, and every remaining session to 1.0 — Sessions 34–98 in Section 7; go-live, Session 98, is the last). Session-to-session detail: `PROGRESS.md`. Code map: `docs/ARCHITECTURE.md`; setup/run: `README.md`. Read the plan and the latest `PROGRESS.md` entry at the start of a session. `docs/BLUEPRINT.md` is the original concept (all 20 modules, converted from the Blueprint Word file, which was removed); `LifeOS_Development_Plan.docx` is a stale early copy of the plan — never update or rely on it.
 
 ## Stack
 .NET 10 LTS Web API (`LifeOS.Core` + `LifeOS.Api`) + Angular 22 (standalone components, Signals). Database: SQL Server LocalDB, database name `LifeOS_UAT` (a separate `LifeOS_Live` gets created only when actually going live).
