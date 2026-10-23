@@ -68,7 +68,7 @@ public static class AssistantRules
         }
 
         return key.Length is < 20 or > 200
-            ? (null, "That doesn't look like a Mistral API key — it's usually 32 letters and digits. Copy it again from Mistral's console.")
+            ? (null, "That's too short or too long for a Mistral API key. Copy the whole key again from Mistral's console.")
             : (key, null);
     }
 

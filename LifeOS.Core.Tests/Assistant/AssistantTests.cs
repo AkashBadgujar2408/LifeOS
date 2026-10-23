@@ -16,7 +16,9 @@ public class AssistantTests
         Assert.Equal("AbCdEfGh1234567890IjKlMnOpQrStUv", AssistantRules.CheckKey("Bearer AbCdEfGh1234567890IjKlMnOpQrStUv").Key);
         Assert.Equal("Paste your Mistral API key.", AssistantRules.CheckKey("   ").Error);
         Assert.Contains("spaces", AssistantRules.CheckKey("AbCdEfGh 1234567890IjKlMnOpQrStUv").Error);
-        Assert.Contains("32 letters", AssistantRules.CheckKey("short").Error);
+        Assert.Contains("too short or too long", AssistantRules.CheckKey("short").Error);
+        // Newer keys carry a prefix and underscores.
+        Assert.Equal("mstrl_Ab12_Cd34Ef56Gh78Ij90KlMn", AssistantRules.CheckKey("mstrl_Ab12_Cd34Ef56Gh78Ij90KlMn").Key);
         Assert.Equal("StUv", AssistantRules.Last4("AbCdEfGh1234567890IjKlMnOpQrStUv"));
     }
 
