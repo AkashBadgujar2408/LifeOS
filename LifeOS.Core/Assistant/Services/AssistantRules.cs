@@ -21,14 +21,17 @@ public enum ChatTopic
 /// <summary>The assistant's fixed rules: which models, what a key looks like, how long a chat may be, what's refused.</summary>
 public static class AssistantRules
 {
-    public const string DefaultModel = "mistral-small-latest";
+    public const string DefaultModel = "ministral-8b-2512";
 
-    /// <summary>Mirrors CK_AssistantSettings_Model, cheapest first.</summary>
+    /// <summary>
+    /// Mirrors CK_AssistantSettings_Model. Chosen for their higher free-tier rate limits (mistral-small-latest was
+    /// rate-limited on the first question, 2026-10-23); pinned versions, so answers don't shift under a "-latest" alias.
+    /// </summary>
     public static readonly IReadOnlyList<AssistantModelDto> Models =
     [
-        new() { Id = "mistral-small-latest", Label = "Mistral Small — fast, on the free plan" },
-        new() { Id = "mistral-medium-latest", Label = "Mistral Medium" },
-        new() { Id = "mistral-large-latest", Label = "Mistral Large — most capable" },
+        new() { Id = "ministral-3b-2512", Label = "Ministral 3B — fastest, highest limits" },
+        new() { Id = "ministral-8b-2512", Label = "Ministral 8B — fast, better answers (recommended)" },
+        new() { Id = "codestral-2508", Label = "Codestral — Mistral's coding model" },
     ];
 
     /// <summary>The one reply to anything that isn't about LifeOS.</summary>

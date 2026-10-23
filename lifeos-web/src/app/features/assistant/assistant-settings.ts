@@ -148,7 +148,8 @@ import { AssistantKeyHelp } from './key-help';
               }
             </select>
             <div class="form-text">
-              Small works on the free plan. Larger models answer better but use more of your plan.
+              Chosen for their higher free-plan rate limits. Ministral 8B gives the best answers;
+              switch to 3B if you still hit a limit.
             </div>
           }
         } @else {

@@ -23,6 +23,15 @@ public class AssistantTests
     }
 
     [Fact]
+    public void The_offered_models_are_the_high_limit_ones_in_the_check()
+    {
+        // Mirrors CK_AssistantSettings_Model in 19_assistant.sql.
+        Assert.Equal(["ministral-3b-2512", "ministral-8b-2512", "codestral-2508"], AssistantRules.Models.Select(m => m.Id));
+        Assert.Contains(AssistantRules.Models, m => m.Id == AssistantRules.DefaultModel);
+        Assert.Equal("ministral-8b-2512", AssistantRules.DefaultModel);
+    }
+
+    [Fact]
     public void A_conversation_needs_a_question_last_and_keeps_only_the_newest_messages()
     {
         static ChatMessageDto M(string role, string text) => new() { Role = role, Content = text };

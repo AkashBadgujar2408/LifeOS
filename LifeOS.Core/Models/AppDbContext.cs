@@ -428,7 +428,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_AssistantSettings_CreatedAt");
             entity.Property(e => e.Model)
                 .HasMaxLength(40)
-                .HasDefaultValue("mistral-small-latest", "DF_AssistantSettings_Model");
+                .HasDefaultValue("ministral-8b-2512", "DF_AssistantSettings_Model");
 
             entity.HasOne(d => d.User).WithOne(p => p.AssistantSetting)
                 .HasForeignKey<AssistantSetting>(d => d.UserId)

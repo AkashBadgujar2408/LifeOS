@@ -187,8 +187,8 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   into a DTO, a log (`RedactLoggedHeaders("Authorization")`) or an export (`AccountData.NotExported`/`NotImported`).
 - **Mistral over plain `HttpClient`** (`MistralClient`, typed client): chat completions with tools, `GET models` for
   Test key; 401/403 → rejected key, 429 waited out once then "limit", 5xx/network → unreachable, other 4xx →
-  Mistral's own message. `Mistral:BaseAddress` in configuration points a dev run at a stand-in.
-- **One answer = two steps** (`AssistantService.ChatAsync`): (1) the **topic check** — the small model sees only the
+  Mistral's own message (a 429 is retried up to three times; "capacity exceeded" = Busy, try another model; Mistral's reason is logged, never the key). Models (`AssistantRules.Models` = `CK_AssistantSettings_Model`): `ministral-3b-2512`, `ministral-8b-2512` (default), `codestral-2508` — picked for their higher free-tier rate limits. `Mistral:BaseAddress` in configuration points a dev run at a stand-in.
+- **One answer = two steps** (`AssistantService.ChatAsync`): (1) the **topic check** — your chosen model sees only the
   new message (plus the previous answer, for follow-ups) and returns `{"topic": data|app|chat|other}`; `other` or
   anything unreadable gets the fixed `AssistantRules.Refusal` and **nothing of the user's data is sent**; (2) the
   answer — the chosen model with the instructions (`AssistantPrompts.Instructions`: today, zone, switched-off modules,

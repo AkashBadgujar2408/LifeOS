@@ -25,8 +25,8 @@ BEGIN
         Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_AssistantSettings PRIMARY KEY,
         UserId          INT               NOT NULL CONSTRAINT FK_AssistantSettings_Users REFERENCES shared.Users(Id),
         IsEnabled       BIT               NOT NULL CONSTRAINT DF_AssistantSettings_IsEnabled DEFAULT (0),
-        Model           NVARCHAR(40)      NOT NULL CONSTRAINT DF_AssistantSettings_Model DEFAULT (N'mistral-small-latest')
-                                                   CONSTRAINT CK_AssistantSettings_Model CHECK (Model IN (N'mistral-small-latest', N'mistral-medium-latest', N'mistral-large-latest')),
+        Model           NVARCHAR(40)      NOT NULL CONSTRAINT DF_AssistantSettings_Model DEFAULT (N'ministral-8b-2512')
+                                                   CONSTRAINT CK_AssistantSettings_Model CHECK (Model IN (N'ministral-3b-2512', N'ministral-8b-2512', N'codestral-2508')),
         ApiKeySecret    NVARCHAR(2000)    NULL     CONSTRAINT CK_AssistantSettings_SecretsEncrypted CHECK (ApiKeySecret IS NULL OR ApiKeySecret LIKE 'CfDJ8%'),
         ApiKeyLast4     NVARCHAR(4)       NULL,
         ApiKeySetAt     DATETIME2         NULL,
@@ -45,4 +45,26 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('assistant.AssistantSettings') AND name = 'UX_AssistantSettings_User')
     CREATE UNIQUE INDEX UX_AssistantSettings_User ON assistant.AssistantSettings(UserId) WHERE IsDeleted = 0;
+GO
+
+-- Models changed after Session 94 at your request (2026-10-23): the free tier's rate limit on mistral-small-latest was
+-- hit on the first question, so the assistant offers the higher-limit ministral-3b-2512, ministral-8b-2512 (default)
+-- and codestral-2508. Rows on an old model move to the default; the CHECK and default are replaced when they lack
+-- the new names, so the script stays re-runnable.
+IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE name = 'CK_AssistantSettings_Model' AND definition NOT LIKE '%ministral-8b-2512%')
+BEGIN
+    ALTER TABLE assistant.AssistantSettings DROP CONSTRAINT CK_AssistantSettings_Model;
+    UPDATE assistant.AssistantSettings
+       SET Model = N'ministral-8b-2512', UpdatedAt = SYSUTCDATETIME()
+     WHERE Model NOT IN (N'ministral-3b-2512', N'ministral-8b-2512', N'codestral-2508');
+    ALTER TABLE assistant.AssistantSettings ADD CONSTRAINT CK_AssistantSettings_Model
+        CHECK (Model IN (N'ministral-3b-2512', N'ministral-8b-2512', N'codestral-2508'));
+END
+GO
+
+IF EXISTS (SELECT 1 FROM sys.default_constraints WHERE name = 'DF_AssistantSettings_Model' AND definition NOT LIKE '%ministral-8b-2512%')
+BEGIN
+    ALTER TABLE assistant.AssistantSettings DROP CONSTRAINT DF_AssistantSettings_Model;
+    ALTER TABLE assistant.AssistantSettings ADD CONSTRAINT DF_AssistantSettings_Model DEFAULT (N'ministral-8b-2512') FOR Model;
+END
 GO
