@@ -18,6 +18,11 @@
       <kbd>{{ searchShortcut }}</kbd>
     </button>
 
+    <button type="button" class="sidebar-capture sidebar-search" (click)="openAssistant()">
+      <i class="bi bi-chat-dots"></i>
+      <span>Assistant</span>
+    </button>
+
     <nav class="sidebar-nav" aria-label="Main">
       @for (group of navGroups(); track group.label) {
         <div class="nav-group">
@@ -106,6 +111,14 @@
         (click)="openSearch()"
       >
         <i class="bi bi-search fs-5"></i>
+      </button>
+      <button
+        type="button"
+        class="btn btn-sm text-white"
+        aria-label="Assistant"
+        (click)="openAssistant()"
+      >
+        <i class="bi bi-chat-dots fs-5"></i>
       </button>
     </header>
 

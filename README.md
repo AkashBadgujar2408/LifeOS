@@ -91,6 +91,13 @@ Files of sensitive (vault) documents are encrypted with ASP.NET Core Data Protec
 set `FileStorage:KeysPath` to move it. **Back the keys folder up with the files folder** — without it, vault files
 can't be read. Each environment (UAT, Live) gets its own keys folder, like its own files folder.
 
+### 5. AI assistant (optional, Session 94)
+
+Nothing to configure on the server: each user adds **their own Mistral API key** in the app, under
+Settings › AI assistant, which walks through getting one from Mistral's console. The key is stored encrypted with the
+same Data Protection key ring as above (losing the keys folder means re-entering the key). For testing without
+Mistral, `Mistral:BaseAddress` points the API at a stand-in (e.g. `Mistral__BaseAddress=http://localhost:5299/v1/`).
+
 ## Running it
 
 Two terminals:

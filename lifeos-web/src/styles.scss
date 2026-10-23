@@ -137,6 +137,11 @@ h6 {
   border-right: 0;
 }
 
+// The AI assistant's chat (Session 94): a panel from the right, the whole width on a phone.
+.offcanvas.lifeos-assistant {
+  --cui-offcanvas-width: min(30rem, 100vw);
+}
+
 // Reminders (rows on the Reminders page, My Day and inside editors): a due one reads amber, like its toast.
 .reminder-due {
   color: var(--lifeos-amber);

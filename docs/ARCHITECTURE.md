@@ -54,6 +54,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Family & relationships (Phase 3) | `people` | Relationships (tree edges between shared contacts; you = a null person; Parent directed, Partner/Sibling stored once smaller id first), SignificantDates (birthday / anniversary / other; month + day + optional year, 29 Feb allowed), Interactions + InteractionPeople (one call/visit with several people), KeepInTouch (cadence per contact), GiftIdeas (idea → bought → given; a bought gift points at its Purchase, never its own money), Responsibilities (held by me / shared / someone; optional task) — nothing scores a person, anything next/due is computed | `Family/` — `RelationshipsService` (tree edges + people directory), pure `FamilyTree` (generations, relation words), `SignificantDatesService` (yearly days; calendar + My Day from C#) + pure `SignificantDays`, `InteractionsService` (keeps `LastContactedOn`), `KeepInTouchService` (+ `KeepInTouch` insight), `GiftIdeasService`, `ResponsibilitiesService`, `IFamilyLogCleanup` (contact delete) | `family` (`/family`, `/family/people[/:id]`, `/family/tree`, `/family/keep-in-touch`, `/family/interactions`, `/family/responsibilities`; person page sections; My Day "Birthdays & anniversaries"; calendar "Birthdays") |
 | Leisure & media (Phase 4) | `leisure` | MediaItems (Book / Film / Series / Game / Album / Podcast / Other; pages for a book, season/episode for a show; optional skill — books moved here from Learning in Session 78a), MediaItemTags, MediaNotes (notes and highlights), MediaLogs (a watch / play / listen on a day), Hobbies (optional habit), HobbySessions; `learning.StudySessions`/`RoadmapSteps.MediaItemId` point here | `Leisure/` — `MediaItemsService` (progress, notes, logs), `HobbiesService` (sessions), pure `LeisureRules`, `MediaItemLinkableProvider` / `HobbyLinkableProvider`; pure `LeisureFigures` (year in media, hobby months); Life Story branch `MediaFinished` | `leisure` (`/leisure[?kind=]`, `/leisure/:id`, `/leisure/hobbies[/:id]`, `/leisure/year[/:year]`; `/learning/books…` redirects here; the backlog has a By status | Table toggle and a hobby's practice log is an `<app-data-grid>` since Session 86) |
 | Reports (Phase 5) | `reports` | SavedReports (custom report definitions only — metric, filter, grouping, comparison, a moving preset or fixed days; every figure is computed per request) | `Reports/` — `ReportsService` (Dapper over `reports.*` procs, moments onto local days via `tz`), pure `GoalReport` (one outcome per goal), `HabitReport` (the habit page's counting rule), `ProductivityReport` (one outcome per task, overdue rate, estimate vs actual, planned vs tracked by life area), `LearningReport` (study by subject as the study chart groups it, what was reached), `HealthReport` (behind the unlock; the Health pages' rules), `FinanceReport` (cash flow through `IFinanceReportsService`, net worth through `IWealthService.GetNetWorthOnAsync`), `LifeBalanceReport` (each month = `IDashboardService.GetLifeBalanceAsync`, beside self-ratings); `AnnualReviewService` (the year page: the report methods over Jan 1 – Dec 31 + Story chapters/achievements/beats + year in media), `CustomReportsService` + pure `CustomReports` (custom reports: each metric read off the report it repeats, per week/month bucket, compared with the period before or the year before; saved definitions) | `reports` (`/reports/goals`, `/reports/habits`, `/reports/productivity`, `/reports/learning`, `/reports/health`, `/reports/money`, `/reports/balance`, `/reports/custom` (`?saved=<id>`) — tabs from `REPORT_TABS`, each hidden with its module; `/reports/year/:year` Annual Life Review; range in `?from=&to=`; `report-range.ts` presets; `PrintService` + print styles) |
+| AI assistant (Session 94) | `assistant` | AssistantSettings (one per user: on/off, model, the user's own Mistral key — encrypted `ApiKeySecret`, last 4, when set; never exported). Conversations aren't stored | `Assistant/` — `AssistantService` (topic check + tool loop), `AssistantTools` (read-only lookups through module services), `MistralClient`, pure `AssistantRules`, `AssistantPrompts` | `assistant` (chat panel + Settings section) |
 | Dashboard & Insights | `dashboard` | KpiTiles, DismissedInsights (the user's choices only — figures are computed) | `Dashboard/` (+ procs `dashboard.GetMyDay`, `dashboard.GetLifeBalance`, `dashboard.GetKpiFacts`); pure `DashboardInsights` (each insight keyed by its situation), `LifeBalance`, `KpiFigures` | `dashboard` (My Day: insights with dismiss, "Your figures" KPI tiles) |
 
 Every module has the same server layout: `DTOs/` (request/response shapes, status constants), `ServiceContracts/`
@@ -178,6 +179,33 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   deletion (password + typed username): self-references nulled, hard `DELETE` per table in reverse FK order, the user
   row, then `IFileStore.DeleteAll` — the only hard delete in LifeOS. UI: Settings › Your data (`<app-your-data>`).
 
+### AI assistant (Session 94)
+
+- **Each user's own Mistral key**, set in Settings › AI assistant (with step-by-step help on getting one —
+  `features/assistant/key-help.ts`, also shown in the chat panel before a key exists). It's a `…Secret` column, so
+  `SensitiveColumns` encrypts it; `AssistantSettingsService` is the only reader, only to call Mistral. It never goes
+  into a DTO, a log (`RedactLoggedHeaders("Authorization")`) or an export (`AccountData.NotExported`/`NotImported`).
+- **Mistral over plain `HttpClient`** (`MistralClient`, typed client): chat completions with tools, `GET models` for
+  Test key; 401/403 → rejected key, 429 waited out once then "limit", 5xx/network → unreachable, other 4xx →
+  Mistral's own message. `Mistral:BaseAddress` in configuration points a dev run at a stand-in.
+- **One answer = two steps** (`AssistantService.ChatAsync`): (1) the **topic check** — the small model sees only the
+  new message (plus the previous answer, for follow-ups) and returns `{"topic": data|app|chat|other}`; `other` or
+  anything unreadable gets the fixed `AssistantRules.Refusal` and **nothing of the user's data is sent**; (2) the
+  answer — the chosen model with the instructions (`AssistantPrompts.Instructions`: today, zone, switched-off modules,
+  Health locked or not) and the read-only lookups of `AssistantTools`, up to `MaxRounds` model calls. A reply that is
+  the model's own refusal is replaced by the fixed text.
+- **Lookups go through the modules' own services** in the request's scope (user filter, soft delete, Finance's
+  `GenerateDueAsync` first, reports exactly as the Reports page). A switched-off module's lookups aren't offered;
+  `health_report` is offered only while the request carries a live vault unlock (the client sends it when the vault
+  is already open — the chat never asks), and each use is logged to Vault activity ("Health report sent to the AI
+  assistant"). Results are JSON with every UTC moment written as the user's local time (`AssistantTools.ResultJson`),
+  each cut to `MaxToolResultLength`. A bad argument or failing lookup is returned to the model as `{ error }`.
+- **Nothing is stored**: the browser keeps the conversation (`AssistantService.conversation`, cleared on logout) and
+  sends the visible turns each time (the newest 20). Every reply carries `sent` — everything that went to Mistral —
+  shown under the answer as "What was sent to Mistral".
+- Client: `AssistantPanelService.open()` lazy-loads `<app-assistant-panel>` into an end offcanvas (full width on a
+  phone); entry points are the sidebar's Assistant button and the phone top bar.
+
 ## Stored procedures (Dapper)
 
 EF Core handles single-entity CRUD. Queries that join across schemas or aggregate are hand-written procedures in
@@ -219,6 +247,8 @@ All routes need a JWT except register, login and ping.
 | `api/Reports/Goals`, `…/Habits`, `…/Productivity`, `…/Learning`, `…/Health`, `…/Finance`, `…/LifeBalance` | `GET ?from&to&today&tz` — goal achievement, habit consistency, productivity, learning, health, money and life-balance-over-time reports (at most five years; Health 423 without `X-Vault-Unlock`, called through `HealthService.report`) |
 | `api/Reports/Year/{year}` | `GET ?today&tz` — the Annual Life Review (1960 … this year) |
 | `api/Reports/Custom` | `GET metrics` (the catalogue), `POST run` (a definition + `today` + `timeZone`), saved definitions CRUD (`?today` on POST/PUT), `GET {id}/run?today&tz` |
+| `api/Assistant/Settings` | `GET` (on/off, model, `hasKey` + last 4 + when — never the key), `PUT key` (`{ apiKey }`), `DELETE key` (also switches off), `PUT preferences` (`{ isEnabled, model }` — on needs a key), `POST test` (lists Mistral's models with the key: works / rejected / rate-limited / unreachable) |
+| `api/Assistant/Chat` | `POST { messages, today, timeZone }` — one answer (`reply`, `refused`, `lookups`, `sent`); reads Health only when the request carries a live `X-Vault-Unlock` |
 | `api/Shared/Tags`, `Inbox`, `LifeAreas`, `EntityLinks`, `Search` | CRUD; Inbox `PUT {id}/processed`; EntityLinks `GET types`, `GET candidates`; `GET Search?q=` (matches grouped per linkable type) |
 | `api/Goals/Goals` | CRUD, `PUT {id}/status`; milestones under `Goals/{goalId}/Milestones` (CRUD, `PUT {id}/completed`, `PUT order`) |
 | `api/Tasks/Tasks` | CRUD (`estimateMinutes`, `blockedByTaskIds` — loops refused; responses carry `blockedBy` + `actualMinutes`), `PUT {id}/completed`, `POST from-inbox/{id}`, focus sessions `GET/POST {id}/focus` (`{ startedAt, endedAt, minutes }` UTC), `DELETE {id}/focus/{sessionId}` |

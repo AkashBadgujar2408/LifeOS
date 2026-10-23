@@ -22,6 +22,7 @@ import {
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { YourData } from './your-data';
+import { AssistantSettingsSection } from '../assistant/assistant-settings';
 import { RecoveryCodes } from '../../shared/components/recovery-codes/recovery-codes';
 import { VaultActivity } from './vault-activity';
 import { ExchangeRates } from '../finance/exchange-rates';
@@ -55,6 +56,7 @@ function allTimeZones(): string[] {
     VaultActivity,
     ExchangeRates,
     YourData,
+    AssistantSettingsSection,
     NgOptionComponent,
     NgSelectComponent,
   ],

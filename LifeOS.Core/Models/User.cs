@@ -39,6 +39,8 @@ public partial class User
 
     public virtual ICollection<Asset> Assets { get; set; } = new List<Asset>();
 
+    public virtual AssistantSetting? AssistantSetting { get; set; }
+
     public virtual ICollection<Attachment> Attachments { get; set; } = new List<Attachment>();
 
     public virtual ICollection<BenefitRedemption> BenefitRedemptions { get; set; } = new List<BenefitRedemption>();

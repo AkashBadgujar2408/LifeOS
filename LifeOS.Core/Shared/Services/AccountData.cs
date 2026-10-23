@@ -15,14 +15,17 @@ public static class AccountData
     /// <summary>Bumped when the export's shape changes in a way an older import can't read.</summary>
     public const int Version = 1;
 
-    /// <summary>Entities never written to an export: the login's own secrets.</summary>
-    public static readonly IReadOnlySet<string> NotExported = new HashSet<string>(["RecoveryCode"], StringComparer.Ordinal);
+    /// <summary>
+    /// Entities never written to an export: the login's own secrets, and the assistant's settings (they hold the
+    /// user's Mistral API key — a key to another service never leaves in a file; it is set again after an import).
+    /// </summary>
+    public static readonly IReadOnlySet<string> NotExported = new HashSet<string>(["RecoveryCode", "AssistantSetting"], StringComparer.Ordinal);
 
     /// <summary>
     /// Entities exported (they're the user's) but never imported: the vault's access log belongs to the account it
-    /// happened in, and recovery codes are made fresh at registration.
+    /// happened in, recovery codes are made fresh at registration, and assistant settings are never exported.
     /// </summary>
-    public static readonly IReadOnlySet<string> NotImported = new HashSet<string>(["RecoveryCode", "VaultAccessLog"], StringComparer.Ordinal);
+    public static readonly IReadOnlySet<string> NotImported = new HashSet<string>(["RecoveryCode", "VaultAccessLog", "AssistantSetting"], StringComparer.Ordinal);
 
     /// <summary>
     /// The entity (model class) a linkable / attachable / reminder type string is stored in. Most are the same word;

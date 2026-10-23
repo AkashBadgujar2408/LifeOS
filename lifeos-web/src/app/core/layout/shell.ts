@@ -10,6 +10,7 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgbOffcanvas } from '@ng-bootstrap/ng-bootstrap';
+import { AssistantPanelService } from '../services/assistant-panel.service';
 import { AuthService } from '../services/auth.service';
 import { InboxService } from '../services/inbox.service';
 import { QuickAddService } from '../services/quick-add.service';
@@ -38,6 +39,7 @@ export class Shell implements OnInit {
   protected readonly quickAdd = inject(QuickAddService);
   protected readonly remindersService = inject(RemindersService);
   private readonly searchPalette = inject(SearchPaletteService);
+  private readonly assistantPanel = inject(AssistantPanelService);
   private readonly settingsService = inject(SettingsService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -117,6 +119,12 @@ export class Shell implements OnInit {
       event.preventDefault();
       void this.searchPalette.open();
     }
+  }
+
+  /** The drawer is an offcanvas too, so it closes first — only one can be open. */
+  protected openAssistant(): void {
+    this.closeDrawer();
+    setTimeout(() => void this.assistantPanel.open());
   }
 
   protected openQuickAdd(): void {

@@ -21,6 +21,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AssetTag> AssetTags { get; set; }
 
+    public virtual DbSet<AssistantSetting> AssistantSettings { get; set; }
+
     public virtual DbSet<Attachment> Attachments { get; set; }
 
     public virtual DbSet<Benefit> Benefits { get; set; }
@@ -411,6 +413,27 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AssetTags_Users");
+        });
+
+        modelBuilder.Entity<AssistantSetting>(entity =>
+        {
+            entity.ToTable("AssistantSettings", "assistant");
+
+            entity.HasIndex(e => e.UserId, "UX_AssistantSettings_User")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.ApiKeyLast4).HasMaxLength(4);
+            entity.Property(e => e.ApiKeySecret).HasMaxLength(2000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_AssistantSettings_CreatedAt");
+            entity.Property(e => e.Model)
+                .HasMaxLength(40)
+                .HasDefaultValue("mistral-small-latest", "DF_AssistantSettings_Model");
+
+            entity.HasOne(d => d.User).WithOne(p => p.AssistantSetting)
+                .HasForeignKey<AssistantSetting>(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AssistantSettings_Users");
         });
 
         modelBuilder.Entity<Attachment>(entity =>

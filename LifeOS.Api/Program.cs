@@ -1,5 +1,7 @@
 using System.Text;
 using LifeOS.Api.Infrastructure;
+using LifeOS.Core.Assistant.ServiceContracts;
+using LifeOS.Core.Assistant.Services;
 using LifeOS.Core.Calendar.ServiceContracts;
 using LifeOS.Core.Calendar.Services;
 using LifeOS.Core.Dashboard.ServiceContracts;
@@ -232,6 +234,17 @@ try
     builder.Services.AddScoped<IReportsService, ReportsService>();
     builder.Services.AddScoped<IAnnualReviewService, AnnualReviewService>();
     builder.Services.AddScoped<ICustomReportsService, CustomReportsService>();
+
+    // AI assistant (Session 94): each user's own Mistral key; plain HttpClient, the Authorization header never logged
+    builder.Services.AddHttpClient<IMistralClient, MistralClient>(client =>
+        {
+            // Mistral:BaseAddress is only for pointing a dev run at a stand-in; normally it is Mistral's own API.
+            client.BaseAddress = new Uri(builder.Configuration["Mistral:BaseAddress"] ?? MistralClient.BaseAddress);
+            client.Timeout = TimeSpan.FromSeconds(60);
+        })
+        .RedactLoggedHeaders(["Authorization"]);
+    builder.Services.AddScoped<IAssistantSettingsService, AssistantSettingsService>();
+    builder.Services.AddScoped<IAssistantService, AssistantService>();
 
     // Leisure & media (Session 78a; books included)
     builder.Services.AddScoped<IMediaItemsService, MediaItemsService>();

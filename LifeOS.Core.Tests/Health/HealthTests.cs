@@ -23,10 +23,10 @@ public class HealthTests
             .ToList();
 
         Assert.Equal(
-            ["Benefit.CodeSecret", "Benefit.PinSecret", "BodyMeasurement.Notes", "DoctorVisit.Notes", "HealthProfile.Notes", "LabResult.Notes", "Meal.Notes",
+            ["AssistantSetting.ApiKeySecret", "Benefit.CodeSecret", "Benefit.PinSecret", "BodyMeasurement.Notes", "DoctorVisit.Notes", "HealthProfile.Notes", "LabResult.Notes", "Meal.Notes",
              "MedicalCondition.Notes", "Medication.Notes", "SleepRecord.Notes", "WellnessCheckIn.Notes", "Workout.Notes"],
             encrypted);
-        // Notes elsewhere (a goal's, an account's, a voucher's) stay plain; a voucher's code and PIN don't.
+        // Notes elsewhere (a goal's, an account's, a voucher's) stay plain; a voucher's code and PIN and the assistant's API key don't.
         Assert.Null(db.Model.FindEntityType(typeof(Benefit))!.FindProperty(nameof(Benefit.Notes))!.GetValueConverter());
         Assert.Null(db.Model.FindEntityType(typeof(Account))!.FindProperty(nameof(Account.Notes))!.GetValueConverter());
     }
