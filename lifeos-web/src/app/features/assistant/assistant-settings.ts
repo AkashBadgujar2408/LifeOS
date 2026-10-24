@@ -19,6 +19,7 @@ import {
 } from '../../core/services/assistant.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AssistantKeyHelp } from './key-help';
+import { AssistantActivity } from './assistant-activity';
 
 /**
  * Settings › AI assistant: the user's own Mistral API key (write-only — the page only ever learns its last four),
@@ -27,16 +28,17 @@ import { AssistantKeyHelp } from './key-help';
 @Component({
   selector: 'app-assistant-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DatePipe, AssistantKeyHelp],
+  imports: [ReactiveFormsModule, DatePipe, AssistantKeyHelp, AssistantActivity],
   template: `
     <section class="card" aria-labelledby="assistant-heading">
       <div class="card-body p-4">
         <h2 id="assistant-heading" class="h5 mb-1">AI assistant</h2>
         <p class="small text-body-secondary mb-3">
           Ask about your own LifeOS data in plain words — "what's due this week?", "how is my
-          savings goal doing?". It runs on <strong>your own Mistral API key</strong>, so you decide
-          whether anything is sent at all. It only answers questions about LifeOS, and can't change
-          anything.
+          savings goal doing?" — or have it add and change things for you ("add a task to call the
+          bank tomorrow"), shown as a card that's saved only when you press Confirm. It never
+          deletes anything. It runs on <strong>your own Mistral API key</strong>, so you decide
+          whether anything is sent at all, and it only answers questions about LifeOS.
         </p>
 
         @if (loadFailed()) {
@@ -155,6 +157,8 @@ import { AssistantKeyHelp } from './key-help';
         } @else {
           <p class="small text-body-secondary mb-0">Loading...</p>
         }
+        <hr />
+        <app-assistant-activity />
       </div>
     </section>
   `,

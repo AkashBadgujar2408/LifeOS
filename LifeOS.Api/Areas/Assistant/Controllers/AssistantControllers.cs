@@ -61,3 +61,28 @@ public class ChatController(IAssistantService assistantService) : ControllerBase
             : BadRequest(ApiResponse<ChatReplyDto>.Fail(result.Error!));
     }
 }
+
+/// <summary>
+/// The assistant's writes: POST api/Assistant/Actions/confirm { action, arguments, today, timeZone } — Confirm on a
+/// card, written through the module's service and logged; GET api/Assistant/Actions?take= — what it wrote, newest
+/// first. There is no delete: only the create/update actions exist.
+/// </summary>
+[ApiController]
+[Area("Assistant")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class ActionsController(IAssistantService assistantService) : ControllerBase
+{
+    [HttpPost("confirm")]
+    public async Task<IActionResult> Confirm(ConfirmActionRequest request)
+    {
+        var result = await assistantService.ConfirmAsync(request);
+        return result.Success
+            ? Ok(ApiResponse<ActionResultDto>.Ok(result.Data))
+            : BadRequest(ApiResponse<ActionResultDto>.Fail(result.Error!));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Log([FromQuery] int take = 50) =>
+        Ok(ApiResponse<List<ActionLogDto>>.Ok(await assistantService.GetActionLogAsync(take)));
+}

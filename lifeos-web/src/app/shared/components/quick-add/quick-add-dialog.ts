@@ -1,10 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { NgbActiveModal, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import { SettingsService } from '../../../core/services/settings.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { INBOX_KINDS, InboxKind, InboxService } from '../../../core/services/inbox.service';
 import { apiErrorMessage } from '../../../core/services/api-error';
+import { AssistantService } from '../../../core/services/assistant.service';
+import { AssistantPanelService } from '../../../core/services/assistant-panel.service';
+
+/** Mirrors AssistantRules.MaxMessageLength. */
+const MAX_ASK_LENGTH = 2000;
 
 const KIND_META: Record<InboxKind, { icon: string; placeholder: string }> = {
   Task: { icon: 'bi-check2-square', placeholder: 'e.g. Renew passport' },
@@ -27,6 +32,7 @@ export class QuickAddDialog {
   protected readonly activeModal = inject(NgbActiveModal);
   private readonly modal = inject(NgbModal);
   private readonly settingsService = inject(SettingsService);
+  private readonly assistantPanel = inject(AssistantPanelService);
 
   protected readonly kinds = INBOX_KINDS;
   protected readonly kindMeta = KIND_META;
@@ -37,6 +43,50 @@ export class QuickAddDialog {
     title: ['', [Validators.required, Validators.maxLength(300)]],
     notes: ['', Validators.maxLength(4000)],
   });
+
+  /** "Ask the assistant" shows only once the user's key is set and the assistant is on. */
+  protected readonly assistantOn = signal(false);
+  protected readonly askLine = new FormControl('', {
+    nonNullable: true,
+    validators: [Validators.required, Validators.maxLength(MAX_ASK_LENGTH)],
+  });
+  private readonly askTried = signal(false);
+
+  constructor() {
+    inject(AssistantService)
+      .settings()
+      .subscribe({
+        next: (settings) => this.assistantOn.set(settings.hasKey && settings.isEnabled),
+        // No assistant line when its settings can't be read — Quick Add itself still works.
+        error: () => this.assistantOn.set(false),
+      });
+  }
+
+  protected askError(): string | null {
+    if (!this.askTried()) {
+      return null;
+    }
+    if (!this.askLine.value.trim()) {
+      return 'Type what to add, e.g. lunch with Sam tomorrow 1 pm.';
+    }
+    return this.askLine.hasError('maxlength')
+      ? `Keep it under ${MAX_ASK_LENGTH} characters.`
+      : null;
+  }
+
+  /**
+   * Natural-language Quick Add: the line goes to the assistant's chat, which answers with a confirmation card —
+   * nothing is saved until Confirm there.
+   */
+  protected ask(): void {
+    this.askTried.set(true);
+    const text = this.askLine.value.trim();
+    if (!text || this.askLine.invalid) {
+      return;
+    }
+    this.activeModal.dismiss();
+    void this.assistantPanel.open(text);
+  }
 
   protected readonly financeOn = computed(
     () => !this.settingsService.hiddenModules().has('Finance'),

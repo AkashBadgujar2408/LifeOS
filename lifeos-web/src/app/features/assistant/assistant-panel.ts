@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  Injector,
   OnInit,
   computed,
   inject,
@@ -16,9 +17,11 @@ import {
   AssistantService,
   AssistantSettings,
   ChatTurn,
+  ProposalCard,
 } from '../../core/services/assistant.service';
 import { ModuleKey, SettingsService } from '../../core/services/settings.service';
 import { AssistantKeyHelp } from './key-help';
+import { notifySaved, openSavedItem } from './assistant-open';
 
 /** Mirrors AssistantRules.MaxMessageLength. */
 const MAX_MESSAGE_LENGTH = 2000;
@@ -30,11 +33,13 @@ const SUGGESTIONS: { text: string; module: ModuleKey | null }[] = [
   { text: 'How are my goals going?', module: 'Goals' },
   { text: 'How much did I spend this month, and on what?', module: 'Finance' },
   { text: 'How are my habit streaks?', module: 'Habits' },
+  { text: 'Add a task to call the bank tomorrow', module: 'Tasks' },
 ];
 
 /**
  * The assistant's chat, in a panel from the right (opened by AssistantPanelService). Before a key is set it shows
- * how to get one. Every answer can show what was sent to Mistral and which LifeOS lookups it used.
+ * how to get one. Every answer can show what was sent to Mistral and which LifeOS lookups it used. A create/update it
+ * proposes is a card: nothing is saved until Confirm, and there is no delete.
  */
 @Component({
   selector: 'app-assistant-panel',
@@ -95,9 +100,9 @@ const SUGGESTIONS: { text: string; module: ModuleKey | null }[] = [
         } @else {
           @if (conversation().length === 0) {
             <p class="small text-body-secondary">
-              Ask about your goals, tasks, calendar, habits, money and the rest of LifeOS. It reads
-              your data to answer, but can't change anything yet. Questions not about LifeOS get a
-              polite no.
+              Ask about your goals, tasks, calendar, habits, money and the rest of LifeOS, or ask it
+              to add or change something — it shows a card and saves only when you press Confirm. It
+              never deletes anything. Questions not about LifeOS get a polite no.
             </p>
             <div
               class="d-flex flex-column align-items-start gap-2"
@@ -116,7 +121,7 @@ const SUGGESTIONS: { text: string; module: ModuleKey | null }[] = [
           }
 
           <ol class="list-unstyled d-flex flex-column gap-3 mb-0" aria-live="polite">
-            @for (turn of conversation(); track $index) {
+            @for (turn of conversation(); track $index; let i = $index) {
               @if (turn.role === 'user') {
                 <li class="align-self-end bg-body-secondary rounded-3 px-3 py-2 chat-bubble">
                   <span class="visually-hidden">You: </span>{{ turn.content }}
@@ -130,6 +135,106 @@ const SUGGESTIONS: { text: string; module: ModuleKey | null }[] = [
                   >
                     <span class="visually-hidden">Assistant: </span>{{ turn.content }}
                   </div>
+                  @for (card of turn.proposals; track $index; let c = $index) {
+                    <div
+                      class="border rounded-3 p-3 mt-2 proposal"
+                      [class.border-success]="card.state === 'done'"
+                      role="group"
+                      [attr.aria-label]="card.title"
+                    >
+                      <div class="fw-semibold">{{ card.title }}</div>
+                      @if (card.lines.length) {
+                        <dl class="small mt-2 mb-0">
+                          @for (line of card.lines; track $index) {
+                            <div class="d-flex gap-2">
+                              <dt class="fw-normal text-body-secondary proposal-label">
+                                {{ line.label }}
+                              </dt>
+                              <dd class="mb-1 min-w-0">
+                                @if (line.before !== null) {
+                                  <span class="text-body-secondary text-decoration-line-through">{{
+                                    line.before
+                                  }}</span>
+                                  <span class="visually-hidden"> changes to </span>
+                                  <i class="bi bi-arrow-right mx-1" aria-hidden="true"></i>
+                                }
+                                {{ line.value }}
+                              </dd>
+                            </div>
+                          }
+                        </dl>
+                      }
+                      <div class="mt-2" aria-live="polite">
+                        @switch (card.state) {
+                          @case ('waiting') {
+                            <div class="d-flex gap-2">
+                              <button
+                                type="button"
+                                class="btn btn-primary btn-sm"
+                                (click)="confirm(i, c)"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                (click)="cancel(i, c)"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          }
+                          @case ('saving') {
+                            <span class="small text-body-secondary" role="status">
+                              <span
+                                class="spinner-border spinner-border-sm"
+                                aria-hidden="true"
+                              ></span>
+                              Saving…
+                            </span>
+                          }
+                          @case ('done') {
+                            <div class="small d-flex flex-wrap align-items-center gap-2">
+                              <span class="text-success">
+                                <i class="bi bi-check-circle" aria-hidden="true"></i> Saved
+                              </span>
+                              <button
+                                type="button"
+                                class="btn btn-link btn-sm p-0"
+                                (click)="openItem(card)"
+                              >
+                                Open {{ card.result!.title }}
+                              </button>
+                            </div>
+                          }
+                          @case ('cancelled') {
+                            <span class="small text-body-secondary"
+                              >Cancelled — nothing was saved.</span
+                            >
+                          }
+                          @case ('failed') {
+                            <div class="small text-danger mb-2">Not saved: {{ card.error }}</div>
+                            <div class="d-flex gap-2">
+                              <button
+                                type="button"
+                                class="btn btn-outline-primary btn-sm"
+                                (click)="confirm(i, c)"
+                              >
+                                Try again
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn-outline-secondary btn-sm"
+                                (click)="cancel(i, c)"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          }
+                        }
+                      </div>
+                    </div>
+                  }
                   @if (turn.lookups?.length) {
                     <div class="small text-body-secondary mt-1">
                       Looked at: {{ turn.lookups!.join(', ') }}
@@ -191,6 +296,12 @@ const SUGGESTIONS: { text: string; module: ModuleKey | null }[] = [
       white-space: pre-wrap;
       overflow-wrap: anywhere;
     }
+    .proposal {
+      white-space: normal;
+    }
+    .proposal-label {
+      flex: 0 0 6.5rem;
+    }
     .sent-item {
       max-height: 14rem;
       overflow: auto;
@@ -205,6 +316,7 @@ export class AssistantPanel implements OnInit {
   private readonly settingsService = inject(SettingsService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly injector = inject(Injector);
   private readonly scroller = viewChild<ElementRef<HTMLElement>>('scroller');
 
   protected readonly settings = signal<AssistantSettings | null>(null);
@@ -212,6 +324,8 @@ export class AssistantPanel implements OnInit {
   protected readonly pending = signal(false);
   protected readonly conversation = this.assistant.conversation;
   protected readonly maxLength = MAX_MESSAGE_LENGTH;
+  /** Errors show only once Send is pressed — an emptied box after sending (or clicking away) is not a mistake. */
+  private readonly submitted = signal(false);
 
   /** Suggestions without the modules switched off. */
   protected readonly suggestions = computed(() => {
@@ -232,6 +346,11 @@ export class AssistantPanel implements OnInit {
     this.assistant.settings().subscribe({
       next: (settings) => {
         this.settings.set(settings);
+        const question = this.pendingQuestion;
+        this.pendingQuestion = null;
+        if (question && settings.hasKey && settings.isEnabled && !this.pending()) {
+          this.send(question);
+        }
         this.scrollToEnd();
       },
       error: () => this.loadFailed.set(true),
@@ -240,7 +359,7 @@ export class AssistantPanel implements OnInit {
 
   protected fieldError(name: 'question'): string | null {
     const control = this.form.controls[name];
-    if (!control.touched) {
+    if (!this.submitted()) {
       return null;
     }
     if (control.hasError('required') || !control.value.trim()) {
@@ -258,7 +377,7 @@ export class AssistantPanel implements OnInit {
   }
 
   protected submit(): void {
-    this.form.markAllAsTouched();
+    this.submitted.set(true);
     const question = this.form.controls.question.value.trim();
     if (this.form.invalid || !question || this.pending()) {
       return;
@@ -270,6 +389,7 @@ export class AssistantPanel implements OnInit {
     const turns: ChatTurn[] = [...this.conversation(), { role: 'user', content: question }];
     this.conversation.set(turns);
     this.form.reset();
+    this.submitted.set(false);
     this.pending.set(true);
     this.scrollToEnd();
 
@@ -283,6 +403,7 @@ export class AssistantPanel implements OnInit {
             refused: reply.refused,
             lookups: reply.lookups,
             sent: reply.sent,
+            proposals: reply.proposals.map((proposal) => ({ ...proposal, state: 'waiting' })),
           },
         ]);
         this.pending.set(false);
@@ -302,6 +423,69 @@ export class AssistantPanel implements OnInit {
       },
     });
   }
+
+  /** Confirm on a card: written by the server through the module's service, or refused in its own words. */
+  protected confirm(turnIndex: number, cardIndex: number): void {
+    const card = this.conversation()[turnIndex]?.proposals?.[cardIndex];
+    if (!card || card.state === 'saving' || card.state === 'done') {
+      return;
+    }
+    this.setCard(turnIndex, cardIndex, { state: 'saving', error: undefined });
+    this.assistant.confirm(card).subscribe({
+      next: (result) => {
+        this.setCard(turnIndex, cardIndex, { state: 'done', result });
+        notifySaved(this.injector, result.entityType);
+      },
+      error: (err) =>
+        this.setCard(turnIndex, cardIndex, {
+          state: 'failed',
+          error: apiErrorMessage(err, "Couldn't save it."),
+        }),
+    });
+  }
+
+  protected cancel(turnIndex: number, cardIndex: number): void {
+    this.setCard(turnIndex, cardIndex, { state: 'cancelled' });
+  }
+
+  protected openItem(card: ProposalCard): void {
+    if (!card.result) {
+      return;
+    }
+    this.activeOffcanvas.dismiss();
+    void openSavedItem(this.injector, card.result.entityType, card.result.entityId);
+  }
+
+  private setCard(turnIndex: number, cardIndex: number, patch: Partial<ProposalCard>): void {
+    this.conversation.update((all) =>
+      all.map((turn, t) =>
+        t !== turnIndex || !turn.proposals
+          ? turn
+          : {
+              ...turn,
+              proposals: turn.proposals.map((card, c) =>
+                c === cardIndex ? { ...card, ...patch } : card,
+              ),
+            },
+      ),
+    );
+  }
+
+  /** Quick Add's "Ask the assistant" opens the panel with its line already sent. */
+  ask(question: string): void {
+    const text = question.trim().slice(0, MAX_MESSAGE_LENGTH);
+    if (!text) {
+      return;
+    }
+    // The settings decide whether the chat can answer; wait for them on the first open.
+    if (this.settings()?.hasKey && this.settings()?.isEnabled) {
+      this.send(text);
+    } else {
+      this.pendingQuestion = text;
+    }
+  }
+
+  private pendingQuestion: string | null = null;
 
   protected clear(): void {
     this.conversation.set([]);

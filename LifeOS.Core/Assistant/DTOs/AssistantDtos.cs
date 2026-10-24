@@ -87,6 +87,66 @@ public class ChatReplyDto
     public List<string> Lookups { get; init; } = [];
     /// <summary>Everything sent to Mistral for this answer, in order.</summary>
     public List<SentItemDto> Sent { get; init; } = [];
+    /// <summary>Creates/updates the assistant proposes — nothing is written until the user confirms one.</summary>
+    public List<ProposalDto> Proposals { get; init; } = [];
+}
+
+/// <summary>
+/// A confirmation card: what would be written, in words. Action + Arguments come back unchanged on Confirm, where
+/// they're checked again and written through the module's service.
+/// </summary>
+public class ProposalDto
+{
+    public string Action { get; init; } = string.Empty;
+    public string Arguments { get; init; } = "{}";
+    public string Title { get; init; } = string.Empty;
+    public List<ProposalLineDto> Lines { get; init; } = [];
+}
+
+public class ProposalLineDto
+{
+    public string Label { get; init; } = string.Empty;
+    public string Value { get; init; } = string.Empty;
+    /// <summary>On an update: what it was before.</summary>
+    public string? Before { get; init; }
+}
+
+/// <summary>Confirm on a card.</summary>
+public class ConfirmActionRequest
+{
+    [Required]
+    public string Action { get; init; } = string.Empty;
+
+    [Required]
+    [StringLength(20000)]
+    public string Arguments { get; init; } = "{}";
+
+    [Required]
+    public DateOnly Today { get; init; }
+
+    public string? TimeZone { get; init; }
+}
+
+/// <summary>What Confirm wrote — the item to open — and the line the chat shows.</summary>
+public class ActionResultDto
+{
+    public string Kind { get; init; } = string.Empty;
+    public string EntityType { get; init; } = string.Empty;
+    public int EntityId { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string Message { get; init; } = string.Empty;
+}
+
+/// <summary>One entry of "What the assistant did" (Settings › AI assistant).</summary>
+public class ActionLogDto
+{
+    public int Id { get; init; }
+    public string Action { get; init; } = string.Empty;
+    public string Kind { get; init; } = string.Empty;
+    public string EntityType { get; init; } = string.Empty;
+    public int EntityId { get; init; }
+    public string Summary { get; init; } = string.Empty;
+    public DateTime CreatedAt { get; init; }
 }
 
 /// <summary>One thing that went to Mistral: the instructions, a message, or what a lookup returned.</summary>

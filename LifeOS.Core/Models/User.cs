@@ -33,6 +33,8 @@ public partial class User
 
     public virtual ICollection<Account> Accounts { get; set; } = new List<Account>();
 
+    public virtual ICollection<ActionLog> ActionLogs { get; set; } = new List<ActionLog>();
+
     public virtual ICollection<ApplicationStageChange> ApplicationStageChanges { get; set; } = new List<ApplicationStageChange>();
 
     public virtual ICollection<AssetTag> AssetTags { get; set; } = new List<AssetTag>();

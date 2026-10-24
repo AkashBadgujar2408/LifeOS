@@ -45,6 +45,52 @@ export interface ChatTurn {
   sent?: SentItem[];
   /** Assistant turns: the request failed; the text is the error. */
   failed?: boolean;
+  /** Assistant turns: creates/updates waiting for Confirm (nothing is saved before). */
+  proposals?: ProposalCard[];
+}
+
+export interface ProposalLine {
+  label: string;
+  value: string;
+  /** On an update: what it was before. */
+  before: string | null;
+}
+
+/** A confirmation card as the server checked it; action + arguments go back unchanged on Confirm. */
+export interface Proposal {
+  action: string;
+  arguments: string;
+  title: string;
+  lines: ProposalLine[];
+}
+
+export type ProposalState = 'waiting' | 'saving' | 'done' | 'cancelled' | 'failed';
+
+export interface ProposalCard extends Proposal {
+  state: ProposalState;
+  /** Failed: why, in the module's own words. */
+  error?: string;
+  /** Done: what was written. */
+  result?: ActionResult;
+}
+
+export interface ActionResult {
+  kind: 'Created' | 'Updated';
+  entityType: string;
+  entityId: number;
+  title: string;
+  message: string;
+}
+
+/** One entry of "What the assistant saved". */
+export interface ActionLogEntry {
+  id: number;
+  action: string;
+  kind: 'Created' | 'Updated';
+  entityType: string;
+  entityId: number;
+  summary: string;
+  createdAt: string;
 }
 
 interface ChatReply {
@@ -52,6 +98,21 @@ interface ChatReply {
   refused: boolean;
   lookups: string[];
   sent: SentItem[];
+  proposals: Proposal[];
+}
+
+/** What the model is told about a card later in the chat, so "and add another" follows on. */
+function cardNote(card: ProposalCard): string {
+  switch (card.state) {
+    case 'done':
+      return `[${card.title} — confirmed and saved]`;
+    case 'cancelled':
+      return `[${card.title} — cancelled by the user, not saved]`;
+    case 'failed':
+      return `[${card.title} — not saved: ${card.error ?? 'refused'}]`;
+    default:
+      return `[${card.title} — not confirmed yet]`;
+  }
 }
 
 /**
@@ -116,13 +177,37 @@ export class AssistantService {
   ask(turns: ChatTurn[]): Observable<ChatReply> {
     const messages = turns
       .filter((turn) => !turn.failed)
-      .map((turn) => ({ role: turn.role, content: turn.content }));
+      .map((turn) => ({
+        role: turn.role,
+        content: turn.proposals?.length
+          ? [turn.content, ...turn.proposals.map(cardNote)].join('\n')
+          : turn.content,
+      }));
     return this.http
       .post<ApiResponse<ChatReply>>(
         `${this.baseUrl}/Chat`,
         { messages, today: todayIso(), timeZone: browserTimeZone() },
         { headers: this.vault.headers() },
       )
+      .pipe(map((response) => response.data!));
+  }
+
+  /** Confirm on a card: the server checks it again and writes it through the module's own service. */
+  confirm(proposal: Proposal): Observable<ActionResult> {
+    return this.http
+      .post<ApiResponse<ActionResult>>(`${this.baseUrl}/Actions/confirm`, {
+        action: proposal.action,
+        arguments: proposal.arguments,
+        today: todayIso(),
+        timeZone: browserTimeZone(),
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  /** What the assistant saved, newest first. */
+  actionLog(take = 50): Observable<ActionLogEntry[]> {
+    return this.http
+      .get<ApiResponse<ActionLogEntry[]>>(`${this.baseUrl}/Actions`, { params: { take } })
       .pipe(map((response) => response.data!));
   }
 }

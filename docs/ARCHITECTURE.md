@@ -54,7 +54,7 @@ every error with `apiErrorMessage(err, fallback)`.
 | Family & relationships (Phase 3) | `people` | Relationships (tree edges between shared contacts; you = a null person; Parent directed, Partner/Sibling stored once smaller id first), SignificantDates (birthday / anniversary / other; month + day + optional year, 29 Feb allowed), Interactions + InteractionPeople (one call/visit with several people), KeepInTouch (cadence per contact), GiftIdeas (idea → bought → given; a bought gift points at its Purchase, never its own money), Responsibilities (held by me / shared / someone; optional task) — nothing scores a person, anything next/due is computed | `Family/` — `RelationshipsService` (tree edges + people directory), pure `FamilyTree` (generations, relation words), `SignificantDatesService` (yearly days; calendar + My Day from C#) + pure `SignificantDays`, `InteractionsService` (keeps `LastContactedOn`), `KeepInTouchService` (+ `KeepInTouch` insight), `GiftIdeasService`, `ResponsibilitiesService`, `IFamilyLogCleanup` (contact delete) | `family` (`/family`, `/family/people[/:id]`, `/family/tree`, `/family/keep-in-touch`, `/family/interactions`, `/family/responsibilities`; person page sections; My Day "Birthdays & anniversaries"; calendar "Birthdays") |
 | Leisure & media (Phase 4) | `leisure` | MediaItems (Book / Film / Series / Game / Album / Podcast / Other; pages for a book, season/episode for a show; optional skill — books moved here from Learning in Session 78a), MediaItemTags, MediaNotes (notes and highlights), MediaLogs (a watch / play / listen on a day), Hobbies (optional habit), HobbySessions; `learning.StudySessions`/`RoadmapSteps.MediaItemId` point here | `Leisure/` — `MediaItemsService` (progress, notes, logs), `HobbiesService` (sessions), pure `LeisureRules`, `MediaItemLinkableProvider` / `HobbyLinkableProvider`; pure `LeisureFigures` (year in media, hobby months); Life Story branch `MediaFinished` | `leisure` (`/leisure[?kind=]`, `/leisure/:id`, `/leisure/hobbies[/:id]`, `/leisure/year[/:year]`; `/learning/books…` redirects here; the backlog has a By status | Table toggle and a hobby's practice log is an `<app-data-grid>` since Session 86) |
 | Reports (Phase 5) | `reports` | SavedReports (custom report definitions only — metric, filter, grouping, comparison, a moving preset or fixed days; every figure is computed per request) | `Reports/` — `ReportsService` (Dapper over `reports.*` procs, moments onto local days via `tz`), pure `GoalReport` (one outcome per goal), `HabitReport` (the habit page's counting rule), `ProductivityReport` (one outcome per task, overdue rate, estimate vs actual, planned vs tracked by life area), `LearningReport` (study by subject as the study chart groups it, what was reached), `HealthReport` (behind the unlock; the Health pages' rules), `FinanceReport` (cash flow through `IFinanceReportsService`, net worth through `IWealthService.GetNetWorthOnAsync`), `LifeBalanceReport` (each month = `IDashboardService.GetLifeBalanceAsync`, beside self-ratings); `AnnualReviewService` (the year page: the report methods over Jan 1 – Dec 31 + Story chapters/achievements/beats + year in media), `CustomReportsService` + pure `CustomReports` (custom reports: each metric read off the report it repeats, per week/month bucket, compared with the period before or the year before; saved definitions) | `reports` (`/reports/goals`, `/reports/habits`, `/reports/productivity`, `/reports/learning`, `/reports/health`, `/reports/money`, `/reports/balance`, `/reports/custom` (`?saved=<id>`) — tabs from `REPORT_TABS`, each hidden with its module; `/reports/year/:year` Annual Life Review; range in `?from=&to=`; `report-range.ts` presets; `PrintService` + print styles) |
-| AI assistant (Session 94) | `assistant` | AssistantSettings (one per user: on/off, model, the user's own Mistral key — encrypted `ApiKeySecret`, last 4, when set; never exported). Conversations aren't stored | `Assistant/` — `AssistantService` (topic check + tool loop), `AssistantTools` (read-only lookups through module services), `MistralClient`, pure `AssistantRules`, `AssistantPrompts` | `assistant` (chat panel + Settings section) |
+| AI assistant (Sessions 94–95) | `assistant` | AssistantSettings (one per user: on/off, model, the user's own Mistral key — encrypted `ApiKeySecret`, last 4, when set; never exported); ActionLog (each confirmed create/update). Conversations aren't stored | `Assistant/` — `AssistantService` (topic check + tool loop), `AssistantTools` (read-only lookups through module services), `AssistantActions` (create/update proposals + confirm), `MistralClient`, pure `AssistantRules`, `AssistantPrompts` | `assistant` (chat panel + Settings section) |
 | Dashboard & Insights | `dashboard` | KpiTiles, DismissedInsights (the user's choices only — figures are computed) | `Dashboard/` (+ procs `dashboard.GetMyDay`, `dashboard.GetLifeBalance`, `dashboard.GetKpiFacts`); pure `DashboardInsights` (each insight keyed by its situation), `LifeBalance`, `KpiFigures` | `dashboard` (My Day: insights with dismiss, "Your figures" KPI tiles) |
 
 Every module has the same server layout: `DTOs/` (request/response shapes, status constants), `ServiceContracts/`
@@ -203,8 +203,34 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
 - **Nothing is stored**: the browser keeps the conversation (`AssistantService.conversation`, cleared on logout) and
   sends the visible turns each time (the newest 20). Every reply carries `sent` — everything that went to Mistral —
   shown under the answer as "What was sent to Mistral".
-- Client: `AssistantPanelService.open()` lazy-loads `<app-assistant-panel>` into an end offcanvas (full width on a
-  phone); entry points are the sidebar's Assistant button and the phone top bar.
+- Client: `AssistantPanelService.open(question?)` lazy-loads `<app-assistant-panel>` into an end offcanvas (full width
+  on a phone); entry points are the sidebar's Assistant button, the phone top bar and Quick Add's "Ask the
+  assistant" line (shown only with a key and the assistant on; its text becomes the first question).
+
+### AI assistant writes (Session 95)
+
+- **Create and update only** — `AssistantActions.All` (24 actions: goals, milestones, tasks, habits + ticking,
+  journal, events, reminders, skills, courses, media items, expenses/income, contacts, home items). There is no
+  delete, archive, "take back", vault or account action; a unit test fails if one appears.
+- **Propose, then Confirm.** In the chat, a write tool call runs only the action's `Plan`: it reads what it changes
+  through the module's service, resolves names (life area, project, account, skill, tags), checks the request with
+  its own data annotations, and returns an `ActionPlan` — the card's title and lines (an update shows only what
+  changes, with the old value) plus a `Write`. The chat answer then ends with the cards (`ChatReplyDto.Proposals`, at
+  most `MaxProposals`); the model is told the card waits for the user. A bad argument goes back to the model as
+  `{ error }` and makes no card.
+- **`POST api/Assistant/Actions/confirm`** takes the card's `action` + `arguments` back unchanged, runs `Plan` again
+  (the item may have changed), then `Write` through the module's own service — every business rule applies (a
+  duplicate skill comes back as that service's own message). Only then is a row written to `assistant.ActionLog`
+  (`Created`/`Updated`, `EntityType`/`EntityId` with the EntityLinks type strings — a milestone is logged against its
+  goal, a reminder as `Reminder`; summary = the card's title). The log is exported/imported like any user table.
+  Switched off, a module's actions aren't offered and their cards can't be confirmed.
+- Times the user says are local: events and reminders take `yyyy-MM-dd HH:mm` / `HH:mm` in the user's zone and go
+  through `EventRecurrence.LocalToUtc`. New tags are created only on Confirm. A journal write adds to that day's one
+  entry.
+- Client: cards (`ProposalCard`, states waiting / saving / done / cancelled / failed) under the answer; Confirm calls
+  the endpoint, "Open …" uses `openSavedItem` (`EntityOpener` through `import()`, reminders → `/reminders`). Card
+  states go back to the model as notes on that turn ("[… — confirmed and saved]"). Settings › AI assistant lists "What
+  the assistant saved" (`GET api/Assistant/Actions`).
 
 ## Stored procedures (Dapper)
 
@@ -248,7 +274,8 @@ All routes need a JWT except register, login and ping.
 | `api/Reports/Year/{year}` | `GET ?today&tz` — the Annual Life Review (1960 … this year) |
 | `api/Reports/Custom` | `GET metrics` (the catalogue), `POST run` (a definition + `today` + `timeZone`), saved definitions CRUD (`?today` on POST/PUT), `GET {id}/run?today&tz` |
 | `api/Assistant/Settings` | `GET` (on/off, model, `hasKey` + last 4 + when — never the key), `PUT key` (`{ apiKey }`), `DELETE key` (also switches off), `PUT preferences` (`{ isEnabled, model }` — on needs a key), `POST test` (lists Mistral's models with the key: works / rejected / rate-limited / unreachable) |
-| `api/Assistant/Chat` | `POST { messages, today, timeZone }` — one answer (`reply`, `refused`, `lookups`, `sent`); reads Health only when the request carries a live `X-Vault-Unlock` |
+| `api/Assistant/Chat` | `POST { messages, today, timeZone }` — one answer (`reply`, `refused`, `lookups`, `sent`, `proposals` — cards, nothing written); reads Health only when the request carries a live `X-Vault-Unlock` |
+| `api/Assistant/Actions` | `POST confirm { action, arguments, today, timeZone }` — writes a card through the module's service and logs it (create/update only; an unknown action is refused); `GET ?take=` — what the assistant saved, newest first |
 | `api/Shared/Tags`, `Inbox`, `LifeAreas`, `EntityLinks`, `Search` | CRUD; Inbox `PUT {id}/processed`; EntityLinks `GET types`, `GET candidates`; `GET Search?q=` (matches grouped per linkable type) |
 | `api/Goals/Goals` | CRUD, `PUT {id}/status`; milestones under `Goals/{goalId}/Milestones` (CRUD, `PUT {id}/completed`, `PUT order`) |
 | `api/Tasks/Tasks` | CRUD (`estimateMinutes`, `blockedByTaskIds` — loops refused; responses carry `blockedBy` + `actualMinutes`), `PUT {id}/completed`, `POST from-inbox/{id}`, focus sessions `GET/POST {id}/focus` (`{ startedAt, endedAt, minutes }` UTC), `DELETE {id}/focus/{sessionId}` |

@@ -68,3 +68,31 @@ BEGIN
     ALTER TABLE assistant.AssistantSettings ADD CONSTRAINT DF_AssistantSettings_Model DEFAULT (N'ministral-8b-2512') FOR Model;
 END
 GO
+
+-- What the assistant wrote (Session 95): one row per confirmed create/update — the assistant has no delete. EntityType
+-- / EntityId use the EntityLinks type strings (Goal, Task, Habit, JournalEntry, Event, Reminder, Skill, Course,
+-- MediaItem, Transaction, Contact, Asset; a milestone is logged against its Goal), so export → import remaps them and
+-- Settings › AI assistant links to the item. Summary is the confirmation card's title ("Create goal: Run a half
+-- marathon"). Exported and imported like any other user table.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('assistant.ActionLog'))
+BEGIN
+    CREATE TABLE assistant.ActionLog
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ActionLog PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_ActionLog_Users REFERENCES shared.Users(Id),
+        Action          NVARCHAR(40)      NOT NULL,
+        Kind            NVARCHAR(10)      NOT NULL CONSTRAINT CK_ActionLog_Kind CHECK (Kind IN (N'Created', N'Updated')),
+        EntityType      NVARCHAR(50)      NOT NULL,
+        EntityId        INT               NOT NULL,
+        Summary         NVARCHAR(400)     NOT NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_ActionLog_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_ActionLog_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('assistant.ActionLog') AND name = 'IX_ActionLog_User_CreatedAt')
+    CREATE INDEX IX_ActionLog_User_CreatedAt ON assistant.ActionLog(UserId, CreatedAt DESC) WHERE IsDeleted = 0;
+GO

@@ -25,4 +25,10 @@ public interface IAssistantSettingsService
 public interface IAssistantService
 {
     Task<OperationResult<ChatReplyDto>> ChatAsync(ChatRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Confirm on a card: checks the proposal again and writes it through the module's service, then logs it.</summary>
+    Task<OperationResult<ActionResultDto>> ConfirmAsync(ConfirmActionRequest request);
+
+    /// <summary>What the assistant wrote, newest first.</summary>
+    Task<List<ActionLogDto>> GetActionLogAsync(int take);
 }

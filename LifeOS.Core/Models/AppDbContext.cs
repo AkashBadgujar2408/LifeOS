@@ -15,6 +15,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<AccountCurrency> AccountCurrencies { get; set; }
 
+    public virtual DbSet<ActionLog> ActionLogs { get; set; }
+
     public virtual DbSet<ApplicationStageChange> ApplicationStageChanges { get; set; }
 
     public virtual DbSet<Asset> Assets { get; set; }
@@ -333,6 +335,26 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_AccountCurrencies_Users");
+        });
+
+        modelBuilder.Entity<ActionLog>(entity =>
+        {
+            entity.ToTable("ActionLog", "assistant");
+
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt }, "IX_ActionLog_User_CreatedAt")
+                .IsDescending(false, true)
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.Action).HasMaxLength(40);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_ActionLog_CreatedAt");
+            entity.Property(e => e.EntityType).HasMaxLength(50);
+            entity.Property(e => e.Kind).HasMaxLength(10);
+            entity.Property(e => e.Summary).HasMaxLength(400);
+
+            entity.HasOne(d => d.User).WithMany(p => p.ActionLogs)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ActionLog_Users");
         });
 
         modelBuilder.Entity<ApplicationStageChange>(entity =>

@@ -96,6 +96,7 @@ public partial class DismissedInsight : ISoftDeletable, IUserOwned;
 public partial class SavedReport : ISoftDeletable, IUserOwned;
 
 public partial class AssistantSetting : ISoftDeletable, IUserOwned;
+public partial class ActionLog : ISoftDeletable, IUserOwned;
 
 public partial class Skill : ISoftDeletable, IUserOwned;
 

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using LifeOS.Core.Calendar.DTOs;
@@ -96,6 +97,95 @@ public sealed class ToolArgs(JsonElement root)
             : throw new ToolArgumentException($"{name} must be a day written yyyy-MM-dd.");
     }
 
+    /// <summary>Whether the model sent this argument at all (a null counts — on an update it clears the field).</summary>
+    public bool Has(string name) => root.ValueKind == JsonValueKind.Object && root.TryGetProperty(name, out _);
+
+    public decimal? Decimal(string name)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(name, out var value))
+        {
+            return null;
+        }
+
+        return value.ValueKind switch
+        {
+            JsonValueKind.Number when value.TryGetDecimal(out var number) => number,
+            JsonValueKind.String when decimal.TryParse(value.GetString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var number) => number,
+            JsonValueKind.Null => null,
+            _ => throw new ToolArgumentException($"{name} must be a number."),
+        };
+    }
+
+    public bool? Bool(string name)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(name, out var value))
+        {
+            return null;
+        }
+
+        return value.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.String when bool.TryParse(value.GetString(), out var flag) => flag,
+            JsonValueKind.Null => null,
+            _ => throw new ToolArgumentException($"{name} must be true or false."),
+        };
+    }
+
+    /// <summary>A list of words (tags, weekdays); a single string counts as a list of one.</summary>
+    public List<string>? Strings(string name)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(name, out var value))
+        {
+            return null;
+        }
+
+        return value.ValueKind switch
+        {
+            JsonValueKind.Array => value.EnumerateArray()
+                .Select(v => v.ValueKind == JsonValueKind.String ? v.GetString()?.Trim() : throw new ToolArgumentException($"{name} must be a list of words."))
+                .Where(s => !string.IsNullOrEmpty(s))
+                .Select(s => s!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList(),
+            JsonValueKind.String => string.IsNullOrWhiteSpace(value.GetString()) ? [] : [value.GetString()!.Trim()],
+            JsonValueKind.Null => [],
+            _ => throw new ToolArgumentException($"{name} must be a list of words."),
+        };
+    }
+
+    /// <summary>A local wall-clock moment "yyyy-MM-dd HH:mm" (the user's time, never UTC).</summary>
+    public DateTime? LocalTime(string name)
+    {
+        var text = String(name);
+        if (text is null)
+        {
+            return null;
+        }
+
+        return DateTime.TryParseExact(text.Replace('T', ' '), ["yyyy-MM-dd HH:mm", "yyyy-MM-dd HH:mm:ss"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var moment)
+            ? moment
+            : throw new ToolArgumentException($"{name} must be a local time written yyyy-MM-dd HH:mm.");
+    }
+
+    /// <summary>A time of day "HH:mm".</summary>
+    public TimeOnly? Time(string name)
+    {
+        var text = String(name);
+        if (text is null)
+        {
+            return null;
+        }
+
+        return TimeOnly.TryParseExact(text, ["HH:mm", "H:mm", "HH:mm:ss"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var time)
+            ? time
+            : throw new ToolArgumentException($"{name} must be a time of day written HH:mm (24-hour).");
+    }
+
+    /// <summary>The arguments as sent, for a confirmation card to carry back unchanged.</summary>
+    public string Json => root.ValueKind == JsonValueKind.Object ? root.GetRawText() : "{}";
+
     /// <summary>A from–to range, defaulting either end, no longer than <paramref name="maxDays"/>.</summary>
     public (DateOnly From, DateOnly To) Range(DateOnly defaultFrom, DateOnly defaultTo, int maxDays)
     {
@@ -116,7 +206,7 @@ public sealed class ToolArgumentException(string message) : Exception(message);
 
 /// <summary>
 /// The assistant's read-only lookups — every one goes through the module's own service, so the user filter, soft
-/// delete and the module's rules apply exactly as on its page. Session 95 adds the write tools.
+/// delete and the module's rules apply exactly as on its page. Creates and updates are <see cref="AssistantActions"/>.
 /// </summary>
 public static class AssistantTools
 {
@@ -428,12 +518,14 @@ public static class AssistantTools
 
     /// <summary>
     /// JSON for what a lookup returns: camelCase, and every moment (UTC in LifeOS) written as the user's local time
-    /// ("2026-10-23 14:30"), so the model never has to convert zones.
+    /// ("2026-10-23 14:30"), so the model never has to convert zones. Text is written as is ("There's", "₹", "→"),
+    /// not \u-escaped: it goes to Mistral (and "What was sent"), never into a page as HTML.
     /// </summary>
     public static JsonSerializerOptions ResultJson(TimeZoneInfo zone) => new(JsonSerializerDefaults.Web)
     {
         Converters = { new LocalTimeConverter(zone), new NullableLocalTimeConverter(zone) },
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     };
 
     private sealed class LocalTimeConverter(TimeZoneInfo zone) : JsonConverter<DateTime>

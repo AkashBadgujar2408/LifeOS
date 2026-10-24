@@ -32,6 +32,33 @@
       </p>
     }
 
+    @if (assistantOn()) {
+      <div class="mb-3">
+        <label class="form-label" for="quick-add-ask">
+          <i class="bi bi-chat-dots" aria-hidden="true"></i> Ask the assistant
+        </label>
+        <div class="input-group">
+          <input
+            id="quick-add-ask"
+            type="text"
+            class="form-control"
+            [class.is-invalid]="askError()"
+            [formControl]="askLine"
+            placeholder="e.g. lunch with Sam tomorrow 1 pm"
+            autocomplete="off"
+            (keydown.enter)="$event.preventDefault(); ask()"
+          />
+          <button type="button" class="btn btn-outline-primary" (click)="ask()">Ask</button>
+        </div>
+        @if (askError(); as error) {
+          <div class="invalid-feedback d-block">{{ error }}</div>
+        }
+        <div class="form-text">
+          It shows what it would save; nothing is saved until you confirm.
+        </div>
+      </div>
+    }
+
     <div class="mb-3">
       <label class="form-label" for="quick-add-title">Title</label>
       <input

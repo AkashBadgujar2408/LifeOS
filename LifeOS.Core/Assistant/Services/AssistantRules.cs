@@ -45,6 +45,17 @@ public static class AssistantRules
     /// <summary>Model calls per answer (tool rounds included) before giving up.</summary>
     public const int MaxRounds = 6;
 
+    /// <summary>Cards one answer may propose.</summary>
+    public const int MaxProposals = 5;
+
+    /// <summary>The answer shown above cards when the model said nothing itself.</summary>
+    public static string ProposalReply(int count) => count == 1
+        ? "Here's what I'd save — check it, then Confirm or Cancel."
+        : "Here's what I'd save — check each one, then Confirm or Cancel.";
+
+    /// <summary>The chat's line once a card is confirmed: "Done — Create goal: Run a half marathon."</summary>
+    public static string DoneMessage(string title) => $"Done — {title}.";
+
     /// <summary>The most one lookup's result may add to what's sent.</summary>
     public const int MaxToolResultLength = 12_000;
 
