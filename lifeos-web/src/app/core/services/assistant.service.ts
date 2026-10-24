@@ -93,6 +93,26 @@ export interface ActionLogEntry {
   createdAt: string;
 }
 
+export type NarrationScope = 'Recap' | 'Year';
+
+/** A narration from the page's lines, and everything sent to Mistral for it. Not stored. */
+export interface Narration {
+  text: string;
+  sent: SentItem[];
+}
+
+/** A narration the user kept for the recap or a year. */
+export interface KeptNarration {
+  scope: NarrationScope;
+  year: number | null;
+  text: string;
+  keptAt: string;
+}
+
+function narrationParams(scope: NarrationScope, year: number | null): Record<string, string> {
+  return year === null ? { scope } : { scope, year: String(year) };
+}
+
 interface ChatReply {
   reply: string;
   refused: boolean;
@@ -209,5 +229,44 @@ export class AssistantService {
     return this.http
       .get<ApiResponse<ActionLogEntry[]>>(`${this.baseUrl}/Actions`, { params: { take } })
       .pipe(map((response) => response.data!));
+  }
+
+  /** The Story narrator: Mistral gets only these lines (the page's own words) and the narrator's instructions. */
+  narrate(scope: NarrationScope, year: number | null, lines: string[]): Observable<Narration> {
+    return this.http
+      .post<ApiResponse<Narration>>(`${this.baseUrl}/Narrations`, {
+        scope,
+        year,
+        lines,
+        today: todayIso(),
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  kept(scope: NarrationScope, year: number | null): Observable<KeptNarration | null> {
+    return this.http
+      .get<ApiResponse<KeptNarration | null>>(`${this.baseUrl}/Narrations/kept`, {
+        params: narrationParams(scope, year),
+      })
+      .pipe(map((response) => response.data ?? null));
+  }
+
+  keep(scope: NarrationScope, year: number | null, text: string): Observable<KeptNarration> {
+    return this.http
+      .put<ApiResponse<KeptNarration>>(`${this.baseUrl}/Narrations/kept`, {
+        scope,
+        year,
+        text,
+        today: todayIso(),
+      })
+      .pipe(map((response) => response.data!));
+  }
+
+  removeKept(scope: NarrationScope, year: number | null): Observable<void> {
+    return this.http
+      .delete<ApiResponse<boolean>>(`${this.baseUrl}/Narrations/kept`, {
+        params: narrationParams(scope, year),
+      })
+      .pipe(map(() => undefined));
   }
 }

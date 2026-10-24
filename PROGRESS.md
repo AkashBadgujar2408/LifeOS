@@ -1308,3 +1308,11 @@
 - **Not checked yet: a real Mistral key** — whether the real model turns plain sentences into the right cards, and explains instead of deleting. Same as 94: you try it with your own key, then rows 94–95 get their ✅.
 - Test data: `ai95…` accounts in UAT.
 - Next: Session 96 — AI assistant 3 (Story narrator).
+
+## Last session: 2026-10-24 — Session 96 — AI assistant 3 (Story narrator)
+- Shipped: `assistant.Narrations` (added to `19_assistant.sql`; UAT backed up to `C:\Users\Hp\LifeOS_UAT_pre96.bak`, re-scaffolded, `Narration : ISoftDeletable, IUserOwned`). `NarratorService` + pure `NarrationRules` (scope/year/line checks, the narrator's instructions, `UnknownNumbers`), `api/Assistant/Narrations` (POST narrate; GET/PUT/DELETE `kept`). Client: `<app-narrator>` (Narrate → text + what was sent → Keep / Narrate again / Discard; kept ones shown with Remove), lines from `recapLines` (recap card) and `AnnualReviewPage.narrationLines` (year page) — the page's own words.
+- Verified: `assistant96.mjs` (34 checks) against `mock-mistral96.mjs`, both in this session's scratchpad; browser on the `rep92…` account (recap + 2026 review, Keep, assistant off, 375 px through an iframe — the window wouldn't resize), console clean. 688 backend (12 new) + 282 frontend (3 new) tests, lint/Prettier/build clean, fresh-DB scaffold identical. No date maths changed on the client (only formatting through the app's format), so no `test:tz` rerun.
+- Decided: Keep stores the narration (one per recap / per year, replaced when kept again) — the recap's kept narration stays until replaced, with its "kept on" day shown; a narration whose numbers aren't all on the page is never shown (one retry first).
+- **Not checked yet: a real Mistral key** — same as 94–95; rows 94–96 get their ✅ after your try.
+- Test data: `ai96…` accounts in UAT; `rep92319007` has the assistant on with a stand-in key and a kept recap narration.
+- Next: Session 97 — regression pass (LifeOS 1.0).

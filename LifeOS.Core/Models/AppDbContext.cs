@@ -175,6 +175,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<MonthlyReflection> MonthlyReflections { get; set; }
 
+    public virtual DbSet<Narration> Narrations { get; set; }
+
     public virtual DbSet<PerformanceReview> PerformanceReviews { get; set; }
 
     public virtual DbSet<PlanAssumption> PlanAssumptions { get; set; }
@@ -2351,6 +2353,24 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MonthlyReflections_Users");
+        });
+
+        modelBuilder.Entity<Narration>(entity =>
+        {
+            entity.ToTable("Narrations", "assistant");
+
+            entity.HasIndex(e => new { e.UserId, e.Scope, e.Year }, "UX_Narrations_User_Scope_Year")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Narrations_CreatedAt");
+            entity.Property(e => e.Scope).HasMaxLength(10);
+            entity.Property(e => e.Text).HasMaxLength(4000);
+
+            entity.HasOne(d => d.User).WithMany(p => p.Narrations)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Narrations_Users");
         });
 
         modelBuilder.Entity<PerformanceReview>(entity =>

@@ -245,6 +245,7 @@ try
         .RedactLoggedHeaders(["Authorization"]);
     builder.Services.AddScoped<IAssistantSettingsService, AssistantSettingsService>();
     builder.Services.AddScoped<IAssistantService, AssistantService>();
+    builder.Services.AddScoped<INarratorService, NarratorService>();
 
     // Leisure & media (Session 78a; books included)
     builder.Services.AddScoped<IMediaItemsService, MediaItemsService>();

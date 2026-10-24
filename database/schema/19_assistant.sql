@@ -96,3 +96,28 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('assistant.ActionLog') AND name = 'IX_ActionLog_User_CreatedAt')
     CREATE INDEX IX_ActionLog_User_CreatedAt ON assistant.ActionLog(UserId, CreatedAt DESC) WHERE IsDeleted = 0;
 GO
+
+-- Session 96: a Story narration the user chose to keep — the recap's ("Previously on…", Year NULL) or a year's
+-- (the Annual Life Review). Only kept ones are stored; one live row per scope (and year), rewritten in place.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('assistant.Narrations'))
+BEGIN
+    CREATE TABLE assistant.Narrations
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_Narrations PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_Narrations_Users REFERENCES shared.Users(Id),
+        Scope           NVARCHAR(10)      NOT NULL CONSTRAINT CK_Narrations_Scope CHECK (Scope IN (N'Recap', N'Year')),
+        Year            INT               NULL,
+        Text            NVARCHAR(4000)    NOT NULL,
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_Narrations_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_Narrations_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL,
+        CONSTRAINT CK_Narrations_Year CHECK ((Scope = N'Recap' AND Year IS NULL) OR (Scope = N'Year' AND Year BETWEEN 1960 AND 9999)),
+        CONSTRAINT CK_Narrations_Text CHECK (LEN(Text) > 0)
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('assistant.Narrations') AND name = 'UX_Narrations_User_Scope_Year')
+    CREATE UNIQUE INDEX UX_Narrations_User_Scope_Year ON assistant.Narrations(UserId, Scope, Year) WHERE IsDeleted = 0;
+GO

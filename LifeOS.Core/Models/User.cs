@@ -191,6 +191,8 @@ public partial class User
 
     public virtual ICollection<MonthlyReflection> MonthlyReflections { get; set; } = new List<MonthlyReflection>();
 
+    public virtual ICollection<Narration> Narrations { get; set; } = new List<Narration>();
+
     public virtual ICollection<PerformanceReview> PerformanceReviews { get; set; } = new List<PerformanceReview>();
 
     public virtual PlanAssumption? PlanAssumption { get; set; }

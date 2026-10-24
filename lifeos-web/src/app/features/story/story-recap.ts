@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, LOCALE_ID, computed, inject } from '@angular/core';
+import { DatePipe, formatDate } from '@angular/common';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { APP_DAY_MONTH_FORMAT } from '../../core/dates/date-format';
+import { APP_DATE_FORMAT, APP_DAY_MONTH_FORMAT } from '../../core/dates/date-format';
 import { StoryService } from '../../core/services/story.service';
 import { MISSION_KIND_META, nextObjective } from './missions-view';
+import { Narrator } from '../assistant/narrator';
+import { recapLines } from './narration-lines';
 import { beatLink, beatText } from './story-view';
 
 /**
@@ -15,7 +17,7 @@ import { beatLink, beatText } from './story-view';
 @Component({
   selector: 'app-story-recap',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, Narrator],
   template: `
     <div class="d-flex align-items-center justify-content-between mb-3">
       <h2 id="recap-heading" class="h5 mb-0 recap-title">Previously on your story</h2>
@@ -112,6 +114,7 @@ import { beatLink, beatText } from './story-view';
             }
           </div>
         </div>
+        <app-narrator class="mt-3" scope="Recap" [lines]="narrationLines()" />
       }
     } @else if (recap.error()) {
       <p class="text-body-secondary mb-0">Couldn't load the recap.</p>
@@ -156,4 +159,18 @@ export class StoryRecap {
   protected readonly dayMonthFormat = APP_DAY_MONTH_FORMAT;
 
   protected readonly recap = rxResource({ stream: () => this.storyService.recap() });
+
+  private readonly locale = inject(LOCALE_ID);
+
+  /** The card's own words, line by line — all the narrator gets. */
+  protected readonly narrationLines = computed(() => {
+    const recap = this.recap.value();
+    return recap
+      ? recapLines(
+          recap,
+          (iso) => formatDate(iso, APP_DATE_FORMAT, this.locale),
+          (iso) => formatDate(iso, APP_DAY_MONTH_FORMAT, this.locale),
+        )
+      : [];
+  });
 }

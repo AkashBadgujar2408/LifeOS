@@ -32,3 +32,20 @@ public interface IAssistantService
     /// <summary>What the assistant wrote, newest first.</summary>
     Task<List<ActionLogDto>> GetActionLogAsync(int take);
 }
+
+/// <summary>
+/// The Story narrator: a short narration of the recap or a year, written by Mistral from only the lines the page
+/// shows. Nothing is stored unless the user keeps it.
+/// </summary>
+public interface INarratorService
+{
+    Task<OperationResult<NarrationDto>> NarrateAsync(NarrateRequest request, CancellationToken cancellationToken);
+
+    /// <summary>The kept narration of the recap (year null) or a year, if any.</summary>
+    Task<KeptNarrationDto?> GetKeptAsync(string scope, int? year);
+
+    Task<OperationResult<KeptNarrationDto>> KeepAsync(KeepNarrationRequest request);
+
+    /// <summary>Forgets a kept narration (the user's own text; nothing else is touched).</summary>
+    Task RemoveKeptAsync(string scope, int? year);
+}

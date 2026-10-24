@@ -86,3 +86,44 @@ public class ActionsController(IAssistantService assistantService) : ControllerB
     public async Task<IActionResult> Log([FromQuery] int take = 50) =>
         Ok(ApiResponse<List<ActionLogDto>>.Ok(await assistantService.GetActionLogAsync(take)));
 }
+
+/// <summary>
+/// The Story narrator: POST api/Assistant/Narrations { scope, year, lines, today } writes a narration from only the
+/// page's lines (nothing stored); GET/PUT/DELETE api/Assistant/Narrations/kept?scope=&amp;year= read, keep (replacing)
+/// and forget the kept one.
+/// </summary>
+[ApiController]
+[Area("Assistant")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class NarrationsController(INarratorService narratorService) : ControllerBase
+{
+    [HttpPost]
+    public async Task<IActionResult> Narrate(NarrateRequest request, CancellationToken cancellationToken)
+    {
+        var result = await narratorService.NarrateAsync(request, cancellationToken);
+        return result.Success
+            ? Ok(ApiResponse<NarrationDto>.Ok(result.Data))
+            : BadRequest(ApiResponse<NarrationDto>.Fail(result.Error!));
+    }
+
+    [HttpGet("kept")]
+    public async Task<IActionResult> GetKept([FromQuery] string scope, [FromQuery] int? year) =>
+        Ok(ApiResponse<KeptNarrationDto?>.Ok(await narratorService.GetKeptAsync(scope, year)));
+
+    [HttpPut("kept")]
+    public async Task<IActionResult> Keep(KeepNarrationRequest request)
+    {
+        var result = await narratorService.KeepAsync(request);
+        return result.Success
+            ? Ok(ApiResponse<KeptNarrationDto>.Ok(result.Data))
+            : BadRequest(ApiResponse<KeptNarrationDto>.Fail(result.Error!));
+    }
+
+    [HttpDelete("kept")]
+    public async Task<IActionResult> RemoveKept([FromQuery] string scope, [FromQuery] int? year)
+    {
+        await narratorService.RemoveKeptAsync(scope, year);
+        return Ok(ApiResponse<bool>.Ok(true));
+    }
+}

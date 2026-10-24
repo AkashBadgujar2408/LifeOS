@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  LOCALE_ID,
   computed,
   effect,
   inject,
@@ -9,9 +10,10 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, formatDate } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { APP_DATE_FORMAT } from '../../core/dates/date-format';
 import { todayIso } from '../../core/dates/today';
 import { itemTitle } from '../../core/layout/item-title';
 import { PrintService } from '../../core/services/print.service';
@@ -20,6 +22,7 @@ import { SettingsService } from '../../core/services/settings.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
 import { formatMinutes } from '../calendar/calendar-feed';
 import { formatMoney } from '../finance/finance-view';
+import { Narrator } from '../assistant/narrator';
 import { HealthTrend, TrendSeries } from '../health/health-trend';
 import { beatText } from '../story/story-view';
 import { averageText, percentText } from './report-view';
@@ -36,7 +39,7 @@ const FIRST_YEAR = 1960;
 @Component({
   selector: 'app-annual-review',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, RouterLink, LoadError, HealthTrend],
+  imports: [DatePipe, RouterLink, LoadError, HealthTrend, Narrator],
   template: `
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
@@ -74,6 +77,12 @@ const FIRST_YEAR = 1960;
       @if (loadFailed() && !review()) {
         <app-load-error message="Couldn't load the year in review." (retry)="load()" />
       } @else if (review(); as r) {
+        <app-narrator
+          class="card card-body mb-4"
+          scope="Year"
+          [year]="r.year"
+          [lines]="narrationLines()"
+        />
         @if (!hidden().has('Story')) {
           <section class="card mb-4" aria-labelledby="review-story">
             <div class="card-body">
@@ -350,6 +359,74 @@ export class AnnualReviewPage {
       )
       .join('. '),
   );
+
+  private readonly locale = inject(LOCALE_ID);
+
+  /**
+   * The page's own words, one line per thing it shows (switched-off sections and life areas left out, as on the
+   * page) — all the narrator gets. Health is never on this page, so never in here.
+   */
+  protected readonly narrationLines = computed(() => {
+    const r = this.review();
+    if (!r) {
+      return [];
+    }
+    const hidden = this.hidden();
+    const day = (iso: string) => formatDate(iso, APP_DATE_FORMAT, this.locale);
+    const lines = [`${r.year} in review`];
+    if (!hidden.has('Story')) {
+      for (const chapter of r.chapters) {
+        lines.push(
+          `Chapter: ${chapter.title} (${day(chapter.startDate)} – ${chapter.endDate ? day(chapter.endDate) : 'now'})`,
+        );
+      }
+      lines.push(`${r.storyBeats} moments in your Life Story this year.`);
+      for (const beat of r.highlights) {
+        lines.push(`Big moment, ${day(beat.day)}: ${beatText(beat).headline}`);
+      }
+      for (const a of r.achievements) {
+        lines.push(`Achievement earned${a.unlockedOn ? ', ' + day(a.unlockedOn) : ''}: ${a.title}`);
+      }
+    }
+    if (!hidden.has('Goals')) {
+      const g = r.goals;
+      lines.push(
+        `Goals: ${g.completed} completed — ${g.onTime} on time, ${g.late} late, on-time rate ${percentText(g.onTimePercent)}. ${g.missed} missed, ${g.abandoned} abandoned, ${g.started} started.`,
+      );
+    }
+    if (!hidden.has('Habits')) {
+      let line = `Habits: ${percentText(r.habitsBuild.percent)} kept — ${r.habitsBuild.good} of ${r.habitsBuild.total} scheduled days done.`;
+      if (r.habitsAvoid.total) {
+        line += ` Avoid habits clean ${percentText(r.habitsAvoid.percent)} of days.`;
+      }
+      lines.push(line);
+    }
+    if (!hidden.has('Tasks')) {
+      lines.push(
+        `Tasks and focus: ${r.tasks.completed} tasks done — ${formatMinutes(r.focus.minutes)} of focus over ${r.focus.sessions} sessions. Overdue rate ${percentText(r.tasks.overdueRate)}.`,
+      );
+    }
+    if (!hidden.has('Learning')) {
+      lines.push(
+        `Learning: ${formatMinutes(r.studyMinutes)} studied — ${r.coursesCompleted} courses completed, ${r.booksFinished} books finished, ${r.skillLevelUps} skill levels gained, ${r.certifications} certifications.`,
+      );
+    }
+    if (!hidden.has('Finance') && r.money.currency) {
+      lines.push(`Money: ${this.money(r.money.net)} kept — ${this.moneySentence()}`);
+    }
+    if (!hidden.has('Leisure')) {
+      let line = `Books, films and more: ${r.media.finished} finished — ${formatMinutes(r.media.minutes)} logged.`;
+      const best = r.media.topRated.slice(0, 3).map((item) => item.title);
+      if (best.length) {
+        line += ` Best of the year: ${best.join(', ')}.`;
+      }
+      lines.push(line);
+    }
+    if (this.balanceAreas().length) {
+      lines.push(`Life balance: ${this.balanceSummary()}`);
+    }
+    return lines;
+  });
 
   constructor() {
     itemTitle(() => `${this.shownYear()} in review`);
