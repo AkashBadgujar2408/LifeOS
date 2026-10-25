@@ -25,10 +25,10 @@
 
     <nav class="sidebar-nav" aria-label="Main">
       @for (group of navGroups(); track group.label) {
-        <div class="nav-group" [class.is-open]="isOpen(group.label)">
+        <div class="sidebar-group" [class.is-open]="isOpen(group.label)">
           <button
             type="button"
-            class="nav-group-toggle"
+            class="sidebar-group-toggle"
             [class.has-current]="currentGroup() === group.label"
             [attr.aria-expanded]="isOpen(group.label)"
             [attr.aria-controls]="'nav-group-' + $index"
@@ -43,7 +43,7 @@
                 >{{ count }}</span
               >
             }
-            <i class="bi bi-chevron-down nav-group-chevron" aria-hidden="true"></i>
+            <i class="bi bi-chevron-down sidebar-group-chevron" aria-hidden="true"></i>
           </button>
           <ul
             class="list-unstyled mb-0"

@@ -107,16 +107,16 @@
 }
 
 // Two levels (Session 97a): each group's heading opens and closes its pages.
-.nav-group + .nav-group {
+.sidebar-group + .sidebar-group {
   margin-top: 0.15rem;
 }
 
-.nav-group.is-open + .nav-group,
-.nav-group + .nav-group.is-open {
+.sidebar-group.is-open + .sidebar-group,
+.sidebar-group + .sidebar-group.is-open {
   margin-top: 0.5rem;
 }
 
-.nav-group-toggle {
+.sidebar-group-toggle {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -146,12 +146,23 @@
   }
 }
 
-.nav-group-chevron {
+// The one arrow (classes are "sidebar-group-…" on purpose: CoreUI draws its own ::after arrow on .nav-group-toggle).
+// Hovering or focusing the heading makes it brighter and bolder.
+.sidebar-group-chevron {
   font-size: 0.7rem;
-  transition: transform 0.15s ease;
+  opacity: 0.7;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
 
   .is-open & {
     transform: rotate(180deg);
+  }
+
+  .sidebar-group-toggle:hover &,
+  .sidebar-group-toggle:focus-visible & {
+    opacity: 1;
+    -webkit-text-stroke: 0.6px currentColor;
   }
 
   @media (prefers-reduced-motion: reduce) {
