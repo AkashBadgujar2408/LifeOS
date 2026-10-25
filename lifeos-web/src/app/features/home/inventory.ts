@@ -88,7 +88,7 @@ import { openWarrantyEditor } from './warranty-editor';
             </div>
             <div class="col-6 col-sm-3">
               <ng-select
-                aria-label="Property"
+                ariaLabel="Property"
                 [ngModel]="propertyFilter()"
                 (ngModelChange)="propertyFilter.set($event)"
                 placeholder="Every property"
@@ -102,7 +102,7 @@ import { openWarrantyEditor } from './warranty-editor';
             </div>
             <div class="col-6 col-sm-3">
               <ng-select
-                aria-label="Category"
+                ariaLabel="Category"
                 [ngModel]="tagFilter()"
                 (ngModelChange)="tagFilter.set($event)"
                 placeholder="Every category"

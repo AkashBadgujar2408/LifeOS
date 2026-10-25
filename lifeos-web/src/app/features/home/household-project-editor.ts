@@ -264,7 +264,7 @@ export class HouseholdProjectEditor {
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Stop tracking',
-      confirmButtonColor: 'var(--lifeos-teal)',
+      confirmButtonColor: 'var(--lifeos-teal-strong)',
     });
     if (!confirmed.isConfirmed) {
       return;

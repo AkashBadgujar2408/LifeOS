@@ -332,6 +332,7 @@ Swagger UI (`/swagger`, Development only) has the full request/response shapes.
 
 ## Frontend
 
+- **Accessibility (Session 97)**: WCAG 2 AA — every page passes axe-core (critical/serious) at 1280 and 375 px. Colour pairs that carry text are AA by construction (`--lifeos-teal-strong` for teal text/fills, the darker danger and amber); see CLAUDE.md for the rules.
 - **Shell** (`core/layout/shell.*`): sidebar plus mobile drawer, rendered from `NAV_GROUPS` in `nav-items.ts`. It
   mounts Quick Add and the toasts and polls due reminders. Every route is lazy-loaded and has a `title`.
 - **Data access**: one service per API area in `core/services/`, returning plain observables of the unwrapped

@@ -225,7 +225,7 @@ export class DecisionEditor {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete decision',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!answer.isConfirmed) {
       return;

@@ -238,7 +238,7 @@ export class Journal {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete entry',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;

@@ -304,7 +304,7 @@ export class DocumentDetail implements OnInit {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Remove file',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!answer.isConfirmed) {
       return;
@@ -341,7 +341,7 @@ export class DocumentDetail implements OnInit {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete document',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!answer.isConfirmed) {
       return;

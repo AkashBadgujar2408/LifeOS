@@ -32,7 +32,7 @@ export async function entryChangeFor(habit: Habit, day: string): Promise<EntryCh
     inputAttributes: { min: '0', step: 'any', 'aria-label': `How much${unit}` },
     showCancelButton: true,
     confirmButtonText: 'Save',
-    confirmButtonColor: 'var(--lifeos-teal)',
+    confirmButtonColor: 'var(--lifeos-teal-strong)',
     inputValidator: (raw) => {
       if (raw === '') {
         return null;

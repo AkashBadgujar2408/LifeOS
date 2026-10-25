@@ -19,12 +19,13 @@
     </div>
   </div>
 
-  <ul class="nav nav-pills mb-3 gap-1" role="tablist">
+  <ul class="nav nav-pills mb-3 gap-1" aria-label="Show">
     <li class="nav-item">
       <button
         type="button"
         class="nav-link py-1 px-3"
         [class.active]="kindFilter() === null"
+        [attr.aria-pressed]="kindFilter() === null"
         (click)="kindFilter.set(null)"
       >
         All
@@ -36,6 +37,7 @@
           type="button"
           class="nav-link py-1 px-3"
           [class.active]="kindFilter() === kind"
+          [attr.aria-pressed]="kindFilter() === kind"
           (click)="kindFilter.set(kind)"
         >
           <i class="bi {{ kindIcons[kind] }}"></i> {{ kind }}

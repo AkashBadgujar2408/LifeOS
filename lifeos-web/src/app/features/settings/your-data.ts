@@ -225,7 +225,7 @@ export class YourData {
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Import',
-      confirmButtonColor: 'var(--lifeos-teal)',
+      confirmButtonColor: 'var(--lifeos-teal-strong)',
     });
     if (!confirmed.isConfirmed) {
       return;
@@ -255,7 +255,7 @@ export class YourData {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete everything',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!confirmed.isConfirmed) {
       return;

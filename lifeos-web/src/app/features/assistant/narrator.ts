@@ -238,7 +238,7 @@ export class Narrator {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Remove narration',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!answer.isConfirmed) {
       return;

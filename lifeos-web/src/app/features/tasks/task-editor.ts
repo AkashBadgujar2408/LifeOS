@@ -324,7 +324,7 @@ export class TaskEditor {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete task',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;

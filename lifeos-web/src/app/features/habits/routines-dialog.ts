@@ -129,7 +129,7 @@ export async function openRoutinesDialog(modal: NgbModal, habits: readonly Habit
           @if (available().length > 0) {
             <ng-select
               #habitPicker
-              aria-label="Add a habit"
+              ariaLabel="Add a habit"
               [ngModel]="null"
               (ngModelChange)="add($event); $event !== null && habitPicker.clearModel()"
               placeholder="Type to add a habit"
@@ -257,7 +257,7 @@ export class RoutinesDialog {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete routine',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!answer.isConfirmed) {
       return;

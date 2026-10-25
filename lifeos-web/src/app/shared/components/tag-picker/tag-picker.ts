@@ -34,6 +34,8 @@ export class TagPicker implements OnInit {
   readonly selectedTagIds = input<number[]>([]);
   /** Set when a <label for> points at the picker. */
   readonly inputId = input(`tag-picker-${++nextId}`);
+  /** The input's accessible name (hosts head it with a span, not a <label>). */
+  readonly label = input('Tags');
   readonly selectedTagIdsChange = output<number[]>();
 
   protected readonly allTags = signal<Tag[]>([]);

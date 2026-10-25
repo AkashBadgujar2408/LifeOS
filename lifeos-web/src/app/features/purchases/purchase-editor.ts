@@ -866,7 +866,7 @@ export class PurchaseEditor {
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Take it back',
-      confirmButtonColor: 'var(--lifeos-teal)',
+      confirmButtonColor: 'var(--lifeos-teal-strong)',
     });
     if (!answer.isConfirmed) {
       return;

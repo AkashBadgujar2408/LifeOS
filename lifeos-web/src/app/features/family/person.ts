@@ -322,7 +322,7 @@ export class FamilyPersonPage {
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Remove',
-      confirmButtonColor: 'var(--lifeos-teal)',
+      confirmButtonColor: 'var(--lifeos-teal-strong)',
     });
     if (!result.isConfirmed) {
       return;
@@ -348,7 +348,7 @@ export class FamilyPersonPage {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Remove',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;

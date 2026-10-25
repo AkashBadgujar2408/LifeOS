@@ -273,7 +273,7 @@ export class Study {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Remove',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!confirmed.isConfirmed) {
       return;

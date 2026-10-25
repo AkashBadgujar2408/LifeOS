@@ -181,7 +181,7 @@ export class Inbox {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;

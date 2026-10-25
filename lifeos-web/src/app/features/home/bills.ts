@@ -320,7 +320,7 @@ export class HomeBills {
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Take it back',
-      confirmButtonColor: 'var(--lifeos-teal)',
+      confirmButtonColor: 'var(--lifeos-teal-strong)',
     });
     if (!confirmed.isConfirmed) {
       return;

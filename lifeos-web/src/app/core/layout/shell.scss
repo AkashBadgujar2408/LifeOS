@@ -113,7 +113,8 @@
 .nav-group-label {
   padding: 0 0.75rem 0.25rem;
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.45);
+  // 0.45 was 4.45:1 on the ink sidebar; 0.55 passes AA (Session 97).
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .sidebar-link {

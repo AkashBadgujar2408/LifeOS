@@ -151,7 +151,7 @@ export class Tags implements OnInit {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete tag',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;

@@ -263,7 +263,7 @@ export class ProjectDetail implements OnInit {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete project',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;

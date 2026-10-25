@@ -5,8 +5,10 @@ with an encrypted vault, learning (skills, courses, books, roadmaps, study time)
 interviews, network), finance (multi-currency accounts, ledger, budgets, investments, loans, insurance, taxes, net
 worth), health (history, visits, medicines, exercise, sleep, body, food, labs, wellbeing — encrypted and behind
 the vault), home (properties, inventory by room, vehicles, warranties, maintenance, bills, household projects),
-a **Story Mode** that reads your life as a biography, and a daily **My Day** dashboard that ties them
-together. Everything links to everything else (a task to the goal it serves, a
+purchases (lists, wishlist, rewards and vouchers, subscriptions, returns), family (people, tree, dates, keep in
+touch), leisure (books, films, shows, games, hobbies), reports (every module over any range, the Annual Life Review),
+an optional AI assistant on your own Mistral key, a **Story Mode** that reads your life as a biography, and a daily
+**My Day** dashboard that ties them together. Everything links to everything else (a task to the goal it serves, a
 habit to its goal, a reminder to any of them). It's built to *improve* a life, not just log it, so it also gives
 plain, rule-based nudges ("your reading streak broke on Wednesday", "this goal hasn't moved in 20 days").
 
@@ -20,8 +22,12 @@ It runs on your own machine. It's multi-user at the data layer (registration + l
 
 ## Status
 
-Month 1 (the seven core modules, Sessions 1–27), Phase 2 (Story Mode, Documents, Learning, Career, Finance, data
-export/import, Sessions 28–61), Health (Sessions 62–65, encrypted and behind the vault) and Home (Sessions 66–68) are complete. Next is **Purchases** (Session 69).
+**LifeOS 1.0** — every module is built and passed the full regression pass (Session 97: every page on desktop and
+phone, an export → import round trip of a real account, accessibility to WCAG AA, performance). What's left: Session
+97a (search finds pages, a two-level sidebar) and **go-live** (Session 98, the `LifeOS_Live` database).
+
+**Using LifeOS:** [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) walks through every part of it, including getting a
+Mistral key for the assistant.
 
 **The main document is [`LifeOS_Development_Plan.md`](LifeOS_Development_Plan.md)**: what LifeOS is, every decision
 and deviation from the original blueprint, the session-by-session roadmap with what's done, and the backlog for
@@ -136,17 +142,19 @@ LifeOS.Api/            Web API: Areas/<Module>/Controllers (thin), Program.cs, I
 LifeOS.Core/           Everything else on the server
   Models/              Scaffolded EF entities + AppDbContext (generated: never edit by hand)
   Shared/              Cross-cutting: auth, tags, links, inbox, life areas, soft-delete/user filters
-  Goals/ Tasks/ Calendar/ Habits/ Journal/ Dashboard/ Story/ Documents/ Learning/ Career/ Finance/
+  Goals/ Tasks/ Calendar/ Habits/ Journal/ Dashboard/ Story/ Documents/ Learning/ Career/ Finance/ Health/
+  Home/ Purchases/ Family/ Leisure/ Reports/ Assistant/
                        Each: DTOs/, ServiceContracts/, Services/, AutoMapper/
 LifeOS.Core.Tests/     xUnit tests for the pure logic
 database/
-  schema/              00_create_database.sql ... 18_reports.sql (one SQL schema per module)
+  schema/              00_create_database.sql ... 19_assistant.sql (one SQL schema per module)
   procedures/          <schema>.<Name>.sql stored procedures (calendar feed, My Day, KPIs, life story, balances, ...)
 lifeos-web/            Angular app
   src/app/core/        Services (one per API area), layout/shell, guards, interceptor, date helpers
   src/app/features/    One folder per module/page
   src/app/shared/      Reusable components (tag picker, linked items, quick add, reminders, attachments, load error)
 docs/ARCHITECTURE.md   How it fits together
+docs/USER_GUIDE.md     How to use it
 ```
 
 ## Changing the database

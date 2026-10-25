@@ -256,7 +256,7 @@ export class ReminderEditor {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete reminder',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;

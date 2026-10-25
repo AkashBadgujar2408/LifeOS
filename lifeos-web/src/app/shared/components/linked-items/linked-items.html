@@ -40,7 +40,7 @@
         @if (types().length > 1) {
           <ng-select
             class="ng-select-sm w-auto"
-            aria-label="Type of item to link"
+            ariaLabel="Type of item to link"
             [ngModel]="targetType()"
             (ngModelChange)="targetType.set($event)"
             [clearable]="false"

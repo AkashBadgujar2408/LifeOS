@@ -196,7 +196,7 @@ export class Calendar {
         denyButtonText: 'Every one',
         cancelButtonText: 'Leave it',
         // Neither choice is destructive: brand colours, not SweetAlert's purple/red defaults.
-        confirmButtonColor: 'var(--lifeos-teal)',
+        confirmButtonColor: 'var(--lifeos-teal-strong)',
         denyButtonColor: 'var(--lifeos-ink)',
       });
       if (choice.isConfirmed) {

@@ -332,7 +332,7 @@ export class GoalDetail implements OnInit {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;
@@ -366,7 +366,7 @@ export class GoalDetail implements OnInit {
       inputAttributes: { maxlength: '1000' },
       showCancelButton: true,
       confirmButtonText: action.label,
-      confirmButtonColor: 'var(--lifeos-teal)',
+      confirmButtonColor: 'var(--lifeos-teal-strong)',
     });
     if (!result.isConfirmed) {
       return;
@@ -402,7 +402,7 @@ export class GoalDetail implements OnInit {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete goal',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;

@@ -1344,3 +1344,16 @@
 - Decided: a net-worth milestone stays once reached even if net worth dips later; existing Story achievements (goals/habits/journal) were not given modules — only the new ones hide with theirs.
 - Not committed (yours): `document-editor.html/.ts`, `family.ts`, `ledger.ts`, `Preferences.txt`.
 - Next: Session 97 — regression pass (LifeOS 1.0), then 98 go-live.
+
+## Last session: 2026-10-25 — Session 97 — Regression pass (LifeOS 1.0)
+- Baseline: builds (0 warnings, NuGet audit clean), 723 backend + 280 frontend tests (all six timezones), lint/Prettier/build, fresh-DB scaffold identical. `npm audit fix` took `zod` 4.6.5 → 4.6.6 (high, shipped via `@angular/forms`); production deps now 0 advisories; dev-server-only `vite` 8.3.0 stays until Angular unpins it (22.2.4 still pins it).
+- Round trip on your real account: export → import into an empty test account → every table the same except the three by design; computed figures identical everywhere checked; the copy was permanently deleted afterwards (so was the `reg97…` test user).
+- Page crawl (method, reusable): load the app once in an iframe, navigate with `history.pushState` + `popstate` (the app's own router), record `performance.getEntriesByType('resource')` statuses ≥ 400, `console.error`, `<app-load-error>`, `scrollWidth`, and run axe-core 4.10.2 (cdnjs) on each page. 90 routes at 1280 px, 88 at 375 px on your account; Health + empty-module detail pages as a test user (the test login was swapped into localStorage and yours restored after). Nothing functional failed anywhere.
+- Accessibility fixed (all pages now pass axe, critical/serious): see the plan row and CLAUDE.md's new Accessibility rule. Visible change: teal buttons/links are a shade darker (`--lifeos-teal-strong`), danger red and amber a shade darker.
+- Performance: see the plan row — nothing slow.
+- Docs: `docs/USER_GUIDE.md` (new), README updated to 1.0, ARCHITECTURE + CLAUDE.md accessibility notes.
+- Added to the plan at your request: **97a** — search finds menu pages, and a two-level (collapsible) sidebar.
+- **Your account has no recovery codes** (0 rows, probably made before Session 37 added them): Settings › Recovery codes → make a set and save it, or a forgotten password can't be reset.
+- Not committed (yours): `document-editor.html/.ts`, `family.ts`, `ledger.ts` — they also got this session's mechanical colour/`ariaLabel` edits; only those hunks were committed. `Preferences.txt` untouched.
+- A `node.exe` (PID 13784) was already listening on 4200 when I tried to start the dev server — possibly one left from Session 96b; end it in Task Manager if it isn't yours.
+- Next: Session 97a (navigation), then 98 go-live.

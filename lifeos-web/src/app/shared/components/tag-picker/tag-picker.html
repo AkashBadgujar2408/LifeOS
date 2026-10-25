@@ -9,6 +9,7 @@
   [addTag]="createTag"
   addTagText="Create tag"
   [labelForId]="inputId()"
+  [ariaLabel]="label()"
   placeholder="Type to find or create a tag"
   [ngModel]="selectedTagIds()"
   (ngModelChange)="changed($event)"

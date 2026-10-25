@@ -150,7 +150,7 @@ export class ChapterEditor {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete chapter',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!confirm.isConfirmed) {
       return;

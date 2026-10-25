@@ -205,7 +205,7 @@ export class HabitDetail implements OnInit {
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: active ? 'Stop it' : 'Remove',
-      confirmButtonColor: 'var(--lifeos-teal)',
+      confirmButtonColor: 'var(--lifeos-teal-strong)',
     });
     if (!answer.isConfirmed) {
       return;
@@ -264,7 +264,7 @@ export class HabitDetail implements OnInit {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete habit',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;

@@ -467,7 +467,7 @@ export class ReturnEditor {
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Yes',
-      confirmButtonColor: 'var(--lifeos-teal)',
+      confirmButtonColor: 'var(--lifeos-teal-strong)',
     });
     if (!answer.isConfirmed) {
       return;

@@ -125,7 +125,7 @@ import { MEDIA_KIND_INFO, stars } from './leisure-view';
                           · {{ top.creator }}
                         }
                         ·
-                        <span [attr.aria-label]="top.rating + ' of 5 stars'">{{
+                        <span role="img" [attr.aria-label]="top.rating + ' of 5 stars'">{{
                           stars(top.rating)
                         }}</span>
                         · {{ top.finishedOn | date }}

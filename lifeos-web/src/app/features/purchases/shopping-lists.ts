@@ -560,7 +560,7 @@ export class ShoppingLists {
       inputAttributes: { 'aria-label': 'List name', maxlength: '200' },
       showCancelButton: true,
       confirmButtonText: 'Rename',
-      confirmButtonColor: 'var(--lifeos-teal)',
+      confirmButtonColor: 'var(--lifeos-teal-strong)',
       inputValidator: (value) => (value.trim() ? null : 'Name the list.'),
     });
     if (answer.isConfirmed) {

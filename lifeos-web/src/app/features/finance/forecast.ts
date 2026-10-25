@@ -260,7 +260,7 @@ export function confidenceWord(confidence: number): string {
             </div>
           </div>
 
-          <div class="table-responsive mb-3">
+          <div class="table-responsive mb-3" tabindex="0">
             <table class="table table-sm small mb-0 align-middle">
               <caption class="visually-hidden">
                 Predicted balance by day
@@ -354,7 +354,7 @@ export function confidenceWord(confidence: number): string {
             <summary class="text-body-secondary">What was sent to Mistral</summary>
             @for (item of f.sent; track $index) {
               <div class="fw-semibold mt-2">{{ item.label }}</div>
-              <pre class="sent-item border rounded p-2 mb-0">{{ item.content }}</pre>
+              <pre class="sent-item border rounded p-2 mb-0" tabindex="0">{{ item.content }}</pre>
             }
           </details>
         </section>
@@ -377,7 +377,7 @@ export function confidenceWord(confidence: number): string {
                   {{ money(totals().moneyIn, l.currency) }} in ·
                   {{ money(totals().moneyOut, l.currency) }} out
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive" tabindex="0">
                   <table class="table table-sm mb-0 small align-middle">
                     <thead>
                       <tr>

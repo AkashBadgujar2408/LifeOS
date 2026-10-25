@@ -78,7 +78,7 @@ import { openQuestionEditor } from './question-editor';
             @if (tagOptions().length > 0) {
               <ng-select
                 class="w-auto"
-                aria-label="Topic"
+                ariaLabel="Topic"
                 [ngModel]="tagId()"
                 (ngModelChange)="tagId.set($event ?? null)"
                 placeholder="Every topic"

@@ -1,6 +1,10 @@
 :root {
   --lifeos-ink: #141b2e;
   --lifeos-teal: #159895;
+  // The teal for text and filled controls (Session 97 accessibility pass): #159895 is 3.3:1 on the canvas and
+  // 3.5:1 under white text; this one is 4.8:1 and 5.1:1 (WCAG AA). The brand teal stays for gradients, borders,
+  // icons and charts.
+  --lifeos-teal-strong: #117b78;
   --lifeos-green: #57c785;
   --lifeos-canvas: #f6faf8;
   --lifeos-surface: #ffffff;
@@ -8,7 +12,8 @@
   --lifeos-text-secondary: #5b6b68;
   // Secondary accents, for telling kinds of thing apart (e.g. calendar sources) next to teal.
   --lifeos-blue: #3d6fb6;
-  --lifeos-amber: #b7791f;
+  // Darkened in Session 97 (was #b7791f, 3.5:1): it's used as text ("due" reminders, warnings) and under white text.
+  --lifeos-amber: #8f5e17;
   --lifeos-violet: #8a4fbf;
   --lifeos-red: #c0392b;
   // Categorical chart series (Session 50), in this fixed order — validated with the dataviz skill's checker
@@ -28,11 +33,20 @@
   );
 
   // Re-theme CoreUI/Bootstrap's primary color to our teal so buttons, links and focus rings pick it up everywhere.
-  --cui-primary: var(--lifeos-teal);
-  --cui-primary-rgb: 21, 152, 149;
-  --cui-link-color: var(--lifeos-teal);
-  --cui-link-color-rgb: 21, 152, 149;
+  --cui-primary: var(--lifeos-teal-strong);
+  --cui-primary-rgb: 17, 123, 120;
+  --cui-link-color: var(--lifeos-teal-strong);
+  --cui-link-color-rgb: 17, 123, 120;
   --cui-link-hover-color: var(--lifeos-ink);
+  // CoreUI's danger red (#e55353) is 3.5:1 on the canvas; this is 5:1 (Session 97).
+  --cui-danger: #c73434;
+  --cui-danger-rgb: 199, 52, 52;
+  --cui-danger-text-emphasis: #9e2929;
+  --cui-form-invalid-color: #c73434;
+  --cui-form-invalid-border-color: #c73434;
+  // CoreUI's secondary grey (#6b7785, link-secondary/text-secondary) is 4.3:1 on the canvas.
+  --cui-secondary: #5b6b68;
+  --cui-secondary-rgb: 91, 107, 104;
   --cui-body-bg: var(--lifeos-canvas);
   --cui-body-color: var(--lifeos-ink);
 }
@@ -61,30 +75,72 @@ h6 {
 // CoreUI's .btn-primary hardcodes its own --cui-btn-* values rather than referencing --cui-primary, so it
 // needs a direct override to actually pick up the LifeOS teal instead of CoreUI's default indigo.
 .btn-primary {
-  --cui-btn-bg: var(--lifeos-teal);
-  --cui-btn-border-color: var(--lifeos-teal);
-  --cui-btn-hover-bg: #0f7a78;
-  --cui-btn-hover-border-color: #0f7a78;
-  --cui-btn-active-bg: #0c615f;
-  --cui-btn-active-border-color: #0c615f;
-  --cui-btn-disabled-bg: var(--lifeos-teal);
-  --cui-btn-disabled-border-color: var(--lifeos-teal);
-  --cui-btn-focus-shadow-rgb: 21, 152, 149;
+  --cui-btn-bg: var(--lifeos-teal-strong);
+  --cui-btn-border-color: var(--lifeos-teal-strong);
+  --cui-btn-hover-bg: #0e6764;
+  --cui-btn-hover-border-color: #0e6764;
+  --cui-btn-active-bg: #0c5754;
+  --cui-btn-active-border-color: #0c5754;
+  --cui-btn-disabled-bg: var(--lifeos-teal-strong);
+  --cui-btn-disabled-border-color: var(--lifeos-teal-strong);
+  --cui-btn-focus-shadow-rgb: 17, 123, 120;
 }
 
 // Same gotcha as .btn-primary: the outline variant hardcodes CoreUI's indigo.
 .btn-outline-primary {
-  --cui-btn-color: var(--lifeos-teal);
-  --cui-btn-border-color: var(--lifeos-teal);
+  --cui-btn-color: var(--lifeos-teal-strong);
+  --cui-btn-border-color: var(--lifeos-teal-strong);
   --cui-btn-hover-color: #fff;
-  --cui-btn-hover-bg: var(--lifeos-teal);
-  --cui-btn-hover-border-color: var(--lifeos-teal);
+  --cui-btn-hover-bg: var(--lifeos-teal-strong);
+  --cui-btn-hover-border-color: var(--lifeos-teal-strong);
   --cui-btn-active-color: #fff;
-  --cui-btn-active-bg: #0f7a78;
-  --cui-btn-active-border-color: #0f7a78;
-  --cui-btn-disabled-color: var(--lifeos-teal);
-  --cui-btn-disabled-border-color: var(--lifeos-teal);
-  --cui-btn-focus-shadow-rgb: 21, 152, 149;
+  --cui-btn-active-bg: #0e6764;
+  --cui-btn-active-border-color: #0e6764;
+  --cui-btn-disabled-color: var(--lifeos-teal-strong);
+  --cui-btn-disabled-border-color: var(--lifeos-teal-strong);
+  --cui-btn-focus-shadow-rgb: 17, 123, 120;
+}
+
+// Active pills: CoreUI sets 87% white on .nav-pills itself (4.3:1 on the teal); white is 5.1:1.
+.nav-pills {
+  --cui-nav-pills-link-active-color: #fff;
+}
+
+// CoreUI's grey outline buttons are 4.3:1 on the canvas; the secondary text colour is 5.3:1.
+.btn-outline-secondary {
+  --cui-btn-color: var(--lifeos-text-secondary);
+}
+
+// Warning-coloured icons and words (flags, streak fire, "Postponed"): CoreUI's yellow is 1.8:1 on the canvas.
+.text-warning {
+  color: var(--lifeos-amber) !important;
+}
+
+// The danger buttons hardcode CoreUI's lighter red (and dark text on it) the same way.
+.btn-danger {
+  --cui-btn-color: #fff;
+  --cui-btn-hover-color: #fff;
+  --cui-btn-active-color: #fff;
+  --cui-btn-disabled-color: #fff;
+  --cui-btn-bg: #c73434;
+  --cui-btn-border-color: #c73434;
+  --cui-btn-hover-bg: #a92b2b;
+  --cui-btn-hover-border-color: #a92b2b;
+  --cui-btn-active-bg: #922424;
+  --cui-btn-active-border-color: #922424;
+  --cui-btn-disabled-bg: #c73434;
+  --cui-btn-disabled-border-color: #c73434;
+}
+
+.btn-outline-danger {
+  --cui-btn-color: #c73434;
+  --cui-btn-border-color: #c73434;
+  --cui-btn-hover-bg: #c73434;
+  --cui-btn-hover-border-color: #c73434;
+  --cui-btn-active-bg: #a92b2b;
+  --cui-btn-active-border-color: #a92b2b;
+  --cui-btn-disabled-color: #c73434;
+  --cui-btn-disabled-border-color: #c73434;
 }
 
 // Toasts (<app-toasts />, rendered via NgbToast). A light tint with dark text instead of Bootstrap's saturated
@@ -166,9 +222,9 @@ h6 {
   --lifeos-cal-subscription: var(--lifeos-series-4);
   --lifeos-cal-significantdate: var(--lifeos-series-5);
 
-  --fc-forma-primary: var(--lifeos-teal);
-  --fc-forma-primary-over: color-mix(in oklab, var(--lifeos-teal) 85%, var(--lifeos-ink));
-  --fc-forma-primary-down: color-mix(in oklab, var(--lifeos-teal) 70%, var(--lifeos-ink));
+  --fc-forma-primary: var(--lifeos-teal-strong);
+  --fc-forma-primary-over: color-mix(in oklab, var(--lifeos-teal-strong) 85%, var(--lifeos-ink));
+  --fc-forma-primary-down: color-mix(in oklab, var(--lifeos-teal-strong) 70%, var(--lifeos-ink));
   --fc-forma-primary-foreground: #fff;
   --fc-forma-event: var(--lifeos-teal);
   --fc-forma-event-contrast: #fff;

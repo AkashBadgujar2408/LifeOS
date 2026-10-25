@@ -121,7 +121,10 @@
         </div>
 
         @for (row of rows(); track row.habit.id) {
-          <div class="list-group-item d-flex flex-wrap align-items-center column-gap-3 row-gap-2">
+          <div
+            class="list-group-item d-flex flex-wrap align-items-center column-gap-3 row-gap-2"
+            role="listitem"
+          >
             <div class="flex-grow-1 min-w-0" style="flex-basis: 12rem">
               <a
                 [routerLink]="['/habits', row.habit.id]"

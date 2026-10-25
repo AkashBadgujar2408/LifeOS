@@ -497,7 +497,7 @@ export class EventEditor {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete from here',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;
@@ -525,7 +525,7 @@ export class EventEditor {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: series ? 'Delete series' : 'Delete event',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!result.isConfirmed) {
       return;

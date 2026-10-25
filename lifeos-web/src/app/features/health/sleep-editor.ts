@@ -295,7 +295,7 @@ export class SleepEditor {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (confirmed.isConfirmed) {
       this.healthService.removeSleep(record.id).subscribe({

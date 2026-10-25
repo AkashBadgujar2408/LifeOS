@@ -265,7 +265,7 @@ export class ReviewEditor {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (!confirmed.isConfirmed) {
       return;

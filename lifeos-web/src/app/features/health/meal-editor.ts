@@ -223,7 +223,7 @@ export class MealEditor {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',
-      confirmButtonColor: '#dc3545',
+      confirmButtonColor: 'var(--cui-danger)',
     });
     if (confirmed.isConfirmed) {
       this.healthService.removeMeal(meal.id).subscribe({

@@ -719,7 +719,7 @@ export class BenefitDetailDialog {
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Yes',
-      confirmButtonColor: 'var(--lifeos-teal)',
+      confirmButtonColor: 'var(--lifeos-teal-strong)',
     });
     return answer.isConfirmed;
   }
