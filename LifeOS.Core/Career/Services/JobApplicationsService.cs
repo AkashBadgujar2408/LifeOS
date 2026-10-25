@@ -75,6 +75,8 @@ public class JobApplicationsService(AppDbContext db, IEntityLinksService entityL
             Notes = application.Notes,
             InterviewCount = application.InterviewCount,
             NextInterviewAt = application.NextInterviewAt,
+            MockInterviewCount = application.MockInterviewCount,
+            LatestMockRating = application.LatestMockRating,
             History = history,
             Interviews = [.. interviews.OrderBy(i => i.StartsAt is null).ThenBy(i => i.StartsAt).ThenBy(i => i.Id)],
         });
@@ -207,6 +209,9 @@ public class JobApplicationsService(AppDbContext db, IEntityLinksService entityL
         // Questions asked in it stay in the bank, as general ones.
         await db.InterviewQuestions.Where(q => q.JobApplicationId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(q => q.JobApplicationId, (int?)null).SetProperty(q => q.UpdatedAt, now));
+        // So do its mock interviews, as general practice.
+        await db.MockInterviews.Where(m => m.JobApplicationId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.JobApplicationId, (int?)null).SetProperty(m => m.UpdatedAt, now));
         application.IsDeleted = true;
         application.DeletedAt = now;
         await db.SaveChangesAsync();
@@ -285,6 +290,13 @@ public class JobApplicationsService(AppDbContext db, IEntityLinksService entityL
         NextInterviewAt = a.Interviews
             .Where(i => i.Event != null && i.Event.EndsAt > now)
             .Min(i => i.Event!.StartsAt),
+        MockInterviewCount = a.MockInterviews.Count,
+        LatestMockRating = a.MockInterviews
+            .Where(m => m.Rating != null)
+            .OrderByDescending(m => m.HeldOn)
+            .ThenByDescending(m => m.Id)
+            .Select(m => m.Rating)
+            .FirstOrDefault(),
     };
 }
 

@@ -170,6 +170,12 @@ import { openStageMove } from './stage-move-dialog';
                           } @else if (column.key === 'Saved' && a.stageSince) {
                             <span class="text-body-secondary">Saved {{ a.stageSince | date }}</span>
                           }
+                          @if (a.latestMockRating) {
+                            <span class="text-body-secondary">
+                              <i class="bi bi-mic me-1"></i>Mock interview
+                              {{ a.latestMockRating }}
+                            </span>
+                          }
                         </div>
                       </div>
                     </article>
@@ -242,6 +248,7 @@ export class CareerApplications {
     { headerName: 'Source', field: 'source', width: 130 },
     { headerName: 'Contact', field: 'contactName', width: 140 },
     { headerName: 'Resume', field: 'resumeVersionName', width: 140 },
+    { headerName: 'Mock rating', field: 'latestMockRating', width: 130 },
   ];
 
   constructor() {

@@ -321,3 +321,33 @@ BEGIN
     );
 END
 GO
+
+-- Mock interviews (Session 54a): a record of practice interviews done by voice with an AI outside LifeOS (the
+-- Gemini app, or any other) — nothing runs here. On an application or on its own (general practice; deleting the
+-- application nulls JobApplicationId). Rating is kept as the AI said it ("7/10", "Strong hire"), not a number.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('career.MockInterviews'))
+BEGIN
+    CREATE TABLE career.MockInterviews
+    (
+        Id               INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_MockInterviews PRIMARY KEY,
+        UserId           INT               NOT NULL CONSTRAINT FK_MockInterviews_Users REFERENCES shared.Users(Id),
+        JobApplicationId INT               NULL     CONSTRAINT FK_MockInterviews_JobApplications REFERENCES career.JobApplications(Id),
+        HeldOn           DATE              NOT NULL,
+        Tool             NVARCHAR(100)     NOT NULL CONSTRAINT CK_MockInterviews_Tool CHECK (LEN(Tool) > 0),
+        DurationMinutes  INT               NULL     CONSTRAINT CK_MockInterviews_Duration CHECK (DurationMinutes BETWEEN 1 AND 600),
+        Role             NVARCHAR(200)     NULL,
+        Rating           NVARCHAR(50)      NULL,
+        Strengths        NVARCHAR(4000)    NULL,
+        Improvements     NVARCHAR(4000)    NULL,
+        Notes            NVARCHAR(4000)    NULL,
+        CreatedAt        DATETIME2         NOT NULL CONSTRAINT DF_MockInterviews_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt        DATETIME2         NULL,
+        IsDeleted        BIT               NOT NULL CONSTRAINT DF_MockInterviews_IsDeleted DEFAULT (0),
+        DeletedAt        DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('career.MockInterviews') AND name = 'IX_MockInterviews_User_HeldOn')
+    CREATE INDEX IX_MockInterviews_User_HeldOn ON career.MockInterviews(UserId, HeldOn) WHERE IsDeleted = 0;
+GO

@@ -171,6 +171,9 @@ export class EntityOpener {
       case 'JobApplication':
         void this.router.navigate(['/career/applications', entityId]);
         break;
+      case 'MockInterview':
+        void this.router.navigate(['/career/mock-interviews'], { queryParams: { open: entityId } });
+        break;
       case 'Property':
         this.homeService.property(entityId).subscribe({
           next: async (property) =>

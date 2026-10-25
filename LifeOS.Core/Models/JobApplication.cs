@@ -45,6 +45,8 @@ public partial class JobApplication
 
     public virtual ICollection<Interview> Interviews { get; set; } = new List<Interview>();
 
+    public virtual ICollection<MockInterview> MockInterviews { get; set; } = new List<MockInterview>();
+
     public virtual ResumeVersion? ResumeVersion { get; set; }
 
     public virtual User User { get; set; } = null!;

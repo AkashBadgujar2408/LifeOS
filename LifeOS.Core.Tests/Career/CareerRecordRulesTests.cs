@@ -38,4 +38,33 @@ public class CareerRecordRulesTests
         Assert.NotNull(CareerRules.CheckSideIncome("Lottery", SideIncomeStatuses.Active, null, null, Today));
         Assert.NotNull(CareerRules.CheckSideIncome(SideIncomeKinds.Freelance, "Dormant", null, null, Today));
     }
+
+    [Fact]
+    public void A_mock_interview_is_held_by_a_named_AI_no_later_than_today()
+    {
+        Assert.Null(CareerRules.CheckMockInterview(Today, "Gemini", 30, Today));
+        Assert.Null(CareerRules.CheckMockInterview(Today.AddDays(-40), "ChatGPT", null, Today));
+        Assert.NotNull(CareerRules.CheckMockInterview(Today.AddDays(1), "Gemini", 30, Today));
+        Assert.NotNull(CareerRules.CheckMockInterview(default, "Gemini", 30, Today));
+        Assert.NotNull(CareerRules.CheckMockInterview(Today, "Gemini", 30, default));
+        Assert.NotNull(CareerRules.CheckMockInterview(Today, "  ", 30, Today));
+    }
+
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(600, true)]
+    [InlineData(0, false)]
+    [InlineData(601, false)]
+    public void A_mock_interview_lasts_one_to_600_minutes(int minutes, bool ok)
+    {
+        Assert.Equal(ok, CareerRules.CheckMockInterview(Today, "Gemini", minutes, Today) is null);
+    }
+
+    [Fact]
+    public void A_mock_interview_is_titled_by_its_role_then_the_application_role_then_the_AI()
+    {
+        Assert.Equal("Mock interview · Backend engineer", MockInterviewLinkableProvider.Title("Backend engineer", "SDE II", "Gemini"));
+        Assert.Equal("Mock interview · SDE II", MockInterviewLinkableProvider.Title(null, "SDE II", "Gemini"));
+        Assert.Equal("Mock interview with Gemini", MockInterviewLinkableProvider.Title(null, null, "Gemini"));
+    }
 }

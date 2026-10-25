@@ -210,6 +210,11 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((utc(to) - utc(from)) / 86_400_000);
 }
 
+/** A mock interview's heading: the role it was for (its own, else the application's), else "General practice". */
+export function mockTitle(mock: { role: string | null; applicationTitle: string | null }): string {
+  return mock.role ?? mock.applicationTitle ?? 'General practice';
+}
+
 /** "Practised today", "Practised 3 days ago", "Not practised yet". */
 export function practisedText(lastPractisedOn: string | null, today: string): string {
   if (!lastPractisedOn) {

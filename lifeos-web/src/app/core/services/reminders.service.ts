@@ -30,6 +30,7 @@ export type ReminderTargetType =
   | 'CareerAchievement'
   | 'JobApplication'
   | 'InterviewQuestion'
+  | 'MockInterview'
   | 'ResumeVersion'
   | 'FinanceAccount'
   | 'Transaction'
@@ -76,6 +77,7 @@ export const REMINDER_TARGET_LABELS: Record<ReminderTargetType, string> = {
   CareerAchievement: 'Career achievement',
   JobApplication: 'Job application',
   InterviewQuestion: 'Interview question',
+  MockInterview: 'Mock interview',
   ResumeVersion: 'Resume version',
   FinanceAccount: 'Account',
   Transaction: 'Transaction',

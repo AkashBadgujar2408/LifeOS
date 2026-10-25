@@ -57,6 +57,9 @@ public class JobApplicationDto
     public int InterviewCount { get; init; }
     /// <summary>The earliest scheduled round that hasn't ended yet (UTC), if any.</summary>
     public DateTime? NextInterviewAt { get; init; }
+    public int MockInterviewCount { get; init; }
+    /// <summary>The rating of the latest mock interview for it that has one, as the AI said it.</summary>
+    public string? LatestMockRating { get; init; }
 }
 
 public class JobApplicationDetailDto : JobApplicationDto
@@ -205,4 +208,57 @@ public class InterviewQuestionRequest
 public class QuestionPractisedRequest
 {
     public DateOnly Today { get; init; }
+}
+
+// ---- Mock interviews ----
+
+/// <summary>A practice interview done with an AI outside LifeOS, recorded afterwards.</summary>
+public class MockInterviewDto
+{
+    public int Id { get; init; }
+    public DateOnly HeldOn { get; init; }
+    /// <summary>Which AI ran it ("Gemini").</summary>
+    public string Tool { get; init; } = string.Empty;
+    public int? DurationMinutes { get; init; }
+    /// <summary>The role it interviewed you for.</summary>
+    public string? Role { get; init; }
+    /// <summary>As the AI said it ("7/10").</summary>
+    public string? Rating { get; init; }
+    public string? Strengths { get; init; }
+    public string? Improvements { get; init; }
+    public string? Notes { get; init; }
+    /// <summary>Practice for this application; null = general practice.</summary>
+    public int? JobApplicationId { get; init; }
+    public string? ApplicationTitle { get; init; }
+}
+
+public class MockInterviewRequest
+{
+    public DateOnly HeldOn { get; init; }
+
+    /// <summary>The client's local today — a mock interview can't be in the future.</summary>
+    public DateOnly Today { get; init; }
+
+    [Required]
+    [StringLength(100)]
+    public string Tool { get; init; } = string.Empty;
+
+    public int? DurationMinutes { get; init; }
+
+    [StringLength(200)]
+    public string? Role { get; init; }
+
+    [StringLength(50)]
+    public string? Rating { get; init; }
+
+    [StringLength(4000)]
+    public string? Strengths { get; init; }
+
+    [StringLength(4000)]
+    public string? Improvements { get; init; }
+
+    [StringLength(4000)]
+    public string? Notes { get; init; }
+
+    public int? JobApplicationId { get; init; }
 }

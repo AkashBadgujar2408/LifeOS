@@ -137,6 +137,50 @@
           </div>
         </section>
 
+        <section class="card" aria-labelledby="mocks-heading">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+              <h2 id="mocks-heading" class="h6 mb-0">Mock interviews</h2>
+              <button type="button" class="btn btn-outline-primary btn-sm" (click)="openMock()">
+                <i class="bi bi-plus-lg"></i> Record one
+              </button>
+            </div>
+            <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+              @for (m of mocks(); track m.id) {
+                <li class="d-flex align-items-start gap-2">
+                  <div class="min-w-0 flex-grow-1">
+                    <button
+                      type="button"
+                      class="btn btn-link p-0 link-body-emphasis text-decoration-none text-start text-break"
+                      (click)="openMock(m)"
+                    >
+                      {{ m.heldOn | date }} · {{ m.tool }}
+                      @if (m.durationMinutes) {
+                        · {{ m.durationMinutes }} min
+                      }
+                    </button>
+                    @if (m.improvements) {
+                      <div class="small text-body-secondary text-break">
+                        To improve: {{ m.improvements }}
+                      </div>
+                    }
+                  </div>
+                  @if (m.rating) {
+                    <span class="badge rounded-pill text-bg-light border fw-normal">{{
+                      m.rating
+                    }}</span>
+                  }
+                </li>
+              } @empty {
+                <li class="small text-body-secondary">
+                  Did a practice run for this one with Gemini or another AI? Note the rating and
+                  what it said to improve.
+                </li>
+              }
+            </ul>
+          </div>
+        </section>
+
         <section class="card" aria-labelledby="history-heading">
           <div class="card-body">
             <h2 id="history-heading" class="h6 mb-3">How it went</h2>
@@ -168,6 +212,12 @@
             }
             @if (a.closedOn) {
               <div><span class="text-body-secondary">Closed</span> {{ a.closedOn | date }}</div>
+            }
+            @if (a.latestMockRating) {
+              <div>
+                <span class="text-body-secondary">Latest mock interview</span>
+                {{ a.latestMockRating }}
+              </div>
             }
             @if (a.source) {
               <div class="text-break">
@@ -204,7 +254,15 @@
                 {{ a.notes }}
               </div>
             }
-            @if (!a.appliedOn && !a.source && !a.contactName && !a.url && !a.notes && !a.closedOn) {
+            @if (
+              !a.appliedOn &&
+              !a.source &&
+              !a.contactName &&
+              !a.url &&
+              !a.notes &&
+              !a.closedOn &&
+              !a.latestMockRating
+            ) {
               <div class="text-body-secondary">No details yet.</div>
             }
           </div>

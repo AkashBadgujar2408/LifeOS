@@ -127,6 +127,7 @@ try
     builder.Services.AddScoped<IJobApplicationsService, JobApplicationsService>();
     builder.Services.AddScoped<IInterviewsService, InterviewsService>();
     builder.Services.AddScoped<IInterviewQuestionsService, InterviewQuestionsService>();
+    builder.Services.AddScoped<IMockInterviewsService, MockInterviewsService>();
     builder.Services.AddScoped<IResumeVersionsService, ResumeVersionsService>();
     builder.Services.AddScoped<IPerformanceReviewsService, PerformanceReviewsService>();
     builder.Services.AddScoped<ISideIncomeSourcesService, SideIncomeSourcesService>();
@@ -213,6 +214,7 @@ try
     builder.Services.AddScoped<ILinkableEntityProvider, CareerAchievementLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, JobApplicationLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, InterviewQuestionLinkableProvider>();
+    builder.Services.AddScoped<ILinkableEntityProvider, MockInterviewLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, ResumeVersionLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, AccountLinkableProvider>();
     builder.Services.AddScoped<ILinkableEntityProvider, TransactionLinkableProvider>();

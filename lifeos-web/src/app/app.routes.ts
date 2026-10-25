@@ -193,6 +193,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/career/questions').then((m) => m.CareerQuestions),
       },
       {
+        path: 'career/mock-interviews',
+        title: 'Mock interviews | LifeOS',
+        loadComponent: () =>
+          import('./features/career/mock-interviews').then((m) => m.CareerMockInterviews),
+      },
+      {
         path: 'career/resumes',
         title: 'Resumes | LifeOS',
         loadComponent: () => import('./features/career/resumes').then((m) => m.CareerResumes),

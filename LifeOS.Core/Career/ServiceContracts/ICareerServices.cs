@@ -73,6 +73,16 @@ public interface IInterviewQuestionsService
     Task<OperationResult<bool>> DeleteAsync(int id);
 }
 
+public interface IMockInterviewsService
+{
+    /// <summary>Newest first (by the day held), optionally only one application's.</summary>
+    Task<List<MockInterviewDto>> GetAllAsync(int? applicationId);
+    Task<OperationResult<MockInterviewDto>> GetAsync(int id);
+    Task<OperationResult<MockInterviewDto>> CreateAsync(MockInterviewRequest request);
+    Task<OperationResult<MockInterviewDto>> UpdateAsync(int id, MockInterviewRequest request);
+    Task<OperationResult<bool>> DeleteAsync(int id);
+}
+
 public interface IResumeVersionsService
 {
     /// <summary>Newest first, each with its file count and the applications it went with.</summary>

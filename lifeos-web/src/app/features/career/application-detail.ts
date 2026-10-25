@@ -31,6 +31,7 @@ import {
   InterviewQuestion,
   JOB_APPLICATION_ENTITY_TYPE,
   JobApplicationDetail,
+  MockInterview,
 } from '../../core/services/career.service';
 import { ContactsService } from '../../core/services/contacts.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -41,6 +42,7 @@ import { openContactEditor } from '../contacts/contact-editor';
 import { openApplicationEditor } from './application-editor';
 import { STAGE_ICONS, STAGE_LABELS, STAGE_MOVE_LABELS, practisedText } from './career-view';
 import { openInterviewEditor } from './interview-editor';
+import { openMockInterviewEditor } from './mock-interview-editor';
 import { openQuestionEditor } from './question-editor';
 import { openStageMove } from './stage-move-dialog';
 
@@ -87,6 +89,7 @@ export class ApplicationDetail {
   protected readonly application = signal<JobApplicationDetail | null>(null);
   protected readonly loadFailed = signal(false);
   protected readonly questions = signal<InterviewQuestion[]>([]);
+  protected readonly mocks = signal<MockInterview[]>([]);
   private readonly titled = itemTitle(() => {
     const a = this.application();
     return a ? `${a.role} at ${a.organisation}` : undefined;
@@ -111,6 +114,15 @@ export class ApplicationDetail {
         error: () => this.loadFailed.set(true),
       });
     this.loadQuestions();
+    this.loadMocks();
+  }
+
+  private loadMocks(): void {
+    this.careerService
+      .mockInterviews({ applicationId: Number(this.id()) })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      // A side list, like the questions: if it can't load, the card just shows none.
+      .subscribe({ next: (m) => this.mocks.set(m), error: () => this.mocks.set([]) });
   }
 
   private loadQuestions(): void {
@@ -173,6 +185,16 @@ export class ApplicationDetail {
     }
   }
 
+  protected async openMock(mock?: MockInterview): Promise<void> {
+    const result = await openMockInterviewEditor(this.modal, mock, Number(this.id()));
+    if (result) {
+      this.toast.success(
+        result.kind === 'saved' ? 'Mock interview saved.' : 'Mock interview deleted.',
+      );
+      this.load();
+    }
+  }
+
   protected openContact(id: number): void {
     this.contactsService.get(id).subscribe({
       next: async (contact) => {
@@ -189,7 +211,7 @@ export class ApplicationDetail {
   protected async remove(application: JobApplicationDetail): Promise<void> {
     const confirmed = await Swal.fire({
       title: `Delete "${application.role} at ${application.organisation}"?`,
-      text: 'Its history and rounds go with it (and the rounds leave your calendar). Questions asked in it stay in your question bank.',
+      text: 'Its history and rounds go with it (and the rounds leave your calendar). Questions asked in it stay in your question bank, and its mock interviews stay as general practice.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Delete',

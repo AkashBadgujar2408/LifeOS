@@ -56,6 +56,18 @@ public static partial class CareerRules
         roleStart is { } start && effectiveOn < start ? "That's before the role started."
         : roleEnd is { } end && effectiveOn > end ? "That's after the role ended."
         : null;
+
+    /// <summary>
+    /// A mock interview: held on a day no later than today, by a named AI, lasting 1–600 minutes when given
+    /// (CK_MockInterviews_Tool / _Duration).
+    /// </summary>
+    public static string? CheckMockInterview(DateOnly heldOn, string tool, int? durationMinutes, DateOnly today) =>
+        heldOn == default ? "Pick the day it was held."
+        : today == default ? "Today's date is required."
+        : heldOn > today ? "A mock interview can't be in the future."
+        : string.IsNullOrWhiteSpace(tool) ? "Say which AI ran it."
+        : durationMinutes is < 1 or > 600 ? "The length has to be between 1 and 600 minutes."
+        : null;
 }
 
 /// <summary>Salary history: change % per move, between records that can be compared (same currency and period).</summary>

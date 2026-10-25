@@ -91,6 +91,12 @@ export const NAV_GROUPS: NavGroup[] = [
         module: 'Career',
       },
       {
+        label: 'Mock interviews',
+        route: '/career/mock-interviews',
+        icon: 'bi-mic',
+        module: 'Career',
+      },
+      {
         label: 'Resumes',
         route: '/career/resumes',
         icon: 'bi-file-earmark-person',

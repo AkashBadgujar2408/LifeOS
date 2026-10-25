@@ -145,6 +145,8 @@ public partial class InterviewQuestion : ISoftDeletable, IUserOwned;
 
 public partial class InterviewQuestionTag : ISoftDeletable, IUserOwned;
 
+public partial class MockInterview : ISoftDeletable, IUserOwned;
+
 public partial class SideIncomeSource : ISoftDeletable, IUserOwned;
 
 public partial class Account : ISoftDeletable, IUserOwned;

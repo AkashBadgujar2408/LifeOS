@@ -11,6 +11,7 @@ import {
   currentRoles,
   filterQuestions,
   formatPay,
+  mockTitle,
   practisedText,
   stints,
 } from './career-view';
@@ -108,6 +109,8 @@ function application(
     notes: null,
     interviewCount: nextInterviewAt ? 1 : 0,
     nextInterviewAt,
+    mockInterviewCount: 0,
+    latestMockRating: null,
   };
 }
 
@@ -205,5 +208,15 @@ describe('contactedText and networkOrder', () => {
     );
     expect(ordered.map((c) => c.name)).toEqual(['Ann', 'Ben', 'Cal', 'Zoe']);
     expect(ordered.map((c) => c.catchUp)).toEqual([true, true, false, false]);
+  });
+});
+
+describe('mockTitle', () => {
+  it('names a mock interview by its own role, else the application, else general practice', () => {
+    expect(mockTitle({ role: 'Backend engineer', applicationTitle: 'SDE II at Acme' })).toBe(
+      'Backend engineer',
+    );
+    expect(mockTitle({ role: null, applicationTitle: 'SDE II at Acme' })).toBe('SDE II at Acme');
+    expect(mockTitle({ role: null, applicationTitle: null })).toBe('General practice');
   });
 });

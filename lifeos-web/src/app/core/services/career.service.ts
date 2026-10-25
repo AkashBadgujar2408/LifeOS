@@ -160,6 +160,9 @@ export interface JobApplication {
   interviewCount: number;
   /** The earliest scheduled round that hasn't ended (UTC). */
   nextInterviewAt: string | null;
+  mockInterviewCount: number;
+  /** The latest mock interview's rating for it, as the AI said it ("7/10"). */
+  latestMockRating: string | null;
 }
 
 export interface ApplicationStageChange {
@@ -241,6 +244,44 @@ export interface InterviewQuestionPayload {
   reviewNotes: string | null;
   jobApplicationId: number | null;
   tagIds: number[];
+}
+
+export const MOCK_INTERVIEW_ENTITY_TYPE = 'MockInterview';
+
+/** Suggestions for "which AI" — any other name can be typed. */
+export const MOCK_INTERVIEW_TOOLS = ['Gemini', 'ChatGPT', 'Claude', 'Copilot'] as const;
+
+/** A practice interview done by voice with an AI outside LifeOS, recorded afterwards. */
+export interface MockInterview {
+  id: number;
+  heldOn: string;
+  /** Which AI ran it. */
+  tool: string;
+  durationMinutes: number | null;
+  /** The role it interviewed you for. */
+  role: string | null;
+  /** As the AI said it ("7/10"). */
+  rating: string | null;
+  strengths: string | null;
+  improvements: string | null;
+  notes: string | null;
+  /** Practice for this application; null = general practice. */
+  jobApplicationId: number | null;
+  applicationTitle: string | null;
+}
+
+export interface MockInterviewPayload {
+  heldOn: string;
+  /** The local today — it can't be in the future. */
+  today: string;
+  tool: string;
+  durationMinutes: number | null;
+  role: string | null;
+  rating: string | null;
+  strengths: string | null;
+  improvements: string | null;
+  notes: string | null;
+  jobApplicationId: number | null;
 }
 
 export const RESUME_VERSION_ENTITY_TYPE = 'ResumeVersion';
@@ -546,6 +587,38 @@ export class CareerService {
 
   removeQuestion(id: number): Observable<void> {
     return this.http.delete<ApiResponse<boolean>>(`${this.base}/InterviewQuestions/${id}`).pipe(
+      map(() => undefined),
+      tap(() => this.remindersService.notifyChanged()),
+    );
+  }
+
+  // ---- Mock interviews ----
+
+  mockInterviews(filter: { applicationId?: number } = {}): Observable<MockInterview[]> {
+    let params = new HttpParams();
+    if (filter.applicationId) {
+      params = params.set('applicationId', filter.applicationId);
+    }
+    return this.http
+      .get<ApiResponse<MockInterview[]>>(`${this.base}/MockInterviews`, { params })
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  mockInterview(id: number): Observable<MockInterview> {
+    return this.http
+      .get<ApiResponse<MockInterview>>(`${this.base}/MockInterviews/${id}`)
+      .pipe(map((response) => response.data!));
+  }
+
+  saveMockInterview(id: number | null, payload: MockInterviewPayload): Observable<MockInterview> {
+    const request = id
+      ? this.http.put<ApiResponse<MockInterview>>(`${this.base}/MockInterviews/${id}`, payload)
+      : this.http.post<ApiResponse<MockInterview>>(`${this.base}/MockInterviews`, payload);
+    return request.pipe(map((response) => response.data!));
+  }
+
+  removeMockInterview(id: number): Observable<void> {
+    return this.http.delete<ApiResponse<boolean>>(`${this.base}/MockInterviews/${id}`).pipe(
       map(() => undefined),
       tap(() => this.remindersService.notifyChanged()),
     );

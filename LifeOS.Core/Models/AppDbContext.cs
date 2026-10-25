@@ -175,6 +175,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<MissionPrerequisite> MissionPrerequisites { get; set; }
 
+    public virtual DbSet<MockInterview> MockInterviews { get; set; }
+
     public virtual DbSet<MonthlyReflection> MonthlyReflections { get; set; }
 
     public virtual DbSet<Narration> Narrations { get; set; }
@@ -2351,6 +2353,30 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_MissionPrerequisites_Users");
+        });
+
+        modelBuilder.Entity<MockInterview>(entity =>
+        {
+            entity.ToTable("MockInterviews", "career");
+
+            entity.HasIndex(e => new { e.UserId, e.HeldOn }, "IX_MockInterviews_User_HeldOn").HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_MockInterviews_CreatedAt");
+            entity.Property(e => e.Improvements).HasMaxLength(4000);
+            entity.Property(e => e.Notes).HasMaxLength(4000);
+            entity.Property(e => e.Rating).HasMaxLength(50);
+            entity.Property(e => e.Role).HasMaxLength(200);
+            entity.Property(e => e.Strengths).HasMaxLength(4000);
+            entity.Property(e => e.Tool).HasMaxLength(100);
+
+            entity.HasOne(d => d.JobApplication).WithMany(p => p.MockInterviews)
+                .HasForeignKey(d => d.JobApplicationId)
+                .HasConstraintName("FK_MockInterviews_JobApplications");
+
+            entity.HasOne(d => d.User).WithMany(p => p.MockInterviews)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MockInterviews_Users");
         });
 
         modelBuilder.Entity<MonthlyReflection>(entity =>

@@ -191,6 +191,8 @@ public partial class User
 
     public virtual ICollection<MissionPrerequisite> MissionPrerequisites { get; set; } = new List<MissionPrerequisite>();
 
+    public virtual ICollection<MockInterview> MockInterviews { get; set; } = new List<MockInterview>();
+
     public virtual ICollection<MonthlyReflection> MonthlyReflections { get; set; } = new List<MonthlyReflection>();
 
     public virtual ICollection<Narration> Narrations { get; set; } = new List<Narration>();
