@@ -8,13 +8,13 @@
       id="search-palette-input"
       type="search"
       class="form-control form-control-lg"
-      placeholder="Search goals, tasks, events, journal..."
+      placeholder="Search pages, goals, tasks, events, journal..."
       autocomplete="off"
       spellcheck="false"
       role="combobox"
       aria-autocomplete="list"
       aria-controls="search-palette-results"
-      [attr.aria-expanded]="groups().length > 0"
+      [attr.aria-expanded]="hasRows()"
       [attr.aria-activedescendant]="active() >= 0 ? optionId(active()) : null"
       [value]="query()"
       (input)="onInput($event)"
@@ -34,8 +34,8 @@
   @switch (state().kind) {
     @case ('idle') {
       <p class="text-body-secondary small mb-1">
-        Type at least {{ minLength }} letters. Searches the titles of goals, tasks, projects,
-        events, habits and inbox items, and the words of your journal.
+        Type at least {{ minLength }} letters. Finds pages (Budgets, Net worth…) and what you've
+        written — goals, tasks, events, habits, journal days and everything else you can link.
       </p>
     }
     @case ('loading') {
@@ -45,7 +45,7 @@
       <p class="text-danger small mb-1" role="alert">{{ failure() }}</p>
     }
     @case ('done') {
-      @if (groups().length === 0) {
+      @if (!hasRows()) {
         <p class="text-body-secondary small mb-1" role="status">
           Nothing matches "{{ query().trim() }}".
         </p>
@@ -54,6 +54,38 @@
   }
 
   <div id="search-palette-results" role="listbox" aria-label="Search results">
+    @if (pages().length > 0) {
+      <div role="group" aria-labelledby="search-group-pages" class="mb-2">
+        <div id="search-group-pages" class="search-group-label">Pages</div>
+        @for (page of pages(); track page.route; let i = $index) {
+          <div
+            [id]="optionId(i)"
+            role="option"
+            class="search-option"
+            [class.is-active]="active() === i"
+            [attr.aria-selected]="active() === i"
+            tabindex="-1"
+            (click)="openPage(page)"
+            (keydown.enter)="openPage(page)"
+            (mousemove)="active.set(i)"
+          >
+            <i class="bi {{ page.icon }}" aria-hidden="true"></i>
+            <div class="min-w-0">
+              <div class="text-truncate">
+                @for (part of highlight(page.label, query()); track $index) {
+                  @if (part.match) {
+                    <mark>{{ part.text }}</mark>
+                  } @else {
+                    <span>{{ part.text }}</span>
+                  }
+                }
+              </div>
+              <div class="small text-body-secondary search-snippet">{{ page.group }}</div>
+            </div>
+          </div>
+        }
+      </div>
+    }
     @for (group of groups(); track group.entityType) {
       <div role="group" [attr.aria-labelledby]="'search-group-' + group.entityType" class="mb-2">
         <div [id]="'search-group-' + group.entityType" class="search-group-label">
@@ -78,7 +110,7 @@
                   @if (part.match) {
                     <mark>{{ part.text }}</mark>
                   } @else {
-                    {{ part.text }}
+                    <span>{{ part.text }}</span>
                   }
                 }
               </div>
@@ -88,7 +120,7 @@
                     @if (part.match) {
                       <mark>{{ part.text }}</mark>
                     } @else {
-                      {{ part.text }}
+                      <span>{{ part.text }}</span>
                     }
                   }
                 </div>

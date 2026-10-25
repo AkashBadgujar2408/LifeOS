@@ -103,7 +103,9 @@ in `LifeOS.Api/Areas/<Module>/Controllers/` and are routed `api/<Module>/<Contro
   + `hasMore`, groups in a fixed order; journal hits get a `SearchSnippets.Around` excerpt of the text. A new linkable
   module is searchable with no change here. UI: the lazy-loaded palette (`features/search/search-palette`) opened by
   Ctrl/Cmd+K, `/` (outside fields), the sidebar Search button or the phone top bar, via `SearchPaletteService.open()`;
-  results open through `EntityOpener` (shared with reminder targets).
+  results open through `EntityOpener` (shared with reminder targets). **Session 97a**: providers of switched-off
+  modules are skipped (`LinkableModules.ByType`, entity type → module), and the palette lists matching **pages**
+  first — `matchPages` over `visibleNavGroups(NAV_GROUPS, hidden)`, client-side, no server call.
 - **Files** (Session 38): `IFileStore` (`DiskFileStore`, singleton) writes uploads to `<FileStorage:RootPath>/<userId>/`
   under a random stored name (32 hex + extension), streaming to a `.part` file while counting size and SHA-256, then
   checking the type twice — the extension must be on `FileRules`' list (no SVG/HTML/executables) and the first bytes
@@ -333,7 +335,7 @@ Swagger UI (`/swagger`, Development only) has the full request/response shapes.
 ## Frontend
 
 - **Accessibility (Session 97)**: WCAG 2 AA — every page passes axe-core (critical/serious) at 1280 and 375 px. Colour pairs that carry text are AA by construction (`--lifeos-teal-strong` for teal text/fills, the darker danger and amber); see CLAUDE.md for the rules.
-- **Shell** (`core/layout/shell.*`): sidebar plus mobile drawer, rendered from `NAV_GROUPS` in `nav-items.ts`. It
+- **Shell** (`core/layout/shell.*`): sidebar plus mobile drawer, rendered from `NAV_GROUPS` in `nav-items.ts` as two levels (Session 97a: group headings that open one at a time, the current page's group opening by itself — `nav-state.ts`). It
   mounts Quick Add and the toasts and polls due reminders. Every route is lazy-loaded and has a `title`.
 - **Data access**: one service per API area in `core/services/`, returning plain observables of the unwrapped
   `data`. Components never touch `HttpClient`. Shared lookups (life areas) are cached with `shareReplay` and never

@@ -25,9 +25,32 @@
 
     <nav class="sidebar-nav" aria-label="Main">
       @for (group of navGroups(); track group.label) {
-        <div class="nav-group">
-          <div class="nav-group-label" [attr.id]="'nav-group-' + $index">{{ group.label }}</div>
-          <ul class="list-unstyled mb-0" [attr.aria-labelledby]="'nav-group-' + $index">
+        <div class="nav-group" [class.is-open]="isOpen(group.label)">
+          <button
+            type="button"
+            class="nav-group-toggle"
+            [class.has-current]="currentGroup() === group.label"
+            [attr.aria-expanded]="isOpen(group.label)"
+            [attr.aria-controls]="'nav-group-' + $index"
+            (click)="toggleGroup(group.label)"
+          >
+            <span class="flex-grow-1">{{ group.label }}</span>
+            @if (!isOpen(group.label) && groupCount(group); as count) {
+              <span
+                class="sidebar-count"
+                [class.sidebar-count-alert]="groupHasAlert(group)"
+                [attr.aria-label]="count + ' waiting'"
+                >{{ count }}</span
+              >
+            }
+            <i class="bi bi-chevron-down nav-group-chevron" aria-hidden="true"></i>
+          </button>
+          <ul
+            class="list-unstyled mb-0"
+            [attr.id]="'nav-group-' + $index"
+            [attr.aria-label]="group.label"
+            [hidden]="!isOpen(group.label)"
+          >
             @for (item of group.items; track item.route) {
               <li>
                 <a

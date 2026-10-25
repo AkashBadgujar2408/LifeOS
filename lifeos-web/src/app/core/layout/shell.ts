@@ -6,9 +6,12 @@ import {
   TemplateRef,
   computed,
   inject,
+  signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NgTemplateOutlet } from '@angular/common';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { filter } from 'rxjs';
 import { NgbOffcanvas } from '@ng-bootstrap/ng-bootstrap';
 import { AssistantPanelService } from '../services/assistant-panel.service';
 import { AuthService } from '../services/auth.service';
@@ -19,7 +22,8 @@ import { SearchPaletteService } from '../services/search-palette.service';
 import { SettingsService } from '../services/settings.service';
 import { visibleNavGroups } from '../settings/visibility';
 import { QuickAdd } from '../../shared/components/quick-add/quick-add';
-import { NAV_GROUPS } from './nav-items';
+import { NAV_GROUPS, NavGroup } from './nav-items';
+import { groupForUrl, readOpenGroups, writeOpenGroups } from './nav-state';
 
 const REMINDER_CHECK_MS = 60_000;
 
@@ -47,6 +51,62 @@ export class Shell implements OnInit {
   protected readonly navGroups = computed(() =>
     visibleNavGroups(NAV_GROUPS, this.settingsService.hiddenModules()),
   );
+
+  /**
+   * The two-level sidebar (Session 97a): one group open at a time (remembered per browser) — the one holding the page
+   * you're on opens by itself whenever you land somewhere in it, and opening another closes it.
+   */
+  protected readonly openGroups = signal<ReadonlySet<string>>(readOpenGroups());
+  protected readonly currentGroup = signal<string | null>(groupForUrl(NAV_GROUPS, this.router.url));
+
+  constructor() {
+    this.revealCurrentGroup();
+    this.router.events
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => {
+        this.currentGroup.set(groupForUrl(NAV_GROUPS, this.router.url));
+        this.revealCurrentGroup();
+        // A short screen still scrolls the sidebar: keep the page you're on in view there.
+        setTimeout(() =>
+          document
+            .querySelector('.app-sidebar .sidebar-link.active')
+            ?.scrollIntoView({ block: 'nearest' }),
+        );
+      });
+  }
+
+  protected isOpen(group: string): boolean {
+    return this.openGroups().has(group);
+  }
+
+  protected toggleGroup(group: string): void {
+    const open = new Set(this.isOpen(group) ? [] : [group]);
+    this.openGroups.set(open);
+    writeOpenGroups(open);
+  }
+
+  /** What a closed group's entries would show (Inbox items, due reminders), so nothing goes unseen. */
+  protected groupCount(group: NavGroup): number {
+    return group.items.reduce((sum, item) => sum + this.badgeCount(item.route), 0);
+  }
+
+  protected groupHasAlert(group: NavGroup): boolean {
+    return group.items.some(
+      (item) => item.route === '/reminders' && this.badgeCount(item.route) > 0,
+    );
+  }
+
+  private revealCurrentGroup(): void {
+    const current = this.currentGroup();
+    if (current !== null && !this.openGroups().has(current)) {
+      const open = new Set([current]);
+      this.openGroups.set(open);
+      writeOpenGroups(open);
+    }
+  }
 
   /** How the search shortcut reads on this machine. */
   protected readonly searchShortcut = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K';

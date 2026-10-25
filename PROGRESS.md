@@ -1357,3 +1357,10 @@
 - Not committed (yours): `document-editor.html/.ts`, `family.ts`, `ledger.ts` — they also got this session's mechanical colour/`ariaLabel` edits; only those hunks were committed. `Preferences.txt` untouched.
 - A `node.exe` (PID 13784) was already listening on 4200 when I tried to start the dev server — possibly one left from Session 96b; end it in Task Manager if it isn't yours.
 - Next: Session 97a (navigation), then 98 go-live.
+
+## Last session: 2026-10-25 — Session 97a — Search finds pages + a two-level sidebar
+- Search: matching nav pages come first in the palette (`matchPages`, `core/layout/nav-state.ts`, specced), Enter opens the page. At your request mid-session, **switched-off modules are kept out of search on the server as well**: `LinkableModules.ByType` (entity type → module, a test makes every provider declare one; Inbox and Contacts are shared) and `SearchService` skips the hidden ones (global search only — the link picker calls providers itself).
+- Sidebar: group headings are toggles, one open at a time (switched from "several open" after measuring — that left 1,192 px of nav in a 434 px area), remembered per browser, the current page's group opens by itself and its active link scrolls into view, closed groups show their counts. Same in the phone drawer.
+- Honest limit: 12 headings (384 px) + the sidebar's top (228 px) don't leave room for a big group without scrolling on a 768 px screen (Money: 848 px of content). If you want it to fit fully, the next step would be a smaller top area (Quick add / Search / Assistant as one row of icons) — not done, as it changes the look.
+- Verified in the browser on your account and with a `hid97…` test user (Finance + Health off; deleted afterwards). 725 backend + 283 frontend tests, lint/Prettier/build clean.
+- Next: Session 98 — go-live.

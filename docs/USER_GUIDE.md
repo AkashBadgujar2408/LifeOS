@@ -17,7 +17,7 @@ For setup, see the [README](../README.md).
    - **Time zone** — repeating events and reminders follow it.
    - **Base currency** (e.g. INR) — Finance adds everything up in it.
    - **Modules** — switch off what you don't use (Health, Career, Family…). They disappear from the sidebar, My Day,
-     reports and achievements; your data stays and comes back when you switch them on again.
+     search, reports and achievements; your data stays and comes back when you switch them on again.
 3. You land on **My Day**. Start by adding one goal, one habit and today's tasks — everything else can come later.
 
 ### Three things that work everywhere
@@ -25,8 +25,11 @@ For setup, see the [README](../README.md).
 | | |
 |---|---|
 | **Quick add** — the round <kbd>+</kbd> button or <kbd>Q</kbd> | Capture a task, note, journal line or idea in seconds. It goes to the **Inbox**, where you turn it into the real thing later (a task, a journal entry, a book to read…). |
-| **Search** — <kbd>Ctrl</kbd>+<kbd>K</kbd> or <kbd>/</kbd> | Finds anything you've written: goals, tasks, events, journal days, contacts, transactions, books… |
+| **Search** — <kbd>Ctrl</kbd>+<kbd>K</kbd> or <kbd>/</kbd> | Finds pages ("budgets", "net worth" — Enter opens it) and anything you've written: goals, tasks, events, journal days, contacts, transactions, books… |
 | **Links** — "Linked items" on any item | Tie things together: a task to the goal it serves, a receipt to a purchase, a book to a skill. Links work both ways. |
+
+The **sidebar** shows its groups as headings; click one to open its pages (one group at a time). The group of the
+page you're on opens by itself, and a closed group still shows its counts (Inbox items, reminders due).
 
 Dates are always written like **14/Oct/2026**; date fields accept that format or the calendar button next to them.
 

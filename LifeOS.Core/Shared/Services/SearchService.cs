@@ -33,7 +33,10 @@ public class SearchService(AppDbContext db, IEnumerable<ILinkableEntityProvider>
             return OperationResult<List<SearchGroupDto>>.Fail($"Search for at most {MaxQueryLength} characters.");
         }
 
+        // Switched-off modules stay out of search (Session 97a).
+        var hidden = (await db.UserHiddenModules.Select(m => m.ModuleKey).ToListAsync()).ToHashSet(StringComparer.Ordinal);
         var ordered = providers
+            .Where(p => LinkableModules.IsVisible(p.EntityType, hidden))
             .OrderBy(p => Array.IndexOf(TypeOrder, p.EntityType) is var i and >= 0 ? i : int.MaxValue)
             .ThenBy(p => p.DisplayName, StringComparer.Ordinal);
 

@@ -106,15 +106,57 @@
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
+// Two levels (Session 97a): each group's heading opens and closes its pages.
 .nav-group + .nav-group {
-  margin-top: 0.8rem;
+  margin-top: 0.15rem;
 }
 
-.nav-group-label {
-  padding: 0 0.75rem 0.25rem;
+.nav-group.is-open + .nav-group,
+.nav-group + .nav-group.is-open {
+  margin-top: 0.5rem;
+}
+
+.nav-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.35rem 0.75rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: none;
   font-size: 0.78rem;
+  text-align: left;
   // 0.45 was 4.45:1 on the ink sidebar; 0.55 passes AA (Session 97).
   color: rgba(255, 255, 255, 0.55);
+
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  // The page you're on is in here: brighter, so a closed group still says "you are here".
+  &.has-current {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--lifeos-green);
+    outline-offset: 1px;
+  }
+}
+
+.nav-group-chevron {
+  font-size: 0.7rem;
+  transition: transform 0.15s ease;
+
+  .is-open & {
+    transform: rotate(180deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 }
 
 .sidebar-link {

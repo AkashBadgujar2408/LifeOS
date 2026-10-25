@@ -23,8 +23,8 @@ It runs on your own machine. It's multi-user at the data layer (registration + l
 ## Status
 
 **LifeOS 1.0** — every module is built and passed the full regression pass (Session 97: every page on desktop and
-phone, an export → import round trip of a real account, accessibility to WCAG AA, performance). What's left: Session
-97a (search finds pages, a two-level sidebar) and **go-live** (Session 98, the `LifeOS_Live` database).
+phone, an export → import round trip of a real account, accessibility to WCAG AA, performance). Then search finding pages and a two-level sidebar (97a). What's left:
+**go-live** (Session 98, the `LifeOS_Live` database).
 
 **Using LifeOS:** [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) walks through every part of it, including getting a
 Mistral key for the assistant.
