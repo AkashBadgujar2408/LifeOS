@@ -303,6 +303,17 @@ public class PurchasesService(
             .ExecuteUpdateAsync(s => s.SetProperty(i => i.PurchaseId, (int?)null).SetProperty(i => i.UpdatedAt, now));
         await db.WishlistItems.Where(w => w.PurchaseId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(w => w.PurchaseId, (int?)null).SetProperty(w => w.UpdatedAt, now));
+        // Rewards used on it get back what it took (a voucher's balance, points), with their expiry reminder.
+        var uses = await db.BenefitRedemptions.Where(r => r.PurchaseId == id).Select(r => new { r.Id, r.BenefitId }).ToListAsync();
+        foreach (var use in uses)
+        {
+            var removed = await benefitsService.RemoveRedemptionAsync(use.BenefitId, use.Id, DateOnly.FromDateTime(now));
+            if (!removed.Success)
+            {
+                return OperationResult<bool>.Fail(removed.Error!);
+            }
+        }
+
         // A gift bought with it stays bought (or given) — only the pointer to the purchase goes.
         await db.GiftIdeas.Where(g => g.PurchaseId == id)
             .ExecuteUpdateAsync(s => s.SetProperty(g => g.PurchaseId, (int?)null).SetProperty(g => g.UpdatedAt, now));
@@ -431,7 +442,8 @@ public class PurchasesService(
 
 /// <summary>
 /// What else points at a purchase, released when it goes: its return (and that return's reminder) is deleted —
-/// a refund already received stays in Finance —, rewards that came from it or were used on it just forget it.
+/// a refund already received stays in Finance —, rewards and points that came from it just forget it. (Rewards used
+/// on it get their uses back in <see cref="PurchasesService.DeleteAsync"/>.)
 /// </summary>
 internal static class PurchaseReferences
 {
@@ -447,8 +459,6 @@ internal static class PurchaseReferences
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.IsDeleted, true).SetProperty(r => r.DeletedAt, now).SetProperty(r => r.ReminderId, (int?)null));
         await db.Benefits.Where(b => b.PurchaseId == purchaseId)
             .ExecuteUpdateAsync(s => s.SetProperty(b => b.PurchaseId, (int?)null).SetProperty(b => b.UpdatedAt, now));
-        await db.BenefitRedemptions.Where(r => r.PurchaseId == purchaseId)
-            .ExecuteUpdateAsync(s => s.SetProperty(r => r.PurchaseId, (int?)null).SetProperty(r => r.UpdatedAt, now));
         await db.PointBatches.Where(b => b.PurchaseId == purchaseId)
             .ExecuteUpdateAsync(s => s.SetProperty(b => b.PurchaseId, (int?)null).SetProperty(b => b.UpdatedAt, now));
     }
