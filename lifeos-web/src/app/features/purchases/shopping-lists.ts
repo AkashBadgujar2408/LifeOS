@@ -127,18 +127,6 @@ import { leftText } from './purchases-view';
                         @if (left(); as text) {
                           · {{ text }}
                         }
-                        @if (affordAmount(); as amount) {
-                          ·
-                          <a
-                            routerLink="/finance/scenarios"
-                            [queryParams]="{
-                              name: l.name,
-                              amount: amount.amount,
-                              currency: amount.currency,
-                            }"
-                            >Can I afford it?</a
-                          >
-                        }
                       </div>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
@@ -368,15 +356,6 @@ export class ShoppingLists {
   );
   protected readonly selectedId = computed(() => Number(this.id()) || null);
   protected readonly left = computed(() => leftText(this.list()?.estimatedLeft ?? []));
-  /** What's still to buy, for "Can I afford it?" — only when it's all in one currency and Finance is on. */
-  protected readonly affordAmount = computed(() => {
-    const left = this.list()?.estimatedLeft ?? [];
-    return left.length === 1 &&
-      left[0].amount > 0 &&
-      !this.settingsService.hiddenModules().has('Finance')
-      ? left[0]
-      : null;
-  });
   protected readonly toBuyCount = computed(
     () => this.list()?.items.filter((i) => !i.done).length ?? 0,
   );

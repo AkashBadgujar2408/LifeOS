@@ -121,3 +121,27 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('assistant.Narrations') AND name = 'UX_Narrations_User_Scope_Year')
     CREATE UNIQUE INDEX UX_Narrations_User_Scope_Year ON assistant.Narrations(UserId, Scope, Year) WHERE IsDeleted = 0;
 GO
+
+-- Session 96a: the Forecast tab's last prediction per horizon (3/6/12 months) — saved so the page shows it (with when
+-- it was made) without asking Mistral again; "Predict again" rewrites the row in place. Payload is the prediction as
+-- shown (JSON): the balances are LifeOS's arithmetic over the known money and the patterns Mistral found.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE object_id = OBJECT_ID('assistant.ForecastPredictions'))
+BEGIN
+    CREATE TABLE assistant.ForecastPredictions
+    (
+        Id              INT IDENTITY(1,1) NOT NULL CONSTRAINT PK_ForecastPredictions PRIMARY KEY,
+        UserId          INT               NOT NULL CONSTRAINT FK_ForecastPredictions_Users REFERENCES shared.Users(Id),
+        Months          INT               NOT NULL CONSTRAINT CK_ForecastPredictions_Months CHECK (Months IN (3, 6, 12)),
+        PredictedOn     DATE              NOT NULL,
+        Payload         NVARCHAR(MAX)     NOT NULL CONSTRAINT CK_ForecastPredictions_Payload CHECK (ISJSON(Payload) = 1),
+        CreatedAt       DATETIME2         NOT NULL CONSTRAINT DF_ForecastPredictions_CreatedAt DEFAULT (SYSUTCDATETIME()),
+        UpdatedAt       DATETIME2         NULL,
+        IsDeleted       BIT               NOT NULL CONSTRAINT DF_ForecastPredictions_IsDeleted DEFAULT (0),
+        DeletedAt       DATETIME2         NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('assistant.ForecastPredictions') AND name = 'UX_ForecastPredictions_User_Months')
+    CREATE UNIQUE INDEX UX_ForecastPredictions_User_Months ON assistant.ForecastPredictions(UserId, Months) WHERE IsDeleted = 0;
+GO

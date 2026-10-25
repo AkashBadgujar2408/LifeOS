@@ -71,6 +71,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FocusSession> FocusSessions { get; set; }
 
+    public virtual DbSet<ForecastPrediction> ForecastPredictions { get; set; }
+
     public virtual DbSet<FuelLog> FuelLogs { get; set; }
 
     public virtual DbSet<GiftIdea> GiftIdeas { get; set; }
@@ -218,10 +220,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<SalaryRecord> SalaryRecords { get; set; }
 
     public virtual DbSet<SavedReport> SavedReports { get; set; }
-
-    public virtual DbSet<Scenario> Scenarios { get; set; }
-
-    public virtual DbSet<ScenarioLine> ScenarioLines { get; set; }
 
     public virtual DbSet<ShoppingList> ShoppingLists { get; set; }
 
@@ -1040,6 +1038,22 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_FocusSessions_Users");
+        });
+
+        modelBuilder.Entity<ForecastPrediction>(entity =>
+        {
+            entity.ToTable("ForecastPredictions", "assistant");
+
+            entity.HasIndex(e => new { e.UserId, e.Months }, "UX_ForecastPredictions_User_Months")
+                .IsUnique()
+                .HasFilter("([IsDeleted]=(0))");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_ForecastPredictions_CreatedAt");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ForecastPredictions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ForecastPredictions_Users");
         });
 
         modelBuilder.Entity<FuelLog>(entity =>
@@ -2925,51 +2939,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_SavedReports_Users");
-        });
-
-        modelBuilder.Entity<Scenario>(entity =>
-        {
-            entity.ToTable("Scenarios", "finance");
-
-            entity.HasIndex(e => new { e.UserId, e.Name }, "UX_Scenarios_User_Name")
-                .IsUnique()
-                .HasFilter("([IsDeleted]=(0))");
-
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_Scenarios_CreatedAt");
-            entity.Property(e => e.Name).HasMaxLength(200);
-            entity.Property(e => e.Notes).HasMaxLength(2000);
-
-            entity.HasOne(d => d.User).WithMany(p => p.Scenarios)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Scenarios_Users");
-        });
-
-        modelBuilder.Entity<ScenarioLine>(entity =>
-        {
-            entity.ToTable("ScenarioLines", "finance");
-
-            entity.HasIndex(e => new { e.ScenarioId, e.SortOrder }, "IX_ScenarioLines_Scenario").HasFilter("([IsDeleted]=(0))");
-
-            entity.Property(e => e.Amount).HasColumnType("decimal(19, 4)");
-            entity.Property(e => e.AnnualRate).HasColumnType("decimal(7, 4)");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())", "DF_ScenarioLines_CreatedAt");
-            entity.Property(e => e.Kind).HasMaxLength(15);
-            entity.Property(e => e.Title).HasMaxLength(200);
-
-            entity.HasOne(d => d.Account).WithMany(p => p.ScenarioLines)
-                .HasForeignKey(d => d.AccountId)
-                .HasConstraintName("FK_ScenarioLines_Accounts");
-
-            entity.HasOne(d => d.Scenario).WithMany(p => p.ScenarioLines)
-                .HasForeignKey(d => d.ScenarioId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ScenarioLines_Scenarios");
-
-            entity.HasOne(d => d.User).WithMany(p => p.ScenarioLines)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ScenarioLines_Users");
         });
 
         modelBuilder.Entity<ShoppingList>(entity =>

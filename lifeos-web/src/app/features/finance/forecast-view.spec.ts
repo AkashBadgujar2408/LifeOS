@@ -1,5 +1,5 @@
 import type { ForecastItem, ForecastLine } from '../../core/services/finance.service';
-import { dipDrivers, forecastRows, forecastTotals } from './forecast-view';
+import { forecastRows, forecastTotals } from './forecast-view';
 
 const item = (day: string, amount: number, extra: Partial<ForecastItem> = {}): ForecastItem => ({
   day,
@@ -33,20 +33,21 @@ describe('forecast view', () => {
     item('2026-11-15', 5000, { currency: 'EUR', amountInBase: null, accountId: 2 }),
   ];
 
-  it("runs an account's own money, and everything in the base currency overall", () => {
-    expect(forecastRows(line(1, 10000), items).map((r) => r.balanceAfter)).toEqual([7000, -2000]);
-    expect(forecastRows(line(null, 10000), items).map((r) => r.balanceAfter)).toEqual([
-      7000,
-      5160,
-      -3840,
-      -4680,
+  it("keeps an account's own money, and everything in the base currency overall", () => {
+    expect(forecastRows(line(1, 10000), items).map((r) => r.amount)).toEqual([-3000, -9000]);
+    expect(forecastRows(line(null, 10000), items).map((r) => r.amount)).toEqual([
+      -3000,
+      -1840,
+      -9000,
+      -840,
       null,
     ]);
   });
 
-  it('names the biggest money going out up to the lowest day', () => {
-    const rows = forecastRows(line(null, 10000), items);
-    expect(dipDrivers(rows, '2026-11-10').map((r) => r.amount)).toEqual([-9000, -3000, -1840]);
-    expect(forecastTotals(rows)).toEqual({ moneyIn: 0, moneyOut: 14680 });
+  it('adds up money in and out, leaving out what has no rate', () => {
+    expect(forecastTotals(forecastRows(line(null, 10000), items))).toEqual({
+      moneyIn: 0,
+      moneyOut: 14680,
+    });
   });
 });

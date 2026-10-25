@@ -49,8 +49,6 @@ public partial class Account
 
     public virtual ICollection<RecurringTransaction> RecurringTransactionToAccounts { get; set; } = new List<RecurringTransaction>();
 
-    public virtual ICollection<ScenarioLine> ScenarioLines { get; set; } = new List<ScenarioLine>();
-
     public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
 
     public virtual ICollection<Transaction> TransactionFromAccounts { get; set; } = new List<Transaction>();

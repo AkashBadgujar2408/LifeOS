@@ -127,3 +127,30 @@ public class NarrationsController(INarratorService narratorService) : Controller
         return Ok(ApiResponse<bool>.Ok(true));
     }
 }
+
+/// <summary>
+/// The Forecast tab: GET api/Assistant/Forecast?months=3|6|12 — the saved prediction (data null when there's none; never
+/// calls Mistral); POST api/Assistant/Forecast { months, today } — asks Mistral again on the user's own key, works out
+/// the balances and saves them.
+/// </summary>
+[ApiController]
+[Area("Assistant")]
+[Route("api/[area]/[controller]")]
+[Authorize]
+public class ForecastController(IForecastPredictor predictor) : ControllerBase
+{
+    [HttpGet]
+    public async Task<IActionResult> GetSaved([FromQuery] int months) =>
+        months is not (3 or 6 or 12)
+            ? BadRequest(ApiResponse<ForecastPredictionDto?>.Fail("Forecast 3, 6 or 12 months ahead."))
+            : Ok(ApiResponse<ForecastPredictionDto?>.Ok(await predictor.GetSavedAsync(months)));
+
+    [HttpPost]
+    public async Task<IActionResult> Predict(PredictForecastRequest request, CancellationToken cancellationToken)
+    {
+        var result = await predictor.PredictAsync(request.Today, request.Months, cancellationToken);
+        return result.Success
+            ? Ok(ApiResponse<ForecastPredictionDto>.Ok(result.Data))
+            : BadRequest(ApiResponse<ForecastPredictionDto>.Fail(result.Error!));
+    }
+}

@@ -49,3 +49,17 @@ public interface INarratorService
     /// <summary>Forgets a kept narration (the user's own text; nothing else is touched).</summary>
     Task RemoveKeptAsync(string scope, int? year);
 }
+
+/// <summary>
+/// The Forecast tab: Mistral reads patterns in the user's past income and spending (and its own probability that the
+/// money turns out as predicted); LifeOS checks them and adds them to today's balances and the money already known to
+/// be coming. Saved per horizon; only Predict asks Mistral.
+/// </summary>
+public interface IForecastPredictor
+{
+    /// <summary>The saved prediction for 3/6/12 months, or null — never calls Mistral.</summary>
+    Task<ForecastPredictionDto?> GetSavedAsync(int months);
+
+    /// <summary>Asks Mistral, checks and works out the forecast, and saves it (replacing the saved one).</summary>
+    Task<OperationResult<ForecastPredictionDto>> PredictAsync(DateOnly today, int months, CancellationToken cancellationToken);
+}

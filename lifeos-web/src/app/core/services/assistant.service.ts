@@ -4,6 +4,7 @@ import { Observable, map } from 'rxjs';
 import { browserTimeZone, todayIso } from '../dates/today';
 import { ApiResponse } from './api-response';
 import { AuthService } from './auth.service';
+import type { ForecastItem } from './finance.service';
 import { VaultService } from './vault.service';
 
 export interface AssistantModel {
@@ -32,6 +33,67 @@ export type ChatRole = 'user' | 'assistant';
 export interface SentItem {
   label: string;
   content: string;
+}
+
+export interface PredictedPoint {
+  day: string;
+  /** Expected: known money + each pattern's typical amount. */
+  balance: number;
+  /** Patterns at their worst (income low, spending high) and best. */
+  low: number;
+  high: number;
+}
+
+export interface PredictedLine {
+  /** Null for the overall line (all accounts, in the base currency). */
+  accountId: number | null;
+  name: string;
+  currency: string;
+  start: number;
+  end: PredictedPoint;
+  lowest: PredictedPoint;
+  /** Today, then one point a month. */
+  points: PredictedPoint[];
+}
+
+/** A pattern Mistral read from past income/spending — a month's typical amount, its range and its confidence. */
+export interface MoneyPattern {
+  name: string;
+  kind: 'Income' | 'Expense';
+  accountId: number | null;
+  lineName: string;
+  typical: number;
+  low: number;
+  high: number;
+  confidence: number;
+  basis: string;
+  from: string[];
+}
+
+/**
+ * The Forecast tab (Session 96a): Mistral reads the patterns and its own probability; LifeOS adds them and the money
+ * already known to be coming to today's balances. Saved per horizon until Predict again.
+ */
+export interface ForecastPrediction {
+  months: 3 | 6 | 12;
+  from: string;
+  until: string;
+  predictedAt: string;
+  baseCurrency: string;
+  model: string;
+  overall: PredictedLine;
+  accounts: PredictedLine[];
+  patterns: MoneyPattern[];
+  /** Mistral's own 0–100 estimate that the money turns out as predicted (within the low–high range). */
+  confidence: number;
+  confidenceReason: string;
+  summary: string;
+  historyFrom: string | null;
+  historyTo: string | null;
+  /** The money already known to be coming. */
+  items: ForecastItem[];
+  unconverted: string[];
+  sent: SentItem[];
 }
 
 export interface ChatTurn {
@@ -268,5 +330,24 @@ export class AssistantService {
         params: narrationParams(scope, year),
       })
       .pipe(map(() => undefined));
+  }
+
+  /** The saved forecast for 3, 6 or 12 months, or null — never asks Mistral. */
+  savedForecast(months: 3 | 6 | 12): Observable<ForecastPrediction | null> {
+    return this.http
+      .get<ApiResponse<ForecastPrediction | null>>(`${this.baseUrl}/Forecast`, {
+        params: { months },
+      })
+      .pipe(map((response) => response.data ?? null));
+  }
+
+  /** Asks Mistral again (the user's own key) and saves the new forecast in place of the old one. */
+  predictForecast(months: 3 | 6 | 12): Observable<ForecastPrediction> {
+    return this.http
+      .post<ApiResponse<ForecastPrediction>>(`${this.baseUrl}/Forecast`, {
+        months,
+        today: todayIso(),
+      })
+      .pipe(map((response) => response.data!));
   }
 }

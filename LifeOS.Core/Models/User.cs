@@ -89,6 +89,8 @@ public partial class User
 
     public virtual ICollection<FocusSession> FocusSessions { get; set; } = new List<FocusSession>();
 
+    public virtual ICollection<ForecastPrediction> ForecastPredictions { get; set; } = new List<ForecastPrediction>();
+
     public virtual ICollection<FuelLog> FuelLogs { get; set; } = new List<FuelLog>();
 
     public virtual ICollection<GiftIdea> GiftIdeas { get; set; } = new List<GiftIdea>();
@@ -234,10 +236,6 @@ public partial class User
     public virtual ICollection<SalaryRecord> SalaryRecords { get; set; } = new List<SalaryRecord>();
 
     public virtual ICollection<SavedReport> SavedReports { get; set; } = new List<SavedReport>();
-
-    public virtual ICollection<ScenarioLine> ScenarioLines { get; set; } = new List<ScenarioLine>();
-
-    public virtual ICollection<Scenario> Scenarios { get; set; } = new List<Scenario>();
 
     public virtual ICollection<ShoppingListItem> ShoppingListItems { get; set; } = new List<ShoppingListItem>();
 

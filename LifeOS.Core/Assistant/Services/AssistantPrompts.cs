@@ -65,7 +65,7 @@ public static class AssistantPrompts
         ["habits"] = "Habits (/habits): build or avoid habits on chosen weekdays, measurable targets, streaks, challenges and routines. Tick a day on the habit grid.",
         ["calendar"] = "Calendar (/calendar): events (one-off or repeating), with task, milestone, bill and birthday dates shown alongside. Drag to move. Reminders (/reminders) can point at any item.",
         ["journal"] = "Journal (/journal): one entry per day with mood, gratitude and lessons, photos, weekly and monthly reflections, and a decision journal (/journal/decisions).",
-        ["money"] = "Money: Accounts (/finance), Transactions (/finance/transactions), Repeating, Budgets (per tag per month), Net worth, Forecast, Plan (savings and retirement), Can I afford it?, Investments, Loans, Insurance, Taxes and Money reports. Exchange rates are in Settings.",
+        ["money"] = "Money: Accounts (/finance), Transactions (/finance/transactions), Repeating, Budgets (per tag per month), Net worth, Forecast (balances ahead predicted by Mistral on your key), Plan (savings and retirement), Investments, Loans, Insurance, Taxes and Money reports. Exchange rates are in Settings.",
         ["health"] = "Health (/health) is in the vault — it asks for your password: medical history, doctor visits, medicines and doses, exercise, sleep, body measurements, food & water, lab results and wellbeing.",
         ["learning"] = "Learning: Skills, Courses, Roadmaps, Study (with a timer), Notes & review (spaced review) and Certifications. Books are in Leisure.",
         ["career"] = "Career: Timeline of roles, Salary, Achievements, Applications (a board by stage, interviews on the calendar), Interview prep, Resumes, Reviews, Side income and Network.",

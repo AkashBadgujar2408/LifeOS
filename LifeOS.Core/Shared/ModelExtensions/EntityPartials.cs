@@ -99,6 +99,8 @@ public partial class AssistantSetting : ISoftDeletable, IUserOwned;
 public partial class ActionLog : ISoftDeletable, IUserOwned;
 public partial class Narration : ISoftDeletable, IUserOwned;
 
+public partial class ForecastPrediction : ISoftDeletable, IUserOwned;
+
 public partial class Skill : ISoftDeletable, IUserOwned;
 
 public partial class SkillLevelChange : ISoftDeletable, IUserOwned;
@@ -240,10 +242,6 @@ public partial class BenefitRedemption : ISoftDeletable, IUserOwned;
 public partial class PointBatch : ISoftDeletable, IUserOwned;
 
 public partial class PlanAssumption : ISoftDeletable, IUserOwned;
-
-public partial class Scenario : ISoftDeletable, IUserOwned;
-
-public partial class ScenarioLine : ISoftDeletable, IUserOwned;
 
 // Family & Relationships (Session 72)
 public partial class Relationship : ISoftDeletable, IUserOwned;
