@@ -57,20 +57,25 @@
                   <div class="min-w-0 flex-grow-1">
                     <h3 class="h6 mb-1">{{ a.title }}</h3>
                     <p class="small text-body-secondary mb-2">{{ a.description }}</p>
-                    <div
-                      class="progress"
-                      style="height: 0.35rem"
-                      role="progressbar"
-                      [attr.aria-label]="a.title + ' progress'"
-                      [attr.aria-valuenow]="a.progress"
-                      aria-valuemin="0"
-                      [attr.aria-valuemax]="a.target"
-                    >
-                      <div class="progress-bar" [style.width.%]="progressPercent(a)"></div>
-                    </div>
-                    <p class="small text-body-secondary mb-0 mt-1">
-                      {{ a.progress }} of {{ a.target }}
-                    </p>
+                    @if (a.needsRate) {
+                      <p class="small text-body-secondary mb-0">
+                        Set an INR rate in
+                        <a routerLink="/settings">Settings → Exchange rates</a> to track this.
+                      </p>
+                    } @else {
+                      <div
+                        class="progress"
+                        style="height: 0.35rem"
+                        role="progressbar"
+                        [attr.aria-label]="a.title + ' progress'"
+                        [attr.aria-valuenow]="a.progress"
+                        aria-valuemin="0"
+                        [attr.aria-valuemax]="a.target"
+                      >
+                        <div class="progress-bar" [style.width.%]="progressPercent(a)"></div>
+                      </div>
+                      <p class="small text-body-secondary mb-0 mt-1">{{ progressText(a) }}</p>
+                    }
                   </div>
                 </div>
               </article>

@@ -57,9 +57,17 @@ public class WealthService(AppDbContext db) : IWealthService
             Currency = baseCurrency,
             Points = days
                 .Select(day => NetWorth.At(day, inputs, baseCurrency))
-                .Select(s => new NetWorthPointDto { Day = s.Day, Assets = s.Assets, Liabilities = s.Liabilities, Net = s.Net })
+                .Select(s => new NetWorthPointDto { Day = s.Day, Assets = s.Assets, Liabilities = s.Liabilities, Net = s.Net, Cash = s.Cash })
                 .ToList(),
         };
+    }
+
+    public async Task<decimal?> RateToBaseAsync(string currency, DateOnly day)
+    {
+        var baseCurrency = await BaseCurrencyAsync();
+        return baseCurrency is null ? null
+            : currency == baseCurrency ? 1
+            : NetWorth.RateFor(currency, day, await FinanceRates.MasterAsync(db, baseCurrency), await FinanceRates.TypedAsync(db));
     }
 
     public async Task<OperationResult<SavingsProgressDto?>> GetSavingsAsync(int goalId, DateOnly today)

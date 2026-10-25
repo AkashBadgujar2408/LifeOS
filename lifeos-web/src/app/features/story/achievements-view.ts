@@ -1,4 +1,5 @@
 import { Achievement } from '../../core/services/story.service';
+import { formatMoney } from '../finance/finance-view';
 
 /**
  * Unlocked achievements newest first; locked ones closest to done first (by share of the target), keeping the API's
@@ -19,6 +20,16 @@ export function splitAchievements(achievements: readonly Achievement[]): {
       .sort((x, y) => share(y.a) - share(x.a) || x.index - y.index)
       .map(({ a }) => a),
   };
+}
+
+/** "3 of 5", or money in whole units ("₹6,40,000 of ₹10,00,000"). */
+export function progressText(achievement: Achievement): string {
+  const { progress, target, currency } = achievement;
+  if (currency === null) {
+    return `${progress} of ${target}`;
+  }
+  const money = (amount: number) => formatMoney(amount, currency).replace(/\.00$/, '');
+  return `${money(progress)} of ${money(target)}`;
 }
 
 /** A 0–100 width for the progress bar. */

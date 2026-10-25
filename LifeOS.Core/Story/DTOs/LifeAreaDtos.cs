@@ -78,4 +78,10 @@ public class AchievementDto
     public int Target { get; init; }
     public DateOnly? UnlockedOn { get; init; }
     public bool Unlocked => UnlockedOn is not null;
+    /// <summary>The module it belongs to (hidden with it); null for Story's own.</summary>
+    public string? Module { get; init; }
+    /// <summary>Set when Progress/Target are money in this (base) currency.</summary>
+    public string? Currency { get; init; }
+    /// <summary>A money milestone that can't be judged until an INR rate is set (base currency isn't INR).</summary>
+    public bool NeedsRate { get; init; }
 }

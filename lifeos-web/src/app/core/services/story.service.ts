@@ -194,6 +194,12 @@ export interface Achievement {
   /** The local day it was earned; null while locked. */
   unlockedOn: string | null;
   unlocked: boolean;
+  /** The module it belongs to (the API leaves out switched-off ones); null for Story's own. */
+  module: string | null;
+  /** Set when progress/target are money in this (base) currency. */
+  currency: string | null;
+  /** A money milestone that can't be judged until an INR rate is set in Settings. */
+  needsRate: boolean;
 }
 
 /** The "Previously on…" card on My Day. */

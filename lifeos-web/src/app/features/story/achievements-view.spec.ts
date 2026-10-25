@@ -1,5 +1,5 @@
 import { Achievement } from '../../core/services/story.service';
-import { progressPercent, splitAchievements } from './achievements-view';
+import { progressPercent, progressText, splitAchievements } from './achievements-view';
 
 function achievement(key: string, overrides: Partial<Achievement> = {}): Achievement {
   return {
@@ -11,6 +11,9 @@ function achievement(key: string, overrides: Partial<Achievement> = {}): Achieve
     target: 10,
     unlockedOn: null,
     unlocked: false,
+    module: null,
+    currency: null,
+    needsRate: false,
     ...overrides,
   };
 }
@@ -34,5 +37,12 @@ describe('achievements-view', () => {
     expect(progressPercent(achievement('a', { progress: 3, target: 7 }))).toBe(42);
     expect(progressPercent(achievement('a', { progress: 9, target: 7 }))).toBe(100);
     expect(progressPercent(achievement('a', { progress: 1, target: 0 }))).toBe(0);
+  });
+
+  it('writes progress as counts or as money in whole units', () => {
+    expect(progressText(achievement('a', { progress: 3, target: 5 }))).toBe('3 of 5');
+    expect(
+      progressText(achievement('a', { progress: 640000, target: 1000000, currency: 'INR' })),
+    ).toBe('₹6,40,000 of ₹10,00,000');
   });
 });

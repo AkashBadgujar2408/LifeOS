@@ -1,5 +1,7 @@
+using LifeOS.Core.Finance.Services;
 using LifeOS.Core.Goals.DTOs;
 using LifeOS.Core.Habits.Services;
+using LifeOS.Core.Shared.DTOs;
 
 namespace LifeOS.Core.Story.Services;
 
@@ -32,9 +34,53 @@ public record AchievementFacts(
     IReadOnlyList<ChapterFact> Chapters,
     IReadOnlyList<DateOnly> DebriefDays,
     IReadOnlyList<RatingFact> Ratings,
-    IReadOnlyList<ChallengeFact>? Challenges = null);
+    IReadOnlyList<ChallengeFact>? Challenges = null,
+    ProgressFacts? Progress = null,
+    MoneyFacts? Money = null);
 
-/// <summary>One achievement: unlocked on a day, or locked with how far along it is.</summary>
+/// <summary>Minutes spent on a local day (study, focus).</summary>
+public record MinutesFact(DateOnly Day, int Minutes);
+
+public record MediaFinishedFact(string Kind, DateOnly Day);
+
+/// <summary>Career, learning, leisure and tasks facts (Session 96b), on local days.</summary>
+public record ProgressFacts(
+    IReadOnlyList<DateOnly> Promotions,
+    IReadOnlyList<DateOnly> OffersAccepted,
+    IReadOnlyList<DateOnly> Certifications,
+    IReadOnlyList<DateOnly> CoursesFinished,
+    IReadOnlyList<MinutesFact> Study,
+    IReadOnlyList<DateOnly> SkillsAtTop,
+    IReadOnlyList<MediaFinishedFact> MediaFinished,
+    IReadOnlyList<DateOnly> TasksDone,
+    IReadOnlyList<MinutesFact> Focus);
+
+/// <summary>Net worth and money in accounts at the end of a day, in the base currency (NetWorth.At).</summary>
+public record WealthDayFact(DateOnly Day, decimal Net, decimal Cash);
+
+/// <summary>A month as the cash-flow report counts it; <c>BudgetKept</c> null when the month had no budget.</summary>
+public record MoneyMonthFact(DateOnly MonthStart, decimal Income, decimal Spending, bool? BudgetKept = null);
+
+/// <summary>A loan you borrowed: what's still owed today and the day it was cleared (closed or last paid).</summary>
+public record DebtFact(decimal Outstanding, DateOnly? ClearedOn);
+
+/// <summary>
+/// Finance facts (Session 96b), all in the base currency. <c>InrRate</c> is one INR in it (1 for INR, null without a
+/// rate); <c>IncomeCrossedOn</c> is the day a month's income first reached each threshold amount (worked out by the
+/// service from the cash-flow report, day by day within the month).
+/// </summary>
+public record MoneyFacts(
+    string Currency,
+    decimal? InrRate,
+    IReadOnlyList<WealthDayFact> Days,
+    IReadOnlyList<MoneyMonthFact> Months,
+    IReadOnlyList<DebtFact> Debts,
+    IReadOnlyDictionary<decimal, DateOnly> IncomeCrossedOn);
+
+/// <summary>
+/// One achievement: unlocked on a day, or locked with how far along it is. <c>Module</c> hides it with that module;
+/// <c>Currency</c> says Progress/Target are money; <c>NeedsRate</c> = can't be judged until an INR rate is set.
+/// </summary>
 public record Achievement(
     string Key,
     string Title,
@@ -42,7 +88,10 @@ public record Achievement(
     string Icon,
     int Progress,
     int Target,
-    DateOnly? UnlockedOn)
+    DateOnly? UnlockedOn,
+    string? Module = null,
+    string? Currency = null,
+    bool NeedsRate = false)
 {
     public bool Unlocked => UnlockedOn is not null;
 }
@@ -104,7 +153,234 @@ public static class Achievements
                 "bi-pie-chart", rounded.Best, facts.LifeAreaCount, rounded.On),
             new("self-rated", "An honest look", "Rated every life area for a month.", "bi-clipboard-heart",
                 rated.Best, facts.LifeAreaCount, rated.On),
+            .. Progress(facts.Progress, today),
+            .. Money(facts.Money, today),
         ];
+    }
+
+    /// <summary>Career, learning, leisure and tasks (Session 96b). Each hides with its module.</summary>
+    internal static IEnumerable<Achievement> Progress(ProgressFacts? facts, DateOnly today)
+    {
+        if (facts is null)
+        {
+            yield break;
+        }
+
+        List<DateOnly> Sorted(IEnumerable<DateOnly> days) => days.Where(d => d <= today).Order().ToList();
+        Achievement In(string module, Achievement a) => a with { Module = module };
+
+        yield return In(ModuleKeys.Career, Count("first-promotion", "Moving up", "Got your first promotion.", "bi-graph-up-arrow",
+            Sorted(facts.Promotions), 1));
+        yield return In(ModuleKeys.Career, Count("offer-accepted", "Said yes", "Accepted a job offer.", "bi-briefcase",
+            Sorted(facts.OffersAccepted), 1));
+        yield return In(ModuleKeys.Learning, Count("first-certification", "Certified", "Earned your first certification.",
+            "bi-patch-check", Sorted(facts.Certifications), 1));
+        yield return In(ModuleKeys.Learning, Count("courses-5", "Five courses finished", "Finished five courses.", "bi-mortarboard",
+            Sorted(facts.CoursesFinished), 5));
+        yield return In(ModuleKeys.Learning, Hours("study-100-hours", "A hundred hours of study", "Studied for a hundred hours in all.",
+            "bi-hourglass-split", facts.Study, 100, today));
+        yield return In(ModuleKeys.Learning, Count("skill-top", "Could teach it", "Raised a skill to its top level.", "bi-stars",
+            Sorted(facts.SkillsAtTop), 1));
+
+        var books = BestYear(facts.MediaFinished.Where(m => m.Kind == "Book").Select(m => m.Day), 12, today);
+        yield return In(ModuleKeys.Leisure, new("books-12-year", "A book a month", "Finished twelve books in one calendar year.",
+            "bi-book-half", books.Best, 12, books.On));
+        yield return In(ModuleKeys.Leisure, Count("media-50", "Fifty finished",
+            "Finished fifty books, films, shows, games, albums or podcasts.", "bi-collection-play",
+            Sorted(facts.MediaFinished.Select(m => m.Day)), 50));
+        yield return In(ModuleKeys.Tasks, Count("tasks-100", "A hundred tasks done", "Completed a hundred tasks.", "bi-check2-square",
+            Sorted(facts.TasksDone), 100));
+        yield return In(ModuleKeys.Tasks, Hours("focus-50-hours", "Fifty hours of focus", "Spent fifty hours in focus sessions.",
+            "bi-stopwatch", facts.Focus, 50, today));
+    }
+
+    /// <summary>Unlocked on the day the running total of minutes reached <paramref name="hours"/>; progress in whole hours.</summary>
+    private static Achievement Hours(string key, string title, string description, string icon, IEnumerable<MinutesFact> sessions,
+        int hours, DateOnly today)
+    {
+        var total = 0;
+        DateOnly? on = null;
+        foreach (var day in sessions.Where(s => s.Day <= today).GroupBy(s => s.Day).OrderBy(g => g.Key))
+        {
+            total += day.Sum(s => s.Minutes);
+            if (on is null && total >= hours * 60)
+            {
+                on = day.Key;
+            }
+        }
+
+        return new(key, title, description, icon, Math.Min(total / 60, hours), hours, on);
+    }
+
+    /// <summary>The most in one calendar year (capped at the target) and the day the earliest year that made it got there.</summary>
+    internal static (int Best, DateOnly? On) BestYear(IEnumerable<DateOnly> days, int target, DateOnly today)
+    {
+        var best = 0;
+        DateOnly? on = null;
+        foreach (var year in days.Where(d => d <= today).GroupBy(d => d.Year).OrderBy(g => g.Key))
+        {
+            var sorted = year.Order().ToList();
+            best = Math.Max(best, sorted.Count);
+            if (on is null && sorted.Count >= target)
+            {
+                on = sorted[target - 1];
+            }
+        }
+
+        return (Math.Min(best, target), on);
+    }
+
+    /// <summary>
+    /// Money (Session 96b), in the base currency. Net worth and month-income thresholds are written in INR and
+    /// converted (<see cref="AchievementThresholds"/>); without an INR rate those few show NeedsRate instead of a guess.
+    /// </summary>
+    internal static IEnumerable<Achievement> Money(MoneyFacts? facts, DateOnly today)
+    {
+        if (facts is null)
+        {
+            yield break;
+        }
+
+        var currency = facts.Currency;
+        Achievement In(Achievement a) => a with { Module = ModuleKeys.Finance };
+        var days = facts.Days.Where(d => d.Day <= today).OrderBy(d => d.Day).ToList();
+        var months = facts.Months.Where(m => m.MonthStart <= today).OrderBy(m => m.MonthStart).ToList();
+        // A month counts for "running" achievements once it's over.
+        var finished = months.Where(m => MonthEnd(m.MonthStart) < today).ToList();
+
+        var netWorth = AchievementThresholds.For(AchievementThresholds.NetWorth, currency, facts.InrRate);
+        var current = days.Count > 0 ? days[^1].Net : 0;
+        foreach (var (key, inr) in AchievementThresholds.NetWorth)
+        {
+            var threshold = netWorth?.Single(t => t.Key == key);
+            var name = threshold?.Label ?? AchievementThresholds.Label(inr, AchievementThresholds.Inr);
+            if (threshold is null)
+            {
+                yield return In(new(key, $"Net worth {name}", $"Your net worth reached {name}.", "bi-graph-up", 0, 0, null, NeedsRate: true));
+                continue;
+            }
+
+            // Reached once is reached: a later dip doesn't take it away (the day really happened).
+            var reachedOn = days.FirstOrDefault(d => d.Net >= threshold.Amount)?.Day;
+            yield return In(new(key, $"Net worth {name}", $"Your net worth reached {name}.", "bi-graph-up",
+                reachedOn is null ? Whole(Math.Clamp(current, 0, threshold.Amount)) : Whole(threshold.Amount), Whole(threshold.Amount),
+                reachedOn, Currency: currency));
+        }
+
+        var income = AchievementThresholds.For(AchievementThresholds.MonthIncome, currency, facts.InrRate);
+        var bestMonth = months.Count > 0 ? months.Max(m => m.Income) : 0;
+        foreach (var (key, inr) in AchievementThresholds.MonthIncome)
+        {
+            var threshold = income?.Single(t => t.Key == key);
+            var name = threshold?.Label ?? AchievementThresholds.Label(inr, AchievementThresholds.Inr);
+            if (threshold is null)
+            {
+                yield return In(new(key, $"A {name} month", $"Earned {name} or more in one calendar month.", "bi-cash-stack", 0, 0, null,
+                    NeedsRate: true));
+                continue;
+            }
+
+            DateOnly? crossedOn = months.Any(m => m.Income >= threshold.Amount)
+                && facts.IncomeCrossedOn.TryGetValue(threshold.Amount, out var crossed) && crossed <= today ? crossed : null;
+            yield return In(new(key, $"A {name} month", $"Earned {name} or more in one calendar month.", "bi-cash-stack",
+                Whole(Math.Min(bestMonth, threshold.Amount)), Whole(threshold.Amount), crossedOn, Currency: currency));
+        }
+
+        // Every loan you borrowed paid off, on the day the last one was cleared.
+        var debts = facts.Debts;
+        var cleared = debts.Count(d => d.Outstanding <= 0);
+        var lastCleared = debts.Count > 0 && cleared == debts.Count && debts.All(d => d.ClearedOn is not null)
+            ? debts.Max(d => d.ClearedOn!.Value) : (DateOnly?)null;
+        yield return In(new("debt-free", "Debt-free", "Paid off every loan you owed.", "bi-unlock",
+            cleared, Math.Max(debts.Count, 1), lastCleared <= today ? lastCleared : null));
+
+        var fund = EmergencyFund(days, months, today);
+        yield return In(new("emergency-fund", "Safety net", "Money in your accounts covered six months of your average spending.",
+            "bi-shield-check", fund.Covered, EmergencyMonths, fund.On));
+
+        var kept = Runs(finished.Where(m => m.BudgetKept is not null).ToList(), m => m.BudgetKept == true, 3);
+        yield return In(new("budget-month", "On budget", "Kept every budget for a whole month.", "bi-piggy-bank",
+            Math.Min(kept.Best, 1), 1, kept.ReachedOn.GetValueOrDefault(1)));
+        yield return In(new("budget-3-months", "Three months on budget", "Kept every budget three months running.", "bi-piggy-bank-fill",
+            kept.Best, 3, kept.ReachedOn.GetValueOrDefault(3)));
+
+        var saved = Runs(finished, m => CashFlowSavingsRate(m) >= SavingsRatePercent, 3);
+        yield return In(new("saved-20-3-months", "Steady saver", "Saved 20% or more of your income three months running.", "bi-bank",
+            saved.Best, 3, saved.ReachedOn.GetValueOrDefault(3)));
+    }
+
+    public const int EmergencyMonths = 6;
+    public const decimal SavingsRatePercent = 20;
+
+    private static decimal? CashFlowSavingsRate(MoneyMonthFact m) => CashFlowReport.SavingsRate(m.Income, m.Spending);
+
+    private static DateOnly MonthEnd(DateOnly monthStart) => monthStart.AddMonths(1).AddDays(-1);
+
+    private static int Whole(decimal amount) => (int)Math.Min(Math.Floor(amount), int.MaxValue);
+
+    /// <summary>
+    /// The longest run of back-to-back calendar months that pass (cap <paramref name="cap"/>), and the last day of the
+    /// month on which each run length 1..cap was first reached. A month missing from the list breaks a run.
+    /// </summary>
+    internal static (int Best, Dictionary<int, DateOnly?> ReachedOn) Runs(
+        IReadOnlyList<MoneyMonthFact> months, Func<MoneyMonthFact, bool> passes, int cap)
+    {
+        var reached = new Dictionary<int, DateOnly?>();
+        var run = 0;
+        var best = 0;
+        DateOnly? previous = null;
+        foreach (var month in months.OrderBy(m => m.MonthStart))
+        {
+            var follows = previous is { } p && p.AddMonths(1) == month.MonthStart;
+            run = passes(month) ? (follows ? run + 1 : 1) : 0;
+            previous = month.MonthStart;
+            best = Math.Max(best, Math.Min(run, cap));
+            if (run is > 0 && run <= cap && !reached.ContainsKey(run))
+            {
+                reached[run] = MonthEnd(month.MonthStart);
+            }
+        }
+
+        return (best, reached);
+    }
+
+    /// <summary>
+    /// At the end of a finished month, money in accounts ≥ six times the average spending of the six months ending
+    /// with it (six months of history needed, some spending in them). Unlocked on the first such month end; progress
+    /// = whole months of spending the accounts cover now (against the latest six finished months).
+    /// </summary>
+    internal static (int Covered, DateOnly? On) EmergencyFund(IReadOnlyList<WealthDayFact> days, IReadOnlyList<MoneyMonthFact> months,
+        DateOnly today)
+    {
+        var cashOn = days.ToDictionary(d => d.Day, d => d.Cash);
+        var finished = months.Where(m => MonthEnd(m.MonthStart) < today).OrderBy(m => m.MonthStart).ToList();
+        DateOnly? on = null;
+        decimal? latestAverage = null;
+        for (var i = EmergencyMonths - 1; i < finished.Count; i++)
+        {
+            var window = finished.Skip(i - EmergencyMonths + 1).Take(EmergencyMonths).ToList();
+            if (window[0].MonthStart.AddMonths(EmergencyMonths - 1) != window[^1].MonthStart)
+            {
+                continue;
+            }
+
+            var average = window.Average(m => m.Spending);
+            if (average <= 0)
+            {
+                continue;
+            }
+
+            latestAverage = average;
+            var end = MonthEnd(window[^1].MonthStart);
+            if (on is null && cashOn.TryGetValue(end, out var cash) && cash >= EmergencyMonths * average)
+            {
+                on = end;
+            }
+        }
+
+        var now = days.Count > 0 ? days[^1].Cash : 0;
+        var covered = latestAverage is { } avg && now > 0 ? (int)Math.Min(Math.Floor(now / avg), EmergencyMonths) : 0;
+        return (on is not null ? EmergencyMonths : covered, on);
     }
 
     /// <summary>Unlocked on the day the <paramref name="target"/>-th thing happened (days sorted oldest first).</summary>

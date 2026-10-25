@@ -261,6 +261,9 @@ public sealed record WealthSnapshot(DateOnly Day, decimal Assets, decimal Liabil
 {
     public decimal Net => Assets - Liabilities;
 
+    /// <summary>What the accounts hold (a card owed counts against it), in the base currency — investments and loans left out.</summary>
+    public decimal Cash => Items.Where(i => i.Type == NetWorth.AccountType && i.InBase is not null).Sum(i => i.InBase!.Value);
+
     /// <summary>Items in another currency with no rate known by that day — left out of the totals.</summary>
     public IEnumerable<WealthItem> Unconverted => Items.Where(i => i.InBase is null);
 }

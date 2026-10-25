@@ -581,6 +581,8 @@ public class NetWorthPointDto
     public decimal Assets { get; init; }
     public decimal Liabilities { get; init; }
     public decimal Net { get; init; }
+    /// <summary>What the accounts hold (investments and loans left out).</summary>
+    public decimal Cash { get; init; }
 }
 
 public class NetWorthDto

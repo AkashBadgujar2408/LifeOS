@@ -13,7 +13,7 @@ import { apiErrorMessage } from '../../core/services/api-error';
 import { Achievement, StoryService } from '../../core/services/story.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LoadError } from '../../shared/components/load-error/load-error';
-import { progressPercent, splitAchievements } from './achievements-view';
+import { progressPercent, progressText, splitAchievements } from './achievements-view';
 
 /**
  * Achievements: earned from what you actually did, computed by the API on every visit and never stored — nothing to
@@ -32,6 +32,7 @@ export class Achievements {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly progressPercent = progressPercent;
+  protected readonly progressText = progressText;
   protected readonly achievements = signal<Achievement[] | null>(null);
   protected readonly loadFailed = signal(false);
   protected readonly split = computed(() => splitAchievements(this.achievements() ?? []));

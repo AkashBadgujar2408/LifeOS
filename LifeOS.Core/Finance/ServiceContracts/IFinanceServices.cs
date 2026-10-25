@@ -89,6 +89,12 @@ public interface IWealthService
 
     /// <summary>Net worth at the end of each of <paramref name="days"/> (Reports, Session 92), worked out by <c>NetWorth.At</c>.</summary>
     Task<NetWorthPointsDto> GetNetWorthOnAsync(IReadOnlyList<DateOnly> days);
+
+    /// <summary>
+    /// What one unit of <paramref name="currency"/> is in the base currency on a day — <c>NetWorth.RateFor</c> (the rate
+    /// master first, then typed rates). 1 for the base itself; null without a base currency or a rate.
+    /// </summary>
+    Task<decimal?> RateToBaseAsync(string currency, DateOnly day);
 }
 
 /// <summary>The exchange-rate master (rates into the base currency, set by hand, with history).</summary>
