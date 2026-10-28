@@ -46,6 +46,9 @@ const COMING_UP_DAYS = 60;
                   <i class="bi {{ link.icon }} text-body-secondary" aria-hidden="true"></i>
                   <div class="h4 mb-0 mt-1">{{ link.count }}</div>
                   <div class="small text-body-secondary">{{ link.label }}</div>
+                  @if (link.detail) {
+                    <div class="small text-body-secondary">{{ link.detail }}</div>
+                  }
                 </div>
               </a>
             </div>
@@ -106,6 +109,8 @@ export class Family implements OnInit {
         icon: 'bi-people',
         label: 'People in your family',
         count: people.filter((p) => p.isFamily).length,
+        // The People page lists everyone when nobody is in the tree yet, so say how many that is.
+        detail: `of ${people.length} ${people.length === 1 ? 'person' : 'people'}`,
       },
       {
         route: '/family/tree',

@@ -42,18 +42,12 @@ export async function openDocumentEditor(
 
 // Mirrors CK_Documents_Dates and CK_Documents_ExpiryReminderDays.
 function documentRules(group: AbstractControl): ValidationErrors | null {
-  const { issuedOn, expiresOn, expiryReminderDays } = group.value as {
+  // The reminder choice needs no rule: without an expiry date it isn't shown and submit() sends none.
+  const { issuedOn, expiresOn } = group.value as {
     issuedOn: string | null;
     expiresOn: string | null;
-    expiryReminderDays: number | null;
   };
-  if (issuedOn && expiresOn && expiresOn < issuedOn) {
-    return { expiresBeforeIssued: true };
-  }
-  if (expiryReminderDays !== null && !expiresOn) {
-    return { reminderWithoutExpiry: true };
-  }
-  return null;
+  return issuedOn && expiresOn && expiresOn < issuedOn ? { expiresBeforeIssued: true } : null;
 }
 
 @Component({
@@ -114,14 +108,8 @@ export class DocumentEditor {
   }
 
   protected fieldError(
-    name: 'title' | 'issuer' | 'number' | 'issuedOn' | 'expiresOn' | 'reminder' | 'notes',
+    name: 'title' | 'issuer' | 'number' | 'issuedOn' | 'expiresOn' | 'notes',
   ): string | null {
-    if (name === 'reminder') {
-      return this.form.errors?.['reminderWithoutExpiry'] && this.form.controls.expiresOn.touched
-        ? 'Add an expiry date, or choose "Don\'t remind me".'
-        : null;
-    }
-
     const control = this.form.controls[name];
     if (!control.touched) {
       return null;

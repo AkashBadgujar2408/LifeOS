@@ -366,9 +366,13 @@ export class FinanceLedger {
       .queryParamMap.pipe(takeUntilDestroyed())
       .subscribe((params) => {
         const accountId = Number(params.get('accountId'));
+        const opened = Number.isInteger(accountId) && accountId > 0 ? accountId : null;
+        // Opened for one account (its card, search, a statement import): every day, so the list matches the
+        // card's count — which covers any day — instead of only this month.
         this.filter.update((f) => ({
           ...f,
-          accountId: Number.isInteger(accountId) && accountId > 0 ? accountId : null,
+          accountId: opened,
+          ...(opened === null ? {} : { from: null, to: null }),
         }));
         this.load();
       });
